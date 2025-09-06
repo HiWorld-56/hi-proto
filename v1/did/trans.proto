@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+import "v1/hi.proto";
+
+package did;
+
+message TransactionInfo {
+    string hash = 1;
+    string from = 2;
+    string to = 3;
+    string amount = 4;
+    string coin = 5;
+}
+
+message ListTransactionsReq {
+    string coin = 1;
+    string address = 2;
+    hi.Pagination pagination = 4;
+}
+
+message ListTransactionsResp {
+    message Unit {
+        TransactionInfo trans = 1;
+        int32 direction = 5;
+        int32 status = 6;
+        int64 timestamp = 7;
+    }
+    repeated Unit list = 1;
+    bool is_end = 3;
+}
+
+message GetTransactionDetailReq {
+    TransactionInfo trans = 1;
+    string verify_hash_dump = 6;
+    string verify_tran = 7;
+}
+
+message GetTransactionDetailResp {
+    TransactionInfo trans = 1;
+    string timestamp = 2;
+    int64 confirmed_blocks = 3;
+    string status = 4;
+    string error = 5;
+}
+
+service Transaction {
+    rpc ListTransactions (ListTransactionsReq) returns (ListTransactionsResp); // 不鉴权
+    rpc GetTransactionDetail (GetTransactionDetailReq) returns (GetTransactionDetailResp); // 不鉴权
+}

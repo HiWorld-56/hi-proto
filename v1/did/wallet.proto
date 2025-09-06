@@ -1,0 +1,108 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+import "v1/did/base.proto";
+
+package did;
+
+message UpdateAddressesReq {
+    string did = 1;
+    string btc = 2;
+    string eth = 3;
+    string trx = 4;
+    string sol = 5;
+    string apt = 6;
+}
+
+message GetWalletReq {
+    string did = 1;
+    string coin = 2; 
+}
+
+message GetWalletResp {
+    message Unit {
+        string coin = 1;
+        string address = 2;
+    }
+    repeated Unit list = 1;
+}
+
+message ListAddressesReq {
+    message Unit {
+        string did = 1;
+        string coin = 2;
+    }
+    repeated Unit list = 1;
+}
+
+message ListAddressesResp {
+    message Unit {
+        string did = 1;
+        Coin coin = 2;
+        string address = 3;
+    }
+    repeated Unit list = 1;
+}
+
+message TotalAssetsReq {
+    string coin = 1;
+}
+
+message TotalAssetsResp {
+    string n = 1;
+}
+
+message ListUsersAssetsReq {
+    string coin = 1;
+    hi.Pagination p = 2;
+}
+
+message ListUsersAssetsResp {
+    repeated string n = 2;
+}
+
+message GetUserAssetsReq {
+  string did = 1;
+  string coin = 2;
+}
+
+message GetUserAssetsResp {
+    message Unit {
+        Coin coin = 1;
+        string address = 2;
+        string amount = 3;
+        string cny = 4;
+        string usd = 5;
+    }
+    repeated Unit unit = 1;
+}
+
+service Web {
+    rpc UpdateAddresses (hi.Web3Data) returns (google.protobuf.Empty); // UpdateAddressesReq // Web3鉴权
+    rpc GetWallet (GetWalletReq) returns (GetWalletResp); // Token鉴权
+    rpc ListAddresses (ListAddressesReq) returns (ListAddressesResp); // Token鉴权
+    rpc TotalAssets (TotalAssetsReq) returns (TotalAssetsResp); // Token鉴权
+    rpc ListUsersAssets (ListUsersAssetsReq) returns (ListUsersAssetsResp); // Token鉴权
+    rpc GetUserAssets(GetUserAssetsReq) returns (GetUserAssetsResp); // Token鉴权
+}
+
+message UpdateAssetsReq { // Token ----> Real.DID
+    string did = 1;
+    string btc = 2;
+    string eth = 31;
+    string usdt_erc20 = 32;
+    string trx = 41;
+    string usdt_trc20 = 42;
+    string whds_trc20 = 43;
+    string bt_trc20 = 44;
+    string sol = 51;
+    string usdt_sol = 52;
+    string bt_sol = 53;
+    string panda_sol = 54;
+    string apt = 61;
+}
+
+service Wallet {
+    rpc UpdateAssets (UpdateAssetsReq) returns (google.protobuf.Empty); // Token鉴权
+}

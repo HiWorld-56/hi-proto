@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package hi;
+
+// Auth: None / Token / Extend-Token
+
+message Web3Data {
+    bytes data = 1;
+	string signature = 2;
+}
+
+message DID {
+	string id = 1;
+}
+
+message Unit {
+    string type = 1;
+    string did = 2;
+    string name = 3;
+    string avatar = 4;
+    int64 update = 5;
+}
+
+message Mqtt {
+    string id = 1;
+    string username = 2;
+	string password = 3;
+}
+
+message Token {
+    string token = 1;
+	string refresh_token = 2;
+}
+
+message Nonce {
+	string nonce = 1;
+}
+
+message ReqID {
+	string id = 1;
+}
+
+message State {
+    bool state = 1;
+}
+
+message Number {
+    int64 n = 1;
+}
+
+message Node {
+	string app = 1; // HiDID、HiAI、HiClub
+	string dev = 2; // Web、App、PC、Embeded
+    string mac = 3; // Null / Mac or Static UUID (Preventing being kicked off)
+}
+
+message Pagination {
+ 	int32 page = 1;
+    int32 limit = 2;
+}
+
+message RefreshTokenReq {
+	hi.Node node = 1;
+	string did = 2;
+	string refresh_token = 3;
+}
+
+message ListSuperAdminUsersResp {
+    repeated string list = 1;
+}
+
+service Base {
+    rpc QueryHealth (google.protobuf.Empty) returns (google.protobuf.Empty); // 不鉴权
+    rpc ListSuperAdminUsers (google.protobuf.Empty) returns (ListSuperAdminUsersResp); // 不鉴权
+}

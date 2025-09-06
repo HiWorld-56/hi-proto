@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+import "v1/hi.proto";
+
+package club;
+
+message Packet {
+    oneof kind {
+        Notice notice = 1;
+        Message message = 2;
+    }
+}
+
+message Notice {
+    string uuid = 1;
+    string type = 2;
+    hi.Unit from = 3;
+    int64 timestamp = 4;
+    int64 expiration = 5;
+    Extra extra = 6;
+}
+
+message Message {
+    string uuid = 1;
+    string cid = 2;
+    string type = 3;
+    hi.Unit from = 4;
+    repeated Content content = 5;
+    int64 timestamp = 6;
+    Extra extra = 7;
+}
+
+message Extra {
+    oneof kind {
+        hi.Unit unit = 1;
+        Mention mention = 2;
+        Member member = 3;
+        MemberExit member_exit = 4;
+        GroupInfo group_info = 5;
+    }
+}
+
+message Mention {
+    hi.Unit group = 1;
+    bool all = 2;
+    repeated hi.Unit list = 3;
+}
+
+message Member {
+    hi.Unit group = 1;
+    hi.Unit user = 2;
+}
+
+message MemberExit {
+    Member member = 1;
+    string type = 2;
+}
+
+message Content {
+    string type = 1;
+    string content = 2;
+}
+
+message GroupInfo {
+    hi.Unit base = 1;
+    string back_ground = 2;
+    bool mute =3;
+}

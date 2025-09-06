@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+import "v1/did/base.proto";
+
+package did;
+
+message MerchantInfo {
+    hi.Unit master = 2;
+    hi.Unit server = 3;
+    string  name = 4;
+    Coin    coin = 5;
+    string  endpoint = 6;
+    string  scheme = 7;
+    string  extend_token = 8;
+    string  create_at = 9;
+}
+
+message MerchantGetResp {
+    MerchantInfo info = 1;
+}
+
+message MerchantSetReq {
+    string  server = 3;
+    string  name = 4;
+    string  coin = 5;
+    string  endpoint = 6;
+    string  scheme = 7;
+}
+
+message MerchantListResp {
+	repeated MerchantInfo list = 1;
+}
+
+service Merchant {
+    rpc Get (google.protobuf.Empty) returns (MerchantGetResp); // Token鉴权
+    rpc Set (MerchantSetReq) returns (google.protobuf.Empty); // Token鉴权
+    rpc List (hi.DID) returns (MerchantListResp);  // Token鉴权
+}
+
+message MerchantNotifyReq {
+	string did = 1;
+	string nonce = 2;
+}
+
+service SSE {
+    rpc Notify (MerchantNotifyReq) returns (google.protobuf.Empty); // 不鉴权
+}

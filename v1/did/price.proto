@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package did;
+
+message GetPriceReq {
+    string symbol = 1;
+}
+
+message GetPriceResp {
+    message Unit {
+        string price = 1;
+        string symbol = 2;
+    }
+    repeated Unit list = 1;
+    string usdcny = 2;
+}
+
+service Price {
+    rpc GetPrice (GetPriceReq) returns (GetPriceResp); // 不鉴权
+}

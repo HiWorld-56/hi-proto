@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+
+package did;
+
+message Order {
+    string id = 1; // req_id
+    string did = 2;
+    string hash = 3;
+}
+
+service Pay {
+    rpc GenerateReq (hi.Node) returns (hi.ReqID); // 不鉴权
+    rpc Notify(hi.Web3Data) returns (google.protobuf.Empty); // Order // Web3鉴权
+}

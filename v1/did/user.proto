@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+
+package did;
+
+service User {
+    rpc Edit (hi.Unit) returns (google.protobuf.Empty); // Token鉴权
+    rpc Query (google.protobuf.Empty) returns (hi.Unit); // Token鉴权
+}

@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+
+package did;
+
+message LoginReq {
+	hi.Node node = 1;
+	string nonce = 2;
+}
+
+message LoginResp {
+    hi.Unit usr = 1;
+    hi.Token token = 2;
+    hi.Mqtt mqtt = 3;
+}
+
+message LoginData {
+    string id = 1;
+    string did = 2;
+}
+
+service Login {
+    rpc RefreshToken (hi.RefreshTokenReq) returns (hi.Token); // 不鉴权
+    rpc GenerateNonce (google.protobuf.Empty) returns (hi.Nonce); // 不鉴权
+    rpc Verify (hi.Web3Data) returns (LoginResp); // LoginReq // Web3鉴权
+    rpc GenerateReq (hi.Node) returns (hi.ReqID); // 不鉴权
+    rpc Notify (hi.Web3Data) returns (google.protobuf.Empty); // LoginData // Web3鉴权
+    rpc Logout (google.protobuf.Empty) returns (google.protobuf.Empty); // Token鉴权
+}
