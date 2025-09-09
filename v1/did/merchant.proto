@@ -23,11 +23,12 @@ message MerchantGetResp {
 }
 
 message MerchantSetReq {
-    string  server = 3;
-    string  name = 4;
-    repeated Coin coins = 5;
-    string  endpoint = 6;
-    string  scheme = 7;
+    string  server = 1;
+    string  name = 2;
+    string logo = 3;
+    repeated Coin coins = 4;
+    string  endpoint = 5;
+    string  scheme = 6;
 }
 
 message MerchantListResp {
