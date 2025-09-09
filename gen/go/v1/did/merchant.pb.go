@@ -393,11 +393,12 @@ const file_v1_did_merchant_proto_rawDesc = "" +
 	"\x04list\x18\x01 \x03(\v2\x11.did.MerchantInfoR\x04list\";\n" +
 	"\x11MerchantNotifyReq\x12\x10\n" +
 	"\x03did\x18\x01 \x01(\tR\x03did\x12\x14\n" +
-	"\x05nonce\x18\x02 \x01(\tR\x05nonce2\x9b\x01\n" +
+	"\x05nonce\x18\x02 \x01(\tR\x05nonce2\xd5\x01\n" +
 	"\bMerchant\x123\n" +
 	"\x03Get\x12\x16.google.protobuf.Empty\x1a\x14.did.MerchantGetResp\x122\n" +
 	"\x03Set\x12\x13.did.MerchantSetReq\x1a\x16.google.protobuf.Empty\x12&\n" +
-	"\x04List\x12\a.hi.DID\x1a\x15.did.MerchantListResp2?\n" +
+	"\x04List\x12\a.hi.DID\x1a\x15.did.MerchantListResp\x128\n" +
+	"\vUpdateToken\x12\x16.google.protobuf.Empty\x1a\x11.did.MerchantInfo2?\n" +
 	"\x03SSE\x128\n" +
 	"\x06Notify\x12\x16.did.MerchantNotifyReq\x1a\x16.google.protobuf.EmptyBr\n" +
 	"\acom.didB\rMerchantProtoP\x01Z,github.com/HiWorld-56/hi-proto/gen/go/v1/did\xa2\x02\x03DXX\xaa\x02\x03Did\xca\x02\x03Did\xe2\x02\x0fDid\\GPBMetadata\xea\x02\x03Didb\x06proto3"
@@ -436,13 +437,15 @@ var file_v1_did_merchant_proto_depIdxs = []int32{
 	7,  // 6: did.Merchant.Get:input_type -> google.protobuf.Empty
 	2,  // 7: did.Merchant.Set:input_type -> did.MerchantSetReq
 	8,  // 8: did.Merchant.List:input_type -> hi.DID
-	4,  // 9: did.SSE.Notify:input_type -> did.MerchantNotifyReq
-	1,  // 10: did.Merchant.Get:output_type -> did.MerchantGetResp
-	7,  // 11: did.Merchant.Set:output_type -> google.protobuf.Empty
-	3,  // 12: did.Merchant.List:output_type -> did.MerchantListResp
-	7,  // 13: did.SSE.Notify:output_type -> google.protobuf.Empty
-	10, // [10:14] is the sub-list for method output_type
-	6,  // [6:10] is the sub-list for method input_type
+	7,  // 9: did.Merchant.UpdateToken:input_type -> google.protobuf.Empty
+	4,  // 10: did.SSE.Notify:input_type -> did.MerchantNotifyReq
+	1,  // 11: did.Merchant.Get:output_type -> did.MerchantGetResp
+	7,  // 12: did.Merchant.Set:output_type -> google.protobuf.Empty
+	3,  // 13: did.Merchant.List:output_type -> did.MerchantListResp
+	0,  // 14: did.Merchant.UpdateToken:output_type -> did.MerchantInfo
+	7,  // 15: did.SSE.Notify:output_type -> google.protobuf.Empty
+	11, // [11:16] is the sub-list for method output_type
+	6,  // [6:11] is the sub-list for method input_type
 	6,  // [6:6] is the sub-list for extension type_name
 	6,  // [6:6] is the sub-list for extension extendee
 	0,  // [0:6] is the sub-list for field type_name

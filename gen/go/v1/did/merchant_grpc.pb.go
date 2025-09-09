@@ -21,9 +21,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Merchant_Get_FullMethodName  = "/did.Merchant/Get"
-	Merchant_Set_FullMethodName  = "/did.Merchant/Set"
-	Merchant_List_FullMethodName = "/did.Merchant/List"
+	Merchant_Get_FullMethodName         = "/did.Merchant/Get"
+	Merchant_Set_FullMethodName         = "/did.Merchant/Set"
+	Merchant_List_FullMethodName        = "/did.Merchant/List"
+	Merchant_UpdateToken_FullMethodName = "/did.Merchant/UpdateToken"
 )
 
 // MerchantClient is the client API for Merchant service.
@@ -33,6 +34,7 @@ type MerchantClient interface {
 	Get(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*MerchantGetResp, error)
 	Set(ctx context.Context, in *MerchantSetReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	List(ctx context.Context, in *v1.DID, opts ...grpc.CallOption) (*MerchantListResp, error)
+	UpdateToken(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*MerchantInfo, error)
 }
 
 type merchantClient struct {
@@ -73,6 +75,16 @@ func (c *merchantClient) List(ctx context.Context, in *v1.DID, opts ...grpc.Call
 	return out, nil
 }
 
+func (c *merchantClient) UpdateToken(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*MerchantInfo, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MerchantInfo)
+	err := c.cc.Invoke(ctx, Merchant_UpdateToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MerchantServer is the server API for Merchant service.
 // All implementations should embed UnimplementedMerchantServer
 // for forward compatibility.
@@ -80,6 +92,7 @@ type MerchantServer interface {
 	Get(context.Context, *emptypb.Empty) (*MerchantGetResp, error)
 	Set(context.Context, *MerchantSetReq) (*emptypb.Empty, error)
 	List(context.Context, *v1.DID) (*MerchantListResp, error)
+	UpdateToken(context.Context, *emptypb.Empty) (*MerchantInfo, error)
 }
 
 // UnimplementedMerchantServer should be embedded to have
@@ -97,6 +110,9 @@ func (UnimplementedMerchantServer) Set(context.Context, *MerchantSetReq) (*empty
 }
 func (UnimplementedMerchantServer) List(context.Context, *v1.DID) (*MerchantListResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
+}
+func (UnimplementedMerchantServer) UpdateToken(context.Context, *emptypb.Empty) (*MerchantInfo, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateToken not implemented")
 }
 func (UnimplementedMerchantServer) testEmbeddedByValue() {}
 
@@ -172,6 +188,24 @@ func _Merchant_List_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Merchant_UpdateToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MerchantServer).UpdateToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Merchant_UpdateToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MerchantServer).UpdateToken(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Merchant_ServiceDesc is the grpc.ServiceDesc for Merchant service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -190,6 +224,10 @@ var Merchant_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "List",
 			Handler:    _Merchant_List_Handler,
+		},
+		{
+			MethodName: "UpdateToken",
+			Handler:    _Merchant_UpdateToken_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
