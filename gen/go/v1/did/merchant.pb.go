@@ -183,6 +183,7 @@ type MerchantSetReq struct {
 	Coins         []*Coin                `protobuf:"bytes,4,rep,name=coins,proto3" json:"coins,omitempty"`
 	Endpoint      string                 `protobuf:"bytes,5,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
 	Scheme        string                 `protobuf:"bytes,6,opt,name=scheme,proto3" json:"scheme,omitempty"`
+	Comment       string                 `protobuf:"bytes,7,opt,name=comment,proto3" json:"comment,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -255,6 +256,13 @@ func (x *MerchantSetReq) GetEndpoint() string {
 func (x *MerchantSetReq) GetScheme() string {
 	if x != nil {
 		return x.Scheme
+	}
+	return ""
+}
+
+func (x *MerchantSetReq) GetComment() string {
+	if x != nil {
+		return x.Comment
 	}
 	return ""
 }
@@ -372,14 +380,15 @@ const file_v1_did_merchant_proto_rawDesc = "" +
 	"\tcreate_at\x18\n" +
 	" \x01(\x03R\bcreateAt\"8\n" +
 	"\x0fMerchantGetResp\x12%\n" +
-	"\x04info\x18\x01 \x01(\v2\x11.did.MerchantInfoR\x04info\"\xa5\x01\n" +
+	"\x04info\x18\x01 \x01(\v2\x11.did.MerchantInfoR\x04info\"\xbf\x01\n" +
 	"\x0eMerchantSetReq\x12\x16\n" +
 	"\x06server\x18\x01 \x01(\tR\x06server\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
 	"\x04logo\x18\x03 \x01(\tR\x04logo\x12\x1f\n" +
 	"\x05coins\x18\x04 \x03(\v2\t.did.CoinR\x05coins\x12\x1a\n" +
 	"\bendpoint\x18\x05 \x01(\tR\bendpoint\x12\x16\n" +
-	"\x06scheme\x18\x06 \x01(\tR\x06scheme\"9\n" +
+	"\x06scheme\x18\x06 \x01(\tR\x06scheme\x12\x18\n" +
+	"\acomment\x18\a \x01(\tR\acomment\"9\n" +
 	"\x10MerchantListResp\x12%\n" +
 	"\x04list\x18\x01 \x03(\v2\x11.did.MerchantInfoR\x04list\";\n" +
 	"\x11MerchantNotifyReq\x12\x10\n" +
