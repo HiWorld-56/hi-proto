@@ -15,8 +15,7 @@ message MerchantInfo {
     string  endpoint = 7;
     string  scheme = 8;
     string  extend_token = 9;
-    string  extend_table = 10;
-    int64   create_at = 11;
+    int64   create_at = 10;
 }
 
 message MerchantGetResp {
