@@ -34,7 +34,7 @@ type MerchantClient interface {
 	Get(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*MerchantGetResp, error)
 	Set(ctx context.Context, in *MerchantSetReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	List(ctx context.Context, in *v1.DID, opts ...grpc.CallOption) (*MerchantListResp, error)
-	UpdateToken(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*MerchantInfo, error)
+	UpdateToken(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*MerchantUpdateTokenResp, error)
 }
 
 type merchantClient struct {
@@ -75,9 +75,9 @@ func (c *merchantClient) List(ctx context.Context, in *v1.DID, opts ...grpc.Call
 	return out, nil
 }
 
-func (c *merchantClient) UpdateToken(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*MerchantInfo, error) {
+func (c *merchantClient) UpdateToken(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*MerchantUpdateTokenResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MerchantInfo)
+	out := new(MerchantUpdateTokenResp)
 	err := c.cc.Invoke(ctx, Merchant_UpdateToken_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -92,7 +92,7 @@ type MerchantServer interface {
 	Get(context.Context, *emptypb.Empty) (*MerchantGetResp, error)
 	Set(context.Context, *MerchantSetReq) (*emptypb.Empty, error)
 	List(context.Context, *v1.DID) (*MerchantListResp, error)
-	UpdateToken(context.Context, *emptypb.Empty) (*MerchantInfo, error)
+	UpdateToken(context.Context, *emptypb.Empty) (*MerchantUpdateTokenResp, error)
 }
 
 // UnimplementedMerchantServer should be embedded to have
@@ -111,7 +111,7 @@ func (UnimplementedMerchantServer) Set(context.Context, *MerchantSetReq) (*empty
 func (UnimplementedMerchantServer) List(context.Context, *v1.DID) (*MerchantListResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
-func (UnimplementedMerchantServer) UpdateToken(context.Context, *emptypb.Empty) (*MerchantInfo, error) {
+func (UnimplementedMerchantServer) UpdateToken(context.Context, *emptypb.Empty) (*MerchantUpdateTokenResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateToken not implemented")
 }
 func (UnimplementedMerchantServer) testEmbeddedByValue() {}
