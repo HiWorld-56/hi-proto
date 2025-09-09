@@ -37,15 +37,10 @@ message MerchantListResp {
 	repeated MerchantInfo list = 1;
 }
 
-message MerchantUpdateTokenResp {
-    MerchantInfo info = 1;
-}
-
 service Merchant {
     rpc Get (google.protobuf.Empty) returns (MerchantGetResp); // Token鉴权
     rpc Set (MerchantSetReq) returns (google.protobuf.Empty); // Token鉴权
     rpc List (hi.DID) returns (MerchantListResp);  // Token鉴权
-    rpc UpdateToken (google.protobuf.Empty) returns (MerchantUpdateTokenResp);  // Token鉴权
 }
 
 message MerchantNotifyReq {
