@@ -1,4 +1,4 @@
-module github.com/long568/hi_proto
+module github.com/HiWorld-56/hi-proto
 
 go 1.23.6
 

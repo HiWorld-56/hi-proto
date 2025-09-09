@@ -8,7 +8,7 @@ package did
 
 import (
 	context "context"
-	v1 "github.com/long568/hi_proto/gen/go/v1"
+	v1 "github.com/HiWorld-56/hi-proto/gen/go/v1"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"

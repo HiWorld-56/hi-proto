@@ -5,7 +5,7 @@ managed:
   enabled: true
   override:
     - file_option: go_package_prefix
-      value: github.com/long568/hi_proto/gen/go
+      value: github.com/HiWorld-56/hi-proto/gen/go
 
 plugins:
   - local: protoc-gen-go
