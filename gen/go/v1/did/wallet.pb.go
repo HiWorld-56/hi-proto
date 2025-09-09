@@ -110,7 +110,7 @@ func (x *UpdateAddressesReq) GetApt() string {
 type GetWalletReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Did           string                 `protobuf:"bytes,1,opt,name=did,proto3" json:"did,omitempty"`
-	Coin          string                 `protobuf:"bytes,2,opt,name=coin,proto3" json:"coin,omitempty"`
+	Type          int32                  `protobuf:"varint,2,opt,name=type,proto3" json:"type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -152,11 +152,11 @@ func (x *GetWalletReq) GetDid() string {
 	return ""
 }
 
-func (x *GetWalletReq) GetCoin() string {
+func (x *GetWalletReq) GetType() int32 {
 	if x != nil {
-		return x.Coin
+		return x.Type
 	}
-	return ""
+	return 0
 }
 
 type GetWalletResp struct {
@@ -713,7 +713,7 @@ func (x *UpdateAssetsReq) GetApt() string {
 
 type GetWalletResp_Unit struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Coin          string                 `protobuf:"bytes,1,opt,name=coin,proto3" json:"coin,omitempty"`
+	Type          int32                  `protobuf:"varint,1,opt,name=type,proto3" json:"type,omitempty"`
 	Address       string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -749,11 +749,11 @@ func (*GetWalletResp_Unit) Descriptor() ([]byte, []int) {
 	return file_v1_did_wallet_proto_rawDescGZIP(), []int{2, 0}
 }
 
-func (x *GetWalletResp_Unit) GetCoin() string {
+func (x *GetWalletResp_Unit) GetType() int32 {
 	if x != nil {
-		return x.Coin
+		return x.Type
 	}
-	return ""
+	return 0
 }
 
 func (x *GetWalletResp_Unit) GetAddress() string {
@@ -766,7 +766,7 @@ func (x *GetWalletResp_Unit) GetAddress() string {
 type ListAddressesReq_Unit struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Did           string                 `protobuf:"bytes,1,opt,name=did,proto3" json:"did,omitempty"`
-	Coin          string                 `protobuf:"bytes,2,opt,name=coin,proto3" json:"coin,omitempty"`
+	Type          int32                  `protobuf:"varint,2,opt,name=type,proto3" json:"type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -808,17 +808,17 @@ func (x *ListAddressesReq_Unit) GetDid() string {
 	return ""
 }
 
-func (x *ListAddressesReq_Unit) GetCoin() string {
+func (x *ListAddressesReq_Unit) GetType() int32 {
 	if x != nil {
-		return x.Coin
+		return x.Type
 	}
-	return ""
+	return 0
 }
 
 type ListAddressesResp_Unit struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Did           string                 `protobuf:"bytes,1,opt,name=did,proto3" json:"did,omitempty"`
-	Coin          *Coin                  `protobuf:"bytes,2,opt,name=coin,proto3" json:"coin,omitempty"`
+	Type          int32                  `protobuf:"varint,2,opt,name=type,proto3" json:"type,omitempty"`
 	Address       string                 `protobuf:"bytes,3,opt,name=address,proto3" json:"address,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -861,11 +861,11 @@ func (x *ListAddressesResp_Unit) GetDid() string {
 	return ""
 }
 
-func (x *ListAddressesResp_Unit) GetCoin() *Coin {
+func (x *ListAddressesResp_Unit) GetType() int32 {
 	if x != nil {
-		return x.Coin
+		return x.Type
 	}
-	return nil
+	return 0
 }
 
 func (x *ListAddressesResp_Unit) GetAddress() string {
@@ -965,22 +965,22 @@ const file_v1_did_wallet_proto_rawDesc = "" +
 	"\x03apt\x18\x06 \x01(\tR\x03apt\"4\n" +
 	"\fGetWalletReq\x12\x10\n" +
 	"\x03did\x18\x01 \x01(\tR\x03did\x12\x12\n" +
-	"\x04coin\x18\x02 \x01(\tR\x04coin\"r\n" +
+	"\x04type\x18\x02 \x01(\x05R\x04type\"r\n" +
 	"\rGetWalletResp\x12+\n" +
 	"\x04list\x18\x01 \x03(\v2\x17.did.GetWalletResp.UnitR\x04list\x1a4\n" +
 	"\x04Unit\x12\x12\n" +
-	"\x04coin\x18\x01 \x01(\tR\x04coin\x12\x18\n" +
+	"\x04type\x18\x01 \x01(\x05R\x04type\x12\x18\n" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\"p\n" +
 	"\x10ListAddressesReq\x12.\n" +
 	"\x04list\x18\x01 \x03(\v2\x1a.did.ListAddressesReq.UnitR\x04list\x1a,\n" +
 	"\x04Unit\x12\x10\n" +
 	"\x03did\x18\x01 \x01(\tR\x03did\x12\x12\n" +
-	"\x04coin\x18\x02 \x01(\tR\x04coin\"\x97\x01\n" +
+	"\x04type\x18\x02 \x01(\x05R\x04type\"\x8c\x01\n" +
 	"\x11ListAddressesResp\x12/\n" +
-	"\x04list\x18\x01 \x03(\v2\x1b.did.ListAddressesResp.UnitR\x04list\x1aQ\n" +
+	"\x04list\x18\x01 \x03(\v2\x1b.did.ListAddressesResp.UnitR\x04list\x1aF\n" +
 	"\x04Unit\x12\x10\n" +
-	"\x03did\x18\x01 \x01(\tR\x03did\x12\x1d\n" +
-	"\x04coin\x18\x02 \x01(\v2\t.did.CoinR\x04coin\x12\x18\n" +
+	"\x03did\x18\x01 \x01(\tR\x03did\x12\x12\n" +
+	"\x04type\x18\x02 \x01(\x05R\x04type\x12\x18\n" +
 	"\aaddress\x18\x03 \x01(\tR\aaddress\"$\n" +
 	"\x0eTotalAssetsReq\x12\x12\n" +
 	"\x04coin\x18\x01 \x01(\tR\x04coin\"\x1f\n" +
@@ -1071,27 +1071,26 @@ var file_v1_did_wallet_proto_depIdxs = []int32{
 	14, // 2: did.ListAddressesResp.list:type_name -> did.ListAddressesResp.Unit
 	16, // 3: did.ListUsersAssetsReq.p:type_name -> hi.Pagination
 	15, // 4: did.GetUserAssetsResp.unit:type_name -> did.GetUserAssetsResp.Unit
-	17, // 5: did.ListAddressesResp.Unit.coin:type_name -> did.Coin
-	17, // 6: did.GetUserAssetsResp.Unit.coin:type_name -> did.Coin
-	18, // 7: did.Web.UpdateAddresses:input_type -> hi.Web3Data
-	1,  // 8: did.Web.GetWallet:input_type -> did.GetWalletReq
-	3,  // 9: did.Web.ListAddresses:input_type -> did.ListAddressesReq
-	5,  // 10: did.Web.TotalAssets:input_type -> did.TotalAssetsReq
-	7,  // 11: did.Web.ListUsersAssets:input_type -> did.ListUsersAssetsReq
-	9,  // 12: did.Web.GetUserAssets:input_type -> did.GetUserAssetsReq
-	11, // 13: did.Wallet.UpdateAssets:input_type -> did.UpdateAssetsReq
-	19, // 14: did.Web.UpdateAddresses:output_type -> google.protobuf.Empty
-	2,  // 15: did.Web.GetWallet:output_type -> did.GetWalletResp
-	4,  // 16: did.Web.ListAddresses:output_type -> did.ListAddressesResp
-	6,  // 17: did.Web.TotalAssets:output_type -> did.TotalAssetsResp
-	8,  // 18: did.Web.ListUsersAssets:output_type -> did.ListUsersAssetsResp
-	10, // 19: did.Web.GetUserAssets:output_type -> did.GetUserAssetsResp
-	19, // 20: did.Wallet.UpdateAssets:output_type -> google.protobuf.Empty
-	14, // [14:21] is the sub-list for method output_type
-	7,  // [7:14] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	17, // 5: did.GetUserAssetsResp.Unit.coin:type_name -> did.Coin
+	18, // 6: did.Web.UpdateAddresses:input_type -> hi.Web3Data
+	1,  // 7: did.Web.GetWallet:input_type -> did.GetWalletReq
+	3,  // 8: did.Web.ListAddresses:input_type -> did.ListAddressesReq
+	5,  // 9: did.Web.TotalAssets:input_type -> did.TotalAssetsReq
+	7,  // 10: did.Web.ListUsersAssets:input_type -> did.ListUsersAssetsReq
+	9,  // 11: did.Web.GetUserAssets:input_type -> did.GetUserAssetsReq
+	11, // 12: did.Wallet.UpdateAssets:input_type -> did.UpdateAssetsReq
+	19, // 13: did.Web.UpdateAddresses:output_type -> google.protobuf.Empty
+	2,  // 14: did.Web.GetWallet:output_type -> did.GetWalletResp
+	4,  // 15: did.Web.ListAddresses:output_type -> did.ListAddressesResp
+	6,  // 16: did.Web.TotalAssets:output_type -> did.TotalAssetsResp
+	8,  // 17: did.Web.ListUsersAssets:output_type -> did.ListUsersAssetsResp
+	10, // 18: did.Web.GetUserAssets:output_type -> did.GetUserAssetsResp
+	19, // 19: did.Wallet.UpdateAssets:output_type -> google.protobuf.Empty
+	13, // [13:20] is the sub-list for method output_type
+	6,  // [6:13] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_v1_did_wallet_proto_init() }

@@ -17,12 +17,12 @@ message UpdateAddressesReq {
 
 message GetWalletReq {
     string did = 1;
-    string coin = 2; 
+    int32 type = 2; 
 }
 
 message GetWalletResp {
     message Unit {
-        string coin = 1;
+        int32 type = 1;
         string address = 2;
     }
     repeated Unit list = 1;
@@ -31,7 +31,7 @@ message GetWalletResp {
 message ListAddressesReq {
     message Unit {
         string did = 1;
-        string coin = 2;
+        int32 type = 2;
     }
     repeated Unit list = 1;
 }
@@ -39,7 +39,7 @@ message ListAddressesReq {
 message ListAddressesResp {
     message Unit {
         string did = 1;
-        Coin coin = 2;
+        int32 type = 2;
         string address = 3;
     }
     repeated Unit list = 1;
