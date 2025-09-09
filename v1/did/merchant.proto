@@ -26,7 +26,7 @@ message MerchantSetReq {
     string  server = 1;
     string  name = 2;
     string logo = 3;
-    repeated Coin coins = 4;
+    repeated string coins = 4;
     string  endpoint = 5;
     string  scheme = 6;
     string comment = 7;

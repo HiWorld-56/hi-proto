@@ -180,7 +180,7 @@ type MerchantSetReq struct {
 	Server        string                 `protobuf:"bytes,1,opt,name=server,proto3" json:"server,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Logo          string                 `protobuf:"bytes,3,opt,name=logo,proto3" json:"logo,omitempty"`
-	Coins         []*Coin                `protobuf:"bytes,4,rep,name=coins,proto3" json:"coins,omitempty"`
+	Coins         []string               `protobuf:"bytes,4,rep,name=coins,proto3" json:"coins,omitempty"`
 	Endpoint      string                 `protobuf:"bytes,5,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
 	Scheme        string                 `protobuf:"bytes,6,opt,name=scheme,proto3" json:"scheme,omitempty"`
 	Comment       string                 `protobuf:"bytes,7,opt,name=comment,proto3" json:"comment,omitempty"`
@@ -239,7 +239,7 @@ func (x *MerchantSetReq) GetLogo() string {
 	return ""
 }
 
-func (x *MerchantSetReq) GetCoins() []*Coin {
+func (x *MerchantSetReq) GetCoins() []string {
 	if x != nil {
 		return x.Coins
 	}
@@ -380,12 +380,12 @@ const file_v1_did_merchant_proto_rawDesc = "" +
 	"\tcreate_at\x18\n" +
 	" \x01(\x03R\bcreateAt\"8\n" +
 	"\x0fMerchantGetResp\x12%\n" +
-	"\x04info\x18\x01 \x01(\v2\x11.did.MerchantInfoR\x04info\"\xbf\x01\n" +
+	"\x04info\x18\x01 \x01(\v2\x11.did.MerchantInfoR\x04info\"\xb4\x01\n" +
 	"\x0eMerchantSetReq\x12\x16\n" +
 	"\x06server\x18\x01 \x01(\tR\x06server\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
-	"\x04logo\x18\x03 \x01(\tR\x04logo\x12\x1f\n" +
-	"\x05coins\x18\x04 \x03(\v2\t.did.CoinR\x05coins\x12\x1a\n" +
+	"\x04logo\x18\x03 \x01(\tR\x04logo\x12\x14\n" +
+	"\x05coins\x18\x04 \x03(\tR\x05coins\x12\x1a\n" +
 	"\bendpoint\x18\x05 \x01(\tR\bendpoint\x12\x16\n" +
 	"\x06scheme\x18\x06 \x01(\tR\x06scheme\x12\x18\n" +
 	"\acomment\x18\a \x01(\tR\acomment\"9\n" +
@@ -432,21 +432,20 @@ var file_v1_did_merchant_proto_depIdxs = []int32{
 	6,  // 2: did.MerchantInfo.public_coins:type_name -> did.Coin
 	6,  // 3: did.MerchantInfo.custom_tokens:type_name -> did.Coin
 	0,  // 4: did.MerchantGetResp.info:type_name -> did.MerchantInfo
-	6,  // 5: did.MerchantSetReq.coins:type_name -> did.Coin
-	0,  // 6: did.MerchantListResp.list:type_name -> did.MerchantInfo
-	7,  // 7: did.Merchant.Get:input_type -> google.protobuf.Empty
-	2,  // 8: did.Merchant.Set:input_type -> did.MerchantSetReq
-	8,  // 9: did.Merchant.List:input_type -> hi.DID
-	4,  // 10: did.SSE.Notify:input_type -> did.MerchantNotifyReq
-	1,  // 11: did.Merchant.Get:output_type -> did.MerchantGetResp
-	7,  // 12: did.Merchant.Set:output_type -> google.protobuf.Empty
-	3,  // 13: did.Merchant.List:output_type -> did.MerchantListResp
-	7,  // 14: did.SSE.Notify:output_type -> google.protobuf.Empty
-	11, // [11:15] is the sub-list for method output_type
-	7,  // [7:11] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	0,  // 5: did.MerchantListResp.list:type_name -> did.MerchantInfo
+	7,  // 6: did.Merchant.Get:input_type -> google.protobuf.Empty
+	2,  // 7: did.Merchant.Set:input_type -> did.MerchantSetReq
+	8,  // 8: did.Merchant.List:input_type -> hi.DID
+	4,  // 9: did.SSE.Notify:input_type -> did.MerchantNotifyReq
+	1,  // 10: did.Merchant.Get:output_type -> did.MerchantGetResp
+	7,  // 11: did.Merchant.Set:output_type -> google.protobuf.Empty
+	3,  // 12: did.Merchant.List:output_type -> did.MerchantListResp
+	7,  // 13: did.SSE.Notify:output_type -> google.protobuf.Empty
+	10, // [10:14] is the sub-list for method output_type
+	6,  // [6:10] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_v1_did_merchant_proto_init() }
