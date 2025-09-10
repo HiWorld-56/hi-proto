@@ -432,8 +432,8 @@ func (x *ListUsersAssetsReq) GetP() *v1.Pagination {
 }
 
 type ListUsersAssetsResp struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	N             []string               `protobuf:"bytes,2,rep,name=n,proto3" json:"n,omitempty"`
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	List          []*ListUsersAssetsResp_Unit `protobuf:"bytes,2,rep,name=list,proto3" json:"list,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -468,9 +468,9 @@ func (*ListUsersAssetsResp) Descriptor() ([]byte, []int) {
 	return file_v1_did_wallet_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *ListUsersAssetsResp) GetN() []string {
+func (x *ListUsersAssetsResp) GetList() []*ListUsersAssetsResp_Unit {
 	if x != nil {
-		return x.N
+		return x.List
 	}
 	return nil
 }
@@ -875,6 +875,66 @@ func (x *ListAddressesResp_Unit) GetAddress() string {
 	return ""
 }
 
+type ListUsersAssetsResp_Unit struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Did           string                 `protobuf:"bytes,1,opt,name=did,proto3" json:"did,omitempty"`
+	Avatar        string                 `protobuf:"bytes,2,opt,name=avatar,proto3" json:"avatar,omitempty"`
+	N             int32                  `protobuf:"varint,3,opt,name=n,proto3" json:"n,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListUsersAssetsResp_Unit) Reset() {
+	*x = ListUsersAssetsResp_Unit{}
+	mi := &file_v1_did_wallet_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListUsersAssetsResp_Unit) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListUsersAssetsResp_Unit) ProtoMessage() {}
+
+func (x *ListUsersAssetsResp_Unit) ProtoReflect() protoreflect.Message {
+	mi := &file_v1_did_wallet_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListUsersAssetsResp_Unit.ProtoReflect.Descriptor instead.
+func (*ListUsersAssetsResp_Unit) Descriptor() ([]byte, []int) {
+	return file_v1_did_wallet_proto_rawDescGZIP(), []int{8, 0}
+}
+
+func (x *ListUsersAssetsResp_Unit) GetDid() string {
+	if x != nil {
+		return x.Did
+	}
+	return ""
+}
+
+func (x *ListUsersAssetsResp_Unit) GetAvatar() string {
+	if x != nil {
+		return x.Avatar
+	}
+	return ""
+}
+
+func (x *ListUsersAssetsResp_Unit) GetN() int32 {
+	if x != nil {
+		return x.N
+	}
+	return 0
+}
+
 type GetUserAssetsResp_Unit struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Coin          *Coin                  `protobuf:"bytes,1,opt,name=coin,proto3" json:"coin,omitempty"`
@@ -888,7 +948,7 @@ type GetUserAssetsResp_Unit struct {
 
 func (x *GetUserAssetsResp_Unit) Reset() {
 	*x = GetUserAssetsResp_Unit{}
-	mi := &file_v1_did_wallet_proto_msgTypes[15]
+	mi := &file_v1_did_wallet_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -900,7 +960,7 @@ func (x *GetUserAssetsResp_Unit) String() string {
 func (*GetUserAssetsResp_Unit) ProtoMessage() {}
 
 func (x *GetUserAssetsResp_Unit) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_did_wallet_proto_msgTypes[15]
+	mi := &file_v1_did_wallet_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -988,9 +1048,13 @@ const file_v1_did_wallet_proto_rawDesc = "" +
 	"\x01n\x18\x01 \x01(\tR\x01n\"N\n" +
 	"\x12ListUsersAssetsReq\x12\x1a\n" +
 	"\bcurrency\x18\x01 \x01(\tR\bcurrency\x12\x1c\n" +
-	"\x01p\x18\x02 \x01(\v2\x0e.hi.PaginationR\x01p\"#\n" +
-	"\x13ListUsersAssetsResp\x12\f\n" +
-	"\x01n\x18\x02 \x03(\tR\x01n\"8\n" +
+	"\x01p\x18\x02 \x01(\v2\x0e.hi.PaginationR\x01p\"\x88\x01\n" +
+	"\x13ListUsersAssetsResp\x121\n" +
+	"\x04list\x18\x02 \x03(\v2\x1d.did.ListUsersAssetsResp.UnitR\x04list\x1a>\n" +
+	"\x04Unit\x12\x10\n" +
+	"\x03did\x18\x01 \x01(\tR\x03did\x12\x16\n" +
+	"\x06avatar\x18\x02 \x01(\tR\x06avatar\x12\f\n" +
+	"\x01n\x18\x03 \x01(\x05R\x01n\"8\n" +
 	"\x10GetUserAssetsReq\x12\x10\n" +
 	"\x03did\x18\x01 \x01(\tR\x03did\x12\x12\n" +
 	"\x04coin\x18\x02 \x01(\tR\x04coin\"\xc1\x01\n" +
@@ -1042,55 +1106,57 @@ func file_v1_did_wallet_proto_rawDescGZIP() []byte {
 	return file_v1_did_wallet_proto_rawDescData
 }
 
-var file_v1_did_wallet_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_v1_did_wallet_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_v1_did_wallet_proto_goTypes = []any{
-	(*UpdateAddressesReq)(nil),     // 0: did.UpdateAddressesReq
-	(*GetWalletReq)(nil),           // 1: did.GetWalletReq
-	(*GetWalletResp)(nil),          // 2: did.GetWalletResp
-	(*ListAddressesReq)(nil),       // 3: did.ListAddressesReq
-	(*ListAddressesResp)(nil),      // 4: did.ListAddressesResp
-	(*TotalAssetsReq)(nil),         // 5: did.TotalAssetsReq
-	(*TotalAssetsResp)(nil),        // 6: did.TotalAssetsResp
-	(*ListUsersAssetsReq)(nil),     // 7: did.ListUsersAssetsReq
-	(*ListUsersAssetsResp)(nil),    // 8: did.ListUsersAssetsResp
-	(*GetUserAssetsReq)(nil),       // 9: did.GetUserAssetsReq
-	(*GetUserAssetsResp)(nil),      // 10: did.GetUserAssetsResp
-	(*UpdateAssetsReq)(nil),        // 11: did.UpdateAssetsReq
-	(*GetWalletResp_Unit)(nil),     // 12: did.GetWalletResp.Unit
-	(*ListAddressesReq_Unit)(nil),  // 13: did.ListAddressesReq.Unit
-	(*ListAddressesResp_Unit)(nil), // 14: did.ListAddressesResp.Unit
-	(*GetUserAssetsResp_Unit)(nil), // 15: did.GetUserAssetsResp.Unit
-	(*v1.Pagination)(nil),          // 16: hi.Pagination
-	(*Coin)(nil),                   // 17: did.Coin
-	(*v1.Web3Data)(nil),            // 18: hi.Web3Data
-	(*emptypb.Empty)(nil),          // 19: google.protobuf.Empty
+	(*UpdateAddressesReq)(nil),       // 0: did.UpdateAddressesReq
+	(*GetWalletReq)(nil),             // 1: did.GetWalletReq
+	(*GetWalletResp)(nil),            // 2: did.GetWalletResp
+	(*ListAddressesReq)(nil),         // 3: did.ListAddressesReq
+	(*ListAddressesResp)(nil),        // 4: did.ListAddressesResp
+	(*TotalAssetsReq)(nil),           // 5: did.TotalAssetsReq
+	(*TotalAssetsResp)(nil),          // 6: did.TotalAssetsResp
+	(*ListUsersAssetsReq)(nil),       // 7: did.ListUsersAssetsReq
+	(*ListUsersAssetsResp)(nil),      // 8: did.ListUsersAssetsResp
+	(*GetUserAssetsReq)(nil),         // 9: did.GetUserAssetsReq
+	(*GetUserAssetsResp)(nil),        // 10: did.GetUserAssetsResp
+	(*UpdateAssetsReq)(nil),          // 11: did.UpdateAssetsReq
+	(*GetWalletResp_Unit)(nil),       // 12: did.GetWalletResp.Unit
+	(*ListAddressesReq_Unit)(nil),    // 13: did.ListAddressesReq.Unit
+	(*ListAddressesResp_Unit)(nil),   // 14: did.ListAddressesResp.Unit
+	(*ListUsersAssetsResp_Unit)(nil), // 15: did.ListUsersAssetsResp.Unit
+	(*GetUserAssetsResp_Unit)(nil),   // 16: did.GetUserAssetsResp.Unit
+	(*v1.Pagination)(nil),            // 17: hi.Pagination
+	(*Coin)(nil),                     // 18: did.Coin
+	(*v1.Web3Data)(nil),              // 19: hi.Web3Data
+	(*emptypb.Empty)(nil),            // 20: google.protobuf.Empty
 }
 var file_v1_did_wallet_proto_depIdxs = []int32{
 	12, // 0: did.GetWalletResp.list:type_name -> did.GetWalletResp.Unit
 	13, // 1: did.ListAddressesReq.list:type_name -> did.ListAddressesReq.Unit
 	14, // 2: did.ListAddressesResp.list:type_name -> did.ListAddressesResp.Unit
-	16, // 3: did.ListUsersAssetsReq.p:type_name -> hi.Pagination
-	15, // 4: did.GetUserAssetsResp.unit:type_name -> did.GetUserAssetsResp.Unit
-	17, // 5: did.GetUserAssetsResp.Unit.coin:type_name -> did.Coin
-	18, // 6: did.Web.UpdateAddresses:input_type -> hi.Web3Data
-	1,  // 7: did.Web.GetWallet:input_type -> did.GetWalletReq
-	3,  // 8: did.Web.ListAddresses:input_type -> did.ListAddressesReq
-	5,  // 9: did.Web.TotalAssets:input_type -> did.TotalAssetsReq
-	7,  // 10: did.Web.ListUsersAssets:input_type -> did.ListUsersAssetsReq
-	9,  // 11: did.Web.GetUserAssets:input_type -> did.GetUserAssetsReq
-	11, // 12: did.Wallet.UpdateAssets:input_type -> did.UpdateAssetsReq
-	19, // 13: did.Web.UpdateAddresses:output_type -> google.protobuf.Empty
-	2,  // 14: did.Web.GetWallet:output_type -> did.GetWalletResp
-	4,  // 15: did.Web.ListAddresses:output_type -> did.ListAddressesResp
-	6,  // 16: did.Web.TotalAssets:output_type -> did.TotalAssetsResp
-	8,  // 17: did.Web.ListUsersAssets:output_type -> did.ListUsersAssetsResp
-	10, // 18: did.Web.GetUserAssets:output_type -> did.GetUserAssetsResp
-	19, // 19: did.Wallet.UpdateAssets:output_type -> google.protobuf.Empty
-	13, // [13:20] is the sub-list for method output_type
-	6,  // [6:13] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	17, // 3: did.ListUsersAssetsReq.p:type_name -> hi.Pagination
+	15, // 4: did.ListUsersAssetsResp.list:type_name -> did.ListUsersAssetsResp.Unit
+	16, // 5: did.GetUserAssetsResp.unit:type_name -> did.GetUserAssetsResp.Unit
+	18, // 6: did.GetUserAssetsResp.Unit.coin:type_name -> did.Coin
+	19, // 7: did.Web.UpdateAddresses:input_type -> hi.Web3Data
+	1,  // 8: did.Web.GetWallet:input_type -> did.GetWalletReq
+	3,  // 9: did.Web.ListAddresses:input_type -> did.ListAddressesReq
+	5,  // 10: did.Web.TotalAssets:input_type -> did.TotalAssetsReq
+	7,  // 11: did.Web.ListUsersAssets:input_type -> did.ListUsersAssetsReq
+	9,  // 12: did.Web.GetUserAssets:input_type -> did.GetUserAssetsReq
+	11, // 13: did.Wallet.UpdateAssets:input_type -> did.UpdateAssetsReq
+	20, // 14: did.Web.UpdateAddresses:output_type -> google.protobuf.Empty
+	2,  // 15: did.Web.GetWallet:output_type -> did.GetWalletResp
+	4,  // 16: did.Web.ListAddresses:output_type -> did.ListAddressesResp
+	6,  // 17: did.Web.TotalAssets:output_type -> did.TotalAssetsResp
+	8,  // 18: did.Web.ListUsersAssets:output_type -> did.ListUsersAssetsResp
+	10, // 19: did.Web.GetUserAssets:output_type -> did.GetUserAssetsResp
+	20, // 20: did.Wallet.UpdateAssets:output_type -> google.protobuf.Empty
+	14, // [14:21] is the sub-list for method output_type
+	7,  // [7:14] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_v1_did_wallet_proto_init() }
@@ -1105,7 +1171,7 @@ func file_v1_did_wallet_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_v1_did_wallet_proto_rawDesc), len(file_v1_did_wallet_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   16,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   2,
 		},
