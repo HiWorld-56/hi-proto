@@ -46,7 +46,7 @@ message ListAddressesResp {
 }
 
 message TotalAssetsReq {
-    string coin = 1;
+    string currency = 1;
 }
 
 message TotalAssetsResp {

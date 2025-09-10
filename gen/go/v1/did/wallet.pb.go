@@ -293,7 +293,7 @@ func (x *ListAddressesResp) GetList() []*ListAddressesResp_Unit {
 
 type TotalAssetsReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Coin          string                 `protobuf:"bytes,1,opt,name=coin,proto3" json:"coin,omitempty"`
+	Currency      string                 `protobuf:"bytes,1,opt,name=currency,proto3" json:"currency,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -328,9 +328,9 @@ func (*TotalAssetsReq) Descriptor() ([]byte, []int) {
 	return file_v1_did_wallet_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *TotalAssetsReq) GetCoin() string {
+func (x *TotalAssetsReq) GetCurrency() string {
 	if x != nil {
-		return x.Coin
+		return x.Currency
 	}
 	return ""
 }
@@ -981,9 +981,9 @@ const file_v1_did_wallet_proto_rawDesc = "" +
 	"\x04Unit\x12\x10\n" +
 	"\x03did\x18\x01 \x01(\tR\x03did\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\x05R\x04type\x12\x18\n" +
-	"\aaddress\x18\x03 \x01(\tR\aaddress\"$\n" +
-	"\x0eTotalAssetsReq\x12\x12\n" +
-	"\x04coin\x18\x01 \x01(\tR\x04coin\"\x1f\n" +
+	"\aaddress\x18\x03 \x01(\tR\aaddress\",\n" +
+	"\x0eTotalAssetsReq\x12\x1a\n" +
+	"\bcurrency\x18\x01 \x01(\tR\bcurrency\"\x1f\n" +
 	"\x0fTotalAssetsResp\x12\f\n" +
 	"\x01n\x18\x01 \x01(\tR\x01n\"F\n" +
 	"\x12ListUsersAssetsReq\x12\x12\n" +
