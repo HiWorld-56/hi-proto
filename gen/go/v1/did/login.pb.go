@@ -203,10 +203,10 @@ const file_v1_did_login_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
 	"\x03did\x18\x02 \x01(\tR\x03did2\xa1\x02\n" +
 	"\x05Login\x12.\n" +
-	"\fRefreshToken\x12\x13.hi.RefreshTokenReq\x1a\t.hi.Token\x122\n" +
-	"\rGenerateNonce\x12\x16.google.protobuf.Empty\x1a\t.hi.Nonce\x12&\n" +
-	"\x06Verify\x12\f.hi.Web3Data\x1a\x0e.did.LoginResp\x12\"\n" +
-	"\vGenerateReq\x12\b.hi.Node\x1a\t.hi.ReqID\x12.\n" +
+	"\fRefreshToken\x12\x13.hi.RefreshTokenReq\x1a\t.hi.Token\x12$\n" +
+	"\rGenerateNonce\x12\b.hi.Node\x1a\t.hi.Nonce\x12&\n" +
+	"\x06Verify\x12\f.hi.Web3Data\x1a\x0e.did.LoginResp\x120\n" +
+	"\vGenerateReq\x12\x16.google.protobuf.Empty\x1a\t.hi.ReqID\x12.\n" +
 	"\x06Notify\x12\f.hi.Web3Data\x1a\x16.google.protobuf.Empty\x128\n" +
 	"\x06Logout\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.EmptyBo\n" +
 	"\acom.didB\n" +
@@ -234,8 +234,8 @@ var file_v1_did_login_proto_goTypes = []any{
 	(*v1.Token)(nil),           // 5: hi.Token
 	(*v1.Mqtt)(nil),            // 6: hi.Mqtt
 	(*v1.RefreshTokenReq)(nil), // 7: hi.RefreshTokenReq
-	(*emptypb.Empty)(nil),      // 8: google.protobuf.Empty
-	(*v1.Web3Data)(nil),        // 9: hi.Web3Data
+	(*v1.Web3Data)(nil),        // 8: hi.Web3Data
+	(*emptypb.Empty)(nil),      // 9: google.protobuf.Empty
 	(*v1.Nonce)(nil),           // 10: hi.Nonce
 	(*v1.ReqID)(nil),           // 11: hi.ReqID
 }
@@ -245,17 +245,17 @@ var file_v1_did_login_proto_depIdxs = []int32{
 	5,  // 2: did.LoginResp.token:type_name -> hi.Token
 	6,  // 3: did.LoginResp.mqtt:type_name -> hi.Mqtt
 	7,  // 4: did.Login.RefreshToken:input_type -> hi.RefreshTokenReq
-	8,  // 5: did.Login.GenerateNonce:input_type -> google.protobuf.Empty
-	9,  // 6: did.Login.Verify:input_type -> hi.Web3Data
-	3,  // 7: did.Login.GenerateReq:input_type -> hi.Node
-	9,  // 8: did.Login.Notify:input_type -> hi.Web3Data
-	8,  // 9: did.Login.Logout:input_type -> google.protobuf.Empty
+	3,  // 5: did.Login.GenerateNonce:input_type -> hi.Node
+	8,  // 6: did.Login.Verify:input_type -> hi.Web3Data
+	9,  // 7: did.Login.GenerateReq:input_type -> google.protobuf.Empty
+	8,  // 8: did.Login.Notify:input_type -> hi.Web3Data
+	9,  // 9: did.Login.Logout:input_type -> google.protobuf.Empty
 	5,  // 10: did.Login.RefreshToken:output_type -> hi.Token
 	10, // 11: did.Login.GenerateNonce:output_type -> hi.Nonce
 	1,  // 12: did.Login.Verify:output_type -> did.LoginResp
 	11, // 13: did.Login.GenerateReq:output_type -> hi.ReqID
-	8,  // 14: did.Login.Notify:output_type -> google.protobuf.Empty
-	8,  // 15: did.Login.Logout:output_type -> google.protobuf.Empty
+	9,  // 14: did.Login.Notify:output_type -> google.protobuf.Empty
+	9,  // 15: did.Login.Logout:output_type -> google.protobuf.Empty
 	10, // [10:16] is the sub-list for method output_type
 	4,  // [4:10] is the sub-list for method input_type
 	4,  // [4:4] is the sub-list for extension type_name
