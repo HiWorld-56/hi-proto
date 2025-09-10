@@ -77,7 +77,7 @@ func (x *LoginReq) GetNonce() string {
 
 type LoginResp struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Usr           *v1.Unit               `protobuf:"bytes,1,opt,name=usr,proto3" json:"usr,omitempty"`
+	User          *v1.Unit               `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
 	Token         *v1.Token              `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
 	Mqtt          *v1.Mqtt               `protobuf:"bytes,3,opt,name=mqtt,proto3" json:"mqtt,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -114,9 +114,9 @@ func (*LoginResp) Descriptor() ([]byte, []int) {
 	return file_v1_did_login_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *LoginResp) GetUsr() *v1.Unit {
+func (x *LoginResp) GetUser() *v1.Unit {
 	if x != nil {
-		return x.Usr
+		return x.User
 	}
 	return nil
 }
@@ -194,9 +194,9 @@ const file_v1_did_login_proto_rawDesc = "" +
 	"\x12v1/did/login.proto\x12\x03did\x1a\x1bgoogle/protobuf/empty.proto\x1a\vv1/hi.proto\">\n" +
 	"\bLoginReq\x12\x1c\n" +
 	"\x04node\x18\x01 \x01(\v2\b.hi.NodeR\x04node\x12\x14\n" +
-	"\x05nonce\x18\x02 \x01(\tR\x05nonce\"f\n" +
-	"\tLoginResp\x12\x1a\n" +
-	"\x03usr\x18\x01 \x01(\v2\b.hi.UnitR\x03usr\x12\x1f\n" +
+	"\x05nonce\x18\x02 \x01(\tR\x05nonce\"h\n" +
+	"\tLoginResp\x12\x1c\n" +
+	"\x04user\x18\x01 \x01(\v2\b.hi.UnitR\x04user\x12\x1f\n" +
 	"\x05token\x18\x02 \x01(\v2\t.hi.TokenR\x05token\x12\x1c\n" +
 	"\x04mqtt\x18\x03 \x01(\v2\b.hi.MqttR\x04mqtt\"-\n" +
 	"\tLoginData\x12\x0e\n" +
@@ -241,7 +241,7 @@ var file_v1_did_login_proto_goTypes = []any{
 }
 var file_v1_did_login_proto_depIdxs = []int32{
 	3,  // 0: did.LoginReq.node:type_name -> hi.Node
-	4,  // 1: did.LoginResp.usr:type_name -> hi.Unit
+	4,  // 1: did.LoginResp.user:type_name -> hi.Unit
 	5,  // 2: did.LoginResp.token:type_name -> hi.Token
 	6,  // 3: did.LoginResp.mqtt:type_name -> hi.Mqtt
 	7,  // 4: did.Login.RefreshToken:input_type -> hi.RefreshTokenReq

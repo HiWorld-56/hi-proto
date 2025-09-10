@@ -11,7 +11,7 @@ message LoginReq {
 }
 
 message LoginResp {
-    hi.Unit usr = 1;
+    hi.Unit user = 1;
     hi.Token token = 2;
     hi.Mqtt mqtt = 3;
 }
