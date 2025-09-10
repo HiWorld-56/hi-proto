@@ -54,7 +54,7 @@ message TotalAssetsResp {
 }
 
 message ListUsersAssetsReq {
-    string coin = 1;
+    string currency = 1;
     hi.Pagination p = 2;
 }
 

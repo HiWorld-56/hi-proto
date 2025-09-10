@@ -381,7 +381,7 @@ func (x *TotalAssetsResp) GetN() string {
 
 type ListUsersAssetsReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Coin          string                 `protobuf:"bytes,1,opt,name=coin,proto3" json:"coin,omitempty"`
+	Currency      string                 `protobuf:"bytes,1,opt,name=currency,proto3" json:"currency,omitempty"`
 	P             *v1.Pagination         `protobuf:"bytes,2,opt,name=p,proto3" json:"p,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -417,9 +417,9 @@ func (*ListUsersAssetsReq) Descriptor() ([]byte, []int) {
 	return file_v1_did_wallet_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *ListUsersAssetsReq) GetCoin() string {
+func (x *ListUsersAssetsReq) GetCurrency() string {
 	if x != nil {
-		return x.Coin
+		return x.Currency
 	}
 	return ""
 }
@@ -985,9 +985,9 @@ const file_v1_did_wallet_proto_rawDesc = "" +
 	"\x0eTotalAssetsReq\x12\x1a\n" +
 	"\bcurrency\x18\x01 \x01(\tR\bcurrency\"\x1f\n" +
 	"\x0fTotalAssetsResp\x12\f\n" +
-	"\x01n\x18\x01 \x01(\tR\x01n\"F\n" +
-	"\x12ListUsersAssetsReq\x12\x12\n" +
-	"\x04coin\x18\x01 \x01(\tR\x04coin\x12\x1c\n" +
+	"\x01n\x18\x01 \x01(\tR\x01n\"N\n" +
+	"\x12ListUsersAssetsReq\x12\x1a\n" +
+	"\bcurrency\x18\x01 \x01(\tR\bcurrency\x12\x1c\n" +
 	"\x01p\x18\x02 \x01(\v2\x0e.hi.PaginationR\x01p\"#\n" +
 	"\x13ListUsersAssetsResp\x12\f\n" +
 	"\x01n\x18\x02 \x03(\tR\x01n\"8\n" +
