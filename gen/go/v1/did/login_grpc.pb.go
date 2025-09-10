@@ -25,6 +25,7 @@ const (
 	Login_GenerateNonce_FullMethodName = "/did.Login/GenerateNonce"
 	Login_Verify_FullMethodName        = "/did.Login/Verify"
 	Login_GenerateReq_FullMethodName   = "/did.Login/GenerateReq"
+	Login_GetReqStatus_FullMethodName  = "/did.Login/GetReqStatus"
 	Login_Notify_FullMethodName        = "/did.Login/Notify"
 	Login_Logout_FullMethodName        = "/did.Login/Logout"
 )
@@ -37,6 +38,7 @@ type LoginClient interface {
 	GenerateNonce(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*v1.Nonce, error)
 	Verify(ctx context.Context, in *v1.Web3Data, opts ...grpc.CallOption) (*LoginResp, error)
 	GenerateReq(ctx context.Context, in *v1.Node, opts ...grpc.CallOption) (*v1.ReqID, error)
+	GetReqStatus(ctx context.Context, in *v1.ReqID, opts ...grpc.CallOption) (*ReqStatusResp, error)
 	Notify(ctx context.Context, in *v1.Web3Data, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Logout(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
@@ -89,6 +91,16 @@ func (c *loginClient) GenerateReq(ctx context.Context, in *v1.Node, opts ...grpc
 	return out, nil
 }
 
+func (c *loginClient) GetReqStatus(ctx context.Context, in *v1.ReqID, opts ...grpc.CallOption) (*ReqStatusResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReqStatusResp)
+	err := c.cc.Invoke(ctx, Login_GetReqStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *loginClient) Notify(ctx context.Context, in *v1.Web3Data, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
@@ -117,6 +129,7 @@ type LoginServer interface {
 	GenerateNonce(context.Context, *emptypb.Empty) (*v1.Nonce, error)
 	Verify(context.Context, *v1.Web3Data) (*LoginResp, error)
 	GenerateReq(context.Context, *v1.Node) (*v1.ReqID, error)
+	GetReqStatus(context.Context, *v1.ReqID) (*ReqStatusResp, error)
 	Notify(context.Context, *v1.Web3Data) (*emptypb.Empty, error)
 	Logout(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
 }
@@ -139,6 +152,9 @@ func (UnimplementedLoginServer) Verify(context.Context, *v1.Web3Data) (*LoginRes
 }
 func (UnimplementedLoginServer) GenerateReq(context.Context, *v1.Node) (*v1.ReqID, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GenerateReq not implemented")
+}
+func (UnimplementedLoginServer) GetReqStatus(context.Context, *v1.ReqID) (*ReqStatusResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetReqStatus not implemented")
 }
 func (UnimplementedLoginServer) Notify(context.Context, *v1.Web3Data) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Notify not implemented")
@@ -238,6 +254,24 @@ func _Login_GenerateReq_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Login_GetReqStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(v1.ReqID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LoginServer).GetReqStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Login_GetReqStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LoginServer).GetReqStatus(ctx, req.(*v1.ReqID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Login_Notify_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(v1.Web3Data)
 	if err := dec(in); err != nil {
@@ -296,6 +330,10 @@ var Login_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GenerateReq",
 			Handler:    _Login_GenerateReq_Handler,
+		},
+		{
+			MethodName: "GetReqStatus",
+			Handler:    _Login_GetReqStatus_Handler,
 		},
 		{
 			MethodName: "Notify",
