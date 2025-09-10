@@ -64,6 +64,7 @@ message ListUsersAssetsResp {
         string avatar = 2;
         string n = 3;
     }
+    int64 total = 1;
     repeated Unit list = 2;
 }
 

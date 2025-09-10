@@ -433,6 +433,7 @@ func (x *ListUsersAssetsReq) GetP() *v1.Pagination {
 
 type ListUsersAssetsResp struct {
 	state         protoimpl.MessageState      `protogen:"open.v1"`
+	Total         int64                       `protobuf:"varint,1,opt,name=total,proto3" json:"total,omitempty"`
 	List          []*ListUsersAssetsResp_Unit `protobuf:"bytes,2,rep,name=list,proto3" json:"list,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -466,6 +467,13 @@ func (x *ListUsersAssetsResp) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ListUsersAssetsResp.ProtoReflect.Descriptor instead.
 func (*ListUsersAssetsResp) Descriptor() ([]byte, []int) {
 	return file_v1_did_wallet_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ListUsersAssetsResp) GetTotal() int64 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
 }
 
 func (x *ListUsersAssetsResp) GetList() []*ListUsersAssetsResp_Unit {
@@ -1048,8 +1056,9 @@ const file_v1_did_wallet_proto_rawDesc = "" +
 	"\x01n\x18\x01 \x01(\tR\x01n\"N\n" +
 	"\x12ListUsersAssetsReq\x12\x1a\n" +
 	"\bcurrency\x18\x01 \x01(\tR\bcurrency\x12\x1c\n" +
-	"\x01p\x18\x02 \x01(\v2\x0e.hi.PaginationR\x01p\"\x88\x01\n" +
-	"\x13ListUsersAssetsResp\x121\n" +
+	"\x01p\x18\x02 \x01(\v2\x0e.hi.PaginationR\x01p\"\x9e\x01\n" +
+	"\x13ListUsersAssetsResp\x12\x14\n" +
+	"\x05total\x18\x01 \x01(\x03R\x05total\x121\n" +
 	"\x04list\x18\x02 \x03(\v2\x1d.did.ListUsersAssetsResp.UnitR\x04list\x1a>\n" +
 	"\x04Unit\x12\x10\n" +
 	"\x03did\x18\x01 \x01(\tR\x03did\x12\x16\n" +
