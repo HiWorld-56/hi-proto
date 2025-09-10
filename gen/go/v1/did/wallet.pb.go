@@ -879,7 +879,7 @@ type ListUsersAssetsResp_Unit struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Did           string                 `protobuf:"bytes,1,opt,name=did,proto3" json:"did,omitempty"`
 	Avatar        string                 `protobuf:"bytes,2,opt,name=avatar,proto3" json:"avatar,omitempty"`
-	N             int32                  `protobuf:"varint,3,opt,name=n,proto3" json:"n,omitempty"`
+	N             string                 `protobuf:"bytes,3,opt,name=n,proto3" json:"n,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -928,11 +928,11 @@ func (x *ListUsersAssetsResp_Unit) GetAvatar() string {
 	return ""
 }
 
-func (x *ListUsersAssetsResp_Unit) GetN() int32 {
+func (x *ListUsersAssetsResp_Unit) GetN() string {
 	if x != nil {
 		return x.N
 	}
-	return 0
+	return ""
 }
 
 type GetUserAssetsResp_Unit struct {
@@ -1054,7 +1054,7 @@ const file_v1_did_wallet_proto_rawDesc = "" +
 	"\x04Unit\x12\x10\n" +
 	"\x03did\x18\x01 \x01(\tR\x03did\x12\x16\n" +
 	"\x06avatar\x18\x02 \x01(\tR\x06avatar\x12\f\n" +
-	"\x01n\x18\x03 \x01(\x05R\x01n\"8\n" +
+	"\x01n\x18\x03 \x01(\tR\x01n\"8\n" +
 	"\x10GetUserAssetsReq\x12\x10\n" +
 	"\x03did\x18\x01 \x01(\tR\x03did\x12\x12\n" +
 	"\x04coin\x18\x02 \x01(\tR\x04coin\"\xc1\x01\n" +

@@ -62,7 +62,7 @@ message ListUsersAssetsResp {
     message Unit {
         string did = 1;
         string avatar = 2;
-        int32 n = 3;
+        string n = 3;
     }
     repeated Unit list = 2;
 }
