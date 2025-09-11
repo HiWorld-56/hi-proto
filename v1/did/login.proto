@@ -5,16 +5,9 @@ import "v1/hi.proto";
 
 package did;
 
-message ReqKey {
-    oneof kind {
-        hi.Nonce nonce = 1;
-        hi.ReqID req_id = 2;
-    }
-}
-
 message LoginReq {
 	hi.Node node = 1;
-	ReqKey key = 2;
+	hi.ReqID req_id = 2;
 }
 
 message LoginResp {
@@ -23,6 +16,7 @@ message LoginResp {
     hi.Mqtt mqtt = 3;
 }
 
+// 三方app/web
 message LoginData {
     string id = 1;
     string did = 2;
@@ -34,7 +28,7 @@ message ReqStatusResp {
 
 service Login {
     rpc RefreshToken (hi.RefreshTokenReq) returns (hi.Token); // 不鉴权
-    rpc GenerateNonce (google.protobuf.Empty) returns (hi.Nonce); // 不鉴权
+    // rpc GenerateNonce (google.protobuf.Empty) returns (hi.Nonce); // 不鉴权
     rpc Verify (hi.Web3Data) returns (LoginResp); // LoginReq // Web3鉴权
     rpc GenerateReq (hi.Node) returns (hi.ReqID); // 不鉴权
     rpc GetReqStatus (hi.ReqID) returns (ReqStatusResp);

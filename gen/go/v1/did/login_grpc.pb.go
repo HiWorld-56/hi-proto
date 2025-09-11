@@ -21,13 +21,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Login_RefreshToken_FullMethodName  = "/did.Login/RefreshToken"
-	Login_GenerateNonce_FullMethodName = "/did.Login/GenerateNonce"
-	Login_Verify_FullMethodName        = "/did.Login/Verify"
-	Login_GenerateReq_FullMethodName   = "/did.Login/GenerateReq"
-	Login_GetReqStatus_FullMethodName  = "/did.Login/GetReqStatus"
-	Login_Notify_FullMethodName        = "/did.Login/Notify"
-	Login_Logout_FullMethodName        = "/did.Login/Logout"
+	Login_RefreshToken_FullMethodName = "/did.Login/RefreshToken"
+	Login_Verify_FullMethodName       = "/did.Login/Verify"
+	Login_GenerateReq_FullMethodName  = "/did.Login/GenerateReq"
+	Login_GetReqStatus_FullMethodName = "/did.Login/GetReqStatus"
+	Login_Notify_FullMethodName       = "/did.Login/Notify"
+	Login_Logout_FullMethodName       = "/did.Login/Logout"
 )
 
 // LoginClient is the client API for Login service.
@@ -35,7 +34,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type LoginClient interface {
 	RefreshToken(ctx context.Context, in *v1.RefreshTokenReq, opts ...grpc.CallOption) (*v1.Token, error)
-	GenerateNonce(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*v1.Nonce, error)
+	// rpc GenerateNonce (google.protobuf.Empty) returns (hi.Nonce); // 不鉴权
 	Verify(ctx context.Context, in *v1.Web3Data, opts ...grpc.CallOption) (*LoginResp, error)
 	GenerateReq(ctx context.Context, in *v1.Node, opts ...grpc.CallOption) (*v1.ReqID, error)
 	GetReqStatus(ctx context.Context, in *v1.ReqID, opts ...grpc.CallOption) (*ReqStatusResp, error)
@@ -55,16 +54,6 @@ func (c *loginClient) RefreshToken(ctx context.Context, in *v1.RefreshTokenReq, 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(v1.Token)
 	err := c.cc.Invoke(ctx, Login_RefreshToken_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *loginClient) GenerateNonce(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*v1.Nonce, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(v1.Nonce)
-	err := c.cc.Invoke(ctx, Login_GenerateNonce_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +115,7 @@ func (c *loginClient) Logout(ctx context.Context, in *emptypb.Empty, opts ...grp
 // for forward compatibility.
 type LoginServer interface {
 	RefreshToken(context.Context, *v1.RefreshTokenReq) (*v1.Token, error)
-	GenerateNonce(context.Context, *emptypb.Empty) (*v1.Nonce, error)
+	// rpc GenerateNonce (google.protobuf.Empty) returns (hi.Nonce); // 不鉴权
 	Verify(context.Context, *v1.Web3Data) (*LoginResp, error)
 	GenerateReq(context.Context, *v1.Node) (*v1.ReqID, error)
 	GetReqStatus(context.Context, *v1.ReqID) (*ReqStatusResp, error)
@@ -143,9 +132,6 @@ type UnimplementedLoginServer struct{}
 
 func (UnimplementedLoginServer) RefreshToken(context.Context, *v1.RefreshTokenReq) (*v1.Token, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RefreshToken not implemented")
-}
-func (UnimplementedLoginServer) GenerateNonce(context.Context, *emptypb.Empty) (*v1.Nonce, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GenerateNonce not implemented")
 }
 func (UnimplementedLoginServer) Verify(context.Context, *v1.Web3Data) (*LoginResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Verify not implemented")
@@ -196,24 +182,6 @@ func _Login_RefreshToken_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(LoginServer).RefreshToken(ctx, req.(*v1.RefreshTokenReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Login_GenerateNonce_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(emptypb.Empty)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(LoginServer).GenerateNonce(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Login_GenerateNonce_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LoginServer).GenerateNonce(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -318,10 +286,6 @@ var Login_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RefreshToken",
 			Handler:    _Login_RefreshToken_Handler,
-		},
-		{
-			MethodName: "GenerateNonce",
-			Handler:    _Login_GenerateNonce_Handler,
 		},
 		{
 			MethodName: "Verify",
