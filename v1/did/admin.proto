@@ -33,6 +33,7 @@ message InviteCodeDeleteReq {
 message InviteCodeVerifyReq {
     string id = 1;
     string code = 2;
+    string did = 3;
 }
 
 service InviteCode {

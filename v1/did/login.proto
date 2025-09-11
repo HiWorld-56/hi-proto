@@ -5,6 +5,7 @@ import "v1/hi.proto";
 
 package did;
 
+// hidid web/app/pc登录
 message LoginReq {
 	hi.Node node = 1;
 	hi.ReqID req_id = 2;
@@ -16,7 +17,7 @@ message LoginResp {
     hi.Mqtt mqtt = 3;
 }
 
-// 三方app/web
+// 三方app/web登录
 message LoginData {
     string id = 1;
     string did = 2;

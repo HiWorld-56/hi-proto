@@ -23,6 +23,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// hidid web/app/pc登录
 type LoginReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Node          *v1.Node               `protobuf:"bytes,1,opt,name=node,proto3" json:"node,omitempty"`
@@ -135,7 +136,7 @@ func (x *LoginResp) GetMqtt() *v1.Mqtt {
 	return nil
 }
 
-// 三方app/web
+// 三方app/web登录
 type LoginData struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`

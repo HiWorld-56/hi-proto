@@ -227,6 +227,7 @@ type InviteCodeVerifyReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Code          string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	Did           string                 `protobuf:"bytes,3,opt,name=did,proto3" json:"did,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -271,6 +272,13 @@ func (x *InviteCodeVerifyReq) GetId() string {
 func (x *InviteCodeVerifyReq) GetCode() string {
 	if x != nil {
 		return x.Code
+	}
+	return ""
+}
+
+func (x *InviteCodeVerifyReq) GetDid() string {
+	if x != nil {
+		return x.Did
 	}
 	return ""
 }
@@ -950,10 +958,11 @@ const file_v1_did_admin_proto_rawDesc = "" +
 	"\tis_active\x18\x02 \x01(\bR\bisActive\x12\x12\n" +
 	"\x04note\x18\x03 \x01(\tR\x04note\")\n" +
 	"\x13InviteCodeDeleteReq\x12\x12\n" +
-	"\x04code\x18\x01 \x01(\tR\x04code\"9\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\"K\n" +
 	"\x13InviteCodeVerifyReq\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04code\x18\x02 \x01(\tR\x04code\"\xca\x01\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\x12\x10\n" +
+	"\x03did\x18\x03 \x01(\tR\x03did\"\xca\x01\n" +
 	"\bDAppInfo\x12\x14\n" +
 	"\x05class\x18\x02 \x01(\tR\x05class\x12\x12\n" +
 	"\x04logo\x18\x03 \x01(\tR\x04logo\x12\x14\n" +
