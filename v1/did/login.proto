@@ -5,9 +5,16 @@ import "v1/hi.proto";
 
 package did;
 
+message ReqKey {
+    oneof kind {
+        hi.Nonce nonce = 1;
+        hi.ReqID req_id = 2;
+    }
+}
+
 message LoginReq {
 	hi.Node node = 1;
-	string nonce = 2;
+	ReqKey key = 2;
 }
 
 message LoginResp {
