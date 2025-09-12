@@ -393,9 +393,10 @@ const file_v1_did_merchant_proto_rawDesc = "" +
 	"\x04list\x18\x01 \x03(\v2\x11.did.MerchantInfoR\x04list\";\n" +
 	"\x11MerchantNotifyReq\x12\x10\n" +
 	"\x03did\x18\x01 \x01(\tR\x03did\x12\x14\n" +
-	"\x05nonce\x18\x02 \x01(\tR\x05nonce2\x9b\x01\n" +
+	"\x05nonce\x18\x02 \x01(\tR\x05nonce2\xc6\x01\n" +
 	"\bMerchant\x123\n" +
-	"\x03Get\x12\x16.google.protobuf.Empty\x1a\x14.did.MerchantGetResp\x122\n" +
+	"\x03Get\x12\x16.google.protobuf.Empty\x1a\x14.did.MerchantGetResp\x12)\n" +
+	"\bGetByDID\x12\a.hi.DID\x1a\x14.did.MerchantGetResp\x122\n" +
 	"\x03Set\x12\x13.did.MerchantSetReq\x1a\x16.google.protobuf.Empty\x12&\n" +
 	"\x04List\x12\a.hi.DID\x1a\x15.did.MerchantListResp2?\n" +
 	"\x03SSE\x128\n" +
@@ -434,15 +435,17 @@ var file_v1_did_merchant_proto_depIdxs = []int32{
 	0,  // 4: did.MerchantGetResp.info:type_name -> did.MerchantInfo
 	0,  // 5: did.MerchantListResp.list:type_name -> did.MerchantInfo
 	7,  // 6: did.Merchant.Get:input_type -> google.protobuf.Empty
-	2,  // 7: did.Merchant.Set:input_type -> did.MerchantSetReq
-	8,  // 8: did.Merchant.List:input_type -> hi.DID
-	4,  // 9: did.SSE.Notify:input_type -> did.MerchantNotifyReq
-	1,  // 10: did.Merchant.Get:output_type -> did.MerchantGetResp
-	7,  // 11: did.Merchant.Set:output_type -> google.protobuf.Empty
-	3,  // 12: did.Merchant.List:output_type -> did.MerchantListResp
-	7,  // 13: did.SSE.Notify:output_type -> google.protobuf.Empty
-	10, // [10:14] is the sub-list for method output_type
-	6,  // [6:10] is the sub-list for method input_type
+	8,  // 7: did.Merchant.GetByDID:input_type -> hi.DID
+	2,  // 8: did.Merchant.Set:input_type -> did.MerchantSetReq
+	8,  // 9: did.Merchant.List:input_type -> hi.DID
+	4,  // 10: did.SSE.Notify:input_type -> did.MerchantNotifyReq
+	1,  // 11: did.Merchant.Get:output_type -> did.MerchantGetResp
+	1,  // 12: did.Merchant.GetByDID:output_type -> did.MerchantGetResp
+	7,  // 13: did.Merchant.Set:output_type -> google.protobuf.Empty
+	3,  // 14: did.Merchant.List:output_type -> did.MerchantListResp
+	7,  // 15: did.SSE.Notify:output_type -> google.protobuf.Empty
+	11, // [11:16] is the sub-list for method output_type
+	6,  // [6:11] is the sub-list for method input_type
 	6,  // [6:6] is the sub-list for extension type_name
 	6,  // [6:6] is the sub-list for extension extendee
 	0,  // [0:6] is the sub-list for field type_name
