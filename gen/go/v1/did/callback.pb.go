@@ -7,10 +7,8 @@
 package did
 
 import (
-	v1 "github.com/HiWorld-56/hi-proto/gen/go/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
 	unsafe "unsafe"
 )
@@ -26,23 +24,12 @@ var File_v1_did_callback_proto protoreflect.FileDescriptor
 
 const file_v1_did_callback_proto_rawDesc = "" +
 	"\n" +
-	"\x15v1/did/callback.proto\x12\x03did\x1a\x1bgoogle/protobuf/empty.proto\x1a\vv1/hi.proto2f\n" +
-	"\bCallback\x12-\n" +
-	"\x05Login\x12\f.hi.Web3Data\x1a\x16.google.protobuf.Empty\x12+\n" +
-	"\x03Pay\x12\f.hi.Web3Data\x1a\x16.google.protobuf.EmptyBr\n" +
-	"\acom.didB\rCallbackProtoP\x01Z,github.com/HiWorld-56/hi-proto/gen/go/v1/did\xa2\x02\x03DXX\xaa\x02\x03Did\xca\x02\x03Did\xe2\x02\x0fDid\\GPBMetadata\xea\x02\x03Didb\x06proto3"
+	"\x15v1/did/callback.protoB?B\rCallbackProtoP\x01Z,github.com/HiWorld-56/hi-proto/gen/go/v1/did"
 
-var file_v1_did_callback_proto_goTypes = []any{
-	(*v1.Web3Data)(nil),   // 0: hi.Web3Data
-	(*emptypb.Empty)(nil), // 1: google.protobuf.Empty
-}
+var file_v1_did_callback_proto_goTypes = []any{}
 var file_v1_did_callback_proto_depIdxs = []int32{
-	0, // 0: did.Callback.Login:input_type -> hi.Web3Data
-	0, // 1: did.Callback.Pay:input_type -> hi.Web3Data
-	1, // 2: did.Callback.Login:output_type -> google.protobuf.Empty
-	1, // 3: did.Callback.Pay:output_type -> google.protobuf.Empty
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	0, // [0:0] is the sub-list for method output_type
+	0, // [0:0] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -61,7 +48,7 @@ func file_v1_did_callback_proto_init() {
 			NumEnums:      0,
 			NumMessages:   0,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   0,
 		},
 		GoTypes:           file_v1_did_callback_proto_goTypes,
 		DependencyIndexes: file_v1_did_callback_proto_depIdxs,

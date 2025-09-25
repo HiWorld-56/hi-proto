@@ -1,11 +1,11 @@
-syntax = "proto3";
+// syntax = "proto3";
 
-import "google/protobuf/empty.proto";
-import "v1/hi.proto";
+// import "google/protobuf/empty.proto";
+// import "v1/hi.proto";
 
-package did;
+// package did;
 
-service Callback {
-    rpc Login(hi.Web3Data) returns (google.protobuf.Empty); // LoginData // Web3鉴权
-    rpc Pay(hi.Web3Data) returns (google.protobuf.Empty);   // PayData // Web3鉴权
-}
+// service Callback {
+//     rpc Login(hi.Web3Data) returns (google.protobuf.Empty); // LoginData // Web3鉴权
+//     rpc Pay(hi.Web3Data) returns (google.protobuf.Empty);   // PayData // Web3鉴权
+// }
