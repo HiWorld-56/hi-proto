@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+
+package ai;
+
+message ApiKeyInfo {
+    string value = 1;
+    string did = 2;
+    int32 rate_limit = 3;
+    int32 is_active = 4;
+    int32 note = 5;
+}
+
+message CreateApiKeyResp {
+    ApiKeyInfo info = 1;
+}
+
+message EditApiKeyReq {
+    string api_key = 1;
+    string note = 2;
+}
+
+message EditApiKeyResp {
+    ApiKeyInfo info = 1;
+}
+
+message ListApiKeyResp {
+    int64 total = 1;
+    repeated ApiKeyInfo infos = 2;
+}
+
+message DeleteApiKeyReq {
+    string api_key = 1;
+}
+
+message ListBotReq {
+    string bot_did = 1;
+    hi.Pagination pagination = 2;
+}
+
+// 使用token鉴权
+service ApiKey {
+	rpc Create (google.protobuf.Empty) returns (CreateApiKeyResp);
+    rpc Edit (EditApiKeyReq) returns (EditApiKeyResp);
+    rpc List (hi.Pagination) returns (ListApiKeyResp);
+    rpc Delete (DeleteApiKeyReq) returns (google.protobuf.Empty);
+}

@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+
+package hi;
+
+message LoginData {
+    string id = 1;
+    string did = 2;
+}
+
+// 三方app/web登录回调
+service LoginCallback {
+    rpc Login(hi.Web3Data) returns (google.protobuf.Empty); // LoginData // Web3鉴权
+}

@@ -136,59 +136,6 @@ func (x *LoginResp) GetMqtt() *v1.Mqtt {
 	return nil
 }
 
-// 三方app/web登录
-type LoginData struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Did           string                 `protobuf:"bytes,2,opt,name=did,proto3" json:"did,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *LoginData) Reset() {
-	*x = LoginData{}
-	mi := &file_v1_did_login_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LoginData) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LoginData) ProtoMessage() {}
-
-func (x *LoginData) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_did_login_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LoginData.ProtoReflect.Descriptor instead.
-func (*LoginData) Descriptor() ([]byte, []int) {
-	return file_v1_did_login_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *LoginData) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *LoginData) GetDid() string {
-	if x != nil {
-		return x.Did
-	}
-	return ""
-}
-
 type ReqStatusResp struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
@@ -198,7 +145,7 @@ type ReqStatusResp struct {
 
 func (x *ReqStatusResp) Reset() {
 	*x = ReqStatusResp{}
-	mi := &file_v1_did_login_proto_msgTypes[3]
+	mi := &file_v1_did_login_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -210,7 +157,7 @@ func (x *ReqStatusResp) String() string {
 func (*ReqStatusResp) ProtoMessage() {}
 
 func (x *ReqStatusResp) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_did_login_proto_msgTypes[3]
+	mi := &file_v1_did_login_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -223,7 +170,7 @@ func (x *ReqStatusResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReqStatusResp.ProtoReflect.Descriptor instead.
 func (*ReqStatusResp) Descriptor() ([]byte, []int) {
-	return file_v1_did_login_proto_rawDescGZIP(), []int{3}
+	return file_v1_did_login_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ReqStatusResp) GetStatus() string {
@@ -244,10 +191,7 @@ const file_v1_did_login_proto_rawDesc = "" +
 	"\tLoginResp\x12\x1c\n" +
 	"\x04user\x18\x01 \x01(\v2\b.hi.UnitR\x04user\x12\x1f\n" +
 	"\x05token\x18\x02 \x01(\v2\t.hi.TokenR\x05token\x12\x1c\n" +
-	"\x04mqtt\x18\x03 \x01(\v2\b.hi.MqttR\x04mqtt\"-\n" +
-	"\tLoginData\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
-	"\x03did\x18\x02 \x01(\tR\x03did\"'\n" +
+	"\x04mqtt\x18\x03 \x01(\v2\b.hi.MqttR\x04mqtt\"'\n" +
 	"\rReqStatusResp\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status2\x9c\x02\n" +
 	"\x05Login\x12.\n" +
@@ -272,39 +216,38 @@ func file_v1_did_login_proto_rawDescGZIP() []byte {
 	return file_v1_did_login_proto_rawDescData
 }
 
-var file_v1_did_login_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_v1_did_login_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_v1_did_login_proto_goTypes = []any{
 	(*LoginReq)(nil),           // 0: did.LoginReq
 	(*LoginResp)(nil),          // 1: did.LoginResp
-	(*LoginData)(nil),          // 2: did.LoginData
-	(*ReqStatusResp)(nil),      // 3: did.ReqStatusResp
-	(*v1.Node)(nil),            // 4: hi.Node
-	(*v1.ReqID)(nil),           // 5: hi.ReqID
-	(*v1.Unit)(nil),            // 6: hi.Unit
-	(*v1.Token)(nil),           // 7: hi.Token
-	(*v1.Mqtt)(nil),            // 8: hi.Mqtt
-	(*v1.RefreshTokenReq)(nil), // 9: hi.RefreshTokenReq
-	(*v1.Web3Data)(nil),        // 10: hi.Web3Data
-	(*emptypb.Empty)(nil),      // 11: google.protobuf.Empty
+	(*ReqStatusResp)(nil),      // 2: did.ReqStatusResp
+	(*v1.Node)(nil),            // 3: hi.Node
+	(*v1.ReqID)(nil),           // 4: hi.ReqID
+	(*v1.Unit)(nil),            // 5: hi.Unit
+	(*v1.Token)(nil),           // 6: hi.Token
+	(*v1.Mqtt)(nil),            // 7: hi.Mqtt
+	(*v1.RefreshTokenReq)(nil), // 8: hi.RefreshTokenReq
+	(*v1.Web3Data)(nil),        // 9: hi.Web3Data
+	(*emptypb.Empty)(nil),      // 10: google.protobuf.Empty
 }
 var file_v1_did_login_proto_depIdxs = []int32{
-	4,  // 0: did.LoginReq.node:type_name -> hi.Node
-	5,  // 1: did.LoginReq.req_id:type_name -> hi.ReqID
-	6,  // 2: did.LoginResp.user:type_name -> hi.Unit
-	7,  // 3: did.LoginResp.token:type_name -> hi.Token
-	8,  // 4: did.LoginResp.mqtt:type_name -> hi.Mqtt
-	9,  // 5: did.Login.RefreshToken:input_type -> hi.RefreshTokenReq
-	10, // 6: did.Login.Verify:input_type -> hi.Web3Data
-	4,  // 7: did.Login.GenerateReq:input_type -> hi.Node
-	5,  // 8: did.Login.GetReqStatus:input_type -> hi.ReqID
-	10, // 9: did.Login.Notify:input_type -> hi.Web3Data
-	11, // 10: did.Login.Logout:input_type -> google.protobuf.Empty
-	7,  // 11: did.Login.RefreshToken:output_type -> hi.Token
+	3,  // 0: did.LoginReq.node:type_name -> hi.Node
+	4,  // 1: did.LoginReq.req_id:type_name -> hi.ReqID
+	5,  // 2: did.LoginResp.user:type_name -> hi.Unit
+	6,  // 3: did.LoginResp.token:type_name -> hi.Token
+	7,  // 4: did.LoginResp.mqtt:type_name -> hi.Mqtt
+	8,  // 5: did.Login.RefreshToken:input_type -> hi.RefreshTokenReq
+	9,  // 6: did.Login.Verify:input_type -> hi.Web3Data
+	3,  // 7: did.Login.GenerateReq:input_type -> hi.Node
+	4,  // 8: did.Login.GetReqStatus:input_type -> hi.ReqID
+	9,  // 9: did.Login.Notify:input_type -> hi.Web3Data
+	10, // 10: did.Login.Logout:input_type -> google.protobuf.Empty
+	6,  // 11: did.Login.RefreshToken:output_type -> hi.Token
 	1,  // 12: did.Login.Verify:output_type -> did.LoginResp
-	5,  // 13: did.Login.GenerateReq:output_type -> hi.ReqID
-	3,  // 14: did.Login.GetReqStatus:output_type -> did.ReqStatusResp
-	11, // 15: did.Login.Notify:output_type -> google.protobuf.Empty
-	11, // 16: did.Login.Logout:output_type -> google.protobuf.Empty
+	4,  // 13: did.Login.GenerateReq:output_type -> hi.ReqID
+	2,  // 14: did.Login.GetReqStatus:output_type -> did.ReqStatusResp
+	10, // 15: did.Login.Notify:output_type -> google.protobuf.Empty
+	10, // 16: did.Login.Logout:output_type -> google.protobuf.Empty
 	11, // [11:17] is the sub-list for method output_type
 	5,  // [5:11] is the sub-list for method input_type
 	5,  // [5:5] is the sub-list for extension type_name
@@ -323,7 +266,7 @@ func file_v1_did_login_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_v1_did_login_proto_rawDesc), len(file_v1_did_login_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

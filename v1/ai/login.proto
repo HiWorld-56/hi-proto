@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+
+package ai;
+
+message ReqStatusResp {
+    string status = 1;
+}
+
+service Login {
+    rpc RefreshToken (hi.RefreshTokenReq) returns (hi.Token); // 不鉴权
+    rpc GenerateReq (hi.Node) returns (hi.ReqID); // 不鉴权
+    rpc GetReqStatus (hi.ReqID) returns (ReqStatusResp);
+}

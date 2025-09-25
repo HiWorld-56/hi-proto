@@ -67,11 +67,7 @@ message RefreshTokenReq {
 	string refresh_token = 3;
 }
 
-message ListSuperAdminUsersResp {
-    repeated string list = 1;
-}
 
-service Base {
-    rpc QueryHealth (google.protobuf.Empty) returns (google.protobuf.Empty); // 不鉴权
-    rpc ListSuperAdminUsers (google.protobuf.Empty) returns (ListSuperAdminUsersResp); // 不鉴权
-}
+
+
+

@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+
+package ai;
+
+message AddSuperUserReq {
+    string did = 1;
+    string type = 2;
+}
+
+message DeleteSuperUserReq {
+    string did = 1;
+    string type = 2;
+}
+
+message ListSuperUserReq {
+    string did = 1;
+    string type = 2;
+    hi.Pagination pagination = 3;
+}
+
+message SuperUserInfo {
+    string did = 1;
+    int32 type = 2;
+    repeated string permissions = 3;
+    string note = 4;
+}
+
+message ListSuperUserResp {
+    int64 total = 1;
+    repeated SuperUserInfo infos = 2;
+}
+
+message ListSuperUserTypeResp {
+    repeated string types = 1;
+}
+
+message EditSuperUserReq {
+    string did = 1;
+    string note = 2;
+}
+
+// Token鉴权
+service UserACL {
+    rpc Add (AddSuperUserReq) returns (google.protobuf.Empty);
+    rpc Delete (DeleteSuperUserReq) returns (google.protobuf.Empty);
+    rpc List (ListSuperUserReq) returns (ListSuperUserResp);
+    rpc ListType (google.protobuf.Empty) returns (ListSuperUserTypeResp);
+    rpc Edit (EditSuperUserReq) returns (google.protobuf.Empty);
+}

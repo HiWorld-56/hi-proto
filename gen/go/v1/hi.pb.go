@@ -9,7 +9,7 @@ package v1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	_ "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -654,50 +654,6 @@ func (x *RefreshTokenReq) GetRefreshToken() string {
 	return ""
 }
 
-type ListSuperAdminUsersResp struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	List          []string               `protobuf:"bytes,1,rep,name=list,proto3" json:"list,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListSuperAdminUsersResp) Reset() {
-	*x = ListSuperAdminUsersResp{}
-	mi := &file_v1_hi_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListSuperAdminUsersResp) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListSuperAdminUsersResp) ProtoMessage() {}
-
-func (x *ListSuperAdminUsersResp) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_hi_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListSuperAdminUsersResp.ProtoReflect.Descriptor instead.
-func (*ListSuperAdminUsersResp) Descriptor() ([]byte, []int) {
-	return file_v1_hi_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *ListSuperAdminUsersResp) GetList() []string {
-	if x != nil {
-		return x.List
-	}
-	return nil
-}
-
 var File_v1_hi_proto protoreflect.FileDescriptor
 
 const file_v1_hi_proto_rawDesc = "" +
@@ -740,12 +696,7 @@ const file_v1_hi_proto_rawDesc = "" +
 	"\x0fRefreshTokenReq\x12\x1c\n" +
 	"\x04node\x18\x01 \x01(\v2\b.hi.NodeR\x04node\x12\x10\n" +
 	"\x03did\x18\x02 \x01(\tR\x03did\x12#\n" +
-	"\rrefresh_token\x18\x03 \x01(\tR\frefreshToken\"-\n" +
-	"\x17ListSuperAdminUsersResp\x12\x12\n" +
-	"\x04list\x18\x01 \x03(\tR\x04list2\x91\x01\n" +
-	"\x04Base\x12=\n" +
-	"\vQueryHealth\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\x12J\n" +
-	"\x13ListSuperAdminUsers\x12\x16.google.protobuf.Empty\x1a\x1b.hi.ListSuperAdminUsersRespBc\n" +
+	"\rrefresh_token\x18\x03 \x01(\tR\frefreshTokenBc\n" +
 	"\x06com.hiB\aHiProtoP\x01Z(github.com/HiWorld-56/hi-proto/gen/go/v1\xa2\x02\x03HXX\xaa\x02\x02Hi\xca\x02\x02Hi\xe2\x02\x0eHi\\GPBMetadata\xea\x02\x02Hib\x06proto3"
 
 var (
@@ -760,34 +711,28 @@ func file_v1_hi_proto_rawDescGZIP() []byte {
 	return file_v1_hi_proto_rawDescData
 }
 
-var file_v1_hi_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_v1_hi_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_v1_hi_proto_goTypes = []any{
-	(*Web3Data)(nil),                // 0: hi.Web3Data
-	(*DID)(nil),                     // 1: hi.DID
-	(*Unit)(nil),                    // 2: hi.Unit
-	(*Mqtt)(nil),                    // 3: hi.Mqtt
-	(*Token)(nil),                   // 4: hi.Token
-	(*Nonce)(nil),                   // 5: hi.Nonce
-	(*ReqID)(nil),                   // 6: hi.ReqID
-	(*State)(nil),                   // 7: hi.State
-	(*Number)(nil),                  // 8: hi.Number
-	(*Node)(nil),                    // 9: hi.Node
-	(*Pagination)(nil),              // 10: hi.Pagination
-	(*RefreshTokenReq)(nil),         // 11: hi.RefreshTokenReq
-	(*ListSuperAdminUsersResp)(nil), // 12: hi.ListSuperAdminUsersResp
-	(*emptypb.Empty)(nil),           // 13: google.protobuf.Empty
+	(*Web3Data)(nil),        // 0: hi.Web3Data
+	(*DID)(nil),             // 1: hi.DID
+	(*Unit)(nil),            // 2: hi.Unit
+	(*Mqtt)(nil),            // 3: hi.Mqtt
+	(*Token)(nil),           // 4: hi.Token
+	(*Nonce)(nil),           // 5: hi.Nonce
+	(*ReqID)(nil),           // 6: hi.ReqID
+	(*State)(nil),           // 7: hi.State
+	(*Number)(nil),          // 8: hi.Number
+	(*Node)(nil),            // 9: hi.Node
+	(*Pagination)(nil),      // 10: hi.Pagination
+	(*RefreshTokenReq)(nil), // 11: hi.RefreshTokenReq
 }
 var file_v1_hi_proto_depIdxs = []int32{
-	9,  // 0: hi.RefreshTokenReq.node:type_name -> hi.Node
-	13, // 1: hi.Base.QueryHealth:input_type -> google.protobuf.Empty
-	13, // 2: hi.Base.ListSuperAdminUsers:input_type -> google.protobuf.Empty
-	13, // 3: hi.Base.QueryHealth:output_type -> google.protobuf.Empty
-	12, // 4: hi.Base.ListSuperAdminUsers:output_type -> hi.ListSuperAdminUsersResp
-	3,  // [3:5] is the sub-list for method output_type
-	1,  // [1:3] is the sub-list for method input_type
-	1,  // [1:1] is the sub-list for extension type_name
-	1,  // [1:1] is the sub-list for extension extendee
-	0,  // [0:1] is the sub-list for field type_name
+	9, // 0: hi.RefreshTokenReq.node:type_name -> hi.Node
+	1, // [1:1] is the sub-list for method output_type
+	1, // [1:1] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_v1_hi_proto_init() }
@@ -801,9 +746,9 @@ func file_v1_hi_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_v1_hi_proto_rawDesc), len(file_v1_hi_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   12,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   0,
 		},
 		GoTypes:           file_v1_hi_proto_goTypes,
 		DependencyIndexes: file_v1_hi_proto_depIdxs,
