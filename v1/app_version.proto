@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package hi;
+
+message LastetVersionReq {
+	string platform = 1; // android / ios / ...
+}
+
+message LastetVersionResp {
+    string min_supported_version = 1;
+    string latest_version = 2;
+    string download_url = 3;
+    repeated string changes = 4;
+    int64 release_time = 5;
+}
+
+service AppVersion {
+	rpc LastetVersion (LastetVersionReq) returns (LastetVersionResp); // 不鉴权
+}

@@ -8,10 +8,10 @@ package club
 
 import (
 	context "context"
-	v1 "github.com/HiWorld-56/hi-proto/gen/go/v1"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -20,18 +20,28 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Login_RefreshToken_FullMethodName  = "/club.Login/RefreshToken"
-	Login_GenerateReqID_FullMethodName = "/club.Login/GenerateReqID"
-	Login_GetReqStatus_FullMethodName  = "/club.Login/GetReqStatus"
+	Login_GenerateNonce_FullMethodName             = "/club.Login/GenerateNonce"
+	Login_EmbeddedLogin_FullMethodName             = "/club.Login/EmbeddedLogin"
+	Login_WalletLogin_FullMethodName               = "/club.Login/WalletLogin"
+	Login_QrLogin_FullMethodName                   = "/club.Login/QrLogin"
+	Login_RefreshToken_FullMethodName              = "/club.Login/RefreshToken"
+	Login_GenerateLoginConversation_FullMethodName = "/club.Login/GenerateLoginConversation"
+	Login_GetLoginConversation_FullMethodName      = "/club.Login/GetLoginConversation"
+	Login_ClubWebQrLogin_FullMethodName            = "/club.Login/ClubWebQrLogin"
 )
 
 // LoginClient is the client API for Login service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type LoginClient interface {
-	RefreshToken(ctx context.Context, in *v1.RefreshTokenReq, opts ...grpc.CallOption) (*v1.Token, error)
-	GenerateReqID(ctx context.Context, in *v1.Node, opts ...grpc.CallOption) (*v1.ReqID, error)
-	GetReqStatus(ctx context.Context, in *v1.ReqID, opts ...grpc.CallOption) (*LoginResp, error)
+	GenerateNonce(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Nonce, error)
+	EmbeddedLogin(ctx context.Context, in *LoginParam, opts ...grpc.CallOption) (*EmbeddedLoginResp, error)
+	WalletLogin(ctx context.Context, in *WalletLoginParam, opts ...grpc.CallOption) (*WalletLoginResp, error)
+	QrLogin(ctx context.Context, in *QrLoginParam, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	RefreshToken(ctx context.Context, in *RefreshTokenParam, opts ...grpc.CallOption) (*RefreshTokenResp, error)
+	GenerateLoginConversation(ctx context.Context, in *LoginConversationParam, opts ...grpc.CallOption) (*LoginConversationID, error)
+	GetLoginConversation(ctx context.Context, in *LoginConversationID, opts ...grpc.CallOption) (*LoginConversation, error)
+	ClubWebQrLogin(ctx context.Context, in *LoginParam, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type loginClient struct {
@@ -42,9 +52,49 @@ func NewLoginClient(cc grpc.ClientConnInterface) LoginClient {
 	return &loginClient{cc}
 }
 
-func (c *loginClient) RefreshToken(ctx context.Context, in *v1.RefreshTokenReq, opts ...grpc.CallOption) (*v1.Token, error) {
+func (c *loginClient) GenerateNonce(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Nonce, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(v1.Token)
+	out := new(Nonce)
+	err := c.cc.Invoke(ctx, Login_GenerateNonce_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *loginClient) EmbeddedLogin(ctx context.Context, in *LoginParam, opts ...grpc.CallOption) (*EmbeddedLoginResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EmbeddedLoginResp)
+	err := c.cc.Invoke(ctx, Login_EmbeddedLogin_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *loginClient) WalletLogin(ctx context.Context, in *WalletLoginParam, opts ...grpc.CallOption) (*WalletLoginResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WalletLoginResp)
+	err := c.cc.Invoke(ctx, Login_WalletLogin_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *loginClient) QrLogin(ctx context.Context, in *QrLoginParam, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, Login_QrLogin_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *loginClient) RefreshToken(ctx context.Context, in *RefreshTokenParam, opts ...grpc.CallOption) (*RefreshTokenResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RefreshTokenResp)
 	err := c.cc.Invoke(ctx, Login_RefreshToken_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -52,20 +102,30 @@ func (c *loginClient) RefreshToken(ctx context.Context, in *v1.RefreshTokenReq, 
 	return out, nil
 }
 
-func (c *loginClient) GenerateReqID(ctx context.Context, in *v1.Node, opts ...grpc.CallOption) (*v1.ReqID, error) {
+func (c *loginClient) GenerateLoginConversation(ctx context.Context, in *LoginConversationParam, opts ...grpc.CallOption) (*LoginConversationID, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(v1.ReqID)
-	err := c.cc.Invoke(ctx, Login_GenerateReqID_FullMethodName, in, out, cOpts...)
+	out := new(LoginConversationID)
+	err := c.cc.Invoke(ctx, Login_GenerateLoginConversation_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *loginClient) GetReqStatus(ctx context.Context, in *v1.ReqID, opts ...grpc.CallOption) (*LoginResp, error) {
+func (c *loginClient) GetLoginConversation(ctx context.Context, in *LoginConversationID, opts ...grpc.CallOption) (*LoginConversation, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(LoginResp)
-	err := c.cc.Invoke(ctx, Login_GetReqStatus_FullMethodName, in, out, cOpts...)
+	out := new(LoginConversation)
+	err := c.cc.Invoke(ctx, Login_GetLoginConversation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *loginClient) ClubWebQrLogin(ctx context.Context, in *LoginParam, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, Login_ClubWebQrLogin_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -76,9 +136,14 @@ func (c *loginClient) GetReqStatus(ctx context.Context, in *v1.ReqID, opts ...gr
 // All implementations should embed UnimplementedLoginServer
 // for forward compatibility.
 type LoginServer interface {
-	RefreshToken(context.Context, *v1.RefreshTokenReq) (*v1.Token, error)
-	GenerateReqID(context.Context, *v1.Node) (*v1.ReqID, error)
-	GetReqStatus(context.Context, *v1.ReqID) (*LoginResp, error)
+	GenerateNonce(context.Context, *emptypb.Empty) (*Nonce, error)
+	EmbeddedLogin(context.Context, *LoginParam) (*EmbeddedLoginResp, error)
+	WalletLogin(context.Context, *WalletLoginParam) (*WalletLoginResp, error)
+	QrLogin(context.Context, *QrLoginParam) (*emptypb.Empty, error)
+	RefreshToken(context.Context, *RefreshTokenParam) (*RefreshTokenResp, error)
+	GenerateLoginConversation(context.Context, *LoginConversationParam) (*LoginConversationID, error)
+	GetLoginConversation(context.Context, *LoginConversationID) (*LoginConversation, error)
+	ClubWebQrLogin(context.Context, *LoginParam) (*emptypb.Empty, error)
 }
 
 // UnimplementedLoginServer should be embedded to have
@@ -88,14 +153,29 @@ type LoginServer interface {
 // pointer dereference when methods are called.
 type UnimplementedLoginServer struct{}
 
-func (UnimplementedLoginServer) RefreshToken(context.Context, *v1.RefreshTokenReq) (*v1.Token, error) {
+func (UnimplementedLoginServer) GenerateNonce(context.Context, *emptypb.Empty) (*Nonce, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GenerateNonce not implemented")
+}
+func (UnimplementedLoginServer) EmbeddedLogin(context.Context, *LoginParam) (*EmbeddedLoginResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method EmbeddedLogin not implemented")
+}
+func (UnimplementedLoginServer) WalletLogin(context.Context, *WalletLoginParam) (*WalletLoginResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method WalletLogin not implemented")
+}
+func (UnimplementedLoginServer) QrLogin(context.Context, *QrLoginParam) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method QrLogin not implemented")
+}
+func (UnimplementedLoginServer) RefreshToken(context.Context, *RefreshTokenParam) (*RefreshTokenResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RefreshToken not implemented")
 }
-func (UnimplementedLoginServer) GenerateReqID(context.Context, *v1.Node) (*v1.ReqID, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GenerateReqID not implemented")
+func (UnimplementedLoginServer) GenerateLoginConversation(context.Context, *LoginConversationParam) (*LoginConversationID, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GenerateLoginConversation not implemented")
 }
-func (UnimplementedLoginServer) GetReqStatus(context.Context, *v1.ReqID) (*LoginResp, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetReqStatus not implemented")
+func (UnimplementedLoginServer) GetLoginConversation(context.Context, *LoginConversationID) (*LoginConversation, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLoginConversation not implemented")
+}
+func (UnimplementedLoginServer) ClubWebQrLogin(context.Context, *LoginParam) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ClubWebQrLogin not implemented")
 }
 func (UnimplementedLoginServer) testEmbeddedByValue() {}
 
@@ -117,8 +197,80 @@ func RegisterLoginServer(s grpc.ServiceRegistrar, srv LoginServer) {
 	s.RegisterService(&Login_ServiceDesc, srv)
 }
 
+func _Login_GenerateNonce_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LoginServer).GenerateNonce(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Login_GenerateNonce_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LoginServer).GenerateNonce(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Login_EmbeddedLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoginParam)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LoginServer).EmbeddedLogin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Login_EmbeddedLogin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LoginServer).EmbeddedLogin(ctx, req.(*LoginParam))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Login_WalletLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WalletLoginParam)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LoginServer).WalletLogin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Login_WalletLogin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LoginServer).WalletLogin(ctx, req.(*WalletLoginParam))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Login_QrLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QrLoginParam)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LoginServer).QrLogin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Login_QrLogin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LoginServer).QrLogin(ctx, req.(*QrLoginParam))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Login_RefreshToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(v1.RefreshTokenReq)
+	in := new(RefreshTokenParam)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -130,43 +282,61 @@ func _Login_RefreshToken_Handler(srv interface{}, ctx context.Context, dec func(
 		FullMethod: Login_RefreshToken_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LoginServer).RefreshToken(ctx, req.(*v1.RefreshTokenReq))
+		return srv.(LoginServer).RefreshToken(ctx, req.(*RefreshTokenParam))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Login_GenerateReqID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(v1.Node)
+func _Login_GenerateLoginConversation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoginConversationParam)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(LoginServer).GenerateReqID(ctx, in)
+		return srv.(LoginServer).GenerateLoginConversation(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Login_GenerateReqID_FullMethodName,
+		FullMethod: Login_GenerateLoginConversation_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LoginServer).GenerateReqID(ctx, req.(*v1.Node))
+		return srv.(LoginServer).GenerateLoginConversation(ctx, req.(*LoginConversationParam))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Login_GetReqStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(v1.ReqID)
+func _Login_GetLoginConversation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoginConversationID)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(LoginServer).GetReqStatus(ctx, in)
+		return srv.(LoginServer).GetLoginConversation(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Login_GetReqStatus_FullMethodName,
+		FullMethod: Login_GetLoginConversation_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LoginServer).GetReqStatus(ctx, req.(*v1.ReqID))
+		return srv.(LoginServer).GetLoginConversation(ctx, req.(*LoginConversationID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Login_ClubWebQrLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoginParam)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LoginServer).ClubWebQrLogin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Login_ClubWebQrLogin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LoginServer).ClubWebQrLogin(ctx, req.(*LoginParam))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -179,16 +349,36 @@ var Login_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*LoginServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "GenerateNonce",
+			Handler:    _Login_GenerateNonce_Handler,
+		},
+		{
+			MethodName: "EmbeddedLogin",
+			Handler:    _Login_EmbeddedLogin_Handler,
+		},
+		{
+			MethodName: "WalletLogin",
+			Handler:    _Login_WalletLogin_Handler,
+		},
+		{
+			MethodName: "QrLogin",
+			Handler:    _Login_QrLogin_Handler,
+		},
+		{
 			MethodName: "RefreshToken",
 			Handler:    _Login_RefreshToken_Handler,
 		},
 		{
-			MethodName: "GenerateReqID",
-			Handler:    _Login_GenerateReqID_Handler,
+			MethodName: "GenerateLoginConversation",
+			Handler:    _Login_GenerateLoginConversation_Handler,
 		},
 		{
-			MethodName: "GetReqStatus",
-			Handler:    _Login_GetReqStatus_Handler,
+			MethodName: "GetLoginConversation",
+			Handler:    _Login_GetLoginConversation_Handler,
+		},
+		{
+			MethodName: "ClubWebQrLogin",
+			Handler:    _Login_ClubWebQrLogin_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

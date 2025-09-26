@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package club;
+
+message CoinInfo {
+	string name = 1;
+	string icon = 2;
+}
+
+message CoinList {
+	repeated CoinInfo coin_list = 1;
+}
+
+service Coin {
+	rpc GetCoinList (google.protobuf.Empty) returns (CoinList); 
+}

@@ -1,20 +1,130 @@
 syntax = "proto3";
 
-// import "google/protobuf/empty.proto";
-// import "google/protobuf/any.proto";
+import "google/protobuf/empty.proto";
 import "v1/hi.proto";
-import "v1/did/login.proto";
+// import "v1/did/login.proto";
 
 package club;
 
-message LoginResp {
-    did.LoginResp base = 1;
-    hi.Unit master = 2;
-	repeated string permissions = 3;
+// message LoginResp {
+//     did.LoginResp base = 1;
+//     hi.Unit master = 2;
+// 	repeated string permissions = 3;
+// }
+
+// service Login {
+//     rpc RefreshToken (hi.RefreshTokenReq) returns (hi.Token);
+//     rpc GenerateReqID (hi.Node) returns (hi.ReqID);
+//     rpc GetReqStatus (hi.ReqID) returns (LoginResp);
+// }
+message Nonce {
+	string nonce = 1;
+}
+
+message LoginParam {
+	string signature = 1;
+	bytes data = 2;
+}
+
+message EmbeddedLoginData {
+  string nonce = 1;
+  string did = 2;
+  string app_name = 3;
+  string mac = 4;       
+  string point = 5;
+}
+
+message EmbeddedLoginResp {
+	string token = 1;
+	string refresh_token = 2;
+	string avatar = 3;
+	string name = 4;
+	string mqtt_username = 5;
+	string mqtt_client_id = 6;
+	string mqtt_password = 7;
+	string master = 8;
+}
+
+message WalletLoginData {
+	string nonce = 1;
+	string app_name = 2;
+	string mac = 3;
+	string point = 4;
+}
+
+message WalletLoginParam {
+	string signature = 1;
+	WalletLoginData data = 2;
+}
+
+message WalletLoginResp {
+	string did = 1;
+	string name = 2;
+	string avatar = 3;
+	string token = 4;
+	string refresh_token = 5;
+	string mqtt_username = 6;
+	string mqtt_client_id = 7;
+	repeated string permissions = 8;
+}
+
+message QrLoginParam {
+	string conversation_id = 1;
+}
+
+message RefreshTokenParam {
+	string did = 1;
+	string refresh_token = 2;
+	string app_name = 3;
+	string mac = 4;
+	string point = 5;
+}
+
+message RefreshTokenResp {
+	string did = 1;
+	string token = 2;
+	string refresh_token = 3;
+}
+
+message LoginConversationParam {
+	string app_name = 3;
+	string mac = 4;
+	string point = 5;
+}
+
+message LoginConversationID {
+	string id = 1;
+}
+
+message LoginConversation {
+	string req_id = 1;
+	string token = 2;
+	string refresh_token = 3;
+	string app_name = 4;
+	string mac = 5;
+	string point = 6;
+	string did = 7;
+	string avatar = 8;
+	string name = 9;
+	string mqtt_username = 10;
+	string mqtt_client_id = 11;
+	string mqtt_client_password = 12;
+	string email = 13;
+	repeated string permissions = 14;
+}
+
+message ClubWebQrLoginData {
+  string did = 1;
+  string cid = 2;
 }
 
 service Login {
-    rpc RefreshToken (hi.RefreshTokenReq) returns (hi.Token);
-    rpc GenerateReqID (hi.Node) returns (hi.ReqID);
-    rpc GetReqStatus (hi.ReqID) returns (LoginResp);
+	rpc GenerateNonce (google.protobuf.Empty) returns (Nonce);
+	rpc EmbeddedLogin (LoginParam) returns (EmbeddedLoginResp);
+	rpc WalletLogin (WalletLoginParam) returns (WalletLoginResp);
+	rpc QrLogin (QrLoginParam) returns (google.protobuf.Empty);
+	rpc RefreshToken (RefreshTokenParam) returns (RefreshTokenResp);
+	rpc GenerateLoginConversation (LoginConversationParam) returns (LoginConversationID);
+	rpc GetLoginConversation (LoginConversationID) returns (LoginConversation);
+	rpc ClubWebQrLogin (LoginParam) returns (google.protobuf.Empty); // hiclub web扫码登录
 }

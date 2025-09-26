@@ -3291,27 +3291,27 @@ func (x *DeleteBotPluginReq) GetUuid() string {
 	return ""
 }
 
-type DeleteBotPluginsByDidReq struct {
+type DeleteBotPluginByDidsReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BotDids       []string               `protobuf:"bytes,1,rep,name=bot_dids,json=botDids,proto3" json:"bot_dids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DeleteBotPluginsByDidReq) Reset() {
-	*x = DeleteBotPluginsByDidReq{}
+func (x *DeleteBotPluginByDidsReq) Reset() {
+	*x = DeleteBotPluginByDidsReq{}
 	mi := &file_v1_ai_bot_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DeleteBotPluginsByDidReq) String() string {
+func (x *DeleteBotPluginByDidsReq) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DeleteBotPluginsByDidReq) ProtoMessage() {}
+func (*DeleteBotPluginByDidsReq) ProtoMessage() {}
 
-func (x *DeleteBotPluginsByDidReq) ProtoReflect() protoreflect.Message {
+func (x *DeleteBotPluginByDidsReq) ProtoReflect() protoreflect.Message {
 	mi := &file_v1_ai_bot_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -3323,12 +3323,12 @@ func (x *DeleteBotPluginsByDidReq) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteBotPluginsByDidReq.ProtoReflect.Descriptor instead.
-func (*DeleteBotPluginsByDidReq) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteBotPluginByDidsReq.ProtoReflect.Descriptor instead.
+func (*DeleteBotPluginByDidsReq) Descriptor() ([]byte, []int) {
 	return file_v1_ai_bot_proto_rawDescGZIP(), []int{52}
 }
 
-func (x *DeleteBotPluginsByDidReq) GetBotDids() []string {
+func (x *DeleteBotPluginByDidsReq) GetBotDids() []string {
 	if x != nil {
 		return x.BotDids
 	}
@@ -3743,7 +3743,7 @@ const file_v1_ai_bot_proto_rawDesc = "" +
 	"\x10plugin_info_list\x18\x02 \x03(\v2\x11.ai.BotPluginInfoR\x0epluginInfoList\"(\n" +
 	"\x12DeleteBotPluginReq\x12\x12\n" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\"5\n" +
-	"\x18DeleteBotPluginsByDidReq\x12\x19\n" +
+	"\x18DeleteBotPluginByDidsReq\x12\x19\n" +
 	"\bbot_dids\x18\x01 \x03(\tR\abotDids\"\x98\x01\n" +
 	"\x10EditBotPluginReq\x12\x12\n" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\x12\x17\n" +
@@ -3786,15 +3786,15 @@ const file_v1_ai_bot_proto_rawDesc = "" +
 	"\rUpdateContent\x12\x13.ai.UpdateCotentReq\x1a\x16.google.protobuf.Empty\x12:\n" +
 	"\rCreateContent\x12\x13.ai.CreateCotentReq\x1a\x14.ai.CreateCotentResp\x127\n" +
 	"\n" +
-	"EditDegest\x12\x11.ai.EditDigestReq\x1a\x16.google.protobuf.Empty2\x99\x03\n" +
+	"EditDegest\x12\x11.ai.EditDigestReq\x1a\x16.google.protobuf.Empty2\x90\x03\n" +
 	"\tBotPlugin\x128\n" +
 	"\n" +
 	"DrawConfig\x12\x16.google.protobuf.Empty\x1a\x12.ai.DrawConfigResp\x12$\n" +
 	"\x05Names\x12\f.ai.NamesReq\x1a\r.ai.NamesResp\x128\n" +
 	"\x06Create\x12\x16.ai.CreateBotPluginReq\x1a\x16.google.protobuf.Empty\x123\n" +
 	"\x04List\x12\x14.ai.BotPluginListReq\x1a\x15.ai.BotPluginListResp\x128\n" +
-	"\x06Delete\x12\x16.ai.DeleteBotPluginReq\x1a\x16.google.protobuf.Empty\x12M\n" +
-	"\x15DeleteBotPluginsByDid\x12\x1c.ai.DeleteBotPluginsByDidReq\x1a\x16.google.protobuf.Empty\x124\n" +
+	"\x06Delete\x12\x16.ai.DeleteBotPluginReq\x1a\x16.google.protobuf.Empty\x12D\n" +
+	"\fDeleteByDids\x12\x1c.ai.DeleteBotPluginByDidsReq\x1a\x16.google.protobuf.Empty\x124\n" +
 	"\x04Edit\x12\x14.ai.EditBotPluginReq\x1a\x16.google.protobuf.EmptyBg\n" +
 	"\x06com.aiB\bBotProtoP\x01Z+github.com/HiWorld-56/hi-proto/gen/go/v1/ai\xa2\x02\x03AXX\xaa\x02\x02Ai\xca\x02\x02Ai\xe2\x02\x0eAi\\GPBMetadata\xea\x02\x02Aib\x06proto3"
 
@@ -3864,7 +3864,7 @@ var file_v1_ai_bot_proto_goTypes = []any{
 	(*BotPluginInfo)(nil),             // 49: ai.BotPluginInfo
 	(*BotPluginListResp)(nil),         // 50: ai.BotPluginListResp
 	(*DeleteBotPluginReq)(nil),        // 51: ai.DeleteBotPluginReq
-	(*DeleteBotPluginsByDidReq)(nil),  // 52: ai.DeleteBotPluginsByDidReq
+	(*DeleteBotPluginByDidsReq)(nil),  // 52: ai.DeleteBotPluginByDidsReq
 	(*EditBotPluginReq)(nil),          // 53: ai.EditBotPluginReq
 	(*NamesResp_Function)(nil),        // 54: ai.NamesResp.Function
 	(*v1.Unit)(nil),                   // 55: hi.Unit
@@ -3929,7 +3929,7 @@ var file_v1_ai_bot_proto_depIdxs = []int32{
 	47, // 54: ai.BotPlugin.Create:input_type -> ai.CreateBotPluginReq
 	48, // 55: ai.BotPlugin.List:input_type -> ai.BotPluginListReq
 	51, // 56: ai.BotPlugin.Delete:input_type -> ai.DeleteBotPluginReq
-	52, // 57: ai.BotPlugin.DeleteBotPluginsByDid:input_type -> ai.DeleteBotPluginsByDidReq
+	52, // 57: ai.BotPlugin.DeleteByDids:input_type -> ai.DeleteBotPluginByDidsReq
 	53, // 58: ai.BotPlugin.Edit:input_type -> ai.EditBotPluginReq
 	3,  // 59: ai.Bot.LLMModels:output_type -> ai.LLMModelsResp
 	5,  // 60: ai.Bot.EmbeddingModels:output_type -> ai.EmbeddingModelsResp
@@ -3966,7 +3966,7 @@ var file_v1_ai_bot_proto_depIdxs = []int32{
 	57, // 91: ai.BotPlugin.Create:output_type -> google.protobuf.Empty
 	50, // 92: ai.BotPlugin.List:output_type -> ai.BotPluginListResp
 	57, // 93: ai.BotPlugin.Delete:output_type -> google.protobuf.Empty
-	57, // 94: ai.BotPlugin.DeleteBotPluginsByDid:output_type -> google.protobuf.Empty
+	57, // 94: ai.BotPlugin.DeleteByDids:output_type -> google.protobuf.Empty
 	57, // 95: ai.BotPlugin.Edit:output_type -> google.protobuf.Empty
 	59, // [59:96] is the sub-list for method output_type
 	22, // [22:59] is the sub-list for method input_type

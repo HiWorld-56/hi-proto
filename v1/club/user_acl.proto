@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+
+package club;
+
+message DIDList {
+	repeated string did_list = 1;
+}
+
+message UserAccessParam {
+	string did = 1;
+	string type = 2;
+}
+
+message UserAccessListParam {
+	string did = 1;
+	string type = 2;
+	hi.Pagination pagination = 3;
+}
+
+message UserAccess {
+	string did = 1;
+	string note = 2;
+	int32 type = 3;
+	repeated string permissions = 4;
+}
+
+message UserAccessList {
+	repeated UserAccess user_access_list = 1;
+}
+
+message AccessTypeList {
+	repeated string type_list = 1;
+}
+
+message UpdateAccessParam {
+	string did = 1;
+	string note = 2;
+}
+
+service UserACL {
+	rpc GetDIDList (google.protobuf.Empty) returns (DIDList); 
+	rpc Add (UserAccessParam) returns (google.protobuf.Empty);
+	rpc Delete (UserAccessParam) returns (google.protobuf.Empty);
+	rpc Update (UpdateAccessParam) returns (google.protobuf.Empty);
+	rpc List (UserAccessListParam) returns (UserAccessList);
+	rpc GetAccessTypeList (google.protobuf.Empty) returns (AccessTypeList);
+	rpc CheckUser (google.protobuf.Empty) returns (google.protobuf.Empty);
+}

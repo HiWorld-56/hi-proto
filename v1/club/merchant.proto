@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+
+package club;
+
+message MerchantInfo {
+    string did = 1;
+    string name = 2;
+    string logo = 3;
+    repeated string native_coins = 4;
+	repeated string token_coins = 5;
+    string comment = 6;
+    int64 created_at = 7;
+}
+
+message MerchantList {
+	repeated MerchantInfo merchant_list = 1;
+}
+
+service Merchant {
+	rpc GetAllMerchant (google.protobuf.Empty) returns (MerchantList);
+}

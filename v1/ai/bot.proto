@@ -388,7 +388,7 @@ message DeleteBotPluginReq {
 	string uuid = 1;
 }
 
-message DeleteBotPluginsByDidReq {
+message DeleteBotPluginByDidsReq {
     repeated string bot_dids = 1;
 }
 
@@ -407,6 +407,6 @@ service BotPlugin {
     rpc Create (CreateBotPluginReq) returns (google.protobuf.Empty);
     rpc List (BotPluginListReq) returns (BotPluginListResp);
     rpc Delete (DeleteBotPluginReq) returns (google.protobuf.Empty);
-    rpc DeleteBotPluginsByDid (DeleteBotPluginsByDidReq) returns (google.protobuf.Empty);
+    rpc DeleteByDids (DeleteBotPluginByDidsReq) returns (google.protobuf.Empty);
     rpc Edit (EditBotPluginReq) returns (google.protobuf.Empty);
 }

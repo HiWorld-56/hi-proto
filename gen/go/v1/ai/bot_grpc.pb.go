@@ -1293,13 +1293,13 @@ var BotTraining_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	BotPlugin_DrawConfig_FullMethodName            = "/ai.BotPlugin/DrawConfig"
-	BotPlugin_Names_FullMethodName                 = "/ai.BotPlugin/Names"
-	BotPlugin_Create_FullMethodName                = "/ai.BotPlugin/Create"
-	BotPlugin_List_FullMethodName                  = "/ai.BotPlugin/List"
-	BotPlugin_Delete_FullMethodName                = "/ai.BotPlugin/Delete"
-	BotPlugin_DeleteBotPluginsByDid_FullMethodName = "/ai.BotPlugin/DeleteBotPluginsByDid"
-	BotPlugin_Edit_FullMethodName                  = "/ai.BotPlugin/Edit"
+	BotPlugin_DrawConfig_FullMethodName   = "/ai.BotPlugin/DrawConfig"
+	BotPlugin_Names_FullMethodName        = "/ai.BotPlugin/Names"
+	BotPlugin_Create_FullMethodName       = "/ai.BotPlugin/Create"
+	BotPlugin_List_FullMethodName         = "/ai.BotPlugin/List"
+	BotPlugin_Delete_FullMethodName       = "/ai.BotPlugin/Delete"
+	BotPlugin_DeleteByDids_FullMethodName = "/ai.BotPlugin/DeleteByDids"
+	BotPlugin_Edit_FullMethodName         = "/ai.BotPlugin/Edit"
 )
 
 // BotPluginClient is the client API for BotPlugin service.
@@ -1313,7 +1313,7 @@ type BotPluginClient interface {
 	Create(ctx context.Context, in *CreateBotPluginReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	List(ctx context.Context, in *BotPluginListReq, opts ...grpc.CallOption) (*BotPluginListResp, error)
 	Delete(ctx context.Context, in *DeleteBotPluginReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	DeleteBotPluginsByDid(ctx context.Context, in *DeleteBotPluginsByDidReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	DeleteByDids(ctx context.Context, in *DeleteBotPluginByDidsReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Edit(ctx context.Context, in *EditBotPluginReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
@@ -1375,10 +1375,10 @@ func (c *botPluginClient) Delete(ctx context.Context, in *DeleteBotPluginReq, op
 	return out, nil
 }
 
-func (c *botPluginClient) DeleteBotPluginsByDid(ctx context.Context, in *DeleteBotPluginsByDidReq, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *botPluginClient) DeleteByDids(ctx context.Context, in *DeleteBotPluginByDidsReq, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, BotPlugin_DeleteBotPluginsByDid_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, BotPlugin_DeleteByDids_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1406,7 +1406,7 @@ type BotPluginServer interface {
 	Create(context.Context, *CreateBotPluginReq) (*emptypb.Empty, error)
 	List(context.Context, *BotPluginListReq) (*BotPluginListResp, error)
 	Delete(context.Context, *DeleteBotPluginReq) (*emptypb.Empty, error)
-	DeleteBotPluginsByDid(context.Context, *DeleteBotPluginsByDidReq) (*emptypb.Empty, error)
+	DeleteByDids(context.Context, *DeleteBotPluginByDidsReq) (*emptypb.Empty, error)
 	Edit(context.Context, *EditBotPluginReq) (*emptypb.Empty, error)
 }
 
@@ -1432,8 +1432,8 @@ func (UnimplementedBotPluginServer) List(context.Context, *BotPluginListReq) (*B
 func (UnimplementedBotPluginServer) Delete(context.Context, *DeleteBotPluginReq) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
-func (UnimplementedBotPluginServer) DeleteBotPluginsByDid(context.Context, *DeleteBotPluginsByDidReq) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteBotPluginsByDid not implemented")
+func (UnimplementedBotPluginServer) DeleteByDids(context.Context, *DeleteBotPluginByDidsReq) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteByDids not implemented")
 }
 func (UnimplementedBotPluginServer) Edit(context.Context, *EditBotPluginReq) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Edit not implemented")
@@ -1548,20 +1548,20 @@ func _BotPlugin_Delete_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BotPlugin_DeleteBotPluginsByDid_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteBotPluginsByDidReq)
+func _BotPlugin_DeleteByDids_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteBotPluginByDidsReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(BotPluginServer).DeleteBotPluginsByDid(ctx, in)
+		return srv.(BotPluginServer).DeleteByDids(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: BotPlugin_DeleteBotPluginsByDid_FullMethodName,
+		FullMethod: BotPlugin_DeleteByDids_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BotPluginServer).DeleteBotPluginsByDid(ctx, req.(*DeleteBotPluginsByDidReq))
+		return srv.(BotPluginServer).DeleteByDids(ctx, req.(*DeleteBotPluginByDidsReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1612,8 +1612,8 @@ var BotPlugin_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _BotPlugin_Delete_Handler,
 		},
 		{
-			MethodName: "DeleteBotPluginsByDid",
-			Handler:    _BotPlugin_DeleteBotPluginsByDid_Handler,
+			MethodName: "DeleteByDids",
+			Handler:    _BotPlugin_DeleteByDids_Handler,
 		},
 		{
 			MethodName: "Edit",

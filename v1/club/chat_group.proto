@@ -1,0 +1,180 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+import "v1/club/mqtt.proto";
+import "v1/club/chat_user.proto";
+
+package club;
+
+message GroupInfoParam {
+	string group_code = 1;
+}
+// 查询群信息的响应结构
+message GroupBaseInfo {
+	string name = 1;
+	string avatar = 2;
+	string code = 3;
+	string type = 4;
+	string background = 5;
+	int32 display = 6;
+	int32 speak_status = 7;
+	int64 created_at = 8;
+	int64 updated_at = 9;
+}
+
+message ChatGroupInfo {
+	GroupBaseInfo base_info = 1;
+	string user_did = 2;
+	string user_type = 3;
+	string peer_user_did = 4;
+	string peer_user_type = 5;
+	string peer_user_name = 6;
+	string peer_user_avatar = 7;
+	int32 role = 8;
+	int32 muted = 9;
+}
+
+// 创建群聊
+message CreateGroupParam {
+	ChatGroupInfo group_info = 1;
+	repeated string user_dids = 2;
+	repeated string bot_dids = 3;
+}
+
+// 创建单聊
+message CreateSingleGroupParam {
+	ChatGroupInfo group_info = 1;
+	string peer_user_did = 2;
+	string peer_user_type = 3;
+}
+
+// 更新群信息
+message UpdateGroupParam {
+  string group_code = 1; 
+  string name = 2; 
+  string avatar = 3;
+  string background = 4;
+  bool clear_background = 5;
+  int32 display = 6; 
+  int32 speak_status = 7;
+}
+
+// 组聊天消息列表参数
+message MessageListParam {
+	string uuid = 1;
+	int64 last_time = 2;
+	string group_code = 3;
+	string group_type = 4;
+}
+
+message GroupInfoList {
+	repeated ChatGroupInfo group_info_list = 1;
+}
+
+message GroupMemberParam {
+	string group_code = 1;
+	hi.Pagination pagination = 2;
+}
+
+// message GoupUserAttribute {
+// 	string mqtt_username = 1;
+// 	string mqtt_client_id = 2;
+// 	string email = 3;
+// }
+
+// message GroupUserInfo {
+// 	string did = 1;
+// 	string name = 2;
+// 	string type = 3;
+// 	string avatar = 4;
+// 	string background = 5;
+// 	int32 role = 6;
+// 	GoupUserAttribute attribute = 7;
+// }
+
+// message GroupMemberInfoList {
+// 	repeated GroupUserInfo member_info_list = 1;
+// }
+
+message MemberTotalParam {
+	string group_code = 1;
+}
+
+message MemberTotal {
+	int32 total = 1;
+}
+
+message GroupInviteParam {
+  string group_code = 1;
+  repeated string bot_dids = 3;
+  repeated string user_dids = 4;
+}
+
+message GroupJoinParam {
+	string group_code = 1;
+}
+
+message GroupQuitParam {
+	string group_code = 1;
+}
+
+message GroupRemoveParam {
+	string group_code = 1;
+  	repeated string bot_dids = 3;
+  	repeated string user_dids = 4;
+}
+
+message MessageList {
+	repeated Packet message_list = 1;
+}
+
+message LastUUIDParam {
+  string last_uuid = 1;
+  string group_code = 2;
+  string group_type = 3;
+}
+
+message LastUUIDListParam {
+	repeated LastUUIDParam last_uuid_list = 1;
+}
+
+message SetGroupAdminParam {
+  string group_code = 1;
+  repeated string peer_user_dids = 2;
+  int32 role = 3;
+}
+
+message SetUserMutedParam {
+  string group_code = 1;
+  int32 muted = 2;
+}
+
+message GroupCodeParam {
+	string group_code = 1;
+}
+
+message BotGroupListParam {
+	string bot_did = 1;
+}
+
+service ChatGroup {
+	rpc GroupInfo (GroupInfoParam) returns (ChatGroupInfo); // 群信息
+	rpc CreateGroup (CreateGroupParam) returns (ChatGroupInfo); // 创建群
+	rpc CreateSingleGroup (CreateSingleGroupParam) returns (ChatGroupInfo); // 创建单聊群
+	rpc UpdateGroup (UpdateGroupParam) returns (google.protobuf.Empty); // 更新群
+	rpc GroupList (google.protobuf.Empty) returns (GroupInfoList); // 群列表
+	rpc GroupMemberList (GroupMemberParam) returns (ChatUserInfoList); // 群成员列表
+	rpc GroupMemberTotal (MemberTotalParam) returns (MemberTotal); // 群成员总数
+	rpc GroupInvite (GroupInviteParam) returns (google.protobuf.Empty); // 群邀请
+	rpc GroupJoin (GroupJoinParam) returns (google.protobuf.Empty); // 主动加群
+	rpc GroupQuit (GroupQuitParam) returns (google.protobuf.Empty); // 主动退群/解散群
+	rpc GroupRemove (GroupRemoveParam) returns (google.protobuf.Empty); // 移出群聊
+  	rpc GroupMessageList (MessageListParam) returns (MessageList); // 群消息列表
+  	rpc UpdateLastUUID (LastUUIDParam) returns (google.protobuf.Empty); // 更新LastUUID
+	rpc CheckLastUUID (LastUUIDListParam) returns (LastUUIDListParam); // 检查LastUUID
+	rpc SetGroupAdmin (SetGroupAdminParam) returns (google.protobuf.Empty); // 设置/取消群管理员
+	rpc SetUserMuted (SetUserMutedParam) returns (google.protobuf.Empty); // 设置/取消群管理员
+	rpc GroupInfoByCode (GroupCodeParam) returns (ChatGroupInfo); // 通过组code查询组信息
+	rpc BotGroupList (BotGroupListParam) returns (GroupInfoList); // 机器人组信息列表
+}
