@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package aiplugin;
+
+message MessagesContent {
+	string type = 1;
+	string content = 2;
+}
+
+message SearchReq {
+    string type = 1;
+    string url = 2;
+    string uuid = 3;
+    string keyword = 4;
+}
+
+message SearchResp {
+    repeated MessagesContent contents = 1;
+}
+
+message PythonReq {
+    string code = 1;
+    string code_params = 2;
+    string uuid = 3;
+}
+
+message PythonResp {
+    repeated MessagesContent contents = 1;
+}
+
+service AiPlugin {
+	rpc Search (SearchReq) returns (SearchResp);
+    rpc Python (PythonReq) returns (PythonResp);
+}
