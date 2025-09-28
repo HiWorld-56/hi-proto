@@ -40,8 +40,8 @@ message TxOrder {
     string total_amount = 6;
     string amount = 7;
     string order_status = 8;
-    int64 created_at = 9;
-    int64 updated_at = 10;
+    string created_at = 9;
+    string updated_at = 10;
     string status = 11;
     string tx_stage = 12;
 }

@@ -258,8 +258,8 @@ type TxOrder struct {
 	TotalAmount   string                 `protobuf:"bytes,6,opt,name=total_amount,json=totalAmount,proto3" json:"total_amount,omitempty"`
 	Amount        string                 `protobuf:"bytes,7,opt,name=amount,proto3" json:"amount,omitempty"`
 	OrderStatus   string                 `protobuf:"bytes,8,opt,name=order_status,json=orderStatus,proto3" json:"order_status,omitempty"`
-	CreatedAt     int64                  `protobuf:"varint,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     int64                  `protobuf:"varint,10,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     string                 `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	Status        string                 `protobuf:"bytes,11,opt,name=status,proto3" json:"status,omitempty"`
 	TxStage       string                 `protobuf:"bytes,12,opt,name=tx_stage,json=txStage,proto3" json:"tx_stage,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -352,18 +352,18 @@ func (x *TxOrder) GetOrderStatus() string {
 	return ""
 }
 
-func (x *TxOrder) GetCreatedAt() int64 {
+func (x *TxOrder) GetCreatedAt() string {
 	if x != nil {
 		return x.CreatedAt
 	}
-	return 0
+	return ""
 }
 
-func (x *TxOrder) GetUpdatedAt() int64 {
+func (x *TxOrder) GetUpdatedAt() string {
 	if x != nil {
 		return x.UpdatedAt
 	}
-	return 0
+	return ""
 }
 
 func (x *TxOrder) GetStatus() string {
@@ -1233,10 +1233,10 @@ const file_v1_clubtx_club_tx_proto_rawDesc = "" +
 	"\x06amount\x18\a \x01(\tR\x06amount\x12!\n" +
 	"\forder_status\x18\b \x01(\tR\vorderStatus\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\t \x01(\x03R\tcreatedAt\x12\x1d\n" +
+	"created_at\x18\t \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
 	"updated_at\x18\n" +
-	" \x01(\x03R\tupdatedAt\x12\x16\n" +
+	" \x01(\tR\tupdatedAt\x12\x16\n" +
 	"\x06status\x18\v \x01(\tR\x06status\x12\x19\n" +
 	"\btx_stage\x18\f \x01(\tR\atxStage\"\xfd\x02\n" +
 	"\x06TxInfo\x12\x13\n" +
