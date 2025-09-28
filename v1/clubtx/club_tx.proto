@@ -118,9 +118,9 @@ message PcOrder {
     string to_did = 3;
     string amount = 4;
     string type = 5;
-    int64 created_at = 6;
-    int64 updated_at = 7;
-    int64 deleted_at = 8;
+    string created_at = 6;
+    string updated_at = 7;
+    string deleted_at = 8;
     string did = 9;
     string status = 10;
 }

@@ -931,9 +931,9 @@ type PcOrder struct {
 	ToDid         string                 `protobuf:"bytes,3,opt,name=to_did,json=toDid,proto3" json:"to_did,omitempty"`
 	Amount        string                 `protobuf:"bytes,4,opt,name=amount,proto3" json:"amount,omitempty"`
 	Type          string                 `protobuf:"bytes,5,opt,name=type,proto3" json:"type,omitempty"`
-	CreatedAt     int64                  `protobuf:"varint,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     int64                  `protobuf:"varint,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	DeletedAt     int64                  `protobuf:"varint,8,opt,name=deleted_at,json=deletedAt,proto3" json:"deleted_at,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     string                 `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	DeletedAt     string                 `protobuf:"bytes,8,opt,name=deleted_at,json=deletedAt,proto3" json:"deleted_at,omitempty"`
 	Did           string                 `protobuf:"bytes,9,opt,name=did,proto3" json:"did,omitempty"`
 	Status        string                 `protobuf:"bytes,10,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -1005,25 +1005,25 @@ func (x *PcOrder) GetType() string {
 	return ""
 }
 
-func (x *PcOrder) GetCreatedAt() int64 {
+func (x *PcOrder) GetCreatedAt() string {
 	if x != nil {
 		return x.CreatedAt
 	}
-	return 0
+	return ""
 }
 
-func (x *PcOrder) GetUpdatedAt() int64 {
+func (x *PcOrder) GetUpdatedAt() string {
 	if x != nil {
 		return x.UpdatedAt
 	}
-	return 0
+	return ""
 }
 
-func (x *PcOrder) GetDeletedAt() int64 {
+func (x *PcOrder) GetDeletedAt() string {
 	if x != nil {
 		return x.DeletedAt
 	}
-	return 0
+	return ""
 }
 
 func (x *PcOrder) GetDid() string {
@@ -1288,11 +1288,11 @@ const file_v1_clubtx_club_tx_proto_rawDesc = "" +
 	"\x06amount\x18\x04 \x01(\tR\x06amount\x12\x12\n" +
 	"\x04type\x18\x05 \x01(\tR\x04type\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x06 \x01(\x03R\tcreatedAt\x12\x1d\n" +
+	"created_at\x18\x06 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\x03R\tupdatedAt\x12\x1d\n" +
+	"updated_at\x18\a \x01(\tR\tupdatedAt\x12\x1d\n" +
 	"\n" +
-	"deleted_at\x18\b \x01(\x03R\tdeletedAt\x12\x10\n" +
+	"deleted_at\x18\b \x01(\tR\tdeletedAt\x12\x10\n" +
 	"\x03did\x18\t \x01(\tR\x03did\x12\x16\n" +
 	"\x06status\x18\n" +
 	" \x01(\tR\x06status\"C\n" +
