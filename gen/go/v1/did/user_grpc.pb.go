@@ -21,8 +21,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	User_Edit_FullMethodName  = "/did.User/Edit"
-	User_Query_FullMethodName = "/did.User/Query"
+	User_Edit_FullMethodName       = "/did.User/Edit"
+	User_Query_FullMethodName      = "/did.User/Query"
+	User_QueryByDid_FullMethodName = "/did.User/QueryByDid"
 )
 
 // UserClient is the client API for User service.
@@ -31,6 +32,7 @@ const (
 type UserClient interface {
 	Edit(ctx context.Context, in *v1.Unit, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Query(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*v1.Unit, error)
+	QueryByDid(ctx context.Context, in *v1.DID, opts ...grpc.CallOption) (*v1.Unit, error)
 }
 
 type userClient struct {
@@ -61,12 +63,23 @@ func (c *userClient) Query(ctx context.Context, in *emptypb.Empty, opts ...grpc.
 	return out, nil
 }
 
+func (c *userClient) QueryByDid(ctx context.Context, in *v1.DID, opts ...grpc.CallOption) (*v1.Unit, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(v1.Unit)
+	err := c.cc.Invoke(ctx, User_QueryByDid_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServer is the server API for User service.
 // All implementations should embed UnimplementedUserServer
 // for forward compatibility.
 type UserServer interface {
 	Edit(context.Context, *v1.Unit) (*emptypb.Empty, error)
 	Query(context.Context, *emptypb.Empty) (*v1.Unit, error)
+	QueryByDid(context.Context, *v1.DID) (*v1.Unit, error)
 }
 
 // UnimplementedUserServer should be embedded to have
@@ -81,6 +94,9 @@ func (UnimplementedUserServer) Edit(context.Context, *v1.Unit) (*emptypb.Empty, 
 }
 func (UnimplementedUserServer) Query(context.Context, *emptypb.Empty) (*v1.Unit, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Query not implemented")
+}
+func (UnimplementedUserServer) QueryByDid(context.Context, *v1.DID) (*v1.Unit, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method QueryByDid not implemented")
 }
 func (UnimplementedUserServer) testEmbeddedByValue() {}
 
@@ -138,6 +154,24 @@ func _User_Query_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	return interceptor(ctx, in, info, handler)
 }
 
+func _User_QueryByDid_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(v1.DID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).QueryByDid(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_QueryByDid_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).QueryByDid(ctx, req.(*v1.DID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // User_ServiceDesc is the grpc.ServiceDesc for User service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +186,10 @@ var User_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Query",
 			Handler:    _User_Query_Handler,
+		},
+		{
+			MethodName: "QueryByDid",
+			Handler:    _User_QueryByDid_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
