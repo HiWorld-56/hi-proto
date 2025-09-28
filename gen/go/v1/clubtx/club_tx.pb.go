@@ -387,9 +387,9 @@ type TxInfo struct {
 	Initiator     *TxParty               `protobuf:"bytes,3,opt,name=initiator,proto3" json:"initiator,omitempty"`
 	Recipient     *TxParty               `protobuf:"bytes,4,opt,name=recipient,proto3" json:"recipient,omitempty"`
 	TxOrders      map[string]*TxOrder    `protobuf:"bytes,5,rep,name=tx_orders,json=txOrders,proto3" json:"tx_orders,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	CreatedAt     int64                  `protobuf:"varint,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     int64                  `protobuf:"varint,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	Timestamp     int64                  `protobuf:"varint,8,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     string                 `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Timestamp     string                 `protobuf:"bytes,8,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -459,25 +459,25 @@ func (x *TxInfo) GetTxOrders() map[string]*TxOrder {
 	return nil
 }
 
-func (x *TxInfo) GetCreatedAt() int64 {
+func (x *TxInfo) GetCreatedAt() string {
 	if x != nil {
 		return x.CreatedAt
 	}
-	return 0
+	return ""
 }
 
-func (x *TxInfo) GetUpdatedAt() int64 {
+func (x *TxInfo) GetUpdatedAt() string {
 	if x != nil {
 		return x.UpdatedAt
 	}
-	return 0
+	return ""
 }
 
-func (x *TxInfo) GetTimestamp() int64 {
+func (x *TxInfo) GetTimestamp() string {
 	if x != nil {
 		return x.Timestamp
 	}
-	return 0
+	return ""
 }
 
 type GetTxResp struct {
@@ -1246,10 +1246,10 @@ const file_v1_clubtx_club_tx_proto_rawDesc = "" +
 	"\trecipient\x18\x04 \x01(\v2\x0f.clubtx.TxPartyR\trecipient\x129\n" +
 	"\ttx_orders\x18\x05 \x03(\v2\x1c.clubtx.TxInfo.TxOrdersEntryR\btxOrders\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x06 \x01(\x03R\tcreatedAt\x12\x1d\n" +
+	"created_at\x18\x06 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\x03R\tupdatedAt\x12\x1c\n" +
-	"\ttimestamp\x18\b \x01(\x03R\ttimestamp\x1aL\n" +
+	"updated_at\x18\a \x01(\tR\tupdatedAt\x12\x1c\n" +
+	"\ttimestamp\x18\b \x01(\tR\ttimestamp\x1aL\n" +
 	"\rTxOrdersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12%\n" +
 	"\x05value\x18\x02 \x01(\v2\x0f.clubtx.TxOrderR\x05value:\x028\x01\"4\n" +

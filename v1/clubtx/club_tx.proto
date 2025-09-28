@@ -52,9 +52,9 @@ message TxInfo {
     TxParty initiator = 3;
     TxParty recipient = 4;
     map<string, TxOrder> tx_orders = 5;
-    int64 created_at = 6;
-    int64 updated_at = 7;
-    int64 timestamp = 8;
+    string created_at = 6;
+    string updated_at = 7;
+    string timestamp = 8;
 }
 
 
