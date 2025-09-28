@@ -32,7 +32,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MerchantClient interface {
 	Get(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*MerchantGetResp, error)
-	GetUserProfile(ctx context.Context, in *v1.DID, opts ...grpc.CallOption) (*MerchantProfileGetResp, error)
+	GetUserProfile(ctx context.Context, in *v1.DID, opts ...grpc.CallOption) (*UserProfileGetResp, error)
 	Set(ctx context.Context, in *MerchantSetReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	List(ctx context.Context, in *v1.DID, opts ...grpc.CallOption) (*MerchantListResp, error)
 }
@@ -55,9 +55,9 @@ func (c *merchantClient) Get(ctx context.Context, in *emptypb.Empty, opts ...grp
 	return out, nil
 }
 
-func (c *merchantClient) GetUserProfile(ctx context.Context, in *v1.DID, opts ...grpc.CallOption) (*MerchantProfileGetResp, error) {
+func (c *merchantClient) GetUserProfile(ctx context.Context, in *v1.DID, opts ...grpc.CallOption) (*UserProfileGetResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MerchantProfileGetResp)
+	out := new(UserProfileGetResp)
 	err := c.cc.Invoke(ctx, Merchant_GetUserProfile_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -90,7 +90,7 @@ func (c *merchantClient) List(ctx context.Context, in *v1.DID, opts ...grpc.Call
 // for forward compatibility.
 type MerchantServer interface {
 	Get(context.Context, *emptypb.Empty) (*MerchantGetResp, error)
-	GetUserProfile(context.Context, *v1.DID) (*MerchantProfileGetResp, error)
+	GetUserProfile(context.Context, *v1.DID) (*UserProfileGetResp, error)
 	Set(context.Context, *MerchantSetReq) (*emptypb.Empty, error)
 	List(context.Context, *v1.DID) (*MerchantListResp, error)
 }
@@ -105,7 +105,7 @@ type UnimplementedMerchantServer struct{}
 func (UnimplementedMerchantServer) Get(context.Context, *emptypb.Empty) (*MerchantGetResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
 }
-func (UnimplementedMerchantServer) GetUserProfile(context.Context, *v1.DID) (*MerchantProfileGetResp, error) {
+func (UnimplementedMerchantServer) GetUserProfile(context.Context, *v1.DID) (*UserProfileGetResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserProfile not implemented")
 }
 func (UnimplementedMerchantServer) Set(context.Context, *MerchantSetReq) (*emptypb.Empty, error) {
