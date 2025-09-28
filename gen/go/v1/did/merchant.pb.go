@@ -439,11 +439,10 @@ const file_v1_did_merchant_proto_rawDesc = "" +
 	"\aprofile\x18\x01 \x01(\v2\b.hi.UnitR\aprofile\";\n" +
 	"\x11MerchantNotifyReq\x12\x10\n" +
 	"\x03did\x18\x01 \x01(\tR\x03did\x12\x14\n" +
-	"\x05nonce\x18\x02 \x01(\tR\x05nonce2\xcf\x01\n" +
+	"\x05nonce\x18\x02 \x01(\tR\x05nonce2\xd3\x01\n" +
 	"\bMerchant\x123\n" +
-	"\x03Get\x12\x16.google.protobuf.Empty\x1a\x14.did.MerchantGetResp\x122\n" +
-	"\n" +
-	"GetProfile\x12\a.hi.DID\x1a\x1b.did.MerchantProfileGetResp\x122\n" +
+	"\x03Get\x12\x16.google.protobuf.Empty\x1a\x14.did.MerchantGetResp\x126\n" +
+	"\x0eGetUserProfile\x12\a.hi.DID\x1a\x1b.did.MerchantProfileGetResp\x122\n" +
 	"\x03Set\x12\x13.did.MerchantSetReq\x1a\x16.google.protobuf.Empty\x12&\n" +
 	"\x04List\x12\a.hi.DID\x1a\x15.did.MerchantListResp2?\n" +
 	"\x03SSE\x128\n" +
@@ -484,12 +483,12 @@ var file_v1_did_merchant_proto_depIdxs = []int32{
 	0,  // 5: did.MerchantListResp.list:type_name -> did.MerchantInfo
 	6,  // 6: did.MerchantProfileGetResp.profile:type_name -> hi.Unit
 	8,  // 7: did.Merchant.Get:input_type -> google.protobuf.Empty
-	9,  // 8: did.Merchant.GetProfile:input_type -> hi.DID
+	9,  // 8: did.Merchant.GetUserProfile:input_type -> hi.DID
 	2,  // 9: did.Merchant.Set:input_type -> did.MerchantSetReq
 	9,  // 10: did.Merchant.List:input_type -> hi.DID
 	5,  // 11: did.SSE.Notify:input_type -> did.MerchantNotifyReq
 	1,  // 12: did.Merchant.Get:output_type -> did.MerchantGetResp
-	4,  // 13: did.Merchant.GetProfile:output_type -> did.MerchantProfileGetResp
+	4,  // 13: did.Merchant.GetUserProfile:output_type -> did.MerchantProfileGetResp
 	8,  // 14: did.Merchant.Set:output_type -> google.protobuf.Empty
 	3,  // 15: did.Merchant.List:output_type -> did.MerchantListResp
 	8,  // 16: did.SSE.Notify:output_type -> google.protobuf.Empty
