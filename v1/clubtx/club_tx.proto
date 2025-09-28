@@ -85,7 +85,7 @@ message GetTxListResp {
 }
 
 message GetAllTxInfoReq {
-    string did = 1;
+    string id = 1;
     hi.Pagination pagination = 2;
 }
 

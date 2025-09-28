@@ -762,7 +762,7 @@ func (x *GetTxListResp) GetInfos() []*TxInfo {
 
 type GetAllTxInfoReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Did           string                 `protobuf:"bytes,1,opt,name=did,proto3" json:"did,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Pagination    *v1.Pagination         `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -798,9 +798,9 @@ func (*GetAllTxInfoReq) Descriptor() ([]byte, []int) {
 	return file_v1_clubtx_club_tx_proto_rawDescGZIP(), []int{12}
 }
 
-func (x *GetAllTxInfoReq) GetDid() string {
+func (x *GetAllTxInfoReq) GetId() string {
 	if x != nil {
-		return x.Did
+		return x.Id
 	}
 	return ""
 }
@@ -1268,9 +1268,9 @@ const file_v1_clubtx_club_tx_proto_rawDesc = "" +
 	"pagination\"K\n" +
 	"\rGetTxListResp\x12\x14\n" +
 	"\x05count\x18\x01 \x01(\x05R\x05count\x12$\n" +
-	"\x05infos\x18\x02 \x03(\v2\x0e.clubtx.TxInfoR\x05infos\"S\n" +
-	"\x0fGetAllTxInfoReq\x12\x10\n" +
-	"\x03did\x18\x01 \x01(\tR\x03did\x12.\n" +
+	"\x05infos\x18\x02 \x03(\v2\x0e.clubtx.TxInfoR\x05infos\"Q\n" +
+	"\x0fGetAllTxInfoReq\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12.\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2\x0e.hi.PaginationR\n" +
 	"pagination\"d\n" +
