@@ -26,28 +26,23 @@ var File_v1_did_user_proto protoreflect.FileDescriptor
 
 const file_v1_did_user_proto_rawDesc = "" +
 	"\n" +
-	"\x11v1/did/user.proto\x12\x03did\x1a\x1bgoogle/protobuf/empty.proto\x1a\vv1/hi.proto2|\n" +
+	"\x11v1/did/user.proto\x12\x03did\x1a\x1bgoogle/protobuf/empty.proto\x1a\vv1/hi.proto2[\n" +
 	"\x04User\x12(\n" +
 	"\x04Edit\x12\b.hi.Unit\x1a\x16.google.protobuf.Empty\x12)\n" +
-	"\x05Query\x12\x16.google.protobuf.Empty\x1a\b.hi.Unit\x12\x1f\n" +
-	"\n" +
-	"QueryByDid\x12\a.hi.DID\x1a\b.hi.UnitBn\n" +
+	"\x05Query\x12\x16.google.protobuf.Empty\x1a\b.hi.UnitBn\n" +
 	"\acom.didB\tUserProtoP\x01Z,github.com/HiWorld-56/hi-proto/gen/go/v1/did\xa2\x02\x03DXX\xaa\x02\x03Did\xca\x02\x03Did\xe2\x02\x0fDid\\GPBMetadata\xea\x02\x03Didb\x06proto3"
 
 var file_v1_did_user_proto_goTypes = []any{
 	(*v1.Unit)(nil),       // 0: hi.Unit
 	(*emptypb.Empty)(nil), // 1: google.protobuf.Empty
-	(*v1.DID)(nil),        // 2: hi.DID
 }
 var file_v1_did_user_proto_depIdxs = []int32{
 	0, // 0: did.User.Edit:input_type -> hi.Unit
 	1, // 1: did.User.Query:input_type -> google.protobuf.Empty
-	2, // 2: did.User.QueryByDid:input_type -> hi.DID
-	1, // 3: did.User.Edit:output_type -> google.protobuf.Empty
-	0, // 4: did.User.Query:output_type -> hi.Unit
-	0, // 5: did.User.QueryByDid:output_type -> hi.Unit
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
+	1, // 2: did.User.Edit:output_type -> google.protobuf.Empty
+	0, // 3: did.User.Query:output_type -> hi.Unit
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
