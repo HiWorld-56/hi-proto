@@ -22,7 +22,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type CoinInfo struct {
+type IconInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Icon          string                 `protobuf:"bytes,2,opt,name=icon,proto3" json:"icon,omitempty"`
@@ -30,20 +30,20 @@ type CoinInfo struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CoinInfo) Reset() {
-	*x = CoinInfo{}
+func (x *IconInfo) Reset() {
+	*x = IconInfo{}
 	mi := &file_v1_club_coin_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CoinInfo) String() string {
+func (x *IconInfo) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CoinInfo) ProtoMessage() {}
+func (*IconInfo) ProtoMessage() {}
 
-func (x *CoinInfo) ProtoReflect() protoreflect.Message {
+func (x *IconInfo) ProtoReflect() protoreflect.Message {
 	mi := &file_v1_club_coin_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -55,46 +55,46 @@ func (x *CoinInfo) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CoinInfo.ProtoReflect.Descriptor instead.
-func (*CoinInfo) Descriptor() ([]byte, []int) {
+// Deprecated: Use IconInfo.ProtoReflect.Descriptor instead.
+func (*IconInfo) Descriptor() ([]byte, []int) {
 	return file_v1_club_coin_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *CoinInfo) GetName() string {
+func (x *IconInfo) GetName() string {
 	if x != nil {
 		return x.Name
 	}
 	return ""
 }
 
-func (x *CoinInfo) GetIcon() string {
+func (x *IconInfo) GetIcon() string {
 	if x != nil {
 		return x.Icon
 	}
 	return ""
 }
 
-type CoinList struct {
+type IconList struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	CoinList      []*CoinInfo            `protobuf:"bytes,1,rep,name=coin_list,json=coinList,proto3" json:"coin_list,omitempty"`
+	IconList      []*IconInfo            `protobuf:"bytes,1,rep,name=icon_list,json=iconList,proto3" json:"icon_list,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *CoinList) Reset() {
-	*x = CoinList{}
+func (x *IconList) Reset() {
+	*x = IconList{}
 	mi := &file_v1_club_coin_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *CoinList) String() string {
+func (x *IconList) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CoinList) ProtoMessage() {}
+func (*IconList) ProtoMessage() {}
 
-func (x *CoinList) ProtoReflect() protoreflect.Message {
+func (x *IconList) ProtoReflect() protoreflect.Message {
 	mi := &file_v1_club_coin_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -106,14 +106,14 @@ func (x *CoinList) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CoinList.ProtoReflect.Descriptor instead.
-func (*CoinList) Descriptor() ([]byte, []int) {
+// Deprecated: Use IconList.ProtoReflect.Descriptor instead.
+func (*IconList) Descriptor() ([]byte, []int) {
 	return file_v1_club_coin_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *CoinList) GetCoinList() []*CoinInfo {
+func (x *IconList) GetIconList() []*IconInfo {
 	if x != nil {
-		return x.CoinList
+		return x.IconList
 	}
 	return nil
 }
@@ -123,13 +123,13 @@ var File_v1_club_coin_proto protoreflect.FileDescriptor
 const file_v1_club_coin_proto_rawDesc = "" +
 	"\n" +
 	"\x12v1/club/coin.proto\x12\x04club\x1a\x1bgoogle/protobuf/empty.proto\"2\n" +
-	"\bCoinInfo\x12\x12\n" +
+	"\bIconInfo\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
 	"\x04icon\x18\x02 \x01(\tR\x04icon\"7\n" +
-	"\bCoinList\x12+\n" +
-	"\tcoin_list\x18\x01 \x03(\v2\x0e.club.CoinInfoR\bcoinList2=\n" +
-	"\x04Coin\x125\n" +
-	"\vGetCoinList\x12\x16.google.protobuf.Empty\x1a\x0e.club.CoinListBt\n" +
+	"\bIconList\x12+\n" +
+	"\ticon_list\x18\x01 \x03(\v2\x0e.club.IconInfoR\biconList2=\n" +
+	"\x04Icon\x125\n" +
+	"\vGetIconList\x12\x16.google.protobuf.Empty\x1a\x0e.club.IconListBt\n" +
 	"\bcom.clubB\tCoinProtoP\x01Z-github.com/HiWorld-56/hi-proto/gen/go/v1/club\xa2\x02\x03CXX\xaa\x02\x04Club\xca\x02\x04Club\xe2\x02\x10Club\\GPBMetadata\xea\x02\x04Clubb\x06proto3"
 
 var (
@@ -146,14 +146,14 @@ func file_v1_club_coin_proto_rawDescGZIP() []byte {
 
 var file_v1_club_coin_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_v1_club_coin_proto_goTypes = []any{
-	(*CoinInfo)(nil),      // 0: club.CoinInfo
-	(*CoinList)(nil),      // 1: club.CoinList
+	(*IconInfo)(nil),      // 0: club.IconInfo
+	(*IconList)(nil),      // 1: club.IconList
 	(*emptypb.Empty)(nil), // 2: google.protobuf.Empty
 }
 var file_v1_club_coin_proto_depIdxs = []int32{
-	0, // 0: club.CoinList.coin_list:type_name -> club.CoinInfo
-	2, // 1: club.Coin.GetCoinList:input_type -> google.protobuf.Empty
-	1, // 2: club.Coin.GetCoinList:output_type -> club.CoinList
+	0, // 0: club.IconList.icon_list:type_name -> club.IconInfo
+	2, // 1: club.Icon.GetIconList:input_type -> google.protobuf.Empty
+	1, // 2: club.Icon.GetIconList:output_type -> club.IconList
 	2, // [2:3] is the sub-list for method output_type
 	1, // [1:2] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name

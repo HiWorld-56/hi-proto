@@ -20,99 +20,99 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Coin_GetCoinList_FullMethodName = "/club.Coin/GetCoinList"
+	Icon_GetIconList_FullMethodName = "/club.Icon/GetIconList"
 )
 
-// CoinClient is the client API for Coin service.
+// IconClient is the client API for Icon service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type CoinClient interface {
-	GetCoinList(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CoinList, error)
+type IconClient interface {
+	GetIconList(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*IconList, error)
 }
 
-type coinClient struct {
+type iconClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewCoinClient(cc grpc.ClientConnInterface) CoinClient {
-	return &coinClient{cc}
+func NewIconClient(cc grpc.ClientConnInterface) IconClient {
+	return &iconClient{cc}
 }
 
-func (c *coinClient) GetCoinList(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CoinList, error) {
+func (c *iconClient) GetIconList(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*IconList, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CoinList)
-	err := c.cc.Invoke(ctx, Coin_GetCoinList_FullMethodName, in, out, cOpts...)
+	out := new(IconList)
+	err := c.cc.Invoke(ctx, Icon_GetIconList_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// CoinServer is the server API for Coin service.
-// All implementations should embed UnimplementedCoinServer
+// IconServer is the server API for Icon service.
+// All implementations should embed UnimplementedIconServer
 // for forward compatibility.
-type CoinServer interface {
-	GetCoinList(context.Context, *emptypb.Empty) (*CoinList, error)
+type IconServer interface {
+	GetIconList(context.Context, *emptypb.Empty) (*IconList, error)
 }
 
-// UnimplementedCoinServer should be embedded to have
+// UnimplementedIconServer should be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedCoinServer struct{}
+type UnimplementedIconServer struct{}
 
-func (UnimplementedCoinServer) GetCoinList(context.Context, *emptypb.Empty) (*CoinList, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetCoinList not implemented")
+func (UnimplementedIconServer) GetIconList(context.Context, *emptypb.Empty) (*IconList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetIconList not implemented")
 }
-func (UnimplementedCoinServer) testEmbeddedByValue() {}
+func (UnimplementedIconServer) testEmbeddedByValue() {}
 
-// UnsafeCoinServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to CoinServer will
+// UnsafeIconServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to IconServer will
 // result in compilation errors.
-type UnsafeCoinServer interface {
-	mustEmbedUnimplementedCoinServer()
+type UnsafeIconServer interface {
+	mustEmbedUnimplementedIconServer()
 }
 
-func RegisterCoinServer(s grpc.ServiceRegistrar, srv CoinServer) {
-	// If the following call pancis, it indicates UnimplementedCoinServer was
+func RegisterIconServer(s grpc.ServiceRegistrar, srv IconServer) {
+	// If the following call pancis, it indicates UnimplementedIconServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&Coin_ServiceDesc, srv)
+	s.RegisterService(&Icon_ServiceDesc, srv)
 }
 
-func _Coin_GetCoinList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Icon_GetIconList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CoinServer).GetCoinList(ctx, in)
+		return srv.(IconServer).GetIconList(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Coin_GetCoinList_FullMethodName,
+		FullMethod: Icon_GetIconList_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CoinServer).GetCoinList(ctx, req.(*emptypb.Empty))
+		return srv.(IconServer).GetIconList(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// Coin_ServiceDesc is the grpc.ServiceDesc for Coin service.
+// Icon_ServiceDesc is the grpc.ServiceDesc for Icon service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Coin_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "club.Coin",
-	HandlerType: (*CoinServer)(nil),
+var Icon_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "club.Icon",
+	HandlerType: (*IconServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "GetCoinList",
-			Handler:    _Coin_GetCoinList_Handler,
+			MethodName: "GetIconList",
+			Handler:    _Icon_GetIconList_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
