@@ -41,7 +41,9 @@ message UserProfileGetResp {
 }
 
 message UserProfileSetReq {
-    hi.Unit profile = 1;
+    string did = 1;
+    string name = 2;
+    string avater = 3;
 }
 
 service Merchant {

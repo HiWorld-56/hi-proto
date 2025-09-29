@@ -357,7 +357,9 @@ func (x *UserProfileGetResp) GetProfile() *v1.Unit {
 
 type UserProfileSetReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Profile       *v1.Unit               `protobuf:"bytes,1,opt,name=profile,proto3" json:"profile,omitempty"`
+	Did           string                 `protobuf:"bytes,1,opt,name=did,proto3" json:"did,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Avater        string                 `protobuf:"bytes,3,opt,name=avater,proto3" json:"avater,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -392,11 +394,25 @@ func (*UserProfileSetReq) Descriptor() ([]byte, []int) {
 	return file_v1_did_merchant_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *UserProfileSetReq) GetProfile() *v1.Unit {
+func (x *UserProfileSetReq) GetDid() string {
 	if x != nil {
-		return x.Profile
+		return x.Did
 	}
-	return nil
+	return ""
+}
+
+func (x *UserProfileSetReq) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *UserProfileSetReq) GetAvater() string {
+	if x != nil {
+		return x.Avater
+	}
+	return ""
 }
 
 type MerchantNotifyReq struct {
@@ -480,9 +496,11 @@ const file_v1_did_merchant_proto_rawDesc = "" +
 	"\x10MerchantListResp\x12%\n" +
 	"\x04list\x18\x01 \x03(\v2\x11.did.MerchantInfoR\x04list\"8\n" +
 	"\x12UserProfileGetResp\x12\"\n" +
-	"\aprofile\x18\x01 \x01(\v2\b.hi.UnitR\aprofile\"7\n" +
-	"\x11UserProfileSetReq\x12\"\n" +
-	"\aprofile\x18\x01 \x01(\v2\b.hi.UnitR\aprofile\";\n" +
+	"\aprofile\x18\x01 \x01(\v2\b.hi.UnitR\aprofile\"Q\n" +
+	"\x11UserProfileSetReq\x12\x10\n" +
+	"\x03did\x18\x01 \x01(\tR\x03did\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
+	"\x06avater\x18\x03 \x01(\tR\x06avater\";\n" +
 	"\x11MerchantNotifyReq\x12\x10\n" +
 	"\x03did\x18\x01 \x01(\tR\x03did\x12\x14\n" +
 	"\x05nonce\x18\x02 \x01(\tR\x05nonce2\x91\x02\n" +
@@ -530,24 +548,23 @@ var file_v1_did_merchant_proto_depIdxs = []int32{
 	0,  // 4: did.MerchantGetResp.info:type_name -> did.MerchantInfo
 	0,  // 5: did.MerchantListResp.list:type_name -> did.MerchantInfo
 	7,  // 6: did.UserProfileGetResp.profile:type_name -> hi.Unit
-	7,  // 7: did.UserProfileSetReq.profile:type_name -> hi.Unit
-	9,  // 8: did.Merchant.Get:input_type -> google.protobuf.Empty
-	2,  // 9: did.Merchant.Set:input_type -> did.MerchantSetReq
-	10, // 10: did.Merchant.List:input_type -> hi.DID
-	10, // 11: did.Merchant.GetUserProfile:input_type -> hi.DID
-	5,  // 12: did.Merchant.SetUserProfile:input_type -> did.UserProfileSetReq
-	6,  // 13: did.SSE.Notify:input_type -> did.MerchantNotifyReq
-	1,  // 14: did.Merchant.Get:output_type -> did.MerchantGetResp
-	9,  // 15: did.Merchant.Set:output_type -> google.protobuf.Empty
-	3,  // 16: did.Merchant.List:output_type -> did.MerchantListResp
-	4,  // 17: did.Merchant.GetUserProfile:output_type -> did.UserProfileGetResp
-	9,  // 18: did.Merchant.SetUserProfile:output_type -> google.protobuf.Empty
-	9,  // 19: did.SSE.Notify:output_type -> google.protobuf.Empty
-	14, // [14:20] is the sub-list for method output_type
-	8,  // [8:14] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	9,  // 7: did.Merchant.Get:input_type -> google.protobuf.Empty
+	2,  // 8: did.Merchant.Set:input_type -> did.MerchantSetReq
+	10, // 9: did.Merchant.List:input_type -> hi.DID
+	10, // 10: did.Merchant.GetUserProfile:input_type -> hi.DID
+	5,  // 11: did.Merchant.SetUserProfile:input_type -> did.UserProfileSetReq
+	6,  // 12: did.SSE.Notify:input_type -> did.MerchantNotifyReq
+	1,  // 13: did.Merchant.Get:output_type -> did.MerchantGetResp
+	9,  // 14: did.Merchant.Set:output_type -> google.protobuf.Empty
+	3,  // 15: did.Merchant.List:output_type -> did.MerchantListResp
+	4,  // 16: did.Merchant.GetUserProfile:output_type -> did.UserProfileGetResp
+	9,  // 17: did.Merchant.SetUserProfile:output_type -> google.protobuf.Empty
+	9,  // 18: did.SSE.Notify:output_type -> google.protobuf.Empty
+	13, // [13:19] is the sub-list for method output_type
+	7,  // [7:13] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_v1_did_merchant_proto_init() }
