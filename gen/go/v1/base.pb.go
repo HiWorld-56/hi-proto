@@ -72,10 +72,11 @@ const file_v1_base_proto_rawDesc = "" +
 	"\n" +
 	"\rv1/base.proto\x12\x02hi\x1a\x1bgoogle/protobuf/empty.proto\"-\n" +
 	"\x17ListSuperAdminUsersResp\x12\x12\n" +
-	"\x04list\x18\x01 \x03(\tR\x04list2\x91\x01\n" +
-	"\x04Base\x12=\n" +
-	"\vQueryHealth\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\x12J\n" +
-	"\x13ListSuperAdminUsers\x12\x16.google.protobuf.Empty\x1a\x1b.hi.ListSuperAdminUsersRespBe\n" +
+	"\x04list\x18\x01 \x03(\tR\x04list2R\n" +
+	"\x04Base\x12J\n" +
+	"\x13ListSuperAdminUsers\x12\x16.google.protobuf.Empty\x1a\x1b.hi.ListSuperAdminUsersResp2A\n" +
+	"\x06Health\x127\n" +
+	"\x05Check\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.EmptyBe\n" +
 	"\x06com.hiB\tBaseProtoP\x01Z(github.com/HiWorld-56/hi-proto/gen/go/v1\xa2\x02\x03HXX\xaa\x02\x02Hi\xca\x02\x02Hi\xe2\x02\x0eHi\\GPBMetadata\xea\x02\x02Hib\x06proto3"
 
 var (
@@ -96,10 +97,10 @@ var file_v1_base_proto_goTypes = []any{
 	(*emptypb.Empty)(nil),           // 1: google.protobuf.Empty
 }
 var file_v1_base_proto_depIdxs = []int32{
-	1, // 0: hi.Base.QueryHealth:input_type -> google.protobuf.Empty
-	1, // 1: hi.Base.ListSuperAdminUsers:input_type -> google.protobuf.Empty
-	1, // 2: hi.Base.QueryHealth:output_type -> google.protobuf.Empty
-	0, // 3: hi.Base.ListSuperAdminUsers:output_type -> hi.ListSuperAdminUsersResp
+	1, // 0: hi.Base.ListSuperAdminUsers:input_type -> google.protobuf.Empty
+	1, // 1: hi.Health.Check:input_type -> google.protobuf.Empty
+	0, // 2: hi.Base.ListSuperAdminUsers:output_type -> hi.ListSuperAdminUsersResp
+	1, // 3: hi.Health.Check:output_type -> google.protobuf.Empty
 	2, // [2:4] is the sub-list for method output_type
 	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -120,7 +121,7 @@ func file_v1_base_proto_init() {
 			NumEnums:      0,
 			NumMessages:   1,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   2,
 		},
 		GoTypes:           file_v1_base_proto_goTypes,
 		DependencyIndexes: file_v1_base_proto_depIdxs,

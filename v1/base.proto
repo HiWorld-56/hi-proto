@@ -9,6 +9,9 @@ message ListSuperAdminUsersResp {
 }
 
 service Base {
-    rpc QueryHealth (google.protobuf.Empty) returns (google.protobuf.Empty); // 不鉴权
     rpc ListSuperAdminUsers (google.protobuf.Empty) returns (ListSuperAdminUsersResp); // 不鉴权
+}
+
+service Health {
+    rpc Check (google.protobuf.Empty) returns (google.protobuf.Empty); // 不鉴权
 }
