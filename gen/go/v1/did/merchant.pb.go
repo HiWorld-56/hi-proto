@@ -359,7 +359,7 @@ type UserProfileSetReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Did           string                 `protobuf:"bytes,1,opt,name=did,proto3" json:"did,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Avater        string                 `protobuf:"bytes,3,opt,name=avater,proto3" json:"avater,omitempty"`
+	Avatar        string                 `protobuf:"bytes,3,opt,name=avatar,proto3" json:"avatar,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -408,9 +408,9 @@ func (x *UserProfileSetReq) GetName() string {
 	return ""
 }
 
-func (x *UserProfileSetReq) GetAvater() string {
+func (x *UserProfileSetReq) GetAvatar() string {
 	if x != nil {
-		return x.Avater
+		return x.Avatar
 	}
 	return ""
 }
@@ -500,7 +500,7 @@ const file_v1_did_merchant_proto_rawDesc = "" +
 	"\x11UserProfileSetReq\x12\x10\n" +
 	"\x03did\x18\x01 \x01(\tR\x03did\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
-	"\x06avater\x18\x03 \x01(\tR\x06avater\";\n" +
+	"\x06avatar\x18\x03 \x01(\tR\x06avatar\";\n" +
 	"\x11MerchantNotifyReq\x12\x10\n" +
 	"\x03did\x18\x01 \x01(\tR\x03did\x12\x14\n" +
 	"\x05nonce\x18\x02 \x01(\tR\x05nonce2\x91\x02\n" +

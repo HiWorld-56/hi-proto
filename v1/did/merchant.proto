@@ -43,7 +43,7 @@ message UserProfileGetResp {
 message UserProfileSetReq {
     string did = 1;
     string name = 2;
-    string avater = 3;
+    string avatar = 3;
 }
 
 service Merchant {
