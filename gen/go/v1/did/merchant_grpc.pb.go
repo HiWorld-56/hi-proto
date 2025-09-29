@@ -22,9 +22,10 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	Merchant_Get_FullMethodName            = "/did.Merchant/Get"
-	Merchant_GetUserProfile_FullMethodName = "/did.Merchant/GetUserProfile"
 	Merchant_Set_FullMethodName            = "/did.Merchant/Set"
 	Merchant_List_FullMethodName           = "/did.Merchant/List"
+	Merchant_GetUserProfile_FullMethodName = "/did.Merchant/GetUserProfile"
+	Merchant_SetUserProfile_FullMethodName = "/did.Merchant/SetUserProfile"
 )
 
 // MerchantClient is the client API for Merchant service.
@@ -32,9 +33,10 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MerchantClient interface {
 	Get(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*MerchantGetResp, error)
-	GetUserProfile(ctx context.Context, in *v1.DID, opts ...grpc.CallOption) (*UserProfileGetResp, error)
 	Set(ctx context.Context, in *MerchantSetReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	List(ctx context.Context, in *v1.DID, opts ...grpc.CallOption) (*MerchantListResp, error)
+	GetUserProfile(ctx context.Context, in *v1.DID, opts ...grpc.CallOption) (*UserProfileGetResp, error)
+	SetUserProfile(ctx context.Context, in *UserProfileSetReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type merchantClient struct {
@@ -49,16 +51,6 @@ func (c *merchantClient) Get(ctx context.Context, in *emptypb.Empty, opts ...grp
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MerchantGetResp)
 	err := c.cc.Invoke(ctx, Merchant_Get_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *merchantClient) GetUserProfile(ctx context.Context, in *v1.DID, opts ...grpc.CallOption) (*UserProfileGetResp, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UserProfileGetResp)
-	err := c.cc.Invoke(ctx, Merchant_GetUserProfile_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -85,14 +77,35 @@ func (c *merchantClient) List(ctx context.Context, in *v1.DID, opts ...grpc.Call
 	return out, nil
 }
 
+func (c *merchantClient) GetUserProfile(ctx context.Context, in *v1.DID, opts ...grpc.CallOption) (*UserProfileGetResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserProfileGetResp)
+	err := c.cc.Invoke(ctx, Merchant_GetUserProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *merchantClient) SetUserProfile(ctx context.Context, in *UserProfileSetReq, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, Merchant_SetUserProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MerchantServer is the server API for Merchant service.
 // All implementations should embed UnimplementedMerchantServer
 // for forward compatibility.
 type MerchantServer interface {
 	Get(context.Context, *emptypb.Empty) (*MerchantGetResp, error)
-	GetUserProfile(context.Context, *v1.DID) (*UserProfileGetResp, error)
 	Set(context.Context, *MerchantSetReq) (*emptypb.Empty, error)
 	List(context.Context, *v1.DID) (*MerchantListResp, error)
+	GetUserProfile(context.Context, *v1.DID) (*UserProfileGetResp, error)
+	SetUserProfile(context.Context, *UserProfileSetReq) (*emptypb.Empty, error)
 }
 
 // UnimplementedMerchantServer should be embedded to have
@@ -105,14 +118,17 @@ type UnimplementedMerchantServer struct{}
 func (UnimplementedMerchantServer) Get(context.Context, *emptypb.Empty) (*MerchantGetResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
 }
-func (UnimplementedMerchantServer) GetUserProfile(context.Context, *v1.DID) (*UserProfileGetResp, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetUserProfile not implemented")
-}
 func (UnimplementedMerchantServer) Set(context.Context, *MerchantSetReq) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Set not implemented")
 }
 func (UnimplementedMerchantServer) List(context.Context, *v1.DID) (*MerchantListResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
+}
+func (UnimplementedMerchantServer) GetUserProfile(context.Context, *v1.DID) (*UserProfileGetResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserProfile not implemented")
+}
+func (UnimplementedMerchantServer) SetUserProfile(context.Context, *UserProfileSetReq) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetUserProfile not implemented")
 }
 func (UnimplementedMerchantServer) testEmbeddedByValue() {}
 
@@ -148,24 +164,6 @@ func _Merchant_Get_Handler(srv interface{}, ctx context.Context, dec func(interf
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MerchantServer).Get(ctx, req.(*emptypb.Empty))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Merchant_GetUserProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(v1.DID)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MerchantServer).GetUserProfile(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Merchant_GetUserProfile_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MerchantServer).GetUserProfile(ctx, req.(*v1.DID))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -206,6 +204,42 @@ func _Merchant_List_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Merchant_GetUserProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(v1.DID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MerchantServer).GetUserProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Merchant_GetUserProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MerchantServer).GetUserProfile(ctx, req.(*v1.DID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Merchant_SetUserProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserProfileSetReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MerchantServer).SetUserProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Merchant_SetUserProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MerchantServer).SetUserProfile(ctx, req.(*UserProfileSetReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Merchant_ServiceDesc is the grpc.ServiceDesc for Merchant service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -218,16 +252,20 @@ var Merchant_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Merchant_Get_Handler,
 		},
 		{
-			MethodName: "GetUserProfile",
-			Handler:    _Merchant_GetUserProfile_Handler,
-		},
-		{
 			MethodName: "Set",
 			Handler:    _Merchant_Set_Handler,
 		},
 		{
 			MethodName: "List",
 			Handler:    _Merchant_List_Handler,
+		},
+		{
+			MethodName: "GetUserProfile",
+			Handler:    _Merchant_GetUserProfile_Handler,
+		},
+		{
+			MethodName: "SetUserProfile",
+			Handler:    _Merchant_SetUserProfile_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
