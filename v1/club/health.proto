@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package club;
+
+message  HealthStatus {
+    string status = 1;
+}
+
+service Health {
+	rpc CheckHealth (google.protobuf.Empty) returns (HealthStatus);
+}
