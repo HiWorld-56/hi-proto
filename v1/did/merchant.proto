@@ -62,7 +62,7 @@ message MerchantNotifyReq {
 
 message OrderEventResp {
 	string event = 1;
-    google.protobuf.Any payload = 2;
+    string payload = 2;
 }
 
 service SSE {
