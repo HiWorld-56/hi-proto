@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/any.proto";
 import "v1/hi.proto";
 import "v1/did/base.proto";
 
@@ -59,6 +60,12 @@ message MerchantNotifyReq {
 	string nonce = 2;
 }
 
+message OrderEventResp {
+	string event = 1;
+    google.protobuf.Any payload = 2;
+}
+
 service SSE {
+    rpc OrderEvents(hi.DID) returns (stream OrderEventResp);  // 不鉴权
     rpc Notify (MerchantNotifyReq) returns (google.protobuf.Empty); // 不鉴权
 }

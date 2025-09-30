@@ -26,7 +26,7 @@ service Login {
     // rpc GenerateNonce (google.protobuf.Empty) returns (hi.Nonce); // 不鉴权
     rpc Verify (hi.Web3Data) returns (LoginResp); // LoginReq // Web3鉴权
     rpc GenerateReq (hi.Node) returns (hi.ReqID); // 不鉴权
-    rpc GetReqStatus (hi.ReqID) returns (ReqStatusResp);
+    rpc GetReqStatus (hi.ReqID) returns (ReqStatusResp);  // 不鉴权
     rpc Notify (hi.Web3Data) returns (google.protobuf.Empty); // LoginData // Web3鉴权
     rpc Logout (google.protobuf.Empty) returns (google.protobuf.Empty); // Token鉴权
 }

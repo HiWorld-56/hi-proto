@@ -273,13 +273,15 @@ var Merchant_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	SSE_Notify_FullMethodName = "/did.SSE/Notify"
+	SSE_OrderEvents_FullMethodName = "/did.SSE/OrderEvents"
+	SSE_Notify_FullMethodName      = "/did.SSE/Notify"
 )
 
 // SSEClient is the client API for SSE service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SSEClient interface {
+	OrderEvents(ctx context.Context, in *v1.DID, opts ...grpc.CallOption) (grpc.ServerStreamingClient[OrderEventResp], error)
 	Notify(ctx context.Context, in *MerchantNotifyReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
@@ -290,6 +292,25 @@ type sSEClient struct {
 func NewSSEClient(cc grpc.ClientConnInterface) SSEClient {
 	return &sSEClient{cc}
 }
+
+func (c *sSEClient) OrderEvents(ctx context.Context, in *v1.DID, opts ...grpc.CallOption) (grpc.ServerStreamingClient[OrderEventResp], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &SSE_ServiceDesc.Streams[0], SSE_OrderEvents_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[v1.DID, OrderEventResp]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type SSE_OrderEventsClient = grpc.ServerStreamingClient[OrderEventResp]
 
 func (c *sSEClient) Notify(ctx context.Context, in *MerchantNotifyReq, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -305,6 +326,7 @@ func (c *sSEClient) Notify(ctx context.Context, in *MerchantNotifyReq, opts ...g
 // All implementations should embed UnimplementedSSEServer
 // for forward compatibility.
 type SSEServer interface {
+	OrderEvents(*v1.DID, grpc.ServerStreamingServer[OrderEventResp]) error
 	Notify(context.Context, *MerchantNotifyReq) (*emptypb.Empty, error)
 }
 
@@ -315,6 +337,9 @@ type SSEServer interface {
 // pointer dereference when methods are called.
 type UnimplementedSSEServer struct{}
 
+func (UnimplementedSSEServer) OrderEvents(*v1.DID, grpc.ServerStreamingServer[OrderEventResp]) error {
+	return status.Errorf(codes.Unimplemented, "method OrderEvents not implemented")
+}
 func (UnimplementedSSEServer) Notify(context.Context, *MerchantNotifyReq) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Notify not implemented")
 }
@@ -337,6 +362,17 @@ func RegisterSSEServer(s grpc.ServiceRegistrar, srv SSEServer) {
 	}
 	s.RegisterService(&SSE_ServiceDesc, srv)
 }
+
+func _SSE_OrderEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(v1.DID)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(SSEServer).OrderEvents(m, &grpc.GenericServerStream[v1.DID, OrderEventResp]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type SSE_OrderEventsServer = grpc.ServerStreamingServer[OrderEventResp]
 
 func _SSE_Notify_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(MerchantNotifyReq)
@@ -368,6 +404,12 @@ var SSE_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _SSE_Notify_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "OrderEvents",
+			Handler:       _SSE_OrderEvents_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "v1/did/merchant.proto",
 }
