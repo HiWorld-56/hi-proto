@@ -28,7 +28,7 @@ type CreateBotParam struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Did           string                 `protobuf:"bytes,1,opt,name=did,proto3" json:"did,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Type          int32                  `protobuf:"varint,3,opt,name=type,proto3" json:"type,omitempty"`
+	Type          int32                  `protobuf:"varint,3,opt,name=type,proto3" json:"type,omitempty"` // TODO: 改成string
 	Avatar        string                 `protobuf:"bytes,4,opt,name=avatar,proto3" json:"avatar,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -237,7 +237,7 @@ type BotInfo struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Did            string                 `protobuf:"bytes,1,opt,name=did,proto3" json:"did,omitempty"`
 	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Type           int32                  `protobuf:"varint,3,opt,name=type,proto3" json:"type,omitempty"` //  机器人类型
+	Type           int32                  `protobuf:"varint,3,opt,name=type,proto3" json:"type,omitempty"` //  机器人类型 TODO: 改成string
 	Avatar         string                 `protobuf:"bytes,4,opt,name=avatar,proto3" json:"avatar,omitempty"`
 	Background     string                 `protobuf:"bytes,5,opt,name=background,proto3" json:"background,omitempty"`
 	ApiKey         string                 `protobuf:"bytes,6,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
@@ -485,6 +485,7 @@ func (x *BotInfo) GetFavorited() int32 {
 	return 0
 }
 
+// TODO: 添加total字段
 type BotInfoList struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BotInfoList   []*BotInfo             `protobuf:"bytes,1,rep,name=bot_info_list,json=botInfoList,proto3" json:"bot_info_list,omitempty"`
@@ -2690,7 +2691,7 @@ const file_v1_club_bot_proto_rawDesc = "" +
 	"\n" +
 	"GetBotInfo\x12\f.club.BotDID\x1a\x12.club.ChatUserInfo\x12;\n" +
 	"\x0eGetBotInfoList\x12\x16.club.BotInfoListParam\x1a\x11.club.BotInfoList\x12=\n" +
-	"\vFavoriteBot\x12\x16.club.BotInfoListParam\x1a\x16.google.protobuf.Empty\x12<\n" +
+	"\vFavoriteBot\x12\x16.club.FavoriteBotParam\x1a\x16.google.protobuf.Empty\x12<\n" +
 	"\x0fFavoriteBotList\x12\x16.club.BotInfoListParam\x1a\x11.club.BotInfoList\x12;\n" +
 	"\n" +
 	"BindMaster\x12\x15.club.BindMasterParam\x1a\x16.google.protobuf.Empty\x12=\n" +
@@ -2794,7 +2795,7 @@ var file_v1_club_bot_proto_depIdxs = []int32{
 	1,  // 15: club.Bot.StatisticsInfo:input_type -> club.BotDID
 	1,  // 16: club.Bot.GetBotInfo:input_type -> club.BotDID
 	7,  // 17: club.Bot.GetBotInfoList:input_type -> club.BotInfoListParam
-	7,  // 18: club.Bot.FavoriteBot:input_type -> club.BotInfoListParam
+	8,  // 18: club.Bot.FavoriteBot:input_type -> club.FavoriteBotParam
 	7,  // 19: club.Bot.FavoriteBotList:input_type -> club.BotInfoListParam
 	12, // 20: club.Bot.BindMaster:input_type -> club.BindMasterParam
 	12, // 21: club.Bot.UnbindMaster:input_type -> club.BindMasterParam

@@ -51,7 +51,7 @@ type BotClient interface {
 	StatisticsInfo(ctx context.Context, in *BotDID, opts ...grpc.CallOption) (*BotStatisticsInfo, error)
 	GetBotInfo(ctx context.Context, in *BotDID, opts ...grpc.CallOption) (*ChatUserInfo, error)
 	GetBotInfoList(ctx context.Context, in *BotInfoListParam, opts ...grpc.CallOption) (*BotInfoList, error)
-	FavoriteBot(ctx context.Context, in *BotInfoListParam, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	FavoriteBot(ctx context.Context, in *FavoriteBotParam, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	FavoriteBotList(ctx context.Context, in *BotInfoListParam, opts ...grpc.CallOption) (*BotInfoList, error)
 	BindMaster(ctx context.Context, in *BindMasterParam, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	UnbindMaster(ctx context.Context, in *BindMasterParam, opts ...grpc.CallOption) (*emptypb.Empty, error)
@@ -166,7 +166,7 @@ func (c *botClient) GetBotInfoList(ctx context.Context, in *BotInfoListParam, op
 	return out, nil
 }
 
-func (c *botClient) FavoriteBot(ctx context.Context, in *BotInfoListParam, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *botClient) FavoriteBot(ctx context.Context, in *FavoriteBotParam, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, Bot_FavoriteBot_FullMethodName, in, out, cOpts...)
@@ -230,7 +230,7 @@ type BotServer interface {
 	StatisticsInfo(context.Context, *BotDID) (*BotStatisticsInfo, error)
 	GetBotInfo(context.Context, *BotDID) (*ChatUserInfo, error)
 	GetBotInfoList(context.Context, *BotInfoListParam) (*BotInfoList, error)
-	FavoriteBot(context.Context, *BotInfoListParam) (*emptypb.Empty, error)
+	FavoriteBot(context.Context, *FavoriteBotParam) (*emptypb.Empty, error)
 	FavoriteBotList(context.Context, *BotInfoListParam) (*BotInfoList, error)
 	BindMaster(context.Context, *BindMasterParam) (*emptypb.Empty, error)
 	UnbindMaster(context.Context, *BindMasterParam) (*emptypb.Empty, error)
@@ -274,7 +274,7 @@ func (UnimplementedBotServer) GetBotInfo(context.Context, *BotDID) (*ChatUserInf
 func (UnimplementedBotServer) GetBotInfoList(context.Context, *BotInfoListParam) (*BotInfoList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBotInfoList not implemented")
 }
-func (UnimplementedBotServer) FavoriteBot(context.Context, *BotInfoListParam) (*emptypb.Empty, error) {
+func (UnimplementedBotServer) FavoriteBot(context.Context, *FavoriteBotParam) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FavoriteBot not implemented")
 }
 func (UnimplementedBotServer) FavoriteBotList(context.Context, *BotInfoListParam) (*BotInfoList, error) {
@@ -490,7 +490,7 @@ func _Bot_GetBotInfoList_Handler(srv interface{}, ctx context.Context, dec func(
 }
 
 func _Bot_FavoriteBot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(BotInfoListParam)
+	in := new(FavoriteBotParam)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -502,7 +502,7 @@ func _Bot_FavoriteBot_Handler(srv interface{}, ctx context.Context, dec func(int
 		FullMethod: Bot_FavoriteBot_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BotServer).FavoriteBot(ctx, req.(*BotInfoListParam))
+		return srv.(BotServer).FavoriteBot(ctx, req.(*FavoriteBotParam))
 	}
 	return interceptor(ctx, in, info, handler)
 }
