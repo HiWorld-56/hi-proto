@@ -34,7 +34,7 @@ type MerchantInfo struct {
 	Endpoint      string                 `protobuf:"bytes,7,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
 	Scheme        string                 `protobuf:"bytes,8,opt,name=scheme,proto3" json:"scheme,omitempty"`
 	ExtendToken   string                 `protobuf:"bytes,9,opt,name=extend_token,json=extendToken,proto3" json:"extend_token,omitempty"`
-	CreateAt      int64                  `protobuf:"varint,10,opt,name=create_at,json=createAt,proto3" json:"create_at,omitempty"`
+	CreatedAt     int64                  `protobuf:"varint,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -125,9 +125,9 @@ func (x *MerchantInfo) GetExtendToken() string {
 	return ""
 }
 
-func (x *MerchantInfo) GetCreateAt() int64 {
+func (x *MerchantInfo) GetCreatedAt() int64 {
 	if x != nil {
-		return x.CreateAt
+		return x.CreatedAt
 	}
 	return 0
 }
@@ -524,7 +524,7 @@ var File_v1_did_merchant_proto protoreflect.FileDescriptor
 
 const file_v1_did_merchant_proto_rawDesc = "" +
 	"\n" +
-	"\x15v1/did/merchant.proto\x12\x03did\x1a\x1bgoogle/protobuf/empty.proto\x1a\x19google/protobuf/any.proto\x1a\vv1/hi.proto\x1a\x11v1/did/base.proto\"\xb8\x02\n" +
+	"\x15v1/did/merchant.proto\x12\x03did\x1a\x1bgoogle/protobuf/empty.proto\x1a\x19google/protobuf/any.proto\x1a\vv1/hi.proto\x1a\x11v1/did/base.proto\"\xba\x02\n" +
 	"\fMerchantInfo\x12 \n" +
 	"\x06master\x18\x02 \x01(\v2\b.hi.UnitR\x06master\x12 \n" +
 	"\x06server\x18\x03 \x01(\v2\b.hi.UnitR\x06server\x12\x12\n" +
@@ -533,9 +533,10 @@ const file_v1_did_merchant_proto_rawDesc = "" +
 	"\rcustom_tokens\x18\x06 \x03(\v2\t.did.CoinR\fcustomTokens\x12\x1a\n" +
 	"\bendpoint\x18\a \x01(\tR\bendpoint\x12\x16\n" +
 	"\x06scheme\x18\b \x01(\tR\x06scheme\x12!\n" +
-	"\fextend_token\x18\t \x01(\tR\vextendToken\x12\x1b\n" +
-	"\tcreate_at\x18\n" +
-	" \x01(\x03R\bcreateAt\"8\n" +
+	"\fextend_token\x18\t \x01(\tR\vextendToken\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\n" +
+	" \x01(\x03R\tcreatedAt\"8\n" +
 	"\x0fMerchantGetResp\x12%\n" +
 	"\x04info\x18\x01 \x01(\v2\x11.did.MerchantInfoR\x04info\"\xb4\x01\n" +
 	"\x0eMerchantSetReq\x12\x16\n" +
