@@ -11,12 +11,13 @@ message MerchantInfo {
     hi.Unit master = 2;
     hi.Unit server = 3;
     string  name = 4;
-    repeated Coin public_coins = 5; // 公共币种
-    repeated Coin custom_tokens = 6; // 自定义币种
-    string  endpoint = 7;
-    string  scheme = 8;
-    string  extend_token = 9;
-    int64   created_at = 10;
+    string  logo = 5;
+    repeated Coin public_coins = 6; // 公共币种
+    repeated Coin custom_tokens = 7; // 自定义币种
+    string  endpoint = 8;
+    string  scheme = 9;
+    string  extend_token = 10;
+    int64   created_at = 11;
 }
 
 message MerchantGetResp {

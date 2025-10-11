@@ -29,12 +29,13 @@ type MerchantInfo struct {
 	Master        *v1.Unit               `protobuf:"bytes,2,opt,name=master,proto3" json:"master,omitempty"`
 	Server        *v1.Unit               `protobuf:"bytes,3,opt,name=server,proto3" json:"server,omitempty"`
 	Name          string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
-	PublicCoins   []*Coin                `protobuf:"bytes,5,rep,name=public_coins,json=publicCoins,proto3" json:"public_coins,omitempty"`    // 公共币种
-	CustomTokens  []*Coin                `protobuf:"bytes,6,rep,name=custom_tokens,json=customTokens,proto3" json:"custom_tokens,omitempty"` // 自定义币种
-	Endpoint      string                 `protobuf:"bytes,7,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
-	Scheme        string                 `protobuf:"bytes,8,opt,name=scheme,proto3" json:"scheme,omitempty"`
-	ExtendToken   string                 `protobuf:"bytes,9,opt,name=extend_token,json=extendToken,proto3" json:"extend_token,omitempty"`
-	CreatedAt     int64                  `protobuf:"varint,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Logo          string                 `protobuf:"bytes,5,opt,name=logo,proto3" json:"logo,omitempty"`
+	PublicCoins   []*Coin                `protobuf:"bytes,6,rep,name=public_coins,json=publicCoins,proto3" json:"public_coins,omitempty"`    // 公共币种
+	CustomTokens  []*Coin                `protobuf:"bytes,7,rep,name=custom_tokens,json=customTokens,proto3" json:"custom_tokens,omitempty"` // 自定义币种
+	Endpoint      string                 `protobuf:"bytes,8,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	Scheme        string                 `protobuf:"bytes,9,opt,name=scheme,proto3" json:"scheme,omitempty"`
+	ExtendToken   string                 `protobuf:"bytes,10,opt,name=extend_token,json=extendToken,proto3" json:"extend_token,omitempty"`
+	CreatedAt     int64                  `protobuf:"varint,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -86,6 +87,13 @@ func (x *MerchantInfo) GetServer() *v1.Unit {
 func (x *MerchantInfo) GetName() string {
 	if x != nil {
 		return x.Name
+	}
+	return ""
+}
+
+func (x *MerchantInfo) GetLogo() string {
+	if x != nil {
+		return x.Logo
 	}
 	return ""
 }
@@ -524,19 +532,20 @@ var File_v1_did_merchant_proto protoreflect.FileDescriptor
 
 const file_v1_did_merchant_proto_rawDesc = "" +
 	"\n" +
-	"\x15v1/did/merchant.proto\x12\x03did\x1a\x1bgoogle/protobuf/empty.proto\x1a\x19google/protobuf/any.proto\x1a\vv1/hi.proto\x1a\x11v1/did/base.proto\"\xba\x02\n" +
+	"\x15v1/did/merchant.proto\x12\x03did\x1a\x1bgoogle/protobuf/empty.proto\x1a\x19google/protobuf/any.proto\x1a\vv1/hi.proto\x1a\x11v1/did/base.proto\"\xce\x02\n" +
 	"\fMerchantInfo\x12 \n" +
 	"\x06master\x18\x02 \x01(\v2\b.hi.UnitR\x06master\x12 \n" +
 	"\x06server\x18\x03 \x01(\v2\b.hi.UnitR\x06server\x12\x12\n" +
-	"\x04name\x18\x04 \x01(\tR\x04name\x12,\n" +
-	"\fpublic_coins\x18\x05 \x03(\v2\t.did.CoinR\vpublicCoins\x12.\n" +
-	"\rcustom_tokens\x18\x06 \x03(\v2\t.did.CoinR\fcustomTokens\x12\x1a\n" +
-	"\bendpoint\x18\a \x01(\tR\bendpoint\x12\x16\n" +
-	"\x06scheme\x18\b \x01(\tR\x06scheme\x12!\n" +
-	"\fextend_token\x18\t \x01(\tR\vextendToken\x12\x1d\n" +
+	"\x04name\x18\x04 \x01(\tR\x04name\x12\x12\n" +
+	"\x04logo\x18\x05 \x01(\tR\x04logo\x12,\n" +
+	"\fpublic_coins\x18\x06 \x03(\v2\t.did.CoinR\vpublicCoins\x12.\n" +
+	"\rcustom_tokens\x18\a \x03(\v2\t.did.CoinR\fcustomTokens\x12\x1a\n" +
+	"\bendpoint\x18\b \x01(\tR\bendpoint\x12\x16\n" +
+	"\x06scheme\x18\t \x01(\tR\x06scheme\x12!\n" +
+	"\fextend_token\x18\n" +
+	" \x01(\tR\vextendToken\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\n" +
-	" \x01(\x03R\tcreatedAt\"8\n" +
+	"created_at\x18\v \x01(\x03R\tcreatedAt\"8\n" +
 	"\x0fMerchantGetResp\x12%\n" +
 	"\x04info\x18\x01 \x01(\v2\x11.did.MerchantInfoR\x04info\"\xb4\x01\n" +
 	"\x0eMerchantSetReq\x12\x16\n" +
