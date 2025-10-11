@@ -5,7 +5,7 @@ import "google/protobuf/empty.proto";
 package club;
 
 message CID {
-	string conversation_id = 1;
+	string conversation_id = 1; // TODO: 改成id
 }
 
 message SpeechToTextParam {
@@ -24,14 +24,14 @@ message MessagesContent {
 }
 
 message ChatParam {
-	string conversation_id = 1;
+	string conversation_id = 1; // TODO: 改成cid
 	string bot_did = 2;
 	repeated MessagesContent messages = 3;
 }
 
 message StreamParam {
 	string did = 1;
-	string conversation_id = 2;
+	string conversation_id = 2;  // TODO: 改成cid
 	repeated MessagesContent messages = 3;
 	string state = 4;
 	string return_plugin_use = 5;
@@ -40,7 +40,7 @@ message StreamParam {
 }
 
 message GetContextParam {
-	string conversation_id = 1;
+	string conversation_id = 1;  // TODO: 改成cid
 	string bot_did = 2;
 }
 
@@ -58,7 +58,7 @@ message Tool {
 
 message TextToTextParam {
   string did = 1;
-  string conversation_id = 2;
+  string conversation_id = 2;  // TODO: 改成cid
   repeated MessagesContent messages = 3;
   string voice = 4;
   repeated Tool tools = 5;
@@ -69,7 +69,7 @@ message TextToTextParam {
 
 message SpeechToSpeechParam {
   string did = 1;
-  string conversation_id = 2;
+  string conversation_id = 2;  // TODO: 改成cid
   repeated MessagesContent messages = 3;
   string voice = 4;
   repeated Tool tools = 5;

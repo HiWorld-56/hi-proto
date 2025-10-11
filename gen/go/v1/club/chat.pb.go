@@ -24,7 +24,7 @@ const (
 
 type CID struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"` // TODO: 改成id
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -224,7 +224,7 @@ func (x *MessagesContent) GetContent() string {
 
 type ChatParam struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"` // TODO: 改成cid
 	BotDid         string                 `protobuf:"bytes,2,opt,name=bot_did,json=botDid,proto3" json:"bot_did,omitempty"`
 	Messages       []*MessagesContent     `protobuf:"bytes,3,rep,name=messages,proto3" json:"messages,omitempty"`
 	unknownFields  protoimpl.UnknownFields
@@ -285,7 +285,7 @@ func (x *ChatParam) GetMessages() []*MessagesContent {
 type StreamParam struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	Did                string                 `protobuf:"bytes,1,opt,name=did,proto3" json:"did,omitempty"`
-	ConversationId     string                 `protobuf:"bytes,2,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	ConversationId     string                 `protobuf:"bytes,2,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"` // TODO: 改成cid
 	Messages           []*MessagesContent     `protobuf:"bytes,3,rep,name=messages,proto3" json:"messages,omitempty"`
 	State              string                 `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
 	ReturnPluginUse    string                 `protobuf:"bytes,5,opt,name=return_plugin_use,json=returnPluginUse,proto3" json:"return_plugin_use,omitempty"`
@@ -376,7 +376,7 @@ func (x *StreamParam) GetReturnContext() string {
 
 type GetContextParam struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"` // TODO: 改成cid
 	BotDid         string                 `protobuf:"bytes,2,opt,name=bot_did,json=botDid,proto3" json:"bot_did,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
@@ -549,7 +549,7 @@ func (x *Tool) GetFunction() *FunctionDefinition {
 type TextToTextParam struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Did            string                 `protobuf:"bytes,1,opt,name=did,proto3" json:"did,omitempty"`
-	ConversationId string                 `protobuf:"bytes,2,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	ConversationId string                 `protobuf:"bytes,2,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"` // TODO: 改成cid
 	Messages       []*MessagesContent     `protobuf:"bytes,3,rep,name=messages,proto3" json:"messages,omitempty"`
 	Voice          string                 `protobuf:"bytes,4,opt,name=voice,proto3" json:"voice,omitempty"`
 	Tools          []*Tool                `protobuf:"bytes,5,rep,name=tools,proto3" json:"tools,omitempty"`
@@ -649,7 +649,7 @@ func (x *TextToTextParam) GetState() string {
 type SpeechToSpeechParam struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Did            string                 `protobuf:"bytes,1,opt,name=did,proto3" json:"did,omitempty"`
-	ConversationId string                 `protobuf:"bytes,2,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	ConversationId string                 `protobuf:"bytes,2,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"` // TODO: 改成cid
 	Messages       []*MessagesContent     `protobuf:"bytes,3,rep,name=messages,proto3" json:"messages,omitempty"`
 	Voice          string                 `protobuf:"bytes,4,opt,name=voice,proto3" json:"voice,omitempty"`
 	Tools          []*Tool                `protobuf:"bytes,5,rep,name=tools,proto3" json:"tools,omitempty"`

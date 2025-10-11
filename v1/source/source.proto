@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package source;
+
+message UploadReq {
+    string file_type = 1;
+    string filename = 2;
+    bytes content = 3;
+}
+
+message UploadResp {
+    string file_url = 1;
+}
+
+message DownloadReq {
+    string bucket_name = 1;
+    string filename = 2;
+}
+
+message DownloadResp {
+    bytes content = 1;
+}
+
+// TODO: 添加流式接口
+service FileManager {
+    rpc Upload(UploadReq) returns (UploadResp);
+    rpc Download(DownloadReq) returns (DownloadResp);
+}
