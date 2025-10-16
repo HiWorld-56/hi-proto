@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             (unknown)
-// source: v1/ai/plugin.proto
+// source: v1/ai/plugin/plugin.proto
 
-package ai
+package plugin
 
 import (
 	context "context"
@@ -19,8 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AiPlugin_Search_FullMethodName = "/ai.AiPlugin/Search"
-	AiPlugin_Python_FullMethodName = "/ai.AiPlugin/Python"
+	AiPlugin_Search_FullMethodName = "/plugin.AiPlugin/Search"
+	AiPlugin_Python_FullMethodName = "/plugin.AiPlugin/Python"
 )
 
 // AiPluginClient is the client API for AiPlugin service.
@@ -140,7 +140,7 @@ func _AiPlugin_Python_Handler(srv interface{}, ctx context.Context, dec func(int
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var AiPlugin_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "ai.AiPlugin",
+	ServiceName: "plugin.AiPlugin",
 	HandlerType: (*AiPluginServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -153,5 +153,5 @@ var AiPlugin_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "v1/ai/plugin.proto",
+	Metadata: "v1/ai/plugin/plugin.proto",
 }

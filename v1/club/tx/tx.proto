@@ -3,7 +3,7 @@ syntax = "proto3";
 import "google/protobuf/empty.proto";
 import "v1/hi.proto";
 
-package club;
+package tx;
 
 
 ////////////////////////////// 交易 //////////////////////////////
