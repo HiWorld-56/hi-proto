@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        (unknown)
-// source: v1/clubtx/club_tx.proto
+// source: v1/club/tx.proto
 
-package clubtx
+package club
 
 import (
 	v1 "github.com/HiWorld-56/hi-proto/gen/go/v1"
@@ -32,7 +32,7 @@ type GetTxFeeReq struct {
 
 func (x *GetTxFeeReq) Reset() {
 	*x = GetTxFeeReq{}
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[0]
+	mi := &file_v1_club_tx_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -44,7 +44,7 @@ func (x *GetTxFeeReq) String() string {
 func (*GetTxFeeReq) ProtoMessage() {}
 
 func (x *GetTxFeeReq) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[0]
+	mi := &file_v1_club_tx_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -57,7 +57,7 @@ func (x *GetTxFeeReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTxFeeReq.ProtoReflect.Descriptor instead.
 func (*GetTxFeeReq) Descriptor() ([]byte, []int) {
-	return file_v1_clubtx_club_tx_proto_rawDescGZIP(), []int{0}
+	return file_v1_club_tx_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *GetTxFeeReq) GetCoin() string {
@@ -77,7 +77,7 @@ type GetTxFeeResp struct {
 
 func (x *GetTxFeeResp) Reset() {
 	*x = GetTxFeeResp{}
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[1]
+	mi := &file_v1_club_tx_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -89,7 +89,7 @@ func (x *GetTxFeeResp) String() string {
 func (*GetTxFeeResp) ProtoMessage() {}
 
 func (x *GetTxFeeResp) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[1]
+	mi := &file_v1_club_tx_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -102,7 +102,7 @@ func (x *GetTxFeeResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTxFeeResp.ProtoReflect.Descriptor instead.
 func (*GetTxFeeResp) Descriptor() ([]byte, []int) {
-	return file_v1_clubtx_club_tx_proto_rawDescGZIP(), []int{1}
+	return file_v1_club_tx_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetTxFeeResp) GetCoin() string {
@@ -129,7 +129,7 @@ type GetTxReq struct {
 
 func (x *GetTxReq) Reset() {
 	*x = GetTxReq{}
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[2]
+	mi := &file_v1_club_tx_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -141,7 +141,7 @@ func (x *GetTxReq) String() string {
 func (*GetTxReq) ProtoMessage() {}
 
 func (x *GetTxReq) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[2]
+	mi := &file_v1_club_tx_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -154,7 +154,7 @@ func (x *GetTxReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTxReq.ProtoReflect.Descriptor instead.
 func (*GetTxReq) Descriptor() ([]byte, []int) {
-	return file_v1_clubtx_club_tx_proto_rawDescGZIP(), []int{2}
+	return file_v1_club_tx_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetTxReq) GetTxId() string {
@@ -185,7 +185,7 @@ type TxParty struct {
 
 func (x *TxParty) Reset() {
 	*x = TxParty{}
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[3]
+	mi := &file_v1_club_tx_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -197,7 +197,7 @@ func (x *TxParty) String() string {
 func (*TxParty) ProtoMessage() {}
 
 func (x *TxParty) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[3]
+	mi := &file_v1_club_tx_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -210,7 +210,7 @@ func (x *TxParty) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TxParty.ProtoReflect.Descriptor instead.
 func (*TxParty) Descriptor() ([]byte, []int) {
-	return file_v1_clubtx_club_tx_proto_rawDescGZIP(), []int{3}
+	return file_v1_club_tx_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *TxParty) GetDid() string {
@@ -268,7 +268,7 @@ type TxOrder struct {
 
 func (x *TxOrder) Reset() {
 	*x = TxOrder{}
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[4]
+	mi := &file_v1_club_tx_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -280,7 +280,7 @@ func (x *TxOrder) String() string {
 func (*TxOrder) ProtoMessage() {}
 
 func (x *TxOrder) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[4]
+	mi := &file_v1_club_tx_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -293,7 +293,7 @@ func (x *TxOrder) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TxOrder.ProtoReflect.Descriptor instead.
 func (*TxOrder) Descriptor() ([]byte, []int) {
-	return file_v1_clubtx_club_tx_proto_rawDescGZIP(), []int{4}
+	return file_v1_club_tx_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *TxOrder) GetOrderId() string {
@@ -396,7 +396,7 @@ type TxInfo struct {
 
 func (x *TxInfo) Reset() {
 	*x = TxInfo{}
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[5]
+	mi := &file_v1_club_tx_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -408,7 +408,7 @@ func (x *TxInfo) String() string {
 func (*TxInfo) ProtoMessage() {}
 
 func (x *TxInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[5]
+	mi := &file_v1_club_tx_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -421,7 +421,7 @@ func (x *TxInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TxInfo.ProtoReflect.Descriptor instead.
 func (*TxInfo) Descriptor() ([]byte, []int) {
-	return file_v1_clubtx_club_tx_proto_rawDescGZIP(), []int{5}
+	return file_v1_club_tx_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *TxInfo) GetTxId() string {
@@ -489,7 +489,7 @@ type GetTxResp struct {
 
 func (x *GetTxResp) Reset() {
 	*x = GetTxResp{}
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[6]
+	mi := &file_v1_club_tx_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -501,7 +501,7 @@ func (x *GetTxResp) String() string {
 func (*GetTxResp) ProtoMessage() {}
 
 func (x *GetTxResp) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[6]
+	mi := &file_v1_club_tx_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -514,7 +514,7 @@ func (x *GetTxResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTxResp.ProtoReflect.Descriptor instead.
 func (*GetTxResp) Descriptor() ([]byte, []int) {
-	return file_v1_clubtx_club_tx_proto_rawDescGZIP(), []int{6}
+	return file_v1_club_tx_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetTxResp) GetTxInfo() *TxInfo {
@@ -533,7 +533,7 @@ type AddTxReq struct {
 
 func (x *AddTxReq) Reset() {
 	*x = AddTxReq{}
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[7]
+	mi := &file_v1_club_tx_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -545,7 +545,7 @@ func (x *AddTxReq) String() string {
 func (*AddTxReq) ProtoMessage() {}
 
 func (x *AddTxReq) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[7]
+	mi := &file_v1_club_tx_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -558,7 +558,7 @@ func (x *AddTxReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddTxReq.ProtoReflect.Descriptor instead.
 func (*AddTxReq) Descriptor() ([]byte, []int) {
-	return file_v1_clubtx_club_tx_proto_rawDescGZIP(), []int{7}
+	return file_v1_club_tx_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *AddTxReq) GetTxInfo() *TxInfo {
@@ -577,7 +577,7 @@ type AddTxResp struct {
 
 func (x *AddTxResp) Reset() {
 	*x = AddTxResp{}
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[8]
+	mi := &file_v1_club_tx_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -589,7 +589,7 @@ func (x *AddTxResp) String() string {
 func (*AddTxResp) ProtoMessage() {}
 
 func (x *AddTxResp) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[8]
+	mi := &file_v1_club_tx_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -602,7 +602,7 @@ func (x *AddTxResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddTxResp.ProtoReflect.Descriptor instead.
 func (*AddTxResp) Descriptor() ([]byte, []int) {
-	return file_v1_clubtx_club_tx_proto_rawDescGZIP(), []int{8}
+	return file_v1_club_tx_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *AddTxResp) GetTxInfo() *TxInfo {
@@ -621,7 +621,7 @@ type UpdateOrderTxHashReq struct {
 
 func (x *UpdateOrderTxHashReq) Reset() {
 	*x = UpdateOrderTxHashReq{}
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[9]
+	mi := &file_v1_club_tx_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -633,7 +633,7 @@ func (x *UpdateOrderTxHashReq) String() string {
 func (*UpdateOrderTxHashReq) ProtoMessage() {}
 
 func (x *UpdateOrderTxHashReq) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[9]
+	mi := &file_v1_club_tx_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -646,7 +646,7 @@ func (x *UpdateOrderTxHashReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateOrderTxHashReq.ProtoReflect.Descriptor instead.
 func (*UpdateOrderTxHashReq) Descriptor() ([]byte, []int) {
-	return file_v1_clubtx_club_tx_proto_rawDescGZIP(), []int{9}
+	return file_v1_club_tx_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *UpdateOrderTxHashReq) GetTxOrder() *TxOrder {
@@ -666,7 +666,7 @@ type GetTxListReq struct {
 
 func (x *GetTxListReq) Reset() {
 	*x = GetTxListReq{}
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[10]
+	mi := &file_v1_club_tx_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -678,7 +678,7 @@ func (x *GetTxListReq) String() string {
 func (*GetTxListReq) ProtoMessage() {}
 
 func (x *GetTxListReq) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[10]
+	mi := &file_v1_club_tx_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -691,7 +691,7 @@ func (x *GetTxListReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTxListReq.ProtoReflect.Descriptor instead.
 func (*GetTxListReq) Descriptor() ([]byte, []int) {
-	return file_v1_clubtx_club_tx_proto_rawDescGZIP(), []int{10}
+	return file_v1_club_tx_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetTxListReq) GetDid() string {
@@ -718,7 +718,7 @@ type GetTxListResp struct {
 
 func (x *GetTxListResp) Reset() {
 	*x = GetTxListResp{}
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[11]
+	mi := &file_v1_club_tx_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -730,7 +730,7 @@ func (x *GetTxListResp) String() string {
 func (*GetTxListResp) ProtoMessage() {}
 
 func (x *GetTxListResp) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[11]
+	mi := &file_v1_club_tx_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -743,7 +743,7 @@ func (x *GetTxListResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTxListResp.ProtoReflect.Descriptor instead.
 func (*GetTxListResp) Descriptor() ([]byte, []int) {
-	return file_v1_clubtx_club_tx_proto_rawDescGZIP(), []int{11}
+	return file_v1_club_tx_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetTxListResp) GetCount() int32 {
@@ -770,7 +770,7 @@ type GetAllTxInfoReq struct {
 
 func (x *GetAllTxInfoReq) Reset() {
 	*x = GetAllTxInfoReq{}
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[12]
+	mi := &file_v1_club_tx_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -782,7 +782,7 @@ func (x *GetAllTxInfoReq) String() string {
 func (*GetAllTxInfoReq) ProtoMessage() {}
 
 func (x *GetAllTxInfoReq) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[12]
+	mi := &file_v1_club_tx_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -795,7 +795,7 @@ func (x *GetAllTxInfoReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAllTxInfoReq.ProtoReflect.Descriptor instead.
 func (*GetAllTxInfoReq) Descriptor() ([]byte, []int) {
-	return file_v1_clubtx_club_tx_proto_rawDescGZIP(), []int{12}
+	return file_v1_club_tx_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetAllTxInfoReq) GetId() string {
@@ -823,7 +823,7 @@ type GetAllTxInfoResp struct {
 
 func (x *GetAllTxInfoResp) Reset() {
 	*x = GetAllTxInfoResp{}
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[13]
+	mi := &file_v1_club_tx_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -835,7 +835,7 @@ func (x *GetAllTxInfoResp) String() string {
 func (*GetAllTxInfoResp) ProtoMessage() {}
 
 func (x *GetAllTxInfoResp) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[13]
+	mi := &file_v1_club_tx_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -848,7 +848,7 @@ func (x *GetAllTxInfoResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAllTxInfoResp.ProtoReflect.Descriptor instead.
 func (*GetAllTxInfoResp) Descriptor() ([]byte, []int) {
-	return file_v1_clubtx_club_tx_proto_rawDescGZIP(), []int{13}
+	return file_v1_club_tx_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetAllTxInfoResp) GetTotal() int64 {
@@ -882,7 +882,7 @@ type PcOrderData struct {
 
 func (x *PcOrderData) Reset() {
 	*x = PcOrderData{}
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[14]
+	mi := &file_v1_club_tx_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -894,7 +894,7 @@ func (x *PcOrderData) String() string {
 func (*PcOrderData) ProtoMessage() {}
 
 func (x *PcOrderData) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[14]
+	mi := &file_v1_club_tx_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -907,7 +907,7 @@ func (x *PcOrderData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PcOrderData.ProtoReflect.Descriptor instead.
 func (*PcOrderData) Descriptor() ([]byte, []int) {
-	return file_v1_clubtx_club_tx_proto_rawDescGZIP(), []int{14}
+	return file_v1_club_tx_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *PcOrderData) GetDid() string {
@@ -942,7 +942,7 @@ type PcOrder struct {
 
 func (x *PcOrder) Reset() {
 	*x = PcOrder{}
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[15]
+	mi := &file_v1_club_tx_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -954,7 +954,7 @@ func (x *PcOrder) String() string {
 func (*PcOrder) ProtoMessage() {}
 
 func (x *PcOrder) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[15]
+	mi := &file_v1_club_tx_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -967,7 +967,7 @@ func (x *PcOrder) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PcOrder.ProtoReflect.Descriptor instead.
 func (*PcOrder) Descriptor() ([]byte, []int) {
-	return file_v1_clubtx_club_tx_proto_rawDescGZIP(), []int{15}
+	return file_v1_club_tx_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *PcOrder) GetId() string {
@@ -1049,7 +1049,7 @@ type GetNotPulledPcOrdersResp struct {
 
 func (x *GetNotPulledPcOrdersResp) Reset() {
 	*x = GetNotPulledPcOrdersResp{}
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[16]
+	mi := &file_v1_club_tx_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1061,7 +1061,7 @@ func (x *GetNotPulledPcOrdersResp) String() string {
 func (*GetNotPulledPcOrdersResp) ProtoMessage() {}
 
 func (x *GetNotPulledPcOrdersResp) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[16]
+	mi := &file_v1_club_tx_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1074,7 +1074,7 @@ func (x *GetNotPulledPcOrdersResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNotPulledPcOrdersResp.ProtoReflect.Descriptor instead.
 func (*GetNotPulledPcOrdersResp) Descriptor() ([]byte, []int) {
-	return file_v1_clubtx_club_tx_proto_rawDescGZIP(), []int{16}
+	return file_v1_club_tx_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *GetNotPulledPcOrdersResp) GetOrders() []*PcOrder {
@@ -1096,7 +1096,7 @@ type UpdatePulledPcOrder struct {
 
 func (x *UpdatePulledPcOrder) Reset() {
 	*x = UpdatePulledPcOrder{}
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[17]
+	mi := &file_v1_club_tx_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1108,7 +1108,7 @@ func (x *UpdatePulledPcOrder) String() string {
 func (*UpdatePulledPcOrder) ProtoMessage() {}
 
 func (x *UpdatePulledPcOrder) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[17]
+	mi := &file_v1_club_tx_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1121,7 +1121,7 @@ func (x *UpdatePulledPcOrder) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePulledPcOrder.ProtoReflect.Descriptor instead.
 func (*UpdatePulledPcOrder) Descriptor() ([]byte, []int) {
-	return file_v1_clubtx_club_tx_proto_rawDescGZIP(), []int{17}
+	return file_v1_club_tx_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *UpdatePulledPcOrder) GetOrderId() string {
@@ -1162,7 +1162,7 @@ type UpdatePulledPcOrderData struct {
 
 func (x *UpdatePulledPcOrderData) Reset() {
 	*x = UpdatePulledPcOrderData{}
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[18]
+	mi := &file_v1_club_tx_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1174,7 +1174,7 @@ func (x *UpdatePulledPcOrderData) String() string {
 func (*UpdatePulledPcOrderData) ProtoMessage() {}
 
 func (x *UpdatePulledPcOrderData) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_clubtx_club_tx_proto_msgTypes[18]
+	mi := &file_v1_club_tx_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1187,7 +1187,7 @@ func (x *UpdatePulledPcOrderData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePulledPcOrderData.ProtoReflect.Descriptor instead.
 func (*UpdatePulledPcOrderData) Descriptor() ([]byte, []int) {
-	return file_v1_clubtx_club_tx_proto_rawDescGZIP(), []int{18}
+	return file_v1_club_tx_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *UpdatePulledPcOrderData) GetDid() string {
@@ -1204,11 +1204,11 @@ func (x *UpdatePulledPcOrderData) GetOrders() []*UpdatePulledPcOrder {
 	return nil
 }
 
-var File_v1_clubtx_club_tx_proto protoreflect.FileDescriptor
+var File_v1_club_tx_proto protoreflect.FileDescriptor
 
-const file_v1_clubtx_club_tx_proto_rawDesc = "" +
+const file_v1_club_tx_proto_rawDesc = "" +
 	"\n" +
-	"\x17v1/clubtx/club_tx.proto\x12\x06clubtx\x1a\x1bgoogle/protobuf/empty.proto\x1a\vv1/hi.proto\"!\n" +
+	"\x10v1/club/tx.proto\x12\x04club\x1a\x1bgoogle/protobuf/empty.proto\x1a\vv1/hi.proto\"!\n" +
 	"\vGetTxFeeReq\x12\x12\n" +
 	"\x04coin\x18\x01 \x01(\tR\x04coin\"4\n" +
 	"\fGetTxFeeResp\x12\x12\n" +
@@ -1238,46 +1238,46 @@ const file_v1_clubtx_club_tx_proto_rawDesc = "" +
 	"updated_at\x18\n" +
 	" \x01(\tR\tupdatedAt\x12\x16\n" +
 	"\x06status\x18\v \x01(\tR\x06status\x12\x19\n" +
-	"\btx_stage\x18\f \x01(\tR\atxStage\"\xfd\x02\n" +
+	"\btx_stage\x18\f \x01(\tR\atxStage\"\xf5\x02\n" +
 	"\x06TxInfo\x12\x13\n" +
 	"\x05tx_id\x18\x01 \x01(\tR\x04txId\x12\x1b\n" +
-	"\ttx_status\x18\x02 \x01(\tR\btxStatus\x12-\n" +
-	"\tinitiator\x18\x03 \x01(\v2\x0f.clubtx.TxPartyR\tinitiator\x12-\n" +
-	"\trecipient\x18\x04 \x01(\v2\x0f.clubtx.TxPartyR\trecipient\x129\n" +
-	"\ttx_orders\x18\x05 \x03(\v2\x1c.clubtx.TxInfo.TxOrdersEntryR\btxOrders\x12\x1d\n" +
+	"\ttx_status\x18\x02 \x01(\tR\btxStatus\x12+\n" +
+	"\tinitiator\x18\x03 \x01(\v2\r.club.TxPartyR\tinitiator\x12+\n" +
+	"\trecipient\x18\x04 \x01(\v2\r.club.TxPartyR\trecipient\x127\n" +
+	"\ttx_orders\x18\x05 \x03(\v2\x1a.club.TxInfo.TxOrdersEntryR\btxOrders\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\x06 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
 	"updated_at\x18\a \x01(\tR\tupdatedAt\x12\x1c\n" +
-	"\ttimestamp\x18\b \x01(\tR\ttimestamp\x1aL\n" +
+	"\ttimestamp\x18\b \x01(\tR\ttimestamp\x1aJ\n" +
 	"\rTxOrdersEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12%\n" +
-	"\x05value\x18\x02 \x01(\v2\x0f.clubtx.TxOrderR\x05value:\x028\x01\"4\n" +
-	"\tGetTxResp\x12'\n" +
-	"\atx_info\x18\x01 \x01(\v2\x0e.clubtx.TxInfoR\x06txInfo\"3\n" +
-	"\bAddTxReq\x12'\n" +
-	"\atx_info\x18\x01 \x01(\v2\x0e.clubtx.TxInfoR\x06txInfo\"4\n" +
-	"\tAddTxResp\x12'\n" +
-	"\atx_info\x18\x01 \x01(\v2\x0e.clubtx.TxInfoR\x06txInfo\"B\n" +
-	"\x14UpdateOrderTxHashReq\x12*\n" +
-	"\btx_order\x18\x01 \x01(\v2\x0f.clubtx.TxOrderR\atxOrder\"P\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12#\n" +
+	"\x05value\x18\x02 \x01(\v2\r.club.TxOrderR\x05value:\x028\x01\"2\n" +
+	"\tGetTxResp\x12%\n" +
+	"\atx_info\x18\x01 \x01(\v2\f.club.TxInfoR\x06txInfo\"1\n" +
+	"\bAddTxReq\x12%\n" +
+	"\atx_info\x18\x01 \x01(\v2\f.club.TxInfoR\x06txInfo\"2\n" +
+	"\tAddTxResp\x12%\n" +
+	"\atx_info\x18\x01 \x01(\v2\f.club.TxInfoR\x06txInfo\"@\n" +
+	"\x14UpdateOrderTxHashReq\x12(\n" +
+	"\btx_order\x18\x01 \x01(\v2\r.club.TxOrderR\atxOrder\"P\n" +
 	"\fGetTxListReq\x12\x10\n" +
 	"\x03did\x18\x01 \x01(\tR\x03did\x12.\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2\x0e.hi.PaginationR\n" +
-	"pagination\"K\n" +
+	"pagination\"I\n" +
 	"\rGetTxListResp\x12\x14\n" +
-	"\x05count\x18\x01 \x01(\x05R\x05count\x12$\n" +
-	"\x05infos\x18\x02 \x03(\v2\x0e.clubtx.TxInfoR\x05infos\"Q\n" +
+	"\x05count\x18\x01 \x01(\x05R\x05count\x12\"\n" +
+	"\x05infos\x18\x02 \x03(\v2\f.club.TxInfoR\x05infos\"Q\n" +
 	"\x0fGetAllTxInfoReq\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12.\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2\x0e.hi.PaginationR\n" +
-	"pagination\"d\n" +
+	"pagination\"b\n" +
 	"\x10GetAllTxInfoResp\x12\x14\n" +
 	"\x05total\x18\x01 \x01(\x03R\x05total\x12\x14\n" +
-	"\x05count\x18\x02 \x01(\x05R\x05count\x12$\n" +
-	"\x05infos\x18\x03 \x03(\v2\x0e.clubtx.TxInfoR\x05infos\"/\n" +
+	"\x05count\x18\x02 \x01(\x05R\x05count\x12\"\n" +
+	"\x05infos\x18\x03 \x03(\v2\f.club.TxInfoR\x05infos\"/\n" +
 	"\vPcOrderData\x12\x10\n" +
 	"\x03did\x18\x01 \x01(\tR\x03did\x12\x0e\n" +
 	"\x02rn\x18\x02 \x01(\tR\x02rn\"\xfe\x01\n" +
@@ -1295,99 +1295,98 @@ const file_v1_clubtx_club_tx_proto_rawDesc = "" +
 	"deleted_at\x18\b \x01(\tR\tdeletedAt\x12\x10\n" +
 	"\x03did\x18\t \x01(\tR\x03did\x12\x16\n" +
 	"\x06status\x18\n" +
-	" \x01(\tR\x06status\"C\n" +
-	"\x18GetNotPulledPcOrdersResp\x12'\n" +
-	"\x06orders\x18\x01 \x03(\v2\x0f.clubtx.PcOrderR\x06orders\"\x7f\n" +
+	" \x01(\tR\x06status\"A\n" +
+	"\x18GetNotPulledPcOrdersResp\x12%\n" +
+	"\x06orders\x18\x01 \x03(\v2\r.club.PcOrderR\x06orders\"\x7f\n" +
 	"\x13UpdatePulledPcOrder\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x17\n" +
 	"\atx_hash\x18\x03 \x01(\tR\x06txHash\x12\x1c\n" +
-	"\ttimestamp\x18\x04 \x01(\x03R\ttimestamp\"`\n" +
+	"\ttimestamp\x18\x04 \x01(\x03R\ttimestamp\"^\n" +
 	"\x17UpdatePulledPcOrderData\x12\x10\n" +
-	"\x03did\x18\x01 \x01(\tR\x03did\x123\n" +
-	"\x06orders\x18\x02 \x03(\v2\x1b.clubtx.UpdatePulledPcOrderR\x06orders2\xdf\x02\n" +
-	"\x02Tx\x125\n" +
-	"\bGetTxFee\x12\x13.clubtx.GetTxFeeReq\x1a\x14.clubtx.GetTxFeeResp\x12,\n" +
-	"\x05GetTx\x12\x10.clubtx.GetTxReq\x1a\x11.clubtx.GetTxResp\x12,\n" +
-	"\x05AddTx\x12\x10.clubtx.AddTxReq\x1a\x11.clubtx.AddTxResp\x12I\n" +
-	"\x11UpdateOrderTxHash\x12\x1c.clubtx.UpdateOrderTxHashReq\x1a\x16.google.protobuf.Empty\x128\n" +
-	"\tGetTxList\x12\x14.clubtx.GetTxListReq\x1a\x15.clubtx.GetTxListResp\x12A\n" +
-	"\fGetAllTxInfo\x12\x17.clubtx.GetAllTxInfoReq\x1a\x18.clubtx.GetAllTxInfoResp2\x8d\x01\n" +
-	"\x05Order\x12F\n" +
-	"\x14GetNotPulledPcOrders\x12\f.hi.Web3Data\x1a .clubtx.GetNotPulledPcOrdersResp\x12<\n" +
-	"\x14UpdatePulledPcOrders\x12\f.hi.Web3Data\x1a\x16.google.protobuf.EmptyB\x82\x01\n" +
-	"\n" +
-	"com.clubtxB\vClubTxProtoP\x01Z/github.com/HiWorld-56/hi-proto/gen/go/v1/clubtx\xa2\x02\x03CXX\xaa\x02\x06Clubtx\xca\x02\x06Clubtx\xe2\x02\x12Clubtx\\GPBMetadata\xea\x02\x06Clubtxb\x06proto3"
+	"\x03did\x18\x01 \x01(\tR\x03did\x121\n" +
+	"\x06orders\x18\x02 \x03(\v2\x19.club.UpdatePulledPcOrderR\x06orders2\xc9\x02\n" +
+	"\x02Tx\x121\n" +
+	"\bGetTxFee\x12\x11.club.GetTxFeeReq\x1a\x12.club.GetTxFeeResp\x12(\n" +
+	"\x05GetTx\x12\x0e.club.GetTxReq\x1a\x0f.club.GetTxResp\x12(\n" +
+	"\x05AddTx\x12\x0e.club.AddTxReq\x1a\x0f.club.AddTxResp\x12G\n" +
+	"\x11UpdateOrderTxHash\x12\x1a.club.UpdateOrderTxHashReq\x1a\x16.google.protobuf.Empty\x124\n" +
+	"\tGetTxList\x12\x12.club.GetTxListReq\x1a\x13.club.GetTxListResp\x12=\n" +
+	"\fGetAllTxInfo\x12\x15.club.GetAllTxInfoReq\x1a\x16.club.GetAllTxInfoResp2\x8b\x01\n" +
+	"\x05Order\x12D\n" +
+	"\x14GetNotPulledPcOrders\x12\f.hi.Web3Data\x1a\x1e.club.GetNotPulledPcOrdersResp\x12<\n" +
+	"\x14UpdatePulledPcOrders\x12\f.hi.Web3Data\x1a\x16.google.protobuf.EmptyBr\n" +
+	"\bcom.clubB\aTxProtoP\x01Z-github.com/HiWorld-56/hi-proto/gen/go/v1/club\xa2\x02\x03CXX\xaa\x02\x04Club\xca\x02\x04Club\xe2\x02\x10Club\\GPBMetadata\xea\x02\x04Clubb\x06proto3"
 
 var (
-	file_v1_clubtx_club_tx_proto_rawDescOnce sync.Once
-	file_v1_clubtx_club_tx_proto_rawDescData []byte
+	file_v1_club_tx_proto_rawDescOnce sync.Once
+	file_v1_club_tx_proto_rawDescData []byte
 )
 
-func file_v1_clubtx_club_tx_proto_rawDescGZIP() []byte {
-	file_v1_clubtx_club_tx_proto_rawDescOnce.Do(func() {
-		file_v1_clubtx_club_tx_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_v1_clubtx_club_tx_proto_rawDesc), len(file_v1_clubtx_club_tx_proto_rawDesc)))
+func file_v1_club_tx_proto_rawDescGZIP() []byte {
+	file_v1_club_tx_proto_rawDescOnce.Do(func() {
+		file_v1_club_tx_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_v1_club_tx_proto_rawDesc), len(file_v1_club_tx_proto_rawDesc)))
 	})
-	return file_v1_clubtx_club_tx_proto_rawDescData
+	return file_v1_club_tx_proto_rawDescData
 }
 
-var file_v1_clubtx_club_tx_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
-var file_v1_clubtx_club_tx_proto_goTypes = []any{
-	(*GetTxFeeReq)(nil),              // 0: clubtx.GetTxFeeReq
-	(*GetTxFeeResp)(nil),             // 1: clubtx.GetTxFeeResp
-	(*GetTxReq)(nil),                 // 2: clubtx.GetTxReq
-	(*TxParty)(nil),                  // 3: clubtx.TxParty
-	(*TxOrder)(nil),                  // 4: clubtx.TxOrder
-	(*TxInfo)(nil),                   // 5: clubtx.TxInfo
-	(*GetTxResp)(nil),                // 6: clubtx.GetTxResp
-	(*AddTxReq)(nil),                 // 7: clubtx.AddTxReq
-	(*AddTxResp)(nil),                // 8: clubtx.AddTxResp
-	(*UpdateOrderTxHashReq)(nil),     // 9: clubtx.UpdateOrderTxHashReq
-	(*GetTxListReq)(nil),             // 10: clubtx.GetTxListReq
-	(*GetTxListResp)(nil),            // 11: clubtx.GetTxListResp
-	(*GetAllTxInfoReq)(nil),          // 12: clubtx.GetAllTxInfoReq
-	(*GetAllTxInfoResp)(nil),         // 13: clubtx.GetAllTxInfoResp
-	(*PcOrderData)(nil),              // 14: clubtx.PcOrderData
-	(*PcOrder)(nil),                  // 15: clubtx.PcOrder
-	(*GetNotPulledPcOrdersResp)(nil), // 16: clubtx.GetNotPulledPcOrdersResp
-	(*UpdatePulledPcOrder)(nil),      // 17: clubtx.UpdatePulledPcOrder
-	(*UpdatePulledPcOrderData)(nil),  // 18: clubtx.UpdatePulledPcOrderData
-	nil,                              // 19: clubtx.TxInfo.TxOrdersEntry
+var file_v1_club_tx_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_v1_club_tx_proto_goTypes = []any{
+	(*GetTxFeeReq)(nil),              // 0: club.GetTxFeeReq
+	(*GetTxFeeResp)(nil),             // 1: club.GetTxFeeResp
+	(*GetTxReq)(nil),                 // 2: club.GetTxReq
+	(*TxParty)(nil),                  // 3: club.TxParty
+	(*TxOrder)(nil),                  // 4: club.TxOrder
+	(*TxInfo)(nil),                   // 5: club.TxInfo
+	(*GetTxResp)(nil),                // 6: club.GetTxResp
+	(*AddTxReq)(nil),                 // 7: club.AddTxReq
+	(*AddTxResp)(nil),                // 8: club.AddTxResp
+	(*UpdateOrderTxHashReq)(nil),     // 9: club.UpdateOrderTxHashReq
+	(*GetTxListReq)(nil),             // 10: club.GetTxListReq
+	(*GetTxListResp)(nil),            // 11: club.GetTxListResp
+	(*GetAllTxInfoReq)(nil),          // 12: club.GetAllTxInfoReq
+	(*GetAllTxInfoResp)(nil),         // 13: club.GetAllTxInfoResp
+	(*PcOrderData)(nil),              // 14: club.PcOrderData
+	(*PcOrder)(nil),                  // 15: club.PcOrder
+	(*GetNotPulledPcOrdersResp)(nil), // 16: club.GetNotPulledPcOrdersResp
+	(*UpdatePulledPcOrder)(nil),      // 17: club.UpdatePulledPcOrder
+	(*UpdatePulledPcOrderData)(nil),  // 18: club.UpdatePulledPcOrderData
+	nil,                              // 19: club.TxInfo.TxOrdersEntry
 	(*v1.Pagination)(nil),            // 20: hi.Pagination
 	(*v1.Web3Data)(nil),              // 21: hi.Web3Data
 	(*emptypb.Empty)(nil),            // 22: google.protobuf.Empty
 }
-var file_v1_clubtx_club_tx_proto_depIdxs = []int32{
-	3,  // 0: clubtx.TxInfo.initiator:type_name -> clubtx.TxParty
-	3,  // 1: clubtx.TxInfo.recipient:type_name -> clubtx.TxParty
-	19, // 2: clubtx.TxInfo.tx_orders:type_name -> clubtx.TxInfo.TxOrdersEntry
-	5,  // 3: clubtx.GetTxResp.tx_info:type_name -> clubtx.TxInfo
-	5,  // 4: clubtx.AddTxReq.tx_info:type_name -> clubtx.TxInfo
-	5,  // 5: clubtx.AddTxResp.tx_info:type_name -> clubtx.TxInfo
-	4,  // 6: clubtx.UpdateOrderTxHashReq.tx_order:type_name -> clubtx.TxOrder
-	20, // 7: clubtx.GetTxListReq.pagination:type_name -> hi.Pagination
-	5,  // 8: clubtx.GetTxListResp.infos:type_name -> clubtx.TxInfo
-	20, // 9: clubtx.GetAllTxInfoReq.pagination:type_name -> hi.Pagination
-	5,  // 10: clubtx.GetAllTxInfoResp.infos:type_name -> clubtx.TxInfo
-	15, // 11: clubtx.GetNotPulledPcOrdersResp.orders:type_name -> clubtx.PcOrder
-	17, // 12: clubtx.UpdatePulledPcOrderData.orders:type_name -> clubtx.UpdatePulledPcOrder
-	4,  // 13: clubtx.TxInfo.TxOrdersEntry.value:type_name -> clubtx.TxOrder
-	0,  // 14: clubtx.Tx.GetTxFee:input_type -> clubtx.GetTxFeeReq
-	2,  // 15: clubtx.Tx.GetTx:input_type -> clubtx.GetTxReq
-	7,  // 16: clubtx.Tx.AddTx:input_type -> clubtx.AddTxReq
-	9,  // 17: clubtx.Tx.UpdateOrderTxHash:input_type -> clubtx.UpdateOrderTxHashReq
-	10, // 18: clubtx.Tx.GetTxList:input_type -> clubtx.GetTxListReq
-	12, // 19: clubtx.Tx.GetAllTxInfo:input_type -> clubtx.GetAllTxInfoReq
-	21, // 20: clubtx.Order.GetNotPulledPcOrders:input_type -> hi.Web3Data
-	21, // 21: clubtx.Order.UpdatePulledPcOrders:input_type -> hi.Web3Data
-	1,  // 22: clubtx.Tx.GetTxFee:output_type -> clubtx.GetTxFeeResp
-	6,  // 23: clubtx.Tx.GetTx:output_type -> clubtx.GetTxResp
-	8,  // 24: clubtx.Tx.AddTx:output_type -> clubtx.AddTxResp
-	22, // 25: clubtx.Tx.UpdateOrderTxHash:output_type -> google.protobuf.Empty
-	11, // 26: clubtx.Tx.GetTxList:output_type -> clubtx.GetTxListResp
-	13, // 27: clubtx.Tx.GetAllTxInfo:output_type -> clubtx.GetAllTxInfoResp
-	16, // 28: clubtx.Order.GetNotPulledPcOrders:output_type -> clubtx.GetNotPulledPcOrdersResp
-	22, // 29: clubtx.Order.UpdatePulledPcOrders:output_type -> google.protobuf.Empty
+var file_v1_club_tx_proto_depIdxs = []int32{
+	3,  // 0: club.TxInfo.initiator:type_name -> club.TxParty
+	3,  // 1: club.TxInfo.recipient:type_name -> club.TxParty
+	19, // 2: club.TxInfo.tx_orders:type_name -> club.TxInfo.TxOrdersEntry
+	5,  // 3: club.GetTxResp.tx_info:type_name -> club.TxInfo
+	5,  // 4: club.AddTxReq.tx_info:type_name -> club.TxInfo
+	5,  // 5: club.AddTxResp.tx_info:type_name -> club.TxInfo
+	4,  // 6: club.UpdateOrderTxHashReq.tx_order:type_name -> club.TxOrder
+	20, // 7: club.GetTxListReq.pagination:type_name -> hi.Pagination
+	5,  // 8: club.GetTxListResp.infos:type_name -> club.TxInfo
+	20, // 9: club.GetAllTxInfoReq.pagination:type_name -> hi.Pagination
+	5,  // 10: club.GetAllTxInfoResp.infos:type_name -> club.TxInfo
+	15, // 11: club.GetNotPulledPcOrdersResp.orders:type_name -> club.PcOrder
+	17, // 12: club.UpdatePulledPcOrderData.orders:type_name -> club.UpdatePulledPcOrder
+	4,  // 13: club.TxInfo.TxOrdersEntry.value:type_name -> club.TxOrder
+	0,  // 14: club.Tx.GetTxFee:input_type -> club.GetTxFeeReq
+	2,  // 15: club.Tx.GetTx:input_type -> club.GetTxReq
+	7,  // 16: club.Tx.AddTx:input_type -> club.AddTxReq
+	9,  // 17: club.Tx.UpdateOrderTxHash:input_type -> club.UpdateOrderTxHashReq
+	10, // 18: club.Tx.GetTxList:input_type -> club.GetTxListReq
+	12, // 19: club.Tx.GetAllTxInfo:input_type -> club.GetAllTxInfoReq
+	21, // 20: club.Order.GetNotPulledPcOrders:input_type -> hi.Web3Data
+	21, // 21: club.Order.UpdatePulledPcOrders:input_type -> hi.Web3Data
+	1,  // 22: club.Tx.GetTxFee:output_type -> club.GetTxFeeResp
+	6,  // 23: club.Tx.GetTx:output_type -> club.GetTxResp
+	8,  // 24: club.Tx.AddTx:output_type -> club.AddTxResp
+	22, // 25: club.Tx.UpdateOrderTxHash:output_type -> google.protobuf.Empty
+	11, // 26: club.Tx.GetTxList:output_type -> club.GetTxListResp
+	13, // 27: club.Tx.GetAllTxInfo:output_type -> club.GetAllTxInfoResp
+	16, // 28: club.Order.GetNotPulledPcOrders:output_type -> club.GetNotPulledPcOrdersResp
+	22, // 29: club.Order.UpdatePulledPcOrders:output_type -> google.protobuf.Empty
 	22, // [22:30] is the sub-list for method output_type
 	14, // [14:22] is the sub-list for method input_type
 	14, // [14:14] is the sub-list for extension type_name
@@ -1395,26 +1394,26 @@ var file_v1_clubtx_club_tx_proto_depIdxs = []int32{
 	0,  // [0:14] is the sub-list for field type_name
 }
 
-func init() { file_v1_clubtx_club_tx_proto_init() }
-func file_v1_clubtx_club_tx_proto_init() {
-	if File_v1_clubtx_club_tx_proto != nil {
+func init() { file_v1_club_tx_proto_init() }
+func file_v1_club_tx_proto_init() {
+	if File_v1_club_tx_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_v1_clubtx_club_tx_proto_rawDesc), len(file_v1_clubtx_club_tx_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_v1_club_tx_proto_rawDesc), len(file_v1_club_tx_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   2,
 		},
-		GoTypes:           file_v1_clubtx_club_tx_proto_goTypes,
-		DependencyIndexes: file_v1_clubtx_club_tx_proto_depIdxs,
-		MessageInfos:      file_v1_clubtx_club_tx_proto_msgTypes,
+		GoTypes:           file_v1_club_tx_proto_goTypes,
+		DependencyIndexes: file_v1_club_tx_proto_depIdxs,
+		MessageInfos:      file_v1_club_tx_proto_msgTypes,
 	}.Build()
-	File_v1_clubtx_club_tx_proto = out.File
-	file_v1_clubtx_club_tx_proto_goTypes = nil
-	file_v1_clubtx_club_tx_proto_depIdxs = nil
+	File_v1_club_tx_proto = out.File
+	file_v1_club_tx_proto_goTypes = nil
+	file_v1_club_tx_proto_depIdxs = nil
 }

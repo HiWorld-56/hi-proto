@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             (unknown)
-// source: v1/clubtx/club_tx.proto
+// source: v1/club/tx.proto
 
-package clubtx
+package club
 
 import (
 	context "context"
@@ -21,12 +21,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Tx_GetTxFee_FullMethodName          = "/clubtx.Tx/GetTxFee"
-	Tx_GetTx_FullMethodName             = "/clubtx.Tx/GetTx"
-	Tx_AddTx_FullMethodName             = "/clubtx.Tx/AddTx"
-	Tx_UpdateOrderTxHash_FullMethodName = "/clubtx.Tx/UpdateOrderTxHash"
-	Tx_GetTxList_FullMethodName         = "/clubtx.Tx/GetTxList"
-	Tx_GetAllTxInfo_FullMethodName      = "/clubtx.Tx/GetAllTxInfo"
+	Tx_GetTxFee_FullMethodName          = "/club.Tx/GetTxFee"
+	Tx_GetTx_FullMethodName             = "/club.Tx/GetTx"
+	Tx_AddTx_FullMethodName             = "/club.Tx/AddTx"
+	Tx_UpdateOrderTxHash_FullMethodName = "/club.Tx/UpdateOrderTxHash"
+	Tx_GetTxList_FullMethodName         = "/club.Tx/GetTxList"
+	Tx_GetAllTxInfo_FullMethodName      = "/club.Tx/GetAllTxInfo"
 )
 
 // TxClient is the client API for Tx service.
@@ -278,7 +278,7 @@ func _Tx_GetAllTxInfo_Handler(srv interface{}, ctx context.Context, dec func(int
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Tx_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "clubtx.Tx",
+	ServiceName: "club.Tx",
 	HandlerType: (*TxServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -307,12 +307,12 @@ var Tx_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "v1/clubtx/club_tx.proto",
+	Metadata: "v1/club/tx.proto",
 }
 
 const (
-	Order_GetNotPulledPcOrders_FullMethodName = "/clubtx.Order/GetNotPulledPcOrders"
-	Order_UpdatePulledPcOrders_FullMethodName = "/clubtx.Order/UpdatePulledPcOrders"
+	Order_GetNotPulledPcOrders_FullMethodName = "/club.Order/GetNotPulledPcOrders"
+	Order_UpdatePulledPcOrders_FullMethodName = "/club.Order/UpdatePulledPcOrders"
 )
 
 // OrderClient is the client API for Order service.
@@ -432,7 +432,7 @@ func _Order_UpdatePulledPcOrders_Handler(srv interface{}, ctx context.Context, d
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Order_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "clubtx.Order",
+	ServiceName: "club.Order",
 	HandlerType: (*OrderServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -445,5 +445,5 @@ var Order_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "v1/clubtx/club_tx.proto",
+	Metadata: "v1/club/tx.proto",
 }

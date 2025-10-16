@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        (unknown)
-// source: v1/aiplugin/ai_plugin.proto
+// source: v1/ai/plugin.proto
 
-package aiplugin
+package ai
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -21,58 +21,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type MessagesContent struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *MessagesContent) Reset() {
-	*x = MessagesContent{}
-	mi := &file_v1_aiplugin_ai_plugin_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *MessagesContent) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*MessagesContent) ProtoMessage() {}
-
-func (x *MessagesContent) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_aiplugin_ai_plugin_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use MessagesContent.ProtoReflect.Descriptor instead.
-func (*MessagesContent) Descriptor() ([]byte, []int) {
-	return file_v1_aiplugin_ai_plugin_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *MessagesContent) GetType() string {
-	if x != nil {
-		return x.Type
-	}
-	return ""
-}
-
-func (x *MessagesContent) GetContent() string {
-	if x != nil {
-		return x.Content
-	}
-	return ""
-}
-
 type SearchReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
@@ -85,7 +33,7 @@ type SearchReq struct {
 
 func (x *SearchReq) Reset() {
 	*x = SearchReq{}
-	mi := &file_v1_aiplugin_ai_plugin_proto_msgTypes[1]
+	mi := &file_v1_ai_plugin_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -97,7 +45,7 @@ func (x *SearchReq) String() string {
 func (*SearchReq) ProtoMessage() {}
 
 func (x *SearchReq) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_aiplugin_ai_plugin_proto_msgTypes[1]
+	mi := &file_v1_ai_plugin_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -110,7 +58,7 @@ func (x *SearchReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchReq.ProtoReflect.Descriptor instead.
 func (*SearchReq) Descriptor() ([]byte, []int) {
-	return file_v1_aiplugin_ai_plugin_proto_rawDescGZIP(), []int{1}
+	return file_v1_ai_plugin_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *SearchReq) GetType() string {
@@ -150,7 +98,7 @@ type SearchResp struct {
 
 func (x *SearchResp) Reset() {
 	*x = SearchResp{}
-	mi := &file_v1_aiplugin_ai_plugin_proto_msgTypes[2]
+	mi := &file_v1_ai_plugin_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -162,7 +110,7 @@ func (x *SearchResp) String() string {
 func (*SearchResp) ProtoMessage() {}
 
 func (x *SearchResp) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_aiplugin_ai_plugin_proto_msgTypes[2]
+	mi := &file_v1_ai_plugin_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -175,7 +123,7 @@ func (x *SearchResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchResp.ProtoReflect.Descriptor instead.
 func (*SearchResp) Descriptor() ([]byte, []int) {
-	return file_v1_aiplugin_ai_plugin_proto_rawDescGZIP(), []int{2}
+	return file_v1_ai_plugin_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *SearchResp) GetContents() []*MessagesContent {
@@ -196,7 +144,7 @@ type PythonReq struct {
 
 func (x *PythonReq) Reset() {
 	*x = PythonReq{}
-	mi := &file_v1_aiplugin_ai_plugin_proto_msgTypes[3]
+	mi := &file_v1_ai_plugin_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -208,7 +156,7 @@ func (x *PythonReq) String() string {
 func (*PythonReq) ProtoMessage() {}
 
 func (x *PythonReq) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_aiplugin_ai_plugin_proto_msgTypes[3]
+	mi := &file_v1_ai_plugin_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -221,7 +169,7 @@ func (x *PythonReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PythonReq.ProtoReflect.Descriptor instead.
 func (*PythonReq) Descriptor() ([]byte, []int) {
-	return file_v1_aiplugin_ai_plugin_proto_rawDescGZIP(), []int{3}
+	return file_v1_ai_plugin_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *PythonReq) GetCode() string {
@@ -254,7 +202,7 @@ type PythonResp struct {
 
 func (x *PythonResp) Reset() {
 	*x = PythonResp{}
-	mi := &file_v1_aiplugin_ai_plugin_proto_msgTypes[4]
+	mi := &file_v1_ai_plugin_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -266,7 +214,7 @@ func (x *PythonResp) String() string {
 func (*PythonResp) ProtoMessage() {}
 
 func (x *PythonResp) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_aiplugin_ai_plugin_proto_msgTypes[4]
+	mi := &file_v1_ai_plugin_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -279,7 +227,7 @@ func (x *PythonResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PythonResp.ProtoReflect.Descriptor instead.
 func (*PythonResp) Descriptor() ([]byte, []int) {
-	return file_v1_aiplugin_ai_plugin_proto_rawDescGZIP(), []int{4}
+	return file_v1_ai_plugin_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *PythonResp) GetContents() []*MessagesContent {
@@ -289,62 +237,59 @@ func (x *PythonResp) GetContents() []*MessagesContent {
 	return nil
 }
 
-var File_v1_aiplugin_ai_plugin_proto protoreflect.FileDescriptor
+var File_v1_ai_plugin_proto protoreflect.FileDescriptor
 
-const file_v1_aiplugin_ai_plugin_proto_rawDesc = "" +
+const file_v1_ai_plugin_proto_rawDesc = "" +
 	"\n" +
-	"\x1bv1/aiplugin/ai_plugin.proto\x12\baiplugin\"?\n" +
-	"\x0fMessagesContent\x12\x12\n" +
-	"\x04type\x18\x01 \x01(\tR\x04type\x12\x18\n" +
-	"\acontent\x18\x02 \x01(\tR\acontent\"_\n" +
+	"\x12v1/ai/plugin.proto\x12\x02ai\x1a\x10v1/ai/chat.proto\"_\n" +
 	"\tSearchReq\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x10\n" +
 	"\x03url\x18\x02 \x01(\tR\x03url\x12\x12\n" +
 	"\x04uuid\x18\x03 \x01(\tR\x04uuid\x12\x18\n" +
-	"\akeyword\x18\x04 \x01(\tR\akeyword\"C\n" +
+	"\akeyword\x18\x04 \x01(\tR\akeyword\"=\n" +
 	"\n" +
-	"SearchResp\x125\n" +
-	"\bcontents\x18\x01 \x03(\v2\x19.aiplugin.MessagesContentR\bcontents\"T\n" +
+	"SearchResp\x12/\n" +
+	"\bcontents\x18\x01 \x03(\v2\x13.ai.MessagesContentR\bcontents\"T\n" +
 	"\tPythonReq\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\x12\x1f\n" +
 	"\vcode_params\x18\x02 \x01(\tR\n" +
 	"codeParams\x12\x12\n" +
-	"\x04uuid\x18\x03 \x01(\tR\x04uuid\"C\n" +
+	"\x04uuid\x18\x03 \x01(\tR\x04uuid\"=\n" +
 	"\n" +
-	"PythonResp\x125\n" +
-	"\bcontents\x18\x01 \x03(\v2\x19.aiplugin.MessagesContentR\bcontents2t\n" +
-	"\bAiPlugin\x123\n" +
-	"\x06Search\x12\x13.aiplugin.SearchReq\x1a\x14.aiplugin.SearchResp\x123\n" +
-	"\x06Python\x12\x13.aiplugin.PythonReq\x1a\x14.aiplugin.PythonRespB\x90\x01\n" +
-	"\fcom.aipluginB\rAiPluginProtoP\x01Z1github.com/HiWorld-56/hi-proto/gen/go/v1/aiplugin\xa2\x02\x03AXX\xaa\x02\bAiplugin\xca\x02\bAiplugin\xe2\x02\x14Aiplugin\\GPBMetadata\xea\x02\bAipluginb\x06proto3"
+	"PythonResp\x12/\n" +
+	"\bcontents\x18\x01 \x03(\v2\x13.ai.MessagesContentR\bcontents2\\\n" +
+	"\bAiPlugin\x12'\n" +
+	"\x06Search\x12\r.ai.SearchReq\x1a\x0e.ai.SearchResp\x12'\n" +
+	"\x06Python\x12\r.ai.PythonReq\x1a\x0e.ai.PythonRespBj\n" +
+	"\x06com.aiB\vPluginProtoP\x01Z+github.com/HiWorld-56/hi-proto/gen/go/v1/ai\xa2\x02\x03AXX\xaa\x02\x02Ai\xca\x02\x02Ai\xe2\x02\x0eAi\\GPBMetadata\xea\x02\x02Aib\x06proto3"
 
 var (
-	file_v1_aiplugin_ai_plugin_proto_rawDescOnce sync.Once
-	file_v1_aiplugin_ai_plugin_proto_rawDescData []byte
+	file_v1_ai_plugin_proto_rawDescOnce sync.Once
+	file_v1_ai_plugin_proto_rawDescData []byte
 )
 
-func file_v1_aiplugin_ai_plugin_proto_rawDescGZIP() []byte {
-	file_v1_aiplugin_ai_plugin_proto_rawDescOnce.Do(func() {
-		file_v1_aiplugin_ai_plugin_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_v1_aiplugin_ai_plugin_proto_rawDesc), len(file_v1_aiplugin_ai_plugin_proto_rawDesc)))
+func file_v1_ai_plugin_proto_rawDescGZIP() []byte {
+	file_v1_ai_plugin_proto_rawDescOnce.Do(func() {
+		file_v1_ai_plugin_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_v1_ai_plugin_proto_rawDesc), len(file_v1_ai_plugin_proto_rawDesc)))
 	})
-	return file_v1_aiplugin_ai_plugin_proto_rawDescData
+	return file_v1_ai_plugin_proto_rawDescData
 }
 
-var file_v1_aiplugin_ai_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_v1_aiplugin_ai_plugin_proto_goTypes = []any{
-	(*MessagesContent)(nil), // 0: aiplugin.MessagesContent
-	(*SearchReq)(nil),       // 1: aiplugin.SearchReq
-	(*SearchResp)(nil),      // 2: aiplugin.SearchResp
-	(*PythonReq)(nil),       // 3: aiplugin.PythonReq
-	(*PythonResp)(nil),      // 4: aiplugin.PythonResp
+var file_v1_ai_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_v1_ai_plugin_proto_goTypes = []any{
+	(*SearchReq)(nil),       // 0: ai.SearchReq
+	(*SearchResp)(nil),      // 1: ai.SearchResp
+	(*PythonReq)(nil),       // 2: ai.PythonReq
+	(*PythonResp)(nil),      // 3: ai.PythonResp
+	(*MessagesContent)(nil), // 4: ai.MessagesContent
 }
-var file_v1_aiplugin_ai_plugin_proto_depIdxs = []int32{
-	0, // 0: aiplugin.SearchResp.contents:type_name -> aiplugin.MessagesContent
-	0, // 1: aiplugin.PythonResp.contents:type_name -> aiplugin.MessagesContent
-	1, // 2: aiplugin.AiPlugin.Search:input_type -> aiplugin.SearchReq
-	3, // 3: aiplugin.AiPlugin.Python:input_type -> aiplugin.PythonReq
-	2, // 4: aiplugin.AiPlugin.Search:output_type -> aiplugin.SearchResp
-	4, // 5: aiplugin.AiPlugin.Python:output_type -> aiplugin.PythonResp
+var file_v1_ai_plugin_proto_depIdxs = []int32{
+	4, // 0: ai.SearchResp.contents:type_name -> ai.MessagesContent
+	4, // 1: ai.PythonResp.contents:type_name -> ai.MessagesContent
+	0, // 2: ai.AiPlugin.Search:input_type -> ai.SearchReq
+	2, // 3: ai.AiPlugin.Python:input_type -> ai.PythonReq
+	1, // 4: ai.AiPlugin.Search:output_type -> ai.SearchResp
+	3, // 5: ai.AiPlugin.Python:output_type -> ai.PythonResp
 	4, // [4:6] is the sub-list for method output_type
 	2, // [2:4] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
@@ -352,26 +297,27 @@ var file_v1_aiplugin_ai_plugin_proto_depIdxs = []int32{
 	0, // [0:2] is the sub-list for field type_name
 }
 
-func init() { file_v1_aiplugin_ai_plugin_proto_init() }
-func file_v1_aiplugin_ai_plugin_proto_init() {
-	if File_v1_aiplugin_ai_plugin_proto != nil {
+func init() { file_v1_ai_plugin_proto_init() }
+func file_v1_ai_plugin_proto_init() {
+	if File_v1_ai_plugin_proto != nil {
 		return
 	}
+	file_v1_ai_chat_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_v1_aiplugin_ai_plugin_proto_rawDesc), len(file_v1_aiplugin_ai_plugin_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_v1_ai_plugin_proto_rawDesc), len(file_v1_ai_plugin_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_v1_aiplugin_ai_plugin_proto_goTypes,
-		DependencyIndexes: file_v1_aiplugin_ai_plugin_proto_depIdxs,
-		MessageInfos:      file_v1_aiplugin_ai_plugin_proto_msgTypes,
+		GoTypes:           file_v1_ai_plugin_proto_goTypes,
+		DependencyIndexes: file_v1_ai_plugin_proto_depIdxs,
+		MessageInfos:      file_v1_ai_plugin_proto_msgTypes,
 	}.Build()
-	File_v1_aiplugin_ai_plugin_proto = out.File
-	file_v1_aiplugin_ai_plugin_proto_goTypes = nil
-	file_v1_aiplugin_ai_plugin_proto_depIdxs = nil
+	File_v1_ai_plugin_proto = out.File
+	file_v1_ai_plugin_proto_goTypes = nil
+	file_v1_ai_plugin_proto_depIdxs = nil
 }
