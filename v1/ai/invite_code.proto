@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+
+package ai;
+
+message InviteCodeCreateResp {
+    string code    = 1;
+    bool is_active = 3;
+}
+
+message InviteCodeEditReq {
+  string code = 1;
+  string note = 2;
+}
+
+message InviteCodeListResp {
+    message Unit {
+        string code    = 1;
+        bool is_active = 2;
+        string note    = 3;
+    }
+    int64 total = 1;
+    repeated Unit infos = 2;
+}
+
+message InviteCodeDeleteReq {
+    string code = 1;
+}
+
+message InviteCodeVerifyReq {
+    string id = 1;
+    string code = 2;
+    string did = 3;
+}
+
+// 邀请码
+service InviteCode {
+    rpc Create (google.protobuf.Empty) returns (InviteCodeCreateResp); // Token鉴权
+    rpc Edit (InviteCodeEditReq) returns (google.protobuf.Empty); // Token鉴权
+    rpc List (hi.Pagination) returns (InviteCodeListResp); // Token鉴权
+    rpc Delete (InviteCodeDeleteReq) returns (google.protobuf.Empty); // Token鉴权
+    rpc Verify (InviteCodeVerifyReq) returns (hi.Token); // 不鉴权
+}
+ 

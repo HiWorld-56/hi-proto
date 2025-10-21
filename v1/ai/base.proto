@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package ai;
+
+message ListSuperAdminUsersResp {
+    repeated string list = 1;
+}
+
+service Base {
+    rpc ListSuperAdminUsers (google.protobuf.Empty) returns (ListSuperAdminUsersResp); // 不鉴权
+}
+

@@ -21,9 +21,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Base_ListCoins_FullMethodName     = "/did.Base/ListCoins"
-	Base_TotalUsers_FullMethodName    = "/did.Base/TotalUsers"
-	Base_LastetVersion_FullMethodName = "/did.Base/LastetVersion"
+	Base_ListCoins_FullMethodName           = "/did.Base/ListCoins"
+	Base_TotalUsers_FullMethodName          = "/did.Base/TotalUsers"
+	Base_LastetVersion_FullMethodName       = "/did.Base/LastetVersion"
+	Base_ListSuperAdminUsers_FullMethodName = "/did.Base/ListSuperAdminUsers"
 )
 
 // BaseClient is the client API for Base service.
@@ -33,6 +34,7 @@ type BaseClient interface {
 	ListCoins(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ListCoinsResp, error)
 	TotalUsers(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*v1.Number, error)
 	LastetVersion(ctx context.Context, in *LastetVersionReq, opts ...grpc.CallOption) (*LastetVersionResp, error)
+	ListSuperAdminUsers(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ListSuperAdminUsersResp, error)
 }
 
 type baseClient struct {
@@ -73,6 +75,16 @@ func (c *baseClient) LastetVersion(ctx context.Context, in *LastetVersionReq, op
 	return out, nil
 }
 
+func (c *baseClient) ListSuperAdminUsers(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ListSuperAdminUsersResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSuperAdminUsersResp)
+	err := c.cc.Invoke(ctx, Base_ListSuperAdminUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BaseServer is the server API for Base service.
 // All implementations should embed UnimplementedBaseServer
 // for forward compatibility.
@@ -80,6 +92,7 @@ type BaseServer interface {
 	ListCoins(context.Context, *emptypb.Empty) (*ListCoinsResp, error)
 	TotalUsers(context.Context, *emptypb.Empty) (*v1.Number, error)
 	LastetVersion(context.Context, *LastetVersionReq) (*LastetVersionResp, error)
+	ListSuperAdminUsers(context.Context, *emptypb.Empty) (*ListSuperAdminUsersResp, error)
 }
 
 // UnimplementedBaseServer should be embedded to have
@@ -97,6 +110,9 @@ func (UnimplementedBaseServer) TotalUsers(context.Context, *emptypb.Empty) (*v1.
 }
 func (UnimplementedBaseServer) LastetVersion(context.Context, *LastetVersionReq) (*LastetVersionResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method LastetVersion not implemented")
+}
+func (UnimplementedBaseServer) ListSuperAdminUsers(context.Context, *emptypb.Empty) (*ListSuperAdminUsersResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListSuperAdminUsers not implemented")
 }
 func (UnimplementedBaseServer) testEmbeddedByValue() {}
 
@@ -172,6 +188,24 @@ func _Base_LastetVersion_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Base_ListSuperAdminUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BaseServer).ListSuperAdminUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Base_ListSuperAdminUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BaseServer).ListSuperAdminUsers(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Base_ServiceDesc is the grpc.ServiceDesc for Base service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -190,6 +224,10 @@ var Base_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "LastetVersion",
 			Handler:    _Base_LastetVersion_Handler,
+		},
+		{
+			MethodName: "ListSuperAdminUsers",
+			Handler:    _Base_ListSuperAdminUsers_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
