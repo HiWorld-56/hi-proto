@@ -3,7 +3,7 @@
 make clean
 make go
 git add .
-git commit -m "提交描述"
-git tag v1.0.3
+git commit -m "xxxxxx"
+git tag -a v1.1.10 -m "v1.1.10"
 git push --follow-tags
 ```
