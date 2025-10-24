@@ -27,5 +27,6 @@ message  IconList {
 }
 
 service Icon {
-	rpc GetIconList (google.protobuf.Empty) returns (IconList); 
+	rpc GetIconList (google.protobuf.Empty) returns (IconList);
+	rpc GetPublicCoinList (google.protobuf.Empty) returns (IconList); 
 }
