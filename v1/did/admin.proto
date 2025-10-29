@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
 import "v1/hi.proto";
 import "v1/did/merchant.proto";
 
@@ -37,7 +38,12 @@ message InviteCodeVerifyReq {
 }
 
 service InviteCode {
-    rpc Create (google.protobuf.Empty) returns (InviteCodeCreateResp); // Token鉴权
+    rpc Create (google.protobuf.Empty) returns (InviteCodeCreateResp) {// Token鉴权
+        option (google.api.http) = {
+            post: "/api/v1/create"
+            body: "*"
+        };
+    }
     rpc Edit (InviteCodeEditReq) returns (google.protobuf.Empty); // Token鉴权
     rpc List (hi.Pagination) returns (InviteCodeListResp); // Token鉴权
     rpc Delete (InviteCodeDeleteReq) returns (google.protobuf.Empty); // Token鉴权

@@ -16,3 +16,8 @@ plugins:
     opt:
       - paths=source_relative
       - require_unimplemented_servers=false
+  - local: protoc-gen-grpc-gateway
+    out: gen/go/google/api
+    opt:
+      - paths=source_relative
+      - generate_unbound_methods=true

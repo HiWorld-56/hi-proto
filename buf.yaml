@@ -10,3 +10,4 @@ modules:
   - path: .
 deps:
   - buf.build/protocolbuffers/wellknowntypes
+  - buf.build/googleapis/googleapis
