@@ -2,6 +2,7 @@ syntax = "proto3";
 
 import "google/protobuf/empty.proto";
 import "google/protobuf/any.proto";
+import "google/api/annotations.proto";
 import "v1/hi.proto";
 import "v1/did/base.proto";
 
@@ -14,10 +15,11 @@ message MerchantInfo {
     string  logo = 5;
     repeated Coin public_coins = 6; // 公共币种
     repeated Coin custom_tokens = 7; // 自定义币种
-    string  endpoint = 8;
-    string  scheme = 9;
-    string  extend_token = 10;
-    int64   created_at = 11;
+    string  qr_endpoint = 8;
+    string  app_endpoint = 9;
+    string  scheme = 10;
+    string  extend_token = 11;
+    int64   created_at = 12;
 }
 
 message MerchantGetResp {
@@ -29,9 +31,10 @@ message MerchantSetReq {
     string  name = 2;
     string logo = 3;
     repeated string coins = 4;
-    string  endpoint = 5;
-    string  scheme = 6;
-    string comment = 7;
+    string  qr_endpoint = 5;
+    string  app_endpoint = 6;
+    string  scheme = 7;
+    string comment = 8;
 }
 
 message MerchantListResp {
@@ -49,9 +52,23 @@ message UserProfileSetReq {
 }
 
 service Merchant {
-    rpc Get (google.protobuf.Empty) returns (MerchantGetResp); // Token鉴权
-    rpc Set (MerchantSetReq) returns (google.protobuf.Empty); // Token鉴权
-    rpc List (hi.DID) returns (MerchantListResp);  // Token鉴权
+    rpc Get (google.protobuf.Empty) returns (MerchantGetResp) {
+        option (google.api.http) = {
+            get: "/api/v1/merchant/get"
+        };
+    } // Token鉴权
+    rpc Set (MerchantSetReq) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/merchant/set"
+            body: "*"
+        };
+    } // Token鉴权
+    rpc List (hi.DID) returns (MerchantListResp) {
+        option (google.api.http) = {
+            post: "/api/v1/merchant/list"
+            body: "*"
+        };
+    } // Token鉴权
     rpc GetUserProfile (hi.DID) returns (UserProfileGetResp); // Token鉴权
     rpc SetUserProfile (UserProfileSetReq) returns (google.protobuf.Empty); // Token鉴权
     rpc GetMerchant (hi.DID) returns (MerchantGetResp); // Token鉴权

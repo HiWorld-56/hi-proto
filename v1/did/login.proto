@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
 import "v1/hi.proto";
 
 package did;
@@ -18,15 +19,28 @@ message LoginResp {
 }
 
 message ReqStatusResp {
-    string status = 1;
+    string did = 1;
+    string status = 2;
+    hi.Token token = 3;
 }
 
 service Login {
     rpc RefreshToken (hi.RefreshTokenReq) returns (hi.Token); // 不鉴权
-    // rpc GenerateNonce (google.protobuf.Empty) returns (hi.Nonce); // 不鉴权
     rpc Verify (hi.Web3Data) returns (LoginResp); // LoginReq // Web3鉴权
-    rpc GenerateReq (hi.Node) returns (hi.ReqID); // 不鉴权
-    rpc GetReqStatus (hi.ReqID) returns (ReqStatusResp);  // 不鉴权
+    rpc GenerateReq (hi.Node) returns (hi.ReqID) {
+        option (google.api.http) = {
+            post: "/api/v1/login/generate_req"
+            body: "*"
+        };
+    } // 不鉴权
+    
+    rpc GetReqStatus (hi.ReqID) returns (ReqStatusResp) {
+        option (google.api.http) = {
+            post: "/api/v1/login/get_req_status"
+            body: "*"
+        };
+    }  // 不鉴权
+
     rpc Notify (hi.Web3Data) returns (google.protobuf.Empty); // LoginData // Web3鉴权
     rpc Logout (google.protobuf.Empty) returns (google.protobuf.Empty); // Token鉴权
 }

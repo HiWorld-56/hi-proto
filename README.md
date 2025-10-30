@@ -7,3 +7,5 @@ git commit -m "xxxxxx"
 git tag -a v1.1.10 -m "v1.1.10"
 git push --follow-tags
 ```
+
+buf dep update

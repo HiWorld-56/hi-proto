@@ -56,3 +56,4 @@ dkms.conf
 # hi_proto
 go.sum
 gen/
+buf.lock

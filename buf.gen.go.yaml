@@ -10,14 +10,20 @@ managed:
 plugins:
   - local: protoc-gen-go
     out: gen/go
-    opt: paths=source_relative
+    opt: 
+      - paths=source_relative
+      - Mgoogle/api/annotations.proto=google.golang.org/genproto/googleapis/api/annotations
+
   - local: protoc-gen-go-grpc
     out: gen/go
     opt:
       - paths=source_relative
       - require_unimplemented_servers=false
+
   - local: protoc-gen-grpc-gateway
-    out: gen/go/google/api
+    out: gen/go/http
     opt:
       - paths=source_relative
+      # - grpc_api_configuration=http.yaml
+      - standalone=true
       - generate_unbound_methods=true

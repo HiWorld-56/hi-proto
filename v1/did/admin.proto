@@ -38,16 +38,35 @@ message InviteCodeVerifyReq {
 }
 
 service InviteCode {
-    rpc Create (google.protobuf.Empty) returns (InviteCodeCreateResp) {// Token鉴权
+    rpc Create (google.protobuf.Empty) returns (InviteCodeCreateResp) {
         option (google.api.http) = {
-            post: "/api/v1/create"
+            post: "/api/v1/invitecode/create"
+        };
+    } // Token鉴权
+    rpc Edit (InviteCodeEditReq) returns (google.protobuf.Empty) { 
+        option (google.api.http) = {
+            post: "/api/v1/invitecode/edit"
             body: "*"
         };
-    }
-    rpc Edit (InviteCodeEditReq) returns (google.protobuf.Empty); // Token鉴权
-    rpc List (hi.Pagination) returns (InviteCodeListResp); // Token鉴权
-    rpc Delete (InviteCodeDeleteReq) returns (google.protobuf.Empty); // Token鉴权
-    rpc Verify (InviteCodeVerifyReq) returns (hi.Token); // 不鉴权
+    } // Token鉴权
+    rpc List (hi.Pagination) returns (InviteCodeListResp) { 
+        option (google.api.http) = {
+            post: "/api/v1/invitecode/list"
+            body: "*"
+        };
+    } // Token鉴权
+    rpc Delete (InviteCodeDeleteReq) returns (google.protobuf.Empty) { 
+        option (google.api.http) = {
+            post: "/api/v1/invitecode/delete"
+            body: "*"
+        };
+    } // Token鉴权
+    rpc Verify (InviteCodeVerifyReq) returns (hi.Token) {
+        option (google.api.http) = {
+            post: "/api/v1/invitecode/verify"
+            body: "*"
+        };
+    } // 不鉴权
 }
 
 message DAppInfo {
@@ -118,6 +137,16 @@ message MerchantManageListResp {
 }
 
 service MerchantManage {
-    rpc List (MerchantManageListReq) returns (MerchantManageListResp); // Extend-Token鉴权
-    rpc Delete (hi.DID) returns (google.protobuf.Empty); // Extend-Token鉴权
+    rpc List (MerchantManageListReq) returns (MerchantManageListResp) {
+        option (google.api.http) = {
+            post: "/api/v1/merchant_manage/list"
+            body: "*"
+        };
+    } // Extend-Token鉴权
+    rpc Delete (hi.DID) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/merchant_manage/delete"
+            body: "*"
+        };
+    }// Extend-Token鉴权
 }

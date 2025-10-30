@@ -6,8 +6,9 @@ import "v1/hi.proto";
 package hi;
 
 message LoginData {
-    string id = 1;
-    string did = 2;
+    string src = 1; // qr, app
+    string id = 2;
+    string did = 3;
 }
 
 // 三方app/web登录回调
