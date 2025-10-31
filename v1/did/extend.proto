@@ -24,10 +24,10 @@ service UserExtendSetting {
 }
 
 message UserExtendInfo {
-    string logo   = 2;
-    int32 level   = 3;
-    string card   = 4;
-    string extend = 5;
+    string logo   = 1;
+    int32 level   = 2;
+    string card   = 3;
+    string extend = 4;
 }
 
 message UserExtendUpdateReq {

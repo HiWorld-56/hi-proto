@@ -8,8 +8,9 @@ package did;
 
 // hidid web/app/pc登录
 message LoginReq {
-	hi.Node node = 1;
-	hi.ReqID req_id = 2;
+    hi.DID did = 1;
+	hi.Node node = 2;
+	hi.ReqID req_id = 3;
 }
 
 message LoginResp {
@@ -41,6 +42,6 @@ service Login {
         };
     }  // 不鉴权
 
-    rpc Notify (hi.Web3Data) returns (google.protobuf.Empty); // LoginData // Web3鉴权
+    rpc Notify (hi.Web3Data) returns (google.protobuf.Empty); // LoginReq // Web3鉴权
     rpc Logout (google.protobuf.Empty) returns (google.protobuf.Empty); // Token鉴权
 }

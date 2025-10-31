@@ -22,6 +22,7 @@ message InviteCodeListResp {
         string code    = 1;
         bool is_active = 2;
         string note    = 3;
+        int64 created_at = 4;
     }
     int64 total = 1;
     repeated Unit infos = 2;
@@ -113,14 +114,51 @@ message DAppDeleteReq {
 }
 
 service DApp {
-    rpc ListByClass (google.protobuf.Empty) returns (DAppListByClassResp); // Token鉴权
-    rpc GetRWA (google.protobuf.Empty) returns (DAppGetRWAResp); // Token鉴权
-    rpc GetTop (google.protobuf.Empty) returns (DAppInfo); // Token鉴权
-    rpc UpdateTop (DAppUpdateTopReq) returns (google.protobuf.Empty); // Token鉴权
-    rpc Create (DAppInfo) returns (google.protobuf.Empty); // Token鉴权
-    rpc Edit (DAppEntity) returns (google.protobuf.Empty); // Token鉴权
-    rpc UpdateOrder (DAppUpdateOrderReq) returns (google.protobuf.Empty); // Token鉴权
-    rpc Delete (DAppDeleteReq) returns (google.protobuf.Empty); // Token鉴权
+    rpc ListByClass (google.protobuf.Empty) returns (DAppListByClassResp) {
+        option (google.api.http) = {
+            get: "/api/v1/dapp/list_by_class"
+        };
+    } // Token鉴权
+    rpc GetRWA (google.protobuf.Empty) returns (DAppGetRWAResp) {
+        option (google.api.http) = {
+            get: "/api/v1/dapp/get_rwa"
+        };
+    } // Token鉴权
+    rpc GetTop (google.protobuf.Empty) returns (DAppInfo) {
+        option (google.api.http) = {
+            get: "/api/v1/dapp/list_top"
+        };
+    } // Token鉴权
+    rpc UpdateTop (DAppUpdateTopReq) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/dapp/update_top"
+            body: "*"
+        };
+    } // Token鉴权
+    rpc Create (DAppInfo) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/dapp/create"
+            body: "*"
+        };
+    } // Token鉴权
+    rpc Edit (DAppEntity) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/dapp/edit"
+            body: "*"
+        };
+    } // Token鉴权
+    rpc UpdateOrder (DAppUpdateOrderReq) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/dapp/update_order"
+            body: "*"
+        };
+    } // Token鉴权
+    rpc Delete (DAppDeleteReq) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/dapp/delete"
+            body: "*"
+        };
+    } // Token鉴权
 }
 
 message MerchantManageListReq {
@@ -133,7 +171,13 @@ message MerchantManageListResp {
         MerchantInfo base = 1;
         string comment = 2;
     }
-	repeated Unit list = 1;
+    int64 total = 1;
+	repeated Unit list = 2;
+}
+
+message MerchantManageEditReq {
+    string did = 1;
+	string comment = 2;
 }
 
 service MerchantManage {
@@ -142,11 +186,17 @@ service MerchantManage {
             post: "/api/v1/merchant_manage/list"
             body: "*"
         };
-    } // Extend-Token鉴权
+    } // Token鉴权
     rpc Delete (hi.DID) returns (google.protobuf.Empty) {
         option (google.api.http) = {
             post: "/api/v1/merchant_manage/delete"
             body: "*"
         };
-    }// Extend-Token鉴权
+    }// Token鉴权
+    rpc Edit (MerchantManageEditReq) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/merchant_manage/edit"
+            body: "*"
+        };
+    } // Token鉴权
 }
