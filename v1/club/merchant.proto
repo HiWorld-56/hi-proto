@@ -19,6 +19,13 @@ message MerchantList {
 	repeated MerchantInfo merchant_list = 1;
 }
 
+message GetMerchantListResp {
+    int64 total = 1;
+	repeated MerchantInfo merchant_list = 2;
+}
+
+
 service Merchant {
 	rpc GetAllMerchant (google.protobuf.Empty) returns (MerchantList);
+    rpc GetMerchantList (hi.Pagination) returns (GetMerchantListResp);
 }

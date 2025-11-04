@@ -102,7 +102,6 @@ service Web {
             body: "*"
         };
     } // Token鉴权
-    
 }
 
 message UpdateAssetsReq { // Token ----> Real.DID

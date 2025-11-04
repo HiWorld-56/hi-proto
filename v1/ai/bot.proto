@@ -116,9 +116,18 @@ message ListBotByDidsReq {
     hi.Pagination pagination = 2;
 }
 
+
 message ListBotByDidsResp {
     int64 total = 1;
     repeated BotInfo infos = 2;
+}
+
+message GetBotByDidsReq {
+    repeated string bot_dids = 1;
+}
+
+message GetBotByDidsResp {
+    repeated BotInfo infos = 1;
 }
 
 message DeleteBotReq {
@@ -194,6 +203,7 @@ service Bot {
     rpc EditBot (EditBotReq) returns (google.protobuf.Empty);
     rpc ListBot (hi.Pagination) returns (ListBotResp);
     rpc ListBotByDids (ListBotByDidsReq) returns (ListBotByDidsResp);
+    rpc GetBotByDids (GetBotByDidsReq) returns (GetBotByDidsResp);
     rpc DeleteBot (DeleteBotReq) returns (google.protobuf.Empty);
     rpc FindBot (FindBotReq) returns (FindBotResp);
     rpc FindBotCount (FindBotCountReq) returns (FindBotCountResp);

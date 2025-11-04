@@ -58,9 +58,13 @@ message BotInfo {
 	int32 favorited = 27;
 }
 
-// TODO: 添加total字段
+message BotInfos {
+	repeated BotInfo bot_infos = 1;
+}
+
 message BotInfoList {
-	repeated BotInfo bot_info_list = 1;
+	int64 total = 1;
+	repeated BotInfo bot_info_list = 2;
 }
 
 message BotStatisticsInfo {
@@ -112,6 +116,8 @@ message BotBindStatus {
 	optional string master = 1;
 }
 
+
+
 service Bot {
 	rpc CreateBot (CreateBotParam) returns (BotDID); // 创建机器人
 	rpc ModelList (google.protobuf.Empty) returns (Models); // 机器人Model
@@ -128,6 +134,9 @@ service Bot {
 	rpc BindMaster (BindMasterParam) returns (google.protobuf.Empty); // 绑定机器人
 	rpc UnbindMaster (BindMasterParam) returns (google.protobuf.Empty); // 解绑机器人
 	rpc BindStatus (BindMasterParam) returns (BotBindStatus); // 机器人绑定状态
+	rpc OnlineBotList (hi.Pagination) returns (BotInfoList); // 在线机器人列表
+	rpc OnlineBots (hi.DID) returns (BotInfos); // 用户的在线机器人
+	rpc GetBotMaster (BotDID) returns (hi.Unit); // 机器人主人
 }
 
 /////////////////////////// 训练机器人 ///////////////////////////

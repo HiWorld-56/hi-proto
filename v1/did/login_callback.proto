@@ -5,11 +5,11 @@ import "v1/hi.proto";
 
 package did;
 
-message LoginData {
-    string src = 1; // qr, app
-    string id = 2;
-    string did = 3;
-}
+// message LoginData {
+//     string src = 1; // qr, app
+//     string id = 2;
+//     string did = 3;
+// }
 
 // 三方app/web登录回调
 service LoginCallback {
