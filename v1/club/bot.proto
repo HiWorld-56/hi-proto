@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
 import "v1/hi.proto";
 import "v1/club/chat_user.proto";
 
@@ -116,8 +117,6 @@ message BotBindStatus {
 	optional string master = 1;
 }
 
-
-
 service Bot {
 	rpc CreateBot (CreateBotParam) returns (BotDID); // 创建机器人
 	rpc ModelList (google.protobuf.Empty) returns (Models); // 机器人Model
@@ -127,16 +126,41 @@ service Bot {
 	rpc UpdateBot (BotInfo) returns (google.protobuf.Empty); // 修改机器人
 	rpc DeleteBot (BotDID) returns (google.protobuf.Empty); // 删除机器人
 	rpc StatisticsInfo (BotDID) returns (BotStatisticsInfo); // 统计信息
-	rpc GetBotInfo (BotDID) returns (ChatUserInfo); // 获取机器人信息
-	rpc GetBotInfoList (BotInfoListParam) returns (BotInfoList); // 机器人信息列表
+	rpc GetBotInfo (BotDID) returns (ChatUserInfo) {
+		option (google.api.http) = {
+            post: "/api/v1/bot/get_bot_info"
+            body: "*"
+        };
+	} // 获取机器人信息
+	rpc GetBotInfoList (BotInfoListParam) returns (BotInfoList) {
+		option (google.api.http) = {
+            post: "/api/v1/bot/get_bot_info_list"
+            body: "*"
+        };
+	}  // 机器人信息列表
 	rpc FavoriteBot (FavoriteBotParam) returns (google.protobuf.Empty); // 收藏机器人
 	rpc FavoriteBotList (BotInfoListParam) returns (BotInfoList); // 收藏的机器人列表
 	rpc BindMaster (BindMasterParam) returns (google.protobuf.Empty); // 绑定机器人
 	rpc UnbindMaster (BindMasterParam) returns (google.protobuf.Empty); // 解绑机器人
 	rpc BindStatus (BindMasterParam) returns (BotBindStatus); // 机器人绑定状态
-	rpc OnlineBotList (hi.Pagination) returns (BotInfoList); // 在线机器人列表
-	rpc OnlineBots (hi.DID) returns (BotInfos); // 用户的在线机器人
-	rpc GetBotMaster (BotDID) returns (hi.Unit); // 机器人主人
+	rpc OnlineBotList (hi.Pagination) returns (BotInfoList) {
+		option (google.api.http) = {
+            post: "/api/v1/bot/online_bot_list"
+            body: "*"
+        };
+	} // 在线机器人列表
+	rpc OnlineBots (hi.DID) returns (BotInfos) {
+		option (google.api.http) = {
+            post: "/api/v1/bot/online_bots"
+            body: "*"
+        };
+	} // 用户的在线机器人
+	rpc GetBotMaster (BotDID) returns (hi.Unit) {
+		option (google.api.http) = {
+            post: "/api/v1/bot/get_bot_master"
+            body: "*"
+        };
+	} // 机器人主人
 }
 
 /////////////////////////// 训练机器人 ///////////////////////////

@@ -48,6 +48,7 @@ message ChatBotAttribute {
 	string stt_lang = 18;
 	string stt_model = 19;
 	string master = 20;
+	string note = 21;
 }
 
 // message ChatUserAttribute {
