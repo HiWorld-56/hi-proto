@@ -1,7 +1,6 @@
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
-import "google/api/annotations.proto";
 import "v1/hi.proto";
 import "v1/did/base.proto";
 
@@ -90,18 +89,8 @@ service Web {
     rpc GetWallet (GetWalletReq) returns (GetWalletResp); // Token鉴权
     rpc ListAddresses (ListAddressesReq) returns (ListAddressesResp); // Token鉴权
     rpc TotalAssets (TotalAssetsReq) returns (TotalAssetsResp); // Token鉴权
-    rpc ListUsersAssets (ListUsersAssetsReq) returns (ListUsersAssetsResp) {
-        option (google.api.http) = {
-            post: "/api/v1/web/list_user_assets"
-            body: "*"
-        };
-    } // Token鉴权
-    rpc GetUserAssets(GetUserAssetsReq) returns (GetUserAssetsResp) {
-        option (google.api.http) = {
-            post: "/api/v1/web/get_user_assets"
-            body: "*"
-        };
-    } // Token鉴权
+    rpc ListUsersAssets (ListUsersAssetsReq) returns (ListUsersAssetsResp); // Token鉴权
+    rpc GetUserAssets(GetUserAssetsReq) returns (GetUserAssetsResp); // Token鉴权
 }
 
 message UpdateAssetsReq { // Token ----> Real.DID

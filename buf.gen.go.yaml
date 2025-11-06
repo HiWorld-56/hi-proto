@@ -21,9 +21,10 @@ plugins:
       - require_unimplemented_servers=false
 
   - local: protoc-gen-grpc-gateway
-    out: gen/go/http
+    out: gen/go
     opt:
       - paths=source_relative
-      # - grpc_api_configuration=http.yaml
-      - standalone=true
+      # - standalone=true
       - generate_unbound_methods=true
+      - grpc_api_configuration=v1/merged_http_api.yaml
+    strategy: all

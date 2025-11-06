@@ -2,7 +2,6 @@ syntax = "proto3";
 
 import "google/protobuf/empty.proto";
 import "google/protobuf/any.proto";
-import "google/api/annotations.proto";
 import "v1/hi.proto";
 import "v1/did/base.proto";
 
@@ -52,23 +51,9 @@ message UserProfileSetReq {
 }
 
 service Merchant {
-    rpc Get (google.protobuf.Empty) returns (MerchantGetResp) {
-        option (google.api.http) = {
-            get: "/api/v1/merchant/get"
-        };
-    } // Token鉴权
-    rpc Set (MerchantSetReq) returns (google.protobuf.Empty) {
-        option (google.api.http) = {
-            post: "/api/v1/merchant/set"
-            body: "*"
-        };
-    } // Token鉴权
-    rpc List (hi.DID) returns (MerchantListResp) {
-        option (google.api.http) = {
-            post: "/api/v1/merchant/list"
-            body: "*"
-        };
-    } // Token鉴权
+    rpc Get (google.protobuf.Empty) returns (MerchantGetResp); // Token鉴权
+    rpc Set (MerchantSetReq) returns (google.protobuf.Empty); // Token鉴权
+    rpc List (hi.DID) returns (MerchantListResp); // Token鉴权
     rpc GetUserProfile (hi.DID) returns (UserProfileGetResp); // Token鉴权
     rpc SetUserProfile (UserProfileSetReq) returns (google.protobuf.Empty); // Token鉴权
     rpc GetMerchant (hi.DID) returns (MerchantGetResp); // Token鉴权

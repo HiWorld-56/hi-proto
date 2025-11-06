@@ -1,7 +1,6 @@
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
-import "google/api/annotations.proto";
 
 package did;
 
@@ -11,16 +10,8 @@ message UserExtendSettingResp {
 }
 
 service UserExtendSetting {
-    rpc Update (google.protobuf.Empty) returns (UserExtendSettingResp) {
-        option (google.api.http) = {
-            post: "/api/v1/user_extend_setting/update"
-        };
-    } // Token鉴权
-    rpc Get (google.protobuf.Empty) returns (UserExtendSettingResp) {
-        option (google.api.http) = {
-            get: "/api/v1/user_extend_setting/get"
-        };
-    }  // Token鉴权
+    rpc Update (google.protobuf.Empty) returns (UserExtendSettingResp); // Token鉴权
+    rpc Get (google.protobuf.Empty) returns (UserExtendSettingResp); // Token鉴权
 }
 
 message UserExtendInfo {
@@ -55,22 +46,7 @@ message UserExtendDeleteReq {
 }
 
 service UserExtend {
-    rpc Update (UserExtendUpdateReq) returns (google.protobuf.Empty) {
-        option (google.api.http) = {
-            post: "/api/v1/user_extend/update"
-            body: "*"
-        };
-    } // Extend-Token鉴权
-    rpc List (UserExtendListReq) returns (UserExtendListResp) {
-        option (google.api.http) = {
-            post: "/api/v1/user_extend/list"
-            body: "*"
-        };
-    } // Extend-Token鉴权
-    rpc Delete (UserExtendDeleteReq) returns (google.protobuf.Empty) {
-        option (google.api.http) = {
-            post: "/api/v1/user_extend/delete"
-            body: "*"
-        };
-    } // Extend-Token鉴权
+    rpc Update (UserExtendUpdateReq) returns (google.protobuf.Empty); // Extend-Token鉴权
+    rpc List (UserExtendListReq) returns (UserExtendListResp); // Extend-Token鉴权
+    rpc Delete (UserExtendDeleteReq) returns (google.protobuf.Empty); // Extend-Token鉴权
 }

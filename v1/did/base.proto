@@ -1,7 +1,6 @@
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
-import "google/api/annotations.proto";
 import "v1/hi.proto";
 
 package did;
@@ -36,11 +35,7 @@ service Base {
     rpc ListCoins (google.protobuf.Empty) returns (ListCoinsResp); // 不鉴权
     rpc TotalUsers (google.protobuf.Empty) returns (hi.Number); // 不鉴权
     rpc LastetVersion (LastetVersionReq) returns (LastetVersionResp); // 不鉴权
-    rpc ListSuperAdminUsers (google.protobuf.Empty) returns (ListSuperAdminUsersResp) {
-        option (google.api.http) = {
-            get: "/api/v1/base/list_superadminusers"
-        };
-    } // 不鉴权
+    rpc ListSuperAdminUsers (google.protobuf.Empty) returns (ListSuperAdminUsersResp); // 不鉴权
 }
 
 service Assist {

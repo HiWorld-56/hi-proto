@@ -1,7 +1,6 @@
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
-import "google/api/annotations.proto";
 
 package club;
 
@@ -28,10 +27,5 @@ message GetUserAssetsResp {
 }
 
 service Web {
-    rpc GetUserAssets(GetUserAssetsReq) returns (GetUserAssetsResp) {
-		option (google.api.http) = {
-            post: "/api/v1/web/get_user_assets"
-            body: "*"
-        };
-	}
+    rpc GetUserAssets(GetUserAssetsReq) returns (GetUserAssetsResp);
 }

@@ -1,7 +1,6 @@
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
-import "google/api/annotations.proto";
 import "v1/hi.proto";
 
 package club;
@@ -27,15 +26,6 @@ message GetMerchantListResp {
 
 
 service Merchant {
-	rpc GetAllMerchant (google.protobuf.Empty) returns (MerchantList) {
-		option (google.api.http) = {
-            get: "/api/v1/merchant/get_all_merchant"
-        };
-	}
-    rpc GetMerchantList (hi.Pagination) returns (GetMerchantListResp) {
-		option (google.api.http) = {
-            post: "/api/v1/merchant/get_merchant_list"
-            body: "*"
-        };
-	}
+	rpc GetAllMerchant (google.protobuf.Empty) returns (MerchantList);
+    rpc GetMerchantList (hi.Pagination) returns (GetMerchantListResp);
 }
