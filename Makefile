@@ -3,8 +3,8 @@
 all: clean go dart
 
 merge:
-	@chmod +x merge_http_yaml.sh
-	@bash merge_http_yaml.sh
+	@chmod +x merge_http_api_yaml.sh
+	@bash merge_http_api_yaml.sh
 
 go: merge
 	buf generate --template buf.gen.go.yaml
