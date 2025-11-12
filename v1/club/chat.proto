@@ -27,6 +27,8 @@ message ChatParam {
 	string conversation_id = 1; // TODO: 改成cid
 	string bot_did = 2;
 	repeated MessagesContent messages = 3;
+	string customer = 4;
+	string state = 5;
 }
 
 message StreamParam {
@@ -37,6 +39,7 @@ message StreamParam {
 	string return_plugin_use = 5;
 	string return_training_data = 6;
 	string return_context = 7;
+	string customer = 8;
 }
 
 message GetContextParam {

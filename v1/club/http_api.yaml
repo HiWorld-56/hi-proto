@@ -29,3 +29,7 @@ http:
   - selector: club.Web.GetUserAssets
     post: /api/v1/web/get_user_assets
     body: "*"
+# Chat
+  - selector: club.Chat.Chat
+    post: /api/v1/chat/chat
+    body: "*"
