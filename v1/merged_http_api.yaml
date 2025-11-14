@@ -33,6 +33,9 @@ http:
   - selector: club.Chat.Chat
     post: /api/v1/chat/chat
     body: '*'
+  - selector: club.Chat.Stream
+    post: /api/v1/chat/stream
+    body: '*'
   # InviteCode
   - selector: did.InviteCode.Create
     post: /api/v1/invitecode/create

@@ -42,6 +42,13 @@ message StreamParam {
 	string customer = 8;
 }
 
+message StreamReply {
+	int32 code = 1;
+	string Type = 2;
+	string message = 3;
+}
+
+
 message GetContextParam {
 	string conversation_id = 1;  // TODO: 改成cid
 	string bot_did = 2;
@@ -145,7 +152,7 @@ service Chat {
 	rpc GenerateCID (google.protobuf.Empty) returns (CID); // 产生CID
 	rpc SpeechToText (SpeechToTextParam) returns (ChatReply); // 语音转文本
 	rpc Chat (ChatParam) returns (ChatReply); // 非流式对话
-	rpc Stream (StreamParam) returns (stream ChatReply); // 流式对话
+	rpc Stream (StreamParam) returns (stream StreamReply); // 流式对话
 	rpc ClearContext (CID) returns (google.protobuf.Empty); // 清除上下文
 	rpc GetContext (GetContextParam) returns (ChatCompletionMessageList); // 获取上下文
 	rpc SpeechToSpeech (SpeechToSpeechParam) returns (SpeechToSpeechReply); // 语音转语音

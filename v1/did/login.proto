@@ -18,6 +18,11 @@ message LoginResp {
     hi.Mqtt mqtt = 3;
 }
 
+message GenerateReqParam {
+    hi.DID did = 1;
+	hi.Node node = 2;
+}
+
 message ReqStatusResp {
     string did = 1;
     string status = 2;
@@ -27,7 +32,7 @@ message ReqStatusResp {
 service Login {
     rpc RefreshToken (hi.RefreshTokenReq) returns (hi.Token); // 不鉴权
     rpc Verify (hi.Web3Data) returns (LoginResp); // LoginReq // Web3鉴权
-    rpc GenerateReq (hi.Node) returns (hi.ReqID); // 不鉴权
+    rpc GenerateReq (GenerateReqParam) returns (hi.ReqID); // 不鉴权
     rpc GetReqStatus (hi.ReqID) returns (ReqStatusResp); // 不鉴权
     rpc Notify (hi.Web3Data) returns (google.protobuf.Empty); // LoginReq // Web3鉴权
     rpc Logout (google.protobuf.Empty) returns (google.protobuf.Empty); // Token鉴权
