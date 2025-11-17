@@ -53,11 +53,11 @@ http:
     body: '*'
   # DApp
   - selector: did.DApp.ListByClass
-    post: /api/v1/dapp/list_by_class
+    get: /api/v1/dapp/list_by_class
   - selector: did.DApp.GetRWA
-    post: /api/v1/dapp/get_rwa
+    get: /api/v1/dapp/get_rwa
   - selector: did.DApp.GetTop
-    get: /api/v1/dapp/get_top
+    get: /api/v1/dapp/list_top
   - selector: did.DApp.UpdateTop
     post: /api/v1/dapp/update_top
     body: '*'

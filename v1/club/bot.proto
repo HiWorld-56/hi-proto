@@ -10,7 +10,7 @@ package club;
 message CreateBotParam {
 	string did = 1;
 	string name = 2;
-	int32 type = 3; // TODO: 改成string
+	string type = 3; // TODO: 改成string
 	string avatar = 4;
 }
 
@@ -31,7 +31,7 @@ message AudioModels {
 message BotInfo {
 	string did = 1;
 	string name = 2;
-	int32 type = 3;          //  机器人类型 TODO: 改成string
+	string type = 3;          //  机器人类型 TODO: 改成string
 	string avatar = 4;
 	string background = 5;
 	string api_key = 6;
