@@ -363,6 +363,7 @@ message CreateBotPluginReq {
 	string use_plugin_search = 9;
 	string use_plugin_python = 10;
 	string use_plugin_draw = 11;
+    string plugin_type = 12;
 }
 
 message BotPluginListReq {
@@ -387,6 +388,7 @@ message BotPluginInfo {
 	string draw_size = 13;
 	int32 draw_n = 14;
 	int64 created_at = 15;
+    string plugin_type = 16;
 }
 
 message BotPluginListResp {
@@ -408,6 +410,8 @@ message EditBotPluginReq {
   string type = 3;
   string url = 4;
   string function_description = 5;
+  string plugin_type = 6;
+  bytes content = 7;
 }
 
 // apiKey鉴权

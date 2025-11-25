@@ -50,6 +50,11 @@ message UserProfileSetReq {
     string avatar = 3;
 }
 
+message AddOrUpdateMerchantReq {
+    hi.Unit merchant = 1; // 商户
+    repeated hi.Unit users = 2; // 商户的用户
+}
+
 service Merchant {
     rpc Get (google.protobuf.Empty) returns (MerchantGetResp); // Token鉴权
     rpc Set (MerchantSetReq) returns (google.protobuf.Empty); // Token鉴权
@@ -57,6 +62,7 @@ service Merchant {
     rpc GetUserProfile (hi.DID) returns (UserProfileGetResp); // Token鉴权
     rpc SetUserProfile (UserProfileSetReq) returns (google.protobuf.Empty); // Token鉴权
     rpc GetMerchant (hi.DID) returns (MerchantGetResp); // Token鉴权
+    rpc AddOrUpdate (AddOrUpdateMerchantReq) returns (google.protobuf.Empty); // Token鉴权
 }
 
 message MerchantNotifyReq {
