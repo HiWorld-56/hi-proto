@@ -56,6 +56,7 @@ message BotInfo {
 	string stt_model = 25;
 	string stt_lang = 26;
 	int32 favorited = 27;
+	string custom_prompt = 28;
 }
 
 message BotInfos {
