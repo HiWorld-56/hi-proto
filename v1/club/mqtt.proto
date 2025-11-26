@@ -20,6 +20,39 @@ message Notice {
     Extra extra = 6;
 }
 
+/*
+Message.type
+常规消息: chat
+    example
+        A >>> Message
+            type = chat
+            from = A
+            ghost = null
+草稿消息: draft
+    A创建原始消息，需要B修改确认后，作为一条新消息，由B发送出去，发送者显示为A。
+    example:
+        A >>> Message_1
+            type = draft
+            from = A
+            ghost = B
+        B >>> Message_2
+            type = chat
+            from = A
+            ghost = B
+代笔消息: chat
+    B创建的消息，由B发出，发送者显示为A。
+    example:
+        B >>> Message
+            type = chat
+            from = A
+            ghost = B
+非法消息: invalid
+    未通过安全验证的消息
+----------------------------------------------------------------------------------------------------
+任意聊天中:
+    type != chat 时: 一律不显示
+    type == chat 时: 发送者显示为 from
+*/
 message Message {
     string uuid = 1;
     string cid = 2;
@@ -28,6 +61,7 @@ message Message {
     repeated Content content = 5;
     int64 timestamp = 6;
     Extra extra = 7;
+    hi.Unit ghost = 8;
 }
 
 message Extra {
