@@ -50,6 +50,7 @@ message ChatBotAttribute {
 	string master = 20;
 	string note = 21;
 	int32 hosting = 22;
+	string custom_prompt = 23;
 }
 
 message UpdateUserInfoParam {
