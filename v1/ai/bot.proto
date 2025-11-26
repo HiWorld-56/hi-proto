@@ -23,6 +23,7 @@ message BotConfig {
 	string use_plugin_search = 12; // 启用搜索插件
 	string use_plugin_python = 13; // 启用python插件
 	string use_plugin_draw = 14; // 启用画图插件
+    string custom_prompt = 15; // 自定义提示词
 
     // TODO: 下面的参数验证是否有用，没用的删除
 	// string use_about = 15; //
@@ -85,6 +86,7 @@ message CreateBotReq {
     float freedom = 9;
     string gpt_model = 10;
     string embedding_model = 11;
+    string custom_prompt = 12;
 }
 
 message CreateBotResp {
