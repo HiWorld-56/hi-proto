@@ -184,7 +184,6 @@ service ChatGroup {
 	rpc UpdateGroup (UpdateGroupParam) returns (google.protobuf.Empty); // 更新群
 	rpc GroupList (google.protobuf.Empty) returns (GroupInfoList); // 群列表
 	rpc GroupMemberList (GroupMemberParam) returns (ChatUserInfoList); // 群成员列表
-	rpc Q3GroupMemberList (GroupCode) returns (Q3GroupMemberListResp); // Q3群成员列表
 	rpc GroupMemberTotal (MemberTotalParam) returns (MemberTotal); // 群成员总数
 	rpc GroupInvite (GroupInviteParam) returns (google.protobuf.Empty); // 群邀请
 	rpc GroupJoin (GroupJoinParam) returns (google.protobuf.Empty); // 主动加群
