@@ -49,13 +49,8 @@ message ChatBotAttribute {
 	string stt_model = 19;
 	string master = 20;
 	string note = 21;
+	int32 hosting = 22;
 }
-
-// message ChatUserAttribute {
-// 	string mqtt_username = 1;
-// 	string mqtt_client_id = 2;
-// 	string email = 3;
-// }
 
 message UpdateUserInfoParam {
 	string name = 1;
