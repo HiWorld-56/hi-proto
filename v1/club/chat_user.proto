@@ -147,5 +147,5 @@ service ChatUser {
 	rpc SendAbout (SendAboutParam) returns (google.protobuf.Empty);
 	rpc SendCard (SendCardParam) returns (google.protobuf.Empty);
 	rpc BotGroupCode (BotGroupCodeParam) returns (BotGroupCodeList); // 机器人所在群的群Code
-	// rpc SaveBotPrompt (SaveBotPromptParam) returns (google.protobuf.Empty); // 新增或更新机器人提示词
+	rpc SaveBotPrompt (SaveBotPromptParam) returns (google.protobuf.Empty); // 新增或更新机器人提示词
 }
