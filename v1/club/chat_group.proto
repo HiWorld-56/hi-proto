@@ -191,6 +191,11 @@ message GetQ3GroupReadyStatusResp {
 	int32 ready = 1; // 0-未就绪，1-就绪
 }
 
+message ExitQ3GroupParam {
+	string group_code = 1;
+	int32 exit = 2; // 1-结束群聊
+}
+
 service ChatGroup {
 	rpc GroupInfo (GroupInfoParam) returns (ChatGroupInfo); // 群信息
 	rpc CreateGroup (CreateGroupParam) returns (ChatGroupInfo); // 创建群
@@ -212,4 +217,5 @@ service ChatGroup {
 	rpc BotGroupList (BotGroupListParam) returns (GroupInfoList); // 机器人组信息列表
 	rpc SetUserHosting (SetUserHostingParam) returns (google.protobuf.Empty); // 设置托管
 	rpc GetQ3GroupReadyStatus (GetQ3GroupReadyStatusParam) returns (GetQ3GroupReadyStatusResp); // 获取群的就绪状态
+	rpc ExitQ3Group (ExitQ3GroupParam) returns (google.protobuf.Empty); // 结束群聊
 }
