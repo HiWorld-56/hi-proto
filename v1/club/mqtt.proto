@@ -20,6 +20,11 @@ message Notice {
     Extra extra = 6;
 }
 
+message Prompt {
+    string custom = 1;
+    string state = 2;
+}
+
 /*
 Message.type
 常规消息: chat
@@ -62,8 +67,7 @@ message Message {
     int64 timestamp = 6;
     Extra extra = 7;
     hi.Unit ghost = 8;
-    string custom_prompt = 9;
-    string state_prompt = 10;
+    Prompt prompt = 9;
 }
 
 message Extra {
