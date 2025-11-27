@@ -148,7 +148,12 @@ message ChatCompletionMessageList {
 	repeated ChatCompletionMessage message_list = 1;
 }
 
+message DialogParam {
+	repeated MessagesContent messages = 1;
+}
+
 service Chat {
+	rpc Dialog (DialogParam) returns (ChatReply); 
 	rpc GenerateCID (google.protobuf.Empty) returns (CID); // 产生CID
 	rpc SpeechToText (SpeechToTextParam) returns (ChatReply); // 语音转文本
 	rpc Chat (ChatParam) returns (ChatReply); // 非流式对话
