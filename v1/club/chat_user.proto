@@ -124,11 +124,11 @@ message BotGroupCodeList {
 	repeated string group_code_list = 1;
 }
 
-// message SaveBotPromptParam {
-// 	string group_code = 1;
-// 	string bot_did = 2;
-// 	string custom_prompt = 3;
-// } 
+message SaveBotPromptParam {
+	string group_code = 1;
+	string bot_did = 2;
+	string custom_prompt = 3;
+} 
 
 service ChatUser {
 	rpc CurrentUser (google.protobuf.Empty) returns (ChatUserInfo); // 当前用户信息
