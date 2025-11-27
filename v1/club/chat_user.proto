@@ -124,11 +124,11 @@ message BotGroupCodeList {
 	repeated string group_code_list = 1;
 }
 
-message SaveBotPromptParam {
-	string group_code = 1;
-	string bot_did = 2;
-	string custom_prompt = 3;
-} 
+// message SaveBotPromptParam {
+// 	string group_code = 1;
+// 	string bot_did = 2;
+// 	string custom_prompt = 3;
+// } 
 
 service ChatUser {
 	rpc CurrentUser (google.protobuf.Empty) returns (ChatUserInfo); // 当前用户信息
@@ -147,5 +147,5 @@ service ChatUser {
 	rpc SendAbout (SendAboutParam) returns (google.protobuf.Empty);
 	rpc SendCard (SendCardParam) returns (google.protobuf.Empty);
 	rpc BotGroupCode (BotGroupCodeParam) returns (BotGroupCodeList); // 机器人所在群的群Code
-	rpc SaveBotPrompt (SaveBotPromptParam) returns (google.protobuf.Empty); // 新增或更新机器人提示词
+	// rpc SaveBotPrompt (SaveBotPromptParam) returns (google.protobuf.Empty); // 新增或更新机器人提示词
 }
