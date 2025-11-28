@@ -5,13 +5,7 @@ import "v1/hi.proto";
 
 package did;
 
-// message LoginData {
-//     string src = 1; // qr, app
-//     string id = 2;
-//     string did = 3;
-// }
-
 // 三方app/web登录回调
 service LoginCallback {
-    rpc Login(hi.Web3Data) returns (google.protobuf.Empty); // LoginData // Web3鉴权
+    rpc Login(hi.Web3Data) returns (google.protobuf.Empty); // LoginReq // Web3鉴权
 }

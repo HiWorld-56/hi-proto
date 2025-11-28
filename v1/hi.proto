@@ -52,7 +52,7 @@ message Number {
 
 message Node {
 	string app = 1; // HiDID、HiAI、HiClub
-	string dev = 2; // Web、App、PC、Embeded
+	string dev = 2; // web、app、pc、embeded
     string mac = 3; // Null / Mac or Static UUID (Preventing being kicked off)
 }
 
