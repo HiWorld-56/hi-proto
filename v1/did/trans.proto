@@ -2,7 +2,7 @@ syntax = "proto3";
 
 import "v1/hi.proto";
 
-package did;
+package hi.did;
 
 message InputOutputs {
     string value = 1;

@@ -4,7 +4,7 @@ import "google/protobuf/empty.proto";
 import "v1/hi.proto";
 import "v1/club/chat_user.proto";
 
-package club;
+package hi.club;
 
 // 新建机器人参数
 message CreateBotParam {

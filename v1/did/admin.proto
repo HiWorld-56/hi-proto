@@ -4,7 +4,7 @@ import "google/protobuf/empty.proto";
 import "v1/hi.proto";
 import "v1/did/merchant.proto";
 
-package did;
+package hi.did;
 
 message InviteCodeCreateResp {
     string code    = 1;

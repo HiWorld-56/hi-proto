@@ -2,7 +2,7 @@ syntax = "proto3";
 
 import "google/protobuf/empty.proto";
 
-package did;
+package hi.did;
 
 service Health {
     rpc Check (google.protobuf.Empty) returns (google.protobuf.Empty); // 不鉴权

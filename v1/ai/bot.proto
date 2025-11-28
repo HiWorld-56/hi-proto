@@ -3,7 +3,7 @@ syntax = "proto3";
 import "google/protobuf/empty.proto";
 import "v1/hi.proto";
 
-package ai;
+package hi.ai;
 
 /////////////////////////////// 机器人 ///////////////////////////////
 // 机器人配置

@@ -2,7 +2,7 @@ syntax = "proto3";
 
 import "v1/ai/chat.proto";
 
-package plugin;
+package hi.ai.plugin;
 
 message SearchReq {
     string type = 1;
@@ -12,7 +12,7 @@ message SearchReq {
 }
 
 message SearchResp {
-    repeated ai.MessagesContent contents = 1;
+    repeated hi.ai.MessagesContent contents = 1;
 }
 
 message PythonReq {
@@ -22,7 +22,7 @@ message PythonReq {
 }
 
 message PythonResp {
-    repeated ai.MessagesContent contents = 1;
+    repeated hi.ai.MessagesContent contents = 1;
 }
 
 service AiPlugin {
