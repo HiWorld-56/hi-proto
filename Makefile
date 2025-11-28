@@ -1,4 +1,4 @@
-.PHONY: all go dart merge
+.PHONY: all go go-http dart merge
 
 all: clean go dart
 
@@ -6,7 +6,10 @@ merge:
 	@chmod +x merge_http_api_yaml.sh
 	@bash merge_http_api_yaml.sh
 
-go: merge
+go:
+	buf generate --template buf.gen.go.yaml
+
+go-http: merge
 	buf generate --template buf.gen.go.yaml
 
 dart:
