@@ -216,6 +216,4 @@ service ChatGroup {
 	rpc GroupInfoByCode (GroupCodeParam) returns (ChatGroupInfo); // 通过组code查询组信息
 	rpc BotGroupList (BotGroupListParam) returns (GroupInfoList); // 机器人组信息列表
 	rpc SetUserHosting (SetUserHostingParam) returns (google.protobuf.Empty); // 设置托管
-	rpc GetQ3GroupReadyStatus (GetQ3GroupReadyStatusParam) returns (GetQ3GroupReadyStatusResp); // 获取群的就绪状态
-	rpc ExitQ3Group (ExitQ3GroupParam) returns (google.protobuf.Empty); // 结束群聊
 }
