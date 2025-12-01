@@ -57,3 +57,4 @@ dkms.conf
 go.sum
 gen/
 buf.lock
+v1/merged_http_api.yaml

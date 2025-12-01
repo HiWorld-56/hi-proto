@@ -5,7 +5,7 @@ import "v1/hi.proto";
 import "v1/club/mqtt.proto";
 import "v1/club/chat_user.proto";
 
-package club;
+package hi.club;
 
 message GroupInfoParam {
 	string group_code = 1;

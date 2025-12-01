@@ -3,9 +3,14 @@ syntax = "proto3";
 import "google/protobuf/empty.proto";
 import "v1/hi.proto";
 
-package did;
+package hi.did;
 
 // 三方app/web登录回调
 service LoginCallback {
     rpc Login(hi.Web3Data) returns (google.protobuf.Empty); // LoginReq // Web3鉴权
+}
+
+// 三方app/web支付回调
+service PayCallback {
+    rpc Pay(hi.Web3Data) returns (google.protobuf.Empty);   // PayData // Web3鉴权
 }

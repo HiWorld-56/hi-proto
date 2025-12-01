@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package did;
+package hi.did;
 
 message GetPriceReq {
     string symbol = 1;

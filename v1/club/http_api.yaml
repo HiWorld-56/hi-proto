@@ -4,35 +4,35 @@ config_version: 3
 http:
   rules:
 # Bot
-  - selector: club.Bot.GetBotInfo
+  - selector: hi.club.Bot.GetBotInfo
     post: /api/v1/bot/get_bot_info
     body: "*"
-  - selector: club.Bot.GetBotInfoList
+  - selector: hi.club.Bot.GetBotInfoList
     post: /api/v1/bot/get_bot_info_list
     body: "*"
-  - selector: club.Bot.OnlineBotList
+  - selector: hi.club.Bot.OnlineBotList
     post: /api/v1/bot/online_bot_list
     body: "*"
-  - selector: club.Bot.OnlineBots
+  - selector: hi.club.Bot.OnlineBots
     post: /api/v1/bot/online_bots
     body: "*"
-  - selector: club.Bot.GetBotMaster
+  - selector: hi.club.Bot.GetBotMaster
     post: /api/v1/bot/get_bot_master
     body: "*"
 # Merchant
-  - selector: club.Merchant.GetAllMerchant
+  - selector: hi.club.Merchant.GetAllMerchant
     get: /api/v1/merchant/get_all_merchant
-  - selector: club.Merchant.GetMerchantList
+  - selector: hi.club.Merchant.GetMerchantList
     post: /api/v1/merchant/get_merchant_list
     body: "*"
 # Web
-  - selector: club.Web.GetUserAssets
+  - selector: hi.club.Web.GetUserAssets
     post: /api/v1/web/get_user_assets
     body: "*"
 # Chat
-  - selector: club.Chat.Chat
+  - selector: hi.club.Chat.Chat
     post: /api/v1/chat/chat
     body: "*"
-  - selector: club.Chat.Stream
+  - selector: hi.club.Chat.Stream
     post: /api/v1/chat/stream
     body: "*" 

@@ -4,7 +4,7 @@ import "google/protobuf/empty.proto";
 import "v1/hi.proto";
 // import "v1/did/login.proto";
 
-package club;
+package hi.club;
 
 // message LoginResp {
 //     did.LoginResp base = 1;

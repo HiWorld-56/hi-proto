@@ -3,7 +3,7 @@ syntax = "proto3";
 import "google/protobuf/empty.proto";
 import "v1/hi.proto";
 
-package did;
+package hi.did;
 
 service User {
     rpc Edit (hi.Unit) returns (google.protobuf.Empty); // Token鉴权

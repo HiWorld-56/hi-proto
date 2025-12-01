@@ -2,7 +2,7 @@ syntax = "proto3";
 
 import "google/protobuf/empty.proto";
 
-package ai;
+package hi.ai;
 
 message SettingInfo {
     string proxy_url = 1;

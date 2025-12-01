@@ -4,126 +4,126 @@ config_version: 3
 http:
   rules:
   # Bot
-  - selector: club.Bot.GetBotInfo
+  - selector: hi.club.Bot.GetBotInfo
     post: /api/v1/bot/get_bot_info
     body: '*'
-  - selector: club.Bot.GetBotInfoList
+  - selector: hi.club.Bot.GetBotInfoList
     post: /api/v1/bot/get_bot_info_list
     body: '*'
-  - selector: club.Bot.OnlineBotList
+  - selector: hi.club.Bot.OnlineBotList
     post: /api/v1/bot/online_bot_list
     body: '*'
-  - selector: club.Bot.OnlineBots
+  - selector: hi.club.Bot.OnlineBots
     post: /api/v1/bot/online_bots
     body: '*'
-  - selector: club.Bot.GetBotMaster
+  - selector: hi.club.Bot.GetBotMaster
     post: /api/v1/bot/get_bot_master
     body: '*'
   # Merchant
-  - selector: club.Merchant.GetAllMerchant
+  - selector: hi.club.Merchant.GetAllMerchant
     get: /api/v1/merchant/get_all_merchant
-  - selector: club.Merchant.GetMerchantList
+  - selector: hi.club.Merchant.GetMerchantList
     post: /api/v1/merchant/get_merchant_list
     body: '*'
   # Web
-  - selector: club.Web.GetUserAssets
+  - selector: hi.club.Web.GetUserAssets
     post: /api/v1/web/get_user_assets
     body: '*'
   # Chat
-  - selector: club.Chat.Chat
+  - selector: hi.club.Chat.Chat
     post: /api/v1/chat/chat
     body: '*'
-  - selector: club.Chat.Stream
+  - selector: hi.club.Chat.Stream
     post: /api/v1/chat/stream
     body: '*'
   # InviteCode
-  - selector: did.InviteCode.Create
+  - selector: hi.did.InviteCode.Create
     post: /api/v1/invitecode/create
-  - selector: did.InviteCode.Edit
+  - selector: hi.did.InviteCode.Edit
     post: /api/v1/invitecode/edit
     body: '*'
-  - selector: did.InviteCode.List
+  - selector: hi.did.InviteCode.List
     post: /api/v1/invitecode/list
     body: '*'
-  - selector: did.InviteCode.Delete
+  - selector: hi.did.InviteCode.Delete
     post: /api/v1/invitecode/delete
     body: '*'
-  - selector: did.InviteCode.Verify
+  - selector: hi.did.InviteCode.Verify
     post: /api/v1/invitecode/verify
     body: '*'
   # DApp
-  - selector: did.DApp.ListByClass
+  - selector: hi.did.DApp.ListByClass
     get: /api/v1/dapp/list_by_class
-  - selector: did.DApp.GetRWA
+  - selector: hi.did.DApp.GetRWA
     get: /api/v1/dapp/get_rwa
-  - selector: did.DApp.GetTop
+  - selector: hi.did.DApp.GetTop
     get: /api/v1/dapp/list_top
-  - selector: did.DApp.UpdateTop
+  - selector: hi.did.DApp.UpdateTop
     post: /api/v1/dapp/update_top
     body: '*'
-  - selector: did.DApp.Create
+  - selector: hi.did.DApp.Create
     post: /api/v1/dapp/create
     body: '*'
-  - selector: did.DApp.Edit
+  - selector: hi.did.DApp.Edit
     post: /api/v1/dapp/edit
     body: '*'
-  - selector: did.DApp.UpdateOrder
+  - selector: hi.did.DApp.UpdateOrder
     post: /api/v1/dapp/update_order
     body: '*'
-  - selector: did.DApp.Delete
+  - selector: hi.did.DApp.Delete
     post: /api/v1/dapp/delete
     body: '*'
   # MerchantManage
-  - selector: did.MerchantManage.List
+  - selector: hi.did.MerchantManage.List
     post: /api/v1/merchant_manage/list
     body: '*'
-  - selector: did.MerchantManage.Delete
+  - selector: hi.did.MerchantManage.Delete
     post: /api/v1/merchant_manage/delete
     body: '*'
-  - selector: did.MerchantManage.Edit
+  - selector: hi.did.MerchantManage.Edit
     post: /api/v1/merchant_manage/edit
     body: '*'
   # Base
-  - selector: did.Base.ListSuperAdminUsers
+  - selector: hi.did.Base.ListSuperAdminUsers
     get: /api/v1/base/list_superadminusers
   # UserExtendSetting
-  - selector: did.UserExtendSetting.Update
+  - selector: hi.did.UserExtendSetting.Update
     post: /api/v1/user_extend_setting/update
-  - selector: did.UserExtendSetting.Get
+  - selector: hi.did.UserExtendSetting.Get
     get: /api/v1/user_extend_setting/get
   # UserExtend
-  - selector: did.UserExtend.Update
+  - selector: hi.did.UserExtend.Update
     post: /api/v1/user_extend/update
     body: '*'
-  - selector: did.UserExtend.List
+  - selector: hi.did.UserExtend.List
     post: /api/v1/user_extend/list
     body: '*'
-  - selector: did.UserExtend.Delete
+  - selector: hi.did.UserExtend.Delete
     post: /api/v1/user_extend/delete
     body: '*'
   # Login
-  - selector: did.Login.GenerateReq
+  - selector: hi.did.Login.GenerateReq
     post: /api/v1/login/generate_req
     body: '*'
-  - selector: did.Login.GetReqStatus
+  - selector: hi.did.Login.GetReqStatus
     post: /api/v1/login/get_req_status
     body: '*'
   # Merchant
-  - selector: did.Merchant.Get
+  - selector: hi.did.Merchant.Get
     get: /api/v1/merchant/get
-  - selector: did.Merchant.Set
+  - selector: hi.did.Merchant.Set
     post: /api/v1/merchant/set
     body: '*'
-  - selector: did.Merchant.List
+  - selector: hi.did.Merchant.List
     post: /api/v1/merchant/list
     body: '*'
-  - selector: did.Merchant.BatchSave
+  - selector: hi.did.Merchant.BatchSave
     post: /api/v1/merchant/batch_save
     body: '*'
   # Web
-  - selector: did.Web.ListUsersAssets
+  - selector: hi.did.Web.ListUsersAssets
     post: /api/v1/web/list_user_assets
     body: '*'
-  - selector: did.Web.GetUserAssets
+  - selector: hi.did.Web.GetUserAssets
     post: /api/v1/web/get_user_assets
     body: '*'

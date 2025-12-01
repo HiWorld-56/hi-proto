@@ -3,7 +3,7 @@ syntax = "proto3";
 import "google/protobuf/empty.proto";
 import "v1/hi.proto";
 
-package did;
+package hi.did;
 
 // hidid web/app/pc登录
 message LoginReq {

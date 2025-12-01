@@ -3,7 +3,7 @@ syntax = "proto3";
 import "google/protobuf/empty.proto";
 import "v1/hi.proto";
 
-package did;
+package hi.did;
 
 message Coin {
     string icon = 1;
