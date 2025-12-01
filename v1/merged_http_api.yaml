@@ -117,6 +117,9 @@ http:
   - selector: did.Merchant.List
     post: /api/v1/merchant/list
     body: '*'
+  - selector: did.Merchant.BatchSave
+    post: /api/v1/merchant/batch_save
+    body: '*'
   # Web
   - selector: did.Web.ListUsersAssets
     post: /api/v1/web/list_user_assets

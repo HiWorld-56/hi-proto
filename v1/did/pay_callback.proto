@@ -5,7 +5,6 @@ import "v1/hi.proto";
 
 package did;
 
-
 // 三方app/web支付回调
 service PayCallback {
     rpc Pay(hi.Web3Data) returns (google.protobuf.Empty);   // PayData // Web3鉴权

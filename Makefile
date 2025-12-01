@@ -10,7 +10,7 @@ go:
 	buf generate --template buf.gen.go.yaml
 
 go-http: merge
-	buf generate --template buf.gen.go.yaml
+	buf generate --template buf.gen.go_http.yaml
 
 dart:
 	buf generate --template buf.gen.dart.yaml
