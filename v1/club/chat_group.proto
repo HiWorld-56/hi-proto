@@ -76,6 +76,7 @@ message GroupInfoList {
 message GroupMemberParam {
 	string group_code = 1;
 	hi.Pagination pagination = 2;
+	string group_type = 3;
 }
 
 // message GoupUserAttribute {
