@@ -110,6 +110,7 @@ message GroupInviteParam {
   string group_code = 1;
   repeated string bot_dids = 3;
   repeated string user_dids = 4;
+  string group_type = 5;
 }
 
 message GroupJoinParam {
