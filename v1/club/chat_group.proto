@@ -9,6 +9,7 @@ package hi.club;
 
 message GroupInfoParam {
 	string group_code = 1;
+	string group_type = 2;
 }
 // 查询群信息的响应结构
 message GroupBaseInfo {
