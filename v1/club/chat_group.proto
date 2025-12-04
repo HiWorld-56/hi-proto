@@ -225,10 +225,6 @@ message Q3GroupReadyParam {
   	Q3User q3_user = 2;
 }
 
-message Q3GroupReadyResp {
-  	int32 ready = 1; // 1-就绪
-}
-
 service ChatGroup {
 	rpc GroupInfo (GroupInfoParam) returns (ChatGroupInfo); // 群信息
 	rpc CreateGroup (CreateGroupParam) returns (ChatGroupInfo); // 创建群
