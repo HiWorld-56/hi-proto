@@ -210,8 +210,8 @@ message CreateQ3GroupResp {
 
 message Q3GroupEventParam {
 	string group_code = 1;
-	hi.Unit bot_did = 2;
-    hi.Unit user_did = 3;
+	hi.Unit bot = 2;
+    hi.Unit user = 3;
     hi.Unit to = 4;
 }
 
