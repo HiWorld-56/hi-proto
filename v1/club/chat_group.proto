@@ -225,6 +225,11 @@ message Q3GroupReadyParam {
   	Q3User q3_user = 2;
 }
 
+message Q3GroupReadyResp {
+  	int32 ready = 1; // 1-就绪
+	ChatGroupInfo group_info = 2;
+}
+
 service ChatGroup {
 	rpc GroupInfo (GroupInfoParam) returns (ChatGroupInfo); // 群信息
 	rpc CreateGroup (CreateGroupParam) returns (ChatGroupInfo); // 创建群
@@ -248,6 +253,6 @@ service ChatGroup {
 	// Q3群
 	rpc CreateQ3Group (CreateQ3GroupParam) returns (CreateQ3GroupResp); // 创建群
 	rpc Q3GroupEvent (Q3GroupEventParam) returns (google.protobuf.Empty); // 群事件
-	rpc Q3GroupReady (Q3GroupReadyParam) returns (ChatGroupInfo); // 群就绪
+	rpc Q3GroupReady (Q3GroupReadyParam) returns (Q3GroupReadyResp); // 群就绪
 }
 
