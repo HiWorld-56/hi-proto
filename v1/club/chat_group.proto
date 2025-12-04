@@ -209,10 +209,8 @@ message CreateQ3GroupResp {
 }
 
 message Q3GroupEventParam {
-	string group_code = 1;
-	hi.Unit bot = 2;
-    hi.Unit user = 3;
-    hi.Unit to = 4;
+	Notice notice = 1;
+    string to = 2;
 }
 
 message Q3GroupRemoveParam {
