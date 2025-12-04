@@ -208,16 +208,6 @@ message Q3User {
 	bool topic = 5;
 }
 
-message Q3UserShadow {
-	Q3User user = 1;
-	bool ready = 2;
-}
-
-message Q3Status {
-    Q3UserShadow creator = 1;
-    Q3UserShadow part = 2;
-}
-
 message CreateQ3GroupParam {
 	string name = 1;
 }
