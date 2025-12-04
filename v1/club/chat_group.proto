@@ -226,7 +226,7 @@ message Q3GroupReadyParam {
 }
 
 message Q3GroupReadyResp {
-  	hi.Unit creater = 2;
+  	int32 ready = 1; // 1-就绪
 }
 
 service ChatGroup {
@@ -252,6 +252,6 @@ service ChatGroup {
 	// Q3群
 	rpc CreateQ3Group (CreateQ3GroupParam) returns (CreateQ3GroupResp); // 创建群
 	rpc Q3GroupEvent (Q3GroupEventParam) returns (google.protobuf.Empty); // 群事件
-	rpc Q3GroupReady (Q3GroupReadyParam) returns (google.protobuf.Empty); // 群就绪
+	rpc Q3GroupReady (Q3GroupReadyParam) returns (Q3GroupReadyResp); // 群就绪
 }
 
