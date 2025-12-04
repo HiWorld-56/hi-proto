@@ -23,6 +23,14 @@ message Unit {
     int64 update = 5;
 }
 
+message Q3User {
+	Unit user = 1;
+	Unit bot = 2;
+	string custom = 3;
+	bool creator = 4;
+	bool topic = 5;
+}
+
 message Mqtt {
     string id = 1;
     string username = 2;

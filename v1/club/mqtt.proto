@@ -77,6 +77,7 @@ message Extra {
         Member member = 3;
         MemberExit member_exit = 4;
         GroupInfo group_info = 5;
+        Q3GroupMember q3_member = 6;
     }
 }
 
@@ -105,4 +106,9 @@ message GroupInfo {
     hi.Unit base = 1;
     string back_ground = 2;
     bool mute =3;
+}
+
+message Q3GroupMember {
+    hi.Unit group = 1;
+    hi.Q3User q3_user = 2;
 }
