@@ -218,13 +218,13 @@ message CreateQ3GroupResp {
 
 message Q3GroupInviteParam {
 	string group_code = 1;
-	repeated string bot_dids = 2;
-    repeated string user_dids = 3;
+	string bot_did = 2;
+    string user_did = 3;
 }
 
 message Q3GroupRemoveParam {
 	string group_code = 1;
-  	repeated string bot_dids = 2;
+  	string bot_did = 2;
 }
 
 message Q3GroupReadyParam {
