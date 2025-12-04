@@ -218,6 +218,30 @@ message Q3Status {
     Q3UserShadow part = 2;
 }
 
+message CreateQ3GroupParam {
+	string name = 1;
+}
+
+message CreateQ3GroupResp {
+	string group_code = 1;
+}
+
+message Q3GroupInviteParam {
+	string group_code = 1;
+	repeated string bot_dids = 2;
+    repeated string user_dids = 3;
+}
+
+message Q3GroupRemoveParam {
+	string group_code = 1;
+  	repeated string bot_dids = 2;
+}
+
+message Q3GroupReadyParam {
+	string group_code = 1;
+  	Q3User q3_user = 2;
+}
+
 service ChatGroup {
 	rpc GroupInfo (GroupInfoParam) returns (ChatGroupInfo); // 群信息
 	rpc CreateGroup (CreateGroupParam) returns (ChatGroupInfo); // 创建群
@@ -238,4 +262,10 @@ service ChatGroup {
 	rpc GroupInfoByCode (GroupCodeParam) returns (ChatGroupInfo); // 通过组code查询组信息
 	rpc BotGroupList (BotGroupListParam) returns (GroupInfoList); // 机器人组信息列表
 	rpc SetUserHosting (SetUserHostingParam) returns (google.protobuf.Empty); // 设置托管
+	// Q3群
+	rpc CreateQ3Group (CreateQ3GroupParam) returns (CreateQ3GroupResp); // 创建群
+	rpc Q3GroupInvite (Q3GroupInviteParam) returns (google.protobuf.Empty); // 群邀请
+	rpc Q3GroupRemove (Q3GroupRemoveParam) returns (google.protobuf.Empty); // 移出群聊
+	rpc Q3GroupReady (Q3GroupReadyParam) returns (google.protobuf.Empty); // 群就绪
 }
+
