@@ -232,6 +232,18 @@ message Q3GroupReadyParam {
   	Q3User q3_user = 2;
 }
 
+message Q3GroupReadyResp {
+  	hi.Unit creater = 2;
+}
+
+message Q3GroupMemberParam {
+	string group_code = 1;
+}
+
+message Q3GroupMemberResp {
+	repeated Q3User members = 1;
+}
+
 service ChatGroup {
 	rpc GroupInfo (GroupInfoParam) returns (ChatGroupInfo); // 群信息
 	rpc CreateGroup (CreateGroupParam) returns (ChatGroupInfo); // 创建群
@@ -257,5 +269,6 @@ service ChatGroup {
 	rpc Q3GroupInvite (Q3GroupInviteParam) returns (google.protobuf.Empty); // 群邀请
 	rpc Q3GroupRemove (Q3GroupRemoveParam) returns (google.protobuf.Empty); // 移出群聊
 	rpc Q3GroupReady (Q3GroupReadyParam) returns (google.protobuf.Empty); // 群就绪
+	rpc Q3GroupMemberList (Q3GroupMemberParam) returns (Q3GroupMemberResp); // 群成员列表
 }
 
