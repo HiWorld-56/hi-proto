@@ -200,6 +200,24 @@ message ExitQ3GroupParam {
 	int32 exit = 2; // 1-结束群聊
 }
 
+message Q3User {
+	hi.Unit user = 1;
+	hi.Unit bot = 2;
+	string custom = 3;
+	bool creator = 4;
+	bool topic = 5;
+}
+
+message Q3UserShadow {
+	Q3User user = 1;
+	bool ready = 2;
+}
+
+message Q3Status {
+    Q3UserShadow creator = 1;
+    Q3UserShadow part = 2;
+}
+
 service ChatGroup {
 	rpc GroupInfo (GroupInfoParam) returns (ChatGroupInfo); // 群信息
 	rpc CreateGroup (CreateGroupParam) returns (ChatGroupInfo); // 创建群
