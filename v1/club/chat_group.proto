@@ -34,7 +34,6 @@ message ChatGroupInfo {
 	string peer_user_avatar = 7;
 	int32 role = 8;
 	int32 muted = 9;
-	int32 ready = 10;
 }
 
 // 创建群聊
