@@ -109,6 +109,7 @@ message GroupInfo {
 }
 
 message Q3GroupMember {
-    hi.Unit group = 1;
+    hi.Unit q3_group = 1;
     hi.Q3User q3_user = 2;
+    hi.Unit group = 3;
 }
