@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/did/base.proto";
+
+package hi.club;
+
+service Base {
+    rpc ListCoins (google.protobuf.Empty) returns (hi.did.ListCoinsResp); // 不鉴权
+    rpc LastetVersion (hi.did.LastetVersionReq) returns (hi.did.LastetVersionResp); // 不鉴权
+    rpc ListSuperAdminUsers (google.protobuf.Empty) returns (hi.did.ListSuperAdminUsersResp); // 不鉴权
+}

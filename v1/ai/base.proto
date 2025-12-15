@@ -11,4 +11,3 @@ message ListSuperAdminUsersResp {
 service Base {
     rpc ListSuperAdminUsers (google.protobuf.Empty) returns (ListSuperAdminUsersResp); // 不鉴权
 }
-

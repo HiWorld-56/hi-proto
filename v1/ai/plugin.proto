@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+
+package hi.ai;
+
+message DrawConfigResp {
+	repeated string draw_style = 1;
+	string draw_style_default = 2;
+	repeated string draw_quality = 3;
+	string draw_quality_default = 4;
+	string draw_model = 5;
+	repeated string draw_size = 6;
+	string draw_size_default = 7;
+	int32 draw_n = 8;
+}
+
+message PluginItem {
+    string uuid = 1;
+    string bot = 2;
+    string type = 3;
+    string sub_type = 4;
+    string url = 5;
+    string description = 6;
+    int64 created_at = 7;
+}
+
+message PluginSwitchReq {
+    bool use_mem = 1;
+    bool use_plugin_search = 2;
+	bool use_plugin_python = 3;
+	bool use_plugin_draw = 4;
+}
+
+message PluginSwitchResp {
+    bool use_mem = 1;
+    bool use_plugin_search = 2;
+	bool use_plugin_python = 3;
+	bool use_plugin_draw = 4;
+}
+
+message SearchCreateReq {
+    string bot = 1;
+    string type = 2;
+    string url = 3;
+    string description = 4;
+}
+
+message PythonCreateReq {
+    string bot = 1;
+    string type = 2;
+    string url = 3;
+    string description = 4;
+}
+
+message DrawCreateReq {
+    string bot = 1;
+    string draw_style = 6;
+    string draw_quality = 7;
+    string draw_size = 8;
+}
+
+message DrawCreateResp {
+    string draw_style = 6;
+    string draw_quality = 7;
+    string draw_size = 8;
+}
+
+message ListPluginReq {
+	string bot = 1;
+	string type = 2;
+	hi.Pagination pagination = 3;
+}
+
+message PluginListResp {
+    int64 total = 1;
+	repeated PluginItem list = 2;
+}
+
+message DeletePluginReq {
+	string uuid = 1;
+}
+
+message DeletePluginByDidsReq {
+    repeated string bots = 1;
+}
+
+message EditPluginReq {
+    string uuid = 1;
+    PluginItem item = 2;
+}
+
+// apiKey鉴权
+service Plugin {
+    rpc DrawConfig (google.protobuf.Empty) returns (DrawConfigResp);
+    rpc PluginSwitch (PluginSwitchReq) returns (PluginSwitchResp);
+    rpc SearchCreate (SearchCreateReq) returns (google.protobuf.Empty);
+    rpc PythonCreate (PythonCreateReq) returns (google.protobuf.Empty);
+    rpc DrawCreate (DrawCreateReq) returns (DrawCreateResp)
+    rpc List (PluginListReq) returns (PluginListResp);
+    rpc Delete (DeletePluginReq) returns (google.protobuf.Empty);
+    rpc DeleteByDids (DeletePluginByDidsReq) returns (google.protobuf.Empty);
+    rpc Edit (EditPluginReq) returns (google.protobuf.Empty);
+}

@@ -58,3 +58,4 @@ go.sum
 gen/
 buf.lock
 v1/merged_http_api.yaml
+club_1

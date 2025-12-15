@@ -10,16 +10,16 @@ message SettingInfo {
     string endpoint = 3;
 }
 
-message EditSettingsReq {
+message SettingEditReq {
     SettingInfo info = 1;
 }
 
-message GetSettingsResp {
+message SettingGetResp {
     SettingInfo info = 1;
 }
 
 // Token鉴权
 service Setting {
-    rpc EditSettings (EditSettingsReq) returns (google.protobuf.Empty);
-    rpc GetSettings (google.protobuf.Empty) returns (EditSettingsReq);
+    rpc Edit (SettingEditReq) returns (google.protobuf.Empty);
+    rpc Get (google.protobuf.Empty) returns (SettingGetResp);
 }

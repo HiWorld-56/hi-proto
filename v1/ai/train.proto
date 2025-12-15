@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+
+package hi.ai;
+
+message TrainingBotReq {
+  repeated int32 ids = 1;
+  string bot = 2;
+}
+
+message TrainingStatusReq {
+  string bot = 1;
+}
+
+message TrainingStatusResp {
+  string status = 1;
+  int32 mem_count = 2;
+  int32 slice_count = 3;
+  string message = 4;
+}
+
+message TrainingClearReq {
+  string bot = 1;
+}
+
+message UploadFileReq {
+	string bot = 1;
+	string filename = 2;
+	bytes content = 3;
+}
+
+message BotTrainingFile {
+	int32 id = 1;
+	string bot = 3;
+    oneof kind {
+        string content = 20;
+        string path = 21;
+        string url = 22;
+    }
+	string title = 6;
+	int32 size = 7;
+	string type = 8;
+	int32 is_use = 9;
+	string digest = 10;
+	int64 training_time = 11;
+	int64 created_at = 12;
+	int64 updated_at = 13;
+}
+
+message ListBotFileReq {
+	string bot = 1;
+	bool use = 2;
+	hi.Pagination pagination = 3;
+}
+
+message ListBotFileResp {
+    int64 total = 1;
+	repeated BotTrainingFile list = 2;
+}
+
+message DeleteBotFileReq {
+	int32 id = 1;
+}
+
+message DeleteBotFilesReq {
+	string bot = 1;
+	repeated int32 ids = 2;
+}
+
+message DeleteBotFilesByDidReq {
+    repeated string bots = 1;
+}
+
+message GetBotFileReq {
+	int32 id = 1;
+}
+
+message GetBotFileResp {
+    BotTrainingFile file = 1;
+}
+
+message UpdateCotentReq {
+	string bot = 1;
+	int32 id = 2;
+	string content = 3;
+}
+
+message CreateCotentReq {
+	string bot = 1;
+	string content = 2;
+}
+
+message CreateCotentResp {
+    BotTrainingFile file = 1;
+}
+
+message EditDigestReq {
+	int32 id = 1;
+	string bot = 2;
+	string digest = 3;
+}
+
+// apiKey鉴权
+service BotTraining {
+    rpc TrainingBot (TrainingBotReq) returns (google.protobuf.Empty);
+    rpc TrainingStatus (TrainingStatusReq) returns (TrainingStatusResp);
+    rpc TrainingClear (TrainingClearReq) returns (google.protobuf.Empty);
+    rpc UploadFileReq (UploadFileReq) returns (google.protobuf.Empty);
+    rpc ListBotFile (ListBotFileReq) returns (ListBotFileResp);
+    rpc DeleteBotFile (DeleteBotFileReq) returns (google.protobuf.Empty);
+    rpc DeleteBotFiles (DeleteBotFilesReq) returns (google.protobuf.Empty);
+    rpc DeleteBotFilesByDid (DeleteBotFilesByDidReq) returns (google.protobuf.Empty);
+    rpc GetBotFile (GetBotFileReq) returns (GetBotFileResp);
+    rpc UpdateContent (UpdateCotentReq) returns (google.protobuf.Empty);
+    rpc CreateContent (CreateCotentReq) returns (CreateCotentResp);
+    rpc EditDegest (EditDigestReq) returns (google.protobuf.Empty);
+}

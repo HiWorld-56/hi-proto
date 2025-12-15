@@ -6,106 +6,82 @@ import "v1/hi.proto";
 package hi.ai;
 
 /////////////////////////////// 机器人 ///////////////////////////////
-// 机器人配置
-message BotConfig {
-    string system_prompt = 1; // 系统提示词
-	string user_prompt = 2; // 用户提示词
-	optional float freedom = 3;  // 控制模型输出的随机性，值越大越随机
-	string gpt_model = 4; // llm模型
-	string stt_model = 5; // 语音转文本模型
-	string stt_lang = 6; // 语言
-	string tts_model = 7; // 文本转语音模型
-	string embedding_model = 8; // 嵌入模型
-
-    optional int32 qa_num = 9;  // 上下文组数
-	string mem_model = 10;  //记忆模式（训练模式）
-	string use_mem = 11; // 启用记忆（启用训练数据）
-	string use_plugin_search = 12; // 启用搜索插件
-	string use_plugin_python = 13; // 启用python插件
-	string use_plugin_draw = 14; // 启用画图插件
-    string custom_prompt = 15; // 自定义提示词
-
-    // TODO: 下面的参数验证是否有用，没用的删除
-	// string use_about = 15; //
-    // int32 message_count = 16;
-    // string clear_ctx = 17;
+message Prompt {
+    string system = 1;
+    string user = 2;
 }
 
-message BotExtra {
-    string creator_did = 1;
-    string api_key = 2;
-    string note = 3;
-    string bind_api_key = 4;
-    string org_name = 5;
-    string org_logo = 6;
-    string about = 7;
-    string org_background = 8;
-    int32 use_tokens = 9; // 模型生成输出时消耗的token数。
-    int32 prompt_tokens = 10; // 模型输入时消耗的token数
-    int32 mem_tokens = 11; // 训练消耗的token数
-    int64 created_at = 12;
-    int32 favorited = 13;
+message Model {
+    string llm = 1;
+    string stt = 2;
+    string tts = 3;
+    string embedding = 4;
+}
+
+// 机器人配置
+message BotConfig {
+    Prompt prompt = 1;
+	float freedom = 2; // 控制模型输出的随机性，值越大越随机
+    Model model = 3;
+    int32 qa_num = 4; // 上下文组数
+	// string mem_model = 10; //记忆模式（训练模式）
+	bool use_mem = 11; // 启用记忆（启用训练数据）
+	bool use_plugin_search = 12; // 启用搜索插件
+	bool use_plugin_python = 13; // 启用python插件
+	bool use_plugin_draw = 14; // 启用画图插件
+}
+
+message Token {
+    int32 output = 1; // 模型生成输出时消耗的token数。
+    int32 input = 2; // 模型输入时消耗的token数
+    int32 mem = 3; // 训练消耗的token数
 }
 
 message BotInfo {
-    hi.Unit profile = 1;
+    hi.Unit base = 1;
     BotConfig config = 2;
-    BotExtra extra = 3;
-}
-
-message LLMModelsResp {
-    repeated string models = 1;
+    string creator = 4;
+    string note = 5;
+    Token token = 6;
+    int64 created_at = 7;
+    int32 favorited = 8;
 }
 
 message BotConfigResp {
     BotConfig config = 1;
 }
 
-message EmbeddingModelsResp {
+message ListLLMResp {
     repeated string models = 1;
 }
 
-message AudioModelsResp {
+message ListEmbeddingResp {
     repeated string models = 1;
-    repeated string stt_langs = 2;
 }
 
-message TextModelsResp {
+message ListSTTResp {
+    repeated string models = 1;
+    repeated string langs = 2;
+}
+
+message ListTTSResp {
     repeated string models = 1;
 }
 
 message CreateBotReq {
-	string did = 1;
-	string name = 2;
-    string type = 3; // bot: 软件机器人  hwbot: 硬件机器人
-    string avatar = 4;
-	string background = 5;
-    int32 qa_num = 6;
-    string system_prompt = 7;
-    string user_prompt = 8;
-    float freedom = 9;
-    string gpt_model = 10;
-    string embedding_model = 11;
-    string custom_prompt = 12;
+    hi.Unit base = 1;
 }
 
 message CreateBotResp {
-    hi.Unit profile = 1;
+    hi.Unit base = 1;
     BotConfig config = 2;
-    string creator_did = 3;
+    hi.Unit creator = 3;
 }
 
 message EditBotReq {
-    string did = 1;
-    string name = 2;
-    string avatar = 3;
-    string background = 4;
-    BotConfig bot_config = 5;
-    string org_name = 6;
-    string org_logo = 7;
-    string org_background = 8;
-    string about = 9;
-    string note = 10;
+    hi.Unit base = 1;
+    BotConfig config = 2;
+    string note = 3;
 }
 
 message ListBotResp {
@@ -114,30 +90,21 @@ message ListBotResp {
 }
 
 message ListBotByDidsReq {
-    repeated string bot_dids = 1;
+    repeated string dids = 1;
     hi.Pagination pagination = 2;
 }
-
 
 message ListBotByDidsResp {
     int64 total = 1;
     repeated BotInfo infos = 2;
 }
 
-message GetBotByDidsReq {
-    repeated string bot_dids = 1;
-}
-
-message GetBotByDidsResp {
-    repeated BotInfo infos = 1;
-}
-
 message DeleteBotReq {
-    string bot_did = 1;
+    string did = 1;
 }
 
 message FindBotReq {
-    string bot_did = 1;
+    string did = 1;
 }
 
 message FindBotResp {
@@ -145,284 +112,65 @@ message FindBotResp {
 }
 
 message FindBotCountReq {
-    string bot_did = 1;
+    string did = 1;
 }
 
 message FindBotCountResp {
     int32 message_count = 1;
-    int32 use_tokens = 2;
-    int32 prompt_tokens = 3;
-    int32 mem_tokens = 4;
+    Token token = 2;
 }
 
 message TransferReq {
-    string bot_did = 1;
-    string to_user_did = 2;
-}
-
-message BindApikeyReq {
-    string operate = 1;
-    string bot_did = 2;
+    string bot = 1;
+    string to = 2;
 }
 
 message UpdatesToDefaultReq {
-    repeated string bot_dids = 1;
+    repeated string dids = 1;
 }
 
 message FavoriteBotReq {
-    string bot_did = 1;
-    int32 operation = 2;
+    string did = 1;
+    // int32 operation = 2;
+    string opt = 2;
 }
 
-message FavoriteBotListReq {
+message ListFavoriteBotReq {
     hi.Pagination pagination = 1;
 }
 
-message FavoriteBotListResp {
+message ListFavoriteBotResp {
     int64 total = 1;
     repeated BotInfo infos = 2;
 }
 
-message FavoriteBotListByDIDsReq {
-    repeated string bot_dids = 1;
+message ListFavoriteBotByDIDsReq {
+    repeated string dids = 1;
     hi.Pagination pagination = 2;
 }
 
-message FavoriteBotListByDIDsResp {
+message ListFavoriteBotByDIDsResp {
     int64 total = 1;
     repeated BotInfo infos = 2;
 }
 
-
 // apiKey鉴权
 service Bot {
-    rpc LLMModels (google.protobuf.Empty) returns (LLMModelsResp);
-    rpc EmbeddingModels (google.protobuf.Empty) returns (EmbeddingModelsResp);
-    rpc AudioModels (google.protobuf.Empty) returns (AudioModelsResp);
-    rpc TextModels (google.protobuf.Empty) returns (TextModelsResp);
+    rpc ListLLM (google.protobuf.Empty) returns (ListLLMResp);
+    rpc ListEmbedding (google.protobuf.Empty) returns (ListEmbeddingResp);
+    rpc ListSTT (google.protobuf.Empty) returns (ListSTTResp);
+    rpc ListTTS (google.protobuf.Empty) returns (ListTTSResp);
     rpc BotConfig (google.protobuf.Empty) returns (BotConfigResp);
     rpc CreateBot (CreateBotReq) returns (CreateBotResp);
     rpc EditBot (EditBotReq) returns (google.protobuf.Empty);
     rpc ListBot (hi.Pagination) returns (ListBotResp);
     rpc ListBotByDids (ListBotByDidsReq) returns (ListBotByDidsResp);
-    rpc GetBotByDids (GetBotByDidsReq) returns (GetBotByDidsResp);
     rpc DeleteBot (DeleteBotReq) returns (google.protobuf.Empty);
     rpc FindBot (FindBotReq) returns (FindBotResp);
     rpc FindBotCount (FindBotCountReq) returns (FindBotCountResp);
     rpc Transfer (TransferReq) returns (google.protobuf.Empty);
-    rpc BindApikey (BindApikeyReq) returns (google.protobuf.Empty);
     rpc UpdatesToDefault (UpdatesToDefaultReq) returns (google.protobuf.Empty);
     rpc FavoriteBot (FavoriteBotReq) returns (google.protobuf.Empty);
-    rpc FavoriteBotList (FavoriteBotListReq) returns (FavoriteBotListResp);
-    rpc FavoriteBotListByDIDs (FavoriteBotListByDIDsReq) returns (FavoriteBotListByDIDsResp);
-}
-
-/////////////////////////////// 训练机器人 ///////////////////////////////
-message TrainingBotReq {
-  repeated int32 file_ids = 1;
-  string bot_did = 2;
-}
-
-message TrainingStatusReq {
-  string bot_did = 1;
-}
-
-message TrainingStatusResp {
-  string status = 1;
-  int32 mem_count = 2;
-  int32 slice_count = 3;
-  string message = 4;
-}
-
-message TrainingClearReq {
-  string bot_did = 1;
-}
-
-message CreateBotFileReq {
-	string bot_did = 1;
-	string filename = 2;
-	bytes file_content = 3;
-}
-
-message BotTrainingFile {
-	int32 file_id = 1;
-	string user_did = 2;
-	string bot_did = 3;
-	string content = 4;
-	string file_path = 5;
-	string title = 6;
-	int32 size = 7;
-	string type = 8;
-	int32 is_use = 9;
-	string digest = 10;
-	int64 training_time = 11;
-	int64 created_at = 12;
-	int64 updated_at = 13;
-}
-
-message ListBotFileReq {
-	string bot_did = 1;
-	bool use = 2;
-	hi.Pagination pagination = 3;
-}
-
-message ListBotFileResp {
-    int64 total = 1;
-	repeated BotTrainingFile training_file_list = 2;
-}
-
-message DeleteBotFileReq {
-	int32 file_id = 1;
-}
-
-message DeleteBotFilesReq {
-	string bot_did = 1;
-	repeated int32 file_ids = 2;
-}
-
-message DeleteBotFilesByDidReq {
-    repeated string bot_dids = 1;
-}
-
-message GetBotFileReq {
-	int32 file_id = 1;
-}
-
-message GetBotFileResp {
-    BotTrainingFile file = 1;
-}
-
-message UpdateCotentReq {
-	string bot_did = 1;
-	int32 file_id = 2;
-	string content = 3;
-}
-
-message CreateCotentReq {
-	string bot_did = 1;
-	string content = 2;
-}
-
-message CreateCotentResp {
-    BotTrainingFile file = 1;
-}
-
-message EditDigestReq {
-	int32 file_id = 1;
-	string bot_did = 2;
-	string digest = 3;
-}
-
-// apiKey鉴权
-service BotTraining {
-    rpc TrainingBot (TrainingBotReq) returns (google.protobuf.Empty);
-    rpc TrainingStatus (TrainingStatusReq) returns (TrainingStatusResp);
-    rpc TrainingClear (TrainingClearReq) returns (google.protobuf.Empty);
-    rpc CreateBotFile (CreateBotFileReq) returns (google.protobuf.Empty);
-    rpc ListBotFile (ListBotFileReq) returns (ListBotFileResp);
-    rpc DeleteBotFile (DeleteBotFileReq) returns (google.protobuf.Empty);
-    rpc DeleteBotFiles (DeleteBotFilesReq) returns (google.protobuf.Empty);
-    rpc DeleteBotFilesByDid (DeleteBotFilesByDidReq) returns (google.protobuf.Empty);
-    rpc GetBotFile (GetBotFileReq) returns (GetBotFileResp);
-    rpc UpdateContent (UpdateCotentReq) returns (google.protobuf.Empty);
-    rpc CreateContent (CreateCotentReq) returns (CreateCotentResp);
-    rpc EditDegest (EditDigestReq) returns (google.protobuf.Empty);
-}
-
-/////////////////////////////// 机器人插件 ///////////////////////////////
-message DrawConfigResp {
-	repeated string draw_style = 1;
-	string draw_style_default = 2;
-	repeated string draw_quality = 3;
-	string draw_quality_default = 4;
-	string draw_model = 5;
-	repeated string draw_size = 6;
-	string draw_size_default = 7;
-	int32 draw_n = 8;
-}
-
-message NamesReq {
-    string bot_did = 1;
-}
-
-message NamesResp {
-    message Function {
-	    string name = 1;
-	    string enable = 2;
-    }
-	repeated Function functions = 1;
-}
-
-message CreateBotPluginReq {
-	string bot_did = 1;
-	string name = 2;
-	string type = 3;
-	string url = 4;
-	string function_description = 5;
-	string draw_style = 6;
-	string draw_quality = 7;
-	string draw_size = 8;
-	string use_plugin_search = 9;
-	string use_plugin_python = 10;
-	string use_plugin_draw = 11;
-    string plugin_type = 12;
-}
-
-message BotPluginListReq {
-	string bot_did = 1;
-	string name = 2;
-	hi.Pagination pagination = 3;
-}
-
-message BotPluginInfo {
-	string bot_did = 1;
-	string uuid = 2;
-	string name = 3;
-	string method = 4;
-	string type = 5;
-	string url = 6;
-	string note = 7;
-	string function_name = 8;
-	string function_description = 9;
-	string draw_style = 10;
-	string draw_quality = 11;
-	string draw_model = 12;
-	string draw_size = 13;
-	int32 draw_n = 14;
-	int64 created_at = 15;
-    string plugin_type = 16;
-}
-
-message BotPluginListResp {
-    int64 total = 1;
-	repeated BotPluginInfo plugin_info_list = 2;
-}
-
-message DeleteBotPluginReq {
-	string uuid = 1;
-}
-
-message DeleteBotPluginByDidsReq {
-    repeated string bot_dids = 1;
-}
-
-message EditBotPluginReq {
-  string uuid = 1;
-  string bot_did = 2;
-  string type = 3;
-  string url = 4;
-  string function_description = 5;
-  string plugin_type = 6;
-  bytes content = 7;
-}
-
-// apiKey鉴权
-service BotPlugin {
-    rpc DrawConfig (google.protobuf.Empty) returns (DrawConfigResp);
-    rpc Names (NamesReq) returns (NamesResp);
-    rpc Create (CreateBotPluginReq) returns (google.protobuf.Empty);
-    rpc List (BotPluginListReq) returns (BotPluginListResp);
-    rpc Delete (DeleteBotPluginReq) returns (google.protobuf.Empty);
-    rpc DeleteByDids (DeleteBotPluginByDidsReq) returns (google.protobuf.Empty);
-    rpc Edit (EditBotPluginReq) returns (google.protobuf.Empty);
+    rpc ListFavoriteBot (ListFavoriteBotReq) returns (ListFavoriteBotResp);
+    rpc FavoriteBotListByDIDs (ListFavoriteBotByDIDsReq) returns (ListFavoriteBotByDIDsResp);
 }

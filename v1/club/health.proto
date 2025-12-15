@@ -4,10 +4,6 @@ import "google/protobuf/empty.proto";
 
 package hi.club;
 
-message  HealthStatus {
-    string status = 1;
-}
-
 service Health {
-	rpc CheckHealth (google.protobuf.Empty) returns (HealthStatus);
+    rpc Check (google.protobuf.Empty) returns (google.protobuf.Empty); // 不鉴权
 }
