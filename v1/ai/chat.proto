@@ -9,6 +9,10 @@ message Content {
 	string content = 2;
 }
 
+message SimpleReq {
+	repeated hi.ai.Content messages = 1;
+}
+
 message GenerateCidResp {
     string cid = 1;
 }
@@ -19,6 +23,9 @@ message DialogReq {
 	repeated Content messages = 3;
     string state = 4;
     string custom = 5;
+	bool return_plugin_use = 6;
+	bool return_training_data = 7;
+	bool return_context = 8;
 }
 
 message DialogResp {
@@ -131,6 +138,7 @@ message ChatResp {
 
 // apiKey鉴权
 service Chat {
+    rpc Simple (SimpleReq) returns (hi.ai.DialogResp);
 	rpc GenerateCid (google.protobuf.Empty) returns (GenerateCidResp);
     rpc Dialog (DialogReq) returns (DialogResp);
     rpc DialogStream (DialogReq) returns (stream DialogStreamResp);

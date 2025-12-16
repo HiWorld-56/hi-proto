@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/did/base.proto";
+
+package hi.club;
+
+service Coin {
+	rpc ListCoins (google.protobuf.Empty) returns (hi.did.ListCoinsResp);
+	rpc ListPublicCoins (google.protobuf.Empty) returns (hi.did.ListCoinsResp); 
+}

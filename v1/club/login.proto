@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+import "v1/did/login.proto";
+
+package hi.club;
+
+message EmbeddedLoginReq {
+  string req_id = 1;
+  string did = 2;
+  string app_name = 3;
+  string mac = 4;
+  string point = 5;
+}
+
+message EmbeddedLoginResp {
+	hi.Unit base = 1;
+	hi.Token token = 2;
+	hi.Mqtt mqtt = 3;
+	string master = 8;
+}
+
+service Login {
+	rpc EmbeddedLogin (hi.Web3Data) returns (EmbeddedLoginResp); // Web3鉴权 / EmbeddedLoginReq
+	rpc RefreshToken (hi.RefreshTokenReq) returns (hi.Token); // 不鉴权
+    rpc GenerateReq (hi.Node) returns (hi.ReqID); // 不鉴权
+    rpc GetReqStatus (hi.ReqID) returns (hi.did.ReqStatusResp);
+}

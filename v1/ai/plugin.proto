@@ -73,7 +73,7 @@ message ListPluginReq {
 	hi.Pagination pagination = 3;
 }
 
-message PluginListResp {
+message ListPluginResp {
     int64 total = 1;
 	repeated PluginItem list = 2;
 }
@@ -97,8 +97,8 @@ service Plugin {
     rpc PluginSwitch (PluginSwitchReq) returns (PluginSwitchResp);
     rpc SearchCreate (SearchCreateReq) returns (google.protobuf.Empty);
     rpc PythonCreate (PythonCreateReq) returns (google.protobuf.Empty);
-    rpc DrawCreate (DrawCreateReq) returns (DrawCreateResp)
-    rpc List (PluginListReq) returns (PluginListResp);
+    rpc DrawCreate (DrawCreateReq) returns (DrawCreateResp);
+    rpc List (ListPluginReq) returns (ListPluginResp);
     rpc Delete (DeletePluginReq) returns (google.protobuf.Empty);
     rpc DeleteByDids (DeletePluginByDidsReq) returns (google.protobuf.Empty);
     rpc Edit (EditPluginReq) returns (google.protobuf.Empty);

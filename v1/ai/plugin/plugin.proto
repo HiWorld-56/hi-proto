@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 
-import "../chat.proto";
+import "v1/ai/chat.proto";
 
 package hi.ai.plugin;
 

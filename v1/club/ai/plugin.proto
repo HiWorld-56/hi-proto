@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+import "v1/ai/plugin.proto";
+
+package hi.club.ai;
+
+// apiKey鉴权
+service Plugin {
+    rpc DrawConfig (google.protobuf.Empty) returns (hi.ai.DrawConfigResp);
+    rpc PluginSwitch (hi.ai.PluginSwitchReq) returns (hi.ai.PluginSwitchResp);
+    rpc SearchCreate (hi.ai.SearchCreateReq) returns (google.protobuf.Empty);
+    rpc PythonCreate (hi.ai.PythonCreateReq) returns (google.protobuf.Empty);
+    rpc DrawCreate (hi.ai.DrawCreateReq) returns (hi.ai.DrawCreateResp);
+    rpc List (hi.ai.ListPluginReq) returns (hi.ai.ListPluginResp);
+    rpc Delete (hi.ai.DeletePluginReq) returns (google.protobuf.Empty);
+    rpc DeleteByDids (hi.ai.DeletePluginByDidsReq) returns (google.protobuf.Empty);
+    rpc Edit (hi.ai.EditPluginReq) returns (google.protobuf.Empty);
+}

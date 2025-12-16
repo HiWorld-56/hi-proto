@@ -107,7 +107,7 @@ service BotTraining {
     rpc TrainingBot (TrainingBotReq) returns (google.protobuf.Empty);
     rpc TrainingStatus (TrainingStatusReq) returns (TrainingStatusResp);
     rpc TrainingClear (TrainingClearReq) returns (google.protobuf.Empty);
-    rpc UploadFileReq (UploadFileReq) returns (google.protobuf.Empty);
+    rpc UploadFile (UploadFileReq) returns (google.protobuf.Empty);
     rpc ListBotFile (ListBotFileReq) returns (ListBotFileResp);
     rpc DeleteBotFile (DeleteBotFileReq) returns (google.protobuf.Empty);
     rpc DeleteBotFiles (DeleteBotFilesReq) returns (google.protobuf.Empty);

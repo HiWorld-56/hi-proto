@@ -41,8 +41,15 @@ message GroupReadyResp {
 	hi.Unit group = 3;
 }
 
+message HostingReq {
+  string group = 1;
+  string bot = 2;
+  bool hosting = 3;
+}
+
 service Group {
 	rpc Create (GroupCreateReq) returns (GroupCreateResp); // 创建群
 	rpc Event (GroupEventReq) returns (google.protobuf.Empty); // 群事件
 	rpc Ready (GroupReadyReq) returns (GroupReadyResp); // 群就绪
+	rpc Hosting (HostingReq) returns (google.protobuf.Empty); // 设置托管
 }

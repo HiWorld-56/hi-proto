@@ -1,18 +1,20 @@
 syntax = "proto3";
 
+import "v1/did/base.proto";
+
 package hi.did;
 
 message GetPriceReq {
-    string symbol = 1;
+    string coin = 1;
 }
 
 message GetPriceResp {
     message Unit {
-        string price = 1;
-        string symbol = 2;
+        float price = 1;
+        Coin coin = 2;
     }
     repeated Unit list = 1;
-    string usdcny = 2;
+    float exchange = 2;
 }
 
 service Price {

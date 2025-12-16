@@ -1,9 +1,8 @@
 syntax = "proto3";
 
 import "v1/hi.proto";
-
 import "v1/ai/chat.proto";
-import "../q3/q3.proto";
+import "v1/club/q3/q3.proto";
 
 package hi.club.mqtt;
 
@@ -20,7 +19,8 @@ message Notice {
     hi.Unit from = 3;
     int64 timestamp = 4;
     int64 expiration = 5;
-    Extra extra = 6;
+    string status = 6;
+    Extra extra = 7;
 }
 
 message Prompt {

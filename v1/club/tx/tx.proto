@@ -1,0 +1,146 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+
+package hi.club.tx;
+
+////////////////////////////// 交易 //////////////////////////////
+
+message GetTxFeeReq {
+    string coin = 1;
+}
+
+message GetTxFeeResp {
+    string coin = 1;
+    string fee = 2;
+}
+
+message GetTxReq {
+    string tx_id = 1;
+    string order_id = 2;
+}
+
+// 交易方信息
+message TxParty {
+    string did = 1;
+    string coin = 2;
+    string total_amount = 3;
+    string amount = 4;
+    string fee = 5;
+}
+
+message TxOrder {
+    string order_id = 1;
+    string tx_hash = 2;
+    string from = 3;
+    string to = 4;
+    string coin = 5;
+    string total_amount = 6;
+    string amount = 7;
+    string order_status = 8;
+    string created_at = 9;
+    string updated_at = 10;
+    string status = 11;
+    string tx_stage = 12;
+}
+
+message TxInfo {
+    string tx_id = 1;
+    string tx_status = 2;
+    TxParty initiator = 3;
+    TxParty recipient = 4;
+    map<string, TxOrder> tx_orders = 5;
+    string created_at = 6;
+    string updated_at = 7;
+    string timestamp = 8;
+}
+
+
+message GetTxResp {
+    TxInfo tx_info = 1;
+}
+
+message AddTxReq {
+    TxInfo tx_info = 1;
+}
+
+message AddTxResp {
+    TxInfo tx_info = 1;
+}
+
+message UpdateOrderTxHashReq {
+    TxOrder tx_order = 1;
+}
+
+message GetTxListReq {
+    string did = 1;
+    hi.Pagination pagination = 2;
+}
+
+message GetTxListResp {
+    int32 count = 1;
+    repeated TxInfo infos = 2;
+}
+
+message GetAllTxInfoReq {
+    string id = 1;
+    hi.Pagination pagination = 2;
+}
+
+message GetAllTxInfoResp {
+    int64 total = 1;
+    int32 count = 2;
+    repeated TxInfo infos = 3;
+}
+
+service Tx {
+	rpc GetTxFee (GetTxFeeReq) returns (GetTxFeeResp);
+    rpc GetTx (GetTxReq) returns (GetTxResp);
+    rpc AddTx (AddTxReq) returns (AddTxResp);
+    rpc UpdateOrderTxHash (UpdateOrderTxHashReq) returns (google.protobuf.Empty);
+    rpc GetTxList (GetTxListReq) returns (GetTxListResp);
+    rpc GetAllTxInfo (GetAllTxInfoReq) returns (GetAllTxInfoResp);
+}
+
+
+////////////////////////////// 订单 //////////////////////////////
+
+message PcOrderData {
+    string did = 1;
+    string rn = 2;
+}
+
+message PcOrder {
+    string id = 1;
+    string order_id = 2;
+    string to_did = 3;
+    string amount = 4;
+    string type = 5;
+    string created_at = 6;
+    string updated_at = 7;
+    string deleted_at = 8;
+    string did = 9;
+    string status = 10;
+}
+
+message GetNotPulledPcOrdersResp {
+    repeated PcOrder orders = 1;
+}
+
+message UpdatePulledPcOrder {
+    string order_id = 1;
+    string status = 2;
+    string tx_hash = 3;
+    int64 timestamp = 4; 
+}
+
+message UpdatePulledPcOrderData {
+    string did = 1;
+    repeated UpdatePulledPcOrder orders = 2;
+}
+
+service Order {
+	rpc GetNotPulledPcOrders (hi.Web3Data) returns (GetNotPulledPcOrdersResp);
+    rpc UpdatePulledPcOrders (hi.Web3Data) returns (google.protobuf.Empty);
+}

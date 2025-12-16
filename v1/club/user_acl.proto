@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+import "v1/ai/user_acl.proto";
+
+package hi.club;
+
+service UserACL {
+    rpc Add (hi.ai.UserACLAddReq) returns (google.protobuf.Empty);
+    rpc Delete (hi.ai.UserACLDeleteReq) returns (google.protobuf.Empty);
+    rpc List (hi.ai.UserACLListReq) returns (hi.ai.UserACLListResp);
+    rpc ListType (google.protobuf.Empty) returns (hi.ai.UserACLListTypeResp);
+    rpc Edit (hi.ai.UserACLEditReq) returns (google.protobuf.Empty);
+}

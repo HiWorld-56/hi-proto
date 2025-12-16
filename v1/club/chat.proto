@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/ai/chat.proto";
+
+package hi.club;
+
+// apiKey鉴权
+service Chat {
+	rpc Simple (hi.ai.SimpleReq) returns (hi.ai.DialogResp);
+	rpc GenerateCid (google.protobuf.Empty) returns (hi.ai.GenerateCidResp);
+    rpc Dialog (hi.ai.DialogReq) returns (hi.ai.DialogResp);
+    rpc DialogStream (hi.ai.DialogReq) returns (stream hi.ai.DialogStreamResp);
+    rpc ClearContext (hi.ai.ClearContextReq) returns (google.protobuf.Empty);
+    rpc GetContext (hi.ai.GetContextReq) returns (hi.ai.GetContextResp);
+    rpc TextToSpeech (hi.ai.TextToSpeechReq) returns (hi.ai.TextToSpeechResp);
+    rpc SpeechToText (hi.ai.SpeechToTextReq) returns (hi.ai.SpeechToTextResp);
+    rpc SpeechToSpeech (hi.ai.SpeechToSpeechReq) returns (hi.ai.ChatResp);
+    rpc SpeechToSpeech2 (hi.ai.ToolCallResultsReq) returns (hi.ai.ChatResp);
+    rpc TextToText (hi.ai.TextToTextReq) returns (hi.ai.ChatResp);
+    rpc TextToText2 (hi.ai.ToolCallResultsReq) returns (hi.ai.ChatResp);
+}

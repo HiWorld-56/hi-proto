@@ -1,13 +1,10 @@
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
+import "v1/did/base.proto";
 
 package hi.ai;
 
-message ListSuperAdminUsersResp {
-    repeated string list = 1;
-}
-
 service Base {
-    rpc ListSuperAdminUsers (google.protobuf.Empty) returns (ListSuperAdminUsersResp); // 不鉴权
+    rpc ListSuperAdminUsers (google.protobuf.Empty) returns (hi.did.ListSuperAdminUsersResp); // 不鉴权
 }
