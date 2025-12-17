@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+import "v1/ai/bot.proto";
+
+package hi.club;
+
+message BindMasterReq {
+    string master = 1;
+	string bot = 2;
+}
+
+message UnbindMasterReq {
+    string master = 1;
+	string bot = 2;
+}
+
+message BindStatusReq {
+    string master = 1;
+	string bot = 2;
+}
+
+message BindStatusResp {
+	string master = 1;
+}
+
+
+message ListOnlineBotResp {
+    int64 total = 1;
+    repeated hi.ai.BotInfo infos = 2;
+}
+
+message GetBotMasterReq {
+    string bot = 1;
+}
+
+message GetBotMasterResp {
+    hi.Unit master = 1;
+}
+
+message OnlineBotsResp {
+    repeated hi.ai.BotInfo infos = 1;
+}
+
+service Bot {
+    rpc BindMaster (BindMasterReq) returns (google.protobuf.Empty); // 绑定机器人
+	rpc UnbindMaster (UnbindMasterReq) returns (google.protobuf.Empty); // 解绑机器人
+	rpc BindStatus (BindStatusReq) returns (BindStatusResp); // 机器人绑定状态
+	rpc ListOnlineBot (hi.Pagination) returns (ListOnlineBotResp); // 在线机器人列表
+	rpc OnlineBots (hi.DID) returns (OnlineBotsResp); // 用户的在线机器人
+	rpc GetBotMaster (GetBotMasterReq) returns (GetBotMasterResp); // 机器人主人
+}
+
