@@ -4,8 +4,8 @@ config_version: 3
 http:
   rules:
   # AI Login
-  - selector: hi.ai.Login.GenerateReq
-    post: /api/v1/login/generate_req
+  - selector: hi.ai.Login.GenerateReqId
+    post: /api/v1/login/generate_req_id
     body: '*'
   - selector: hi.ai.Login.GetReqStatus
     post: /api/v1/login/get_req_status
