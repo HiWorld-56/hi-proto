@@ -3,5 +3,211 @@ config_version: 3
 
 http:
   rules:
-    # - selector: .did.InviteCode.Create
-    #   post: /api/v1/invitecode/create
+# AI Login
+    - selector: hi.ai.Login.GenerateReq
+      post: /api/v1/login/generate_req
+      body: "*"
+    - selector: hi.ai.Login.GetReqStatus
+      post: /api/v1/login/get_req_status
+      body: "*"
+    - selector: hi.ai.Login.RefreshToken
+      post: /api/v1/login/refresh_token
+      body: "*"
+# AI ApiKey
+    - selector: hi.ai.ApiKey.Create
+      post: /api/v1/api_key/create
+    - selector: hi.ai.ApiKey.Edit
+      post: /api/v1/api_key/edit
+      body: "*"
+    - selector: hi.ai.ApiKey.List
+      post: /api/v1/api_key/list
+      body: "*"
+    - selector: hi.ai.ApiKey.Delete
+      post: /api/v1/api_key/delete
+      body: "*"
+# AI Base
+    - selector: hi.ai.Base.ListSuperAdminUsers
+      post: /api/v1/base/list_super_admin_users
+# AI Bot
+    - selector: hi.ai.Bot.ListLLM
+      get: /api/v1/bot/list_llm
+    - selector: hi.ai.Bot.ListEmbedding
+      get: /api/v1/bot/list_embedding
+    - selector: hi.ai.Bot.ListSTT
+      get: /api/v1/bot/list_stt
+    - selector: hi.ai.Bot.ListTTS
+      get: /api/v1/bot/list_tts
+    - selector: hi.ai.Bot.BotConfig
+      get: /api/v1/bot/bot_config
+    - selector: hi.ai.Bot.CreateBot
+      post: /api/v1/bot/create_bot
+      body: "*"
+    - selector: hi.ai.Bot.EditBot
+      post: /api/v1/bot/edit_bot
+      body: "*"
+    - selector: hi.ai.Bot.ListBot
+      post: /api/v1/bot/list_bot
+      body: "*"
+    - selector: hi.ai.Bot.ListBotByDids
+      post: /api/v1/bot/list_bot_by_dids
+      body: "*"
+    - selector: hi.ai.Bot.FindBot
+      post: /api/v1/bot/find_bot
+      body: "*"
+    - selector: hi.ai.Bot.FindBotCount
+      post: /api/v1/bot/find_bot_count
+      body: "*"
+    - selector: hi.ai.Bot.Transfer
+      post: /api/v1/bot/transfer
+      body: "*"
+    - selector: hi.ai.Bot.UpdatesToDefault
+      post: /api/v1/bot/updates_to_default
+      body: "*"
+    - selector: hi.ai.Bot.FavoriteBot
+      post: /api/v1/bot/favorite_bot
+      body: "*"
+    - selector: hi.ai.Bot.ListFavoriteBot
+      post: /api/v1/bot/list_favorite_bot
+      body: "*"
+    - selector: hi.ai.Bot.FavoriteBotListByDIDs
+      post: /api/v1/bot/favorite_bot_list_by_dids
+      body: "*"
+# AI Plugin
+    - selector: hi.ai.Plugin.DrawConfig
+      get: /api/v1/plugin/draw_config
+    - selector: hi.ai.Plugin.PluginSwitch
+      post: /api/v1/plugin/plugin_switch
+      body: "*"
+    - selector: hi.ai.Plugin.SearchCreate
+      post: /api/v1/plugin/search_create
+      body: "*"
+    - selector: hi.ai.Plugin.PythonCreate
+      post: /api/v1/plugin/python_create
+      body: "*"
+    - selector: hi.ai.Plugin.DrawCreate
+      post: /api/v1/plugin/draw_create
+      body: "*"
+    - selector: hi.ai.Plugin.List
+      post: /api/v1/plugin/list
+      body: "*"
+    - selector: hi.ai.Plugin.Delete
+      post: /api/v1/plugin/delete
+      body: "*"
+    - selector: hi.ai.Plugin.DeleteByDids
+      post: /api/v1/plugin/delete_by_dids
+      body: "*"
+    - selector: hi.ai.Plugin.Edit
+      post: /api/v1/apikey/edit
+      body: "*"
+# AI BotTraining
+    - selector: hi.ai.BotTraining.TrainingBot
+      post: /api/v1/bot_training/training_bot
+      body: "*"
+    - selector: hi.ai.BotTraining.TrainingStatus
+      post: /api/v1/bot_training/training_status
+      body: "*"
+    - selector: hi.ai.BotTraining.TrainingClear
+      post: /api/v1/bot_training/training_clear
+      body: "*"
+    - selector: hi.ai.BotTraining.UploadFile
+      post: /api/v1/bot_training/upload_file
+      body: "*"
+    - selector: hi.ai.BotTraining.ListBotFile
+      post: /api/v1/bot_training/list_bot_file
+      body: "*"
+    - selector: hi.ai.BotTraining.DeleteBotFile
+      post: /api/v1/bot_training/delete_bot_file
+      body: "*"
+    - selector: hi.ai.BotTraining.DeleteBotFiles
+      post: /api/v1/bot_training/delete_bot_files
+      body: "*"
+    - selector: hi.ai.BotTraining.DeleteBotFilesByDid
+      post: /api/v1/bot_training/delete_bot_files_by_did
+      body: "*"
+    - selector: hi.ai.BotTraining.GetBotFile
+      post: /api/v1/bot_training/get_bot_file
+      body: "*"
+    - selector: hi.ai.BotTraining.UpdateContent
+      post: /api/v1/bot_training/update_content
+      body: "*"
+    - selector: hi.ai.BotTraining.CreateContent
+      post: /api/v1/bot_training/create_content
+      body: "*"
+    - selector: hi.ai.BotTraining.EditDegest
+      post: /api/v1/bot_training/edit_degest
+      body: "*"
+# AI UserACL
+    - selector: hi.ai.UserACL.Add
+      post: /api/v1/user_acl/add
+      body: "*"
+    - selector: hi.ai.UserACL.Delete
+      post: /api/v1/user_acl/delete
+      body: "*"
+    - selector: hi.ai.UserACL.List
+      post: /api/v1/user_acl/list
+      body: "*"
+    - selector: hi.ai.UserACL.ListType
+      get: /api/v1/user_acl/list_type
+    - selector: hi.ai.UserACL.Edit
+      post: /api/v1/user_acl/edit
+      body: "*"
+# AI Setting
+    - selector: hi.ai.Setting.Edit
+      post: /api/v1/setting/edit
+      body: "*"
+    - selector: hi.ai.Setting.Get
+      get: /api/v1/setting/get
+# AI InviteCode
+    - selector: hi.ai.InviteCode.Create
+      post: /api/v1/invite_code/create
+    - selector: hi.ai.InviteCode.Edit
+      post: /api/v1/invite_code/edit
+      body: "*"
+    - selector: hi.ai.InviteCode.List
+      post: /api/v1/invite_code/list
+      body: "*"
+    - selector: hi.ai.InviteCode.Delete
+      post: /api/v1/invite_code/delete
+      body: "*"
+    - selector: hi.ai.InviteCode.Verify
+      post: /api/v1/invite_code/verify
+      body: "*"
+# AI Health
+    - selector: hi.ai.Health.Check
+      get: /api/v1/health/check
+# AI Chat
+    - selector: hi.ai.Chat.Simple
+      post: /api/v1/chat/simple
+      body: "*"
+    - selector: hi.ai.Chat.GenerateCid
+      get: /api/v1/chat/generate_cid
+    - selector: hi.ai.Chat.Dialog
+      post: /api/v1/chat/dialog
+      body: "*"
+    - selector: hi.ai.Chat.DialogStream
+      post: /api/v1/chat/dialog_stream
+      body: "*"
+    - selector: hi.ai.Chat.ClearContext
+      post: /api/v1/chat/clear_context
+      body: "*"
+    - selector: hi.ai.Chat.GetContext
+      post: /api/v1/chat/get_context
+      body: "*"
+    - selector: hi.ai.Chat.TextToSpeech
+      post: /api/v1/chat/text_to_speech
+      body: "*"
+    - selector: hi.ai.Chat.SpeechToText
+      post: /api/v1/chat/speech_to_text
+      body: "*"
+    - selector: hi.ai.Chat.SpeechToSpeech
+      post: /api/v1/chat/speech_to_speech
+      body: "*"
+    - selector: hi.ai.Chat.SpeechToSpeech2
+      post: /api/v1/chat/speech_to_speech2
+      body: "*"
+    - selector: hi.ai.Chat.TextToText
+      post: /api/v1/chat/text_to_text
+      body: "*"
+    - selector: hi.ai.Chat.TextToText2
+      post: /api/v1/chat/text_to_text2
+      body: "*"

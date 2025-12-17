@@ -7,7 +7,7 @@
 set -euo pipefail
 
 OUTPUT="v1/merged_http_api.yaml"
-SEARCH_DIRS=(v1/did v1/club)
+SEARCH_DIRS=(v1/did v1/club v1/ai)
 
 # mkdir -p "$(dirname "$OUTPUT")"
 
