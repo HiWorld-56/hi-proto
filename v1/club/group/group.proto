@@ -18,7 +18,7 @@ message Base {
 	hi.Unit base = 1;
 	string background = 2;
 	bool private = 3;
-	int32 dnd = 4; // 免打扰
+	bool dnd = 4; // 免打扰
 	int32 muted = 5;
 	int64 created_at = 6;
 	int64 updated_at = 7;
