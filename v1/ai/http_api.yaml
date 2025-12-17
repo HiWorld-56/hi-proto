@@ -97,7 +97,7 @@ http:
       post: /api/v1/plugin/delete_by_dids
       body: "*"
     - selector: hi.ai.Plugin.Edit
-      post: /api/v1/apikey/edit
+      post: /api/v1/plugin/edit
       body: "*"
 # AI BotTraining
     - selector: hi.ai.BotTraining.TrainingBot
