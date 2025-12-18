@@ -10,11 +10,11 @@ message GetPriceReq {
 
 message GetPriceResp {
     message Unit {
-        float price = 1;
+        string price = 1;
         Coin coin = 2;
     }
     repeated Unit list = 1;
-    float exchange = 2;
+    string exchange = 2;
 }
 
 service Price {

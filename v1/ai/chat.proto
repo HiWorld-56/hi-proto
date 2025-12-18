@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
+import "v1/hi.proto";
 
 package hi.ai;
 
@@ -136,6 +137,27 @@ message ChatResp {
 	repeated ToolCall tool_calls = 3;
 }
 
+message GetDelayReq {
+    string bot = 1;
+    string type = 2;
+    hi.Pagination pagination = 3;
+}
+
+message GetDelayResp {
+    message DelayUnit {
+        string bot = 1;
+        string uuid = 2;
+        string type = 3;
+        int64 llm = 4;
+        int64 llm2 = 5;
+        int64 stt = 6;
+        int64 tts = 7;
+        int64 function_call = 8;
+    }
+    int64 total = 1;
+	repeated DelayUnit units = 2;
+}
+
 // apiKey鉴权
 service Chat {
     rpc Simple (SimpleReq) returns (hi.ai.DialogResp);
@@ -150,4 +172,5 @@ service Chat {
     rpc SpeechToSpeech2 (ToolCallResultsReq) returns (ChatResp);
     rpc TextToText (TextToTextReq) returns (ChatResp);
     rpc TextToText2 (ToolCallResultsReq) returns (ChatResp);
+    rpc GetDelay (GetDelayReq) returns (GetDelayResp);
 }
