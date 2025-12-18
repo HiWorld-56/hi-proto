@@ -51,6 +51,9 @@ http:
     - selector: hi.ai.Bot.ListBotByDids
       post: /api/v1/bot/list_bot_by_dids
       body: "*"
+    - selector: hi.ai.Bot.DeleteBot
+      post: /api/v1/bot/delete_bot
+      body: "*"  
     - selector: hi.ai.Bot.FindBot
       post: /api/v1/bot/find_bot
       body: "*"
