@@ -27,7 +27,7 @@ message UserACLListResp {
         repeated string permissions = 2;
         string note = 3;
     }
-    int64 total = 1;
+    int32 total = 1;
     repeated Unit infos = 2;
 }
 

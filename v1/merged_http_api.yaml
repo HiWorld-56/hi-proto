@@ -55,8 +55,7 @@ http:
     post: /api/v1/bot/delete_bot
     body: '*'
   - selector: hi.ai.Bot.FindBot
-    post: /api/v1/bot/find_bot
-    body: '*'
+    get: /api/v1/bot/find_bot
   - selector: hi.ai.Bot.FindBotCount
     post: /api/v1/bot/find_bot_count
     body: '*'

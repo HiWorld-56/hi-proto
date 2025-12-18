@@ -24,9 +24,10 @@ message GenerateReqParam {
 }
 
 message ReqStatusResp {
-    string did = 1;
+    hi.Unit base = 1;
     string status = 2;
     hi.Token token = 3;
+    hi.Mqtt mqtt = 4;
 }
 
 service Login {

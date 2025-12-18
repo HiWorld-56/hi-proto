@@ -148,13 +148,13 @@ message GetDelayResp {
         string bot = 1;
         string uuid = 2;
         string type = 3;
-        int64 llm = 4;
-        int64 llm2 = 5;
-        int64 stt = 6;
-        int64 tts = 7;
-        int64 function_call = 8;
+        int32 llm = 4;
+        int32 llm2 = 5;
+        int32 stt = 6;
+        int32 tts = 7;
+        int32 function_call = 8;
     }
-    int64 total = 1;
+    int32 total = 1;
 	repeated DelayUnit units = 2;
 }
 

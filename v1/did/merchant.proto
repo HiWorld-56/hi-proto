@@ -41,11 +41,11 @@ message MerchantListResp {
 	repeated MerchantInfo list = 2;
 }
 
-message UserProfileGetResp {
+message UserBaseGetResp {
     hi.Unit profile = 1;
 }
 
-message UserProfileSetReq {
+message UserBaseSetReq {
     string did = 1;
     string name = 2;
     string avatar = 3;
@@ -59,8 +59,8 @@ service Merchant {
     rpc Get (google.protobuf.Empty) returns (MerchantGetResp); // Token鉴权
     rpc Set (MerchantSetReq) returns (google.protobuf.Empty); // Token鉴权
     rpc List (hi.DID) returns (MerchantListResp); // Token鉴权
-    rpc GetUserProfile (hi.DID) returns (UserProfileGetResp); // Token鉴权
-    rpc SetUserProfile (UserProfileSetReq) returns (google.protobuf.Empty); // Token鉴权
+    rpc GetUserBase (hi.DID) returns (UserBaseGetResp); // Token鉴权
+    rpc SetUserBase (UserBaseSetReq) returns (google.protobuf.Empty); // Token鉴权
     rpc GetMerchant (hi.DID) returns (MerchantGetResp); // Token鉴权
     rpc BatchSave (BatchSaveMerchantReq) returns (google.protobuf.Empty); // ExtendToken鉴权
 }
