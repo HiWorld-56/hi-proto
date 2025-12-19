@@ -28,14 +28,14 @@ message PluginItem {
 
 message PluginSwitchReq {
     string bot = 1;
-    bool use_mem = 2;
+    string use_mem = 2;
     bool use_plugin_search = 3;
 	bool use_plugin_python = 4;
 	bool use_plugin_draw = 5;
 }
 
 message PluginSwitchResp {
-    bool use_mem = 1;
+    string use_mem = 1;
     bool use_plugin_search = 2;
 	bool use_plugin_python = 3;
 	bool use_plugin_draw = 4;
