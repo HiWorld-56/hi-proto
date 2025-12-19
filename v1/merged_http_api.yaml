@@ -101,6 +101,9 @@ http:
   - selector: hi.ai.Plugin.Edit
     post: /api/v1/plugin/edit
     body: '*'
+  - selector: hi.ai.Plugin.GetDraw
+    post: /api/v1/plugin/get_draw
+    body: '*'
   # AI BotTraining
   - selector: hi.ai.BotTraining.TrainingBot
     post: /api/v1/bot_training/training_bot
