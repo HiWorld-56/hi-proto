@@ -102,6 +102,19 @@ message EditDigestReq {
 	string digest = 3;
 }
 
+message SetMemModelReq {
+  string bot = 1;
+  string mem_model = 2;
+}
+
+message GetMemModelReq {
+  string bot = 1;
+}
+
+message GetMemModelResp {
+  string mem_model = 1;
+}
+
 // apiKey鉴权
 service BotTraining {
     rpc TrainingBot (TrainingBotReq) returns (google.protobuf.Empty);
@@ -116,4 +129,6 @@ service BotTraining {
     rpc UpdateContent (UpdateCotentReq) returns (google.protobuf.Empty);
     rpc CreateContent (CreateCotentReq) returns (CreateCotentResp);
     rpc EditDegest (EditDigestReq) returns (google.protobuf.Empty);
+    rpc SetMemModel (SetMemModelReq) returns (google.protobuf.Empty);
+    rpc GetMemModel (GetMemModelReq) returns (GetMemModelResp);
 }

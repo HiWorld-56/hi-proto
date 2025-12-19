@@ -25,7 +25,7 @@ message BotConfig {
     Model model = 3;
     int32 qa_num = 4; // 上下文组数
 	// string mem_model = 10; //记忆模式（训练模式）
-	string use_mem = 11; // 启用记忆（启用训练数据）
+	bool use_mem = 11; // 启用记忆（启用训练数据）
 	bool use_plugin_search = 12; // 启用搜索插件
 	bool use_plugin_python = 13; // 启用python插件
 	bool use_plugin_draw = 14; // 启用画图插件

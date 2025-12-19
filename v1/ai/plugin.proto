@@ -21,21 +21,22 @@ message PluginItem {
     string bot = 2;
     string type = 3;
     string sub_type = 4;
-    string url = 5;
-    string description = 6;
-    int64 created_at = 7;
+    string name = 5;
+    string url = 6;
+    string description = 7;
+    int64 created_at = 8;
 }
 
 message PluginSwitchReq {
     string bot = 1;
-    string use_mem = 2;
+    bool use_mem = 2;
     bool use_plugin_search = 3;
 	bool use_plugin_python = 4;
 	bool use_plugin_draw = 5;
 }
 
 message PluginSwitchResp {
-    string use_mem = 1;
+    bool use_mem = 1;
     bool use_plugin_search = 2;
 	bool use_plugin_python = 3;
 	bool use_plugin_draw = 4;
@@ -52,7 +53,8 @@ message PythonCreateReq {
     string bot = 1;
     string type = 2;
     string url = 3;
-    string description = 4;
+    string name = 4;
+    string description = 5;
 }
 
 message DrawCreateReq {

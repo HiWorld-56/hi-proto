@@ -102,8 +102,7 @@ http:
     post: /api/v1/plugin/edit
     body: '*'
   - selector: hi.ai.Plugin.GetDraw
-    post: /api/v1/plugin/get_draw
-    body: '*'
+    get: /api/v1/plugin/get_draw
   # AI BotTraining
   - selector: hi.ai.BotTraining.TrainingBot
     post: /api/v1/bot_training/training_bot
@@ -141,6 +140,11 @@ http:
   - selector: hi.ai.BotTraining.EditDegest
     post: /api/v1/bot_training/edit_degest
     body: '*'
+  - selector: hi.ai.BotTraining.SetMemModel
+    post: /api/v1/bot_training/set_mem_model
+    body: '*'
+  - selector: hi.ai.BotTraining.GetMemModel
+    get: /api/v1/bot_training/get_mem_model
   # AI UserACL
   - selector: hi.ai.UserACL.Add
     post: /api/v1/user_acl/add
