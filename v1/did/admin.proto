@@ -46,6 +46,7 @@ service InviteCode {
 }
 
 message DAppInfo {
+    string uuid         = 1;  // 分类
     string class        = 2;  // 分类
     string logo         = 3;  // 应用图片
     string title        = 4;  // 应用标题
