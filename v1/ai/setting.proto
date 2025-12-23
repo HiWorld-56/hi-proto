@@ -6,7 +6,7 @@ package hi.ai;
 
 message SettingInfo {
     string proxy_url = 1;
-    string enable = 2;
+    bool enable = 2;
     string endpoint = 3;
 }
 
