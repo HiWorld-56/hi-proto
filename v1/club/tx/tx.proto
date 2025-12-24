@@ -73,25 +73,24 @@ message UpdateOrderTxHashReq {
     TxOrder tx_order = 1;
 }
 
-message GetTxListReq {
+message ListTxReq {
     string did = 1;
     hi.Pagination pagination = 2;
 }
 
-message GetTxListResp {
-    int32 count = 1;
+message ListTxResp {
+    int32 total = 1;
     repeated TxInfo infos = 2;
 }
 
-message GetAllTxInfoReq {
+message ListAllTxReq {
     string id = 1;
     hi.Pagination pagination = 2;
 }
 
-message GetAllTxInfoResp {
+message ListAllTxResp {
     int32 total = 1;
-    int32 count = 2;
-    repeated TxInfo infos = 3;
+    repeated TxInfo infos = 2;
 }
 
 service Tx {
@@ -99,8 +98,8 @@ service Tx {
     rpc GetTx (GetTxReq) returns (GetTxResp);
     rpc AddTx (AddTxReq) returns (AddTxResp);
     rpc UpdateOrderTxHash (UpdateOrderTxHashReq) returns (google.protobuf.Empty);
-    rpc GetTxList (GetTxListReq) returns (GetTxListResp);
-    rpc GetAllTxInfo (GetAllTxInfoReq) returns (GetAllTxInfoResp);
+    rpc ListTx (ListTxReq) returns (ListTxResp);
+    rpc ListAllTx (ListAllTxReq) returns (ListAllTxResp);
 }
 
 

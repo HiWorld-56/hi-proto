@@ -187,3 +187,10 @@ http:
       body: "*"
     - selector: hi.club.ai.BotTraining.GetMemModel
       get: /api/v1/bot_training/get_mem_model
+# Club Tx
+    - selector: hi.club.tx.Tx.ListTx
+      post: /api/v1/tx/list_tx
+      body: "*"
+    - selector: hi.club.tx.Tx.ListAllTx
+      post: /api/v1/tx/list_all_tx
+      body: "*"
