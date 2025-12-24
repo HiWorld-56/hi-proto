@@ -411,9 +411,8 @@ http:
   - selector: hi.club.tx.Tx.ListTx
     post: /api/v1/tx/list_tx
     body: '*'
-  - selector: hi.club.tx.Tx.ListAllTx
-    post: /api/v1/tx/list_all_tx
-    body: '*'
+  - selector: hi.club.tx.Tx.GetTx
+    get: /api/v1/tx/get_tx
   # InviteCode
   - selector: hi.did.InviteCode.Create
     post: /api/v1/invitecode/create

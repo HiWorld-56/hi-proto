@@ -59,7 +59,7 @@ service User {
 	rpc DeleteSystemMessage (DeleteSystemMessageReq) returns (google.protobuf.Empty); // 删除系统消息
 	rpc DeleteAllSystemMessage (google.protobuf.Empty) returns (google.protobuf.Empty); // 删除所有系统消息
 	rpc HandleSystemMessage (HandleSystemMessageReq) returns (google.protobuf.Empty); // 处理系统消息
-	rpc ListFriends (hi.Pagination) returns (ListFriendsResp); // 当前用户好友
+	rpc ListFriends (google.protobuf.Empty) returns (ListFriendsResp); // 当前用户好友
 	rpc AddFriend (AddFriendReq) returns (google.protobuf.Empty); // 添加好友
 	rpc DeleteFriend (DeleteFriendReq) returns (google.protobuf.Empty); // 删除好友
 	rpc ListGroups (google.protobuf.Empty) returns (ListGroupReqResp); // 机器人所在群的群Code
