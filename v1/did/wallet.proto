@@ -73,8 +73,8 @@ message GetUserAssetsReq {
   string coin = 2;
 }
 
-// 美元金额 = amount*price*usdt_usd
-// 人民币金额 = amount*price*usdt_usd*exchange
+// 美元金额 = amount*price
+// 人民币金额 = amount*price*exchange
 message GetUserAssetsResp {
     message Unit {
         Coin coin = 1;
@@ -83,7 +83,6 @@ message GetUserAssetsResp {
         string price = 4;  // 币价，单位USDT
     }
     repeated Unit unit = 1;
-    string usdt_usd = 2; // 汇率：USDT->USD
     string exchange = 3; // 汇率：USD->CNY
 }
 

@@ -17,4 +17,5 @@ service Plugin {
     rpc Delete (hi.ai.DeletePluginReq) returns (google.protobuf.Empty);
     rpc DeleteByDids (hi.ai.DeletePluginByDidsReq) returns (google.protobuf.Empty);
     rpc Edit (hi.ai.EditPluginReq) returns (google.protobuf.Empty);
+    rpc GetDraw (hi.ai.GetDrawReq) returns (hi.ai.GetDrawResp);
 }

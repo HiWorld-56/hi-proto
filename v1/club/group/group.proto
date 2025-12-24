@@ -129,7 +129,7 @@ message ListGroupByDIDReq {
 	string bot = 1;
 }
 
-service Srv {
+service Group {
 	rpc Get (GetReq) returns (Base); // 群信息
 	rpc Create (CreateReq) returns (Base); // 创建群
 	rpc CreateSingle (CreateSingleReq) returns (Base); // 创建单聊群
