@@ -81,6 +81,7 @@ message Extra {
         MemberExit member_exit = 4;
         GroupInfo group_info = 5;
         hi.club.q3.GroupReadyResp ready = 6;
+        hi.club.q3.User user = 7;
     }
 }
 
