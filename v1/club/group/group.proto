@@ -27,6 +27,7 @@ message Base {
 message Unit {
 	hi.Unit base = 1;
     string role = 2;
+	bool hosting = 3;
 }
 
 message Info {
