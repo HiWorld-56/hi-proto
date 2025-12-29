@@ -124,7 +124,6 @@ message SetRoleReq {
 
 message GetRoleReq {
   string group = 1;
-  string user = 2;
 }
 
 message GetRoleResp {
