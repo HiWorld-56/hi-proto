@@ -105,4 +105,5 @@ message GroupInfo {
     hi.Unit base = 1;
     string back_ground = 2;
     bool mute =3;
+    hi.Unit owner = 4;
 }
