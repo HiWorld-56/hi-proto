@@ -8,7 +8,7 @@ package hi.did;
 message Coin {
     string icon = 1;
     string name = 2;
-    string contract = 3;
+    string category = 3; // public-公共币种, custom-自定义币种
 }
 
 message ListCoinsResp {
