@@ -28,8 +28,7 @@ message TrainingClearReq {
 message UploadFileReq {
 	string bot = 1;
 	string filename = 2;
-  string content = 3; // base64
-	// bytes content = 3;
+	bytes content = 3;
 }
 
 message BotTrainingFile {

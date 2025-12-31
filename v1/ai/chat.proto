@@ -45,7 +45,6 @@ message ClearContextReq {
 
 message GetContextReq {
     string cid = 1;
-    string bot = 2;
 }
 
 message QA {
@@ -138,14 +137,14 @@ message ChatResp {
 	repeated ToolCall tool_calls = 3;
 }
 
-message GetDelayReq {
+message GetBotDelayReq {
     string bot = 1;
     string type = 2;
     hi.Pagination pagination = 3;
 }
 
-message GetDelayResp {
-    message DelayUnit {
+message GetBotDelayResp {
+    message BotDelayUnit {
         string bot = 1;
         string uuid = 2;
         string type = 3;
@@ -156,7 +155,7 @@ message GetDelayResp {
         int32 function_call = 8;
     }
     int32 total = 1;
-	repeated DelayUnit units = 2;
+	repeated BotDelayUnit units = 2;
 }
 
 // apiKey鉴权
@@ -173,5 +172,5 @@ service Chat {
     rpc SpeechToSpeech2 (ToolCallResultsReq) returns (ChatResp);
     rpc TextToText (TextToTextReq) returns (ChatResp);
     rpc TextToText2 (ToolCallResultsReq) returns (ChatResp);
-    rpc GetDelay (GetDelayReq) returns (GetDelayResp);
+    rpc GetBotDelay (GetBotDelayReq) returns (GetBotDelayResp);
 }

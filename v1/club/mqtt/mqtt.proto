@@ -13,6 +13,13 @@ message Packet {
     }
 }
 
+/*
+type: 
+kicked-out
+invite-friend
+invite-group
+q3_sync
+*/
 message Notice {
     string uuid = 1;
     string type = 2;
@@ -81,7 +88,7 @@ message Extra {
         MemberExit member_exit = 4;
         GroupInfo group_info = 5;
         hi.club.q3.GroupReadyResp ready = 6;
-        hi.club.q3.User user = 7;
+        hi.club.q3.GroupEventReq event = 7;
     }
 }
 

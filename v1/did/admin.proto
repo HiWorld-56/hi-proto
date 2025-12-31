@@ -46,20 +46,15 @@ service InviteCode {
 }
 
 message DAppInfo {
-    string uuid         = 1;  // 分类
-    string class        = 2;  // 分类
-    string logo         = 3;  // 应用图片
-    string title        = 4;  // 应用标题
-    string description  = 5;  // 应用描述
-    string url          = 6;  // 应用链接
-    bool nav            = 7;  // 是否在导航栏展示
-    bool external       = 8;  // 是否内置浏览器打开
-    bool promotion      = 9;  // 是否推广
-}
-
-message DAppEntity {
-    DAppInfo info = 1;
-    string uuid   = 2; // 唯一标识
+    string uuid         = 1; // uuid
+    string class        = 2; // 分类
+    string logo         = 3; // 应用图片
+    string title        = 4; // 应用标题
+    string description  = 5; // 应用描述
+    string url          = 6; // 应用链接
+    bool nav            = 7; // 是否在导航栏展示
+    bool external       = 8; // 是否内置浏览器打开
+    bool promotion      = 9; // 是否推广
 }
 
 message DAppListByClassResp {
@@ -95,7 +90,7 @@ service DApp {
     rpc GetTop (google.protobuf.Empty) returns (DAppInfo); // Token鉴权
     rpc UpdateTop (DAppUpdateTopReq) returns (google.protobuf.Empty); // Token鉴权
     rpc Create (DAppInfo) returns (google.protobuf.Empty); // Token鉴权
-    rpc Edit (DAppEntity) returns (google.protobuf.Empty); // Token鉴权
+    rpc Edit (DAppInfo) returns (google.protobuf.Empty); // Token鉴权
     rpc UpdateOrder (DAppUpdateOrderReq) returns (google.protobuf.Empty); // Token鉴权
     rpc Delete (DAppDeleteReq) returns (google.protobuf.Empty); // Token鉴权
 }

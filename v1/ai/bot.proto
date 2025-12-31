@@ -44,7 +44,7 @@ message BotInfo {
     string note = 5;
     Token token = 6;
     int64 created_at = 7;
-    string favorited = 8;
+    bool favorited = 8;
 }
 
 message BotConfigResp {
