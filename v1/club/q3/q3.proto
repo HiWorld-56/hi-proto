@@ -45,7 +45,26 @@ message HostingReq {
   bool hosting = 2;
 }
 
+message GetInfosReq {
+	repeated string groups = 1;
+}
+
+message Info {
+	message Unit {
+		hi.Unit ghost = 1;
+		hi.Unit bot = 2;
+	}
+
+    hi.Unit group = 1;
+	repeated Unit list = 2;
+}
+
+message GetInfosResp {
+	repeated Info list = 1;
+}
+
 service Group {
+	rpc GetInfos (GetInfosReq) returns (GetInfosResp); // 
 	rpc Create (GroupCreateReq) returns (GroupCreateResp); // 创建群
 	rpc Event (GroupEventReq) returns (google.protobuf.Empty); // 群事件
 	rpc Ready (GroupReadyReq) returns (GroupReadyResp); // 群就绪
