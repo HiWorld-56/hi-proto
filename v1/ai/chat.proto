@@ -45,6 +45,7 @@ message ClearContextReq {
 
 message GetContextReq {
     string cid = 1;
+    string bot = 2;
 }
 
 message QA {
