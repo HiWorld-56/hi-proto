@@ -42,8 +42,7 @@ message GroupReadyResp {
 
 message HostingReq {
   string group = 1;
-  string bot = 2;
-  bool hosting = 3;
+  bool hosting = 2;
 }
 
 service Group {
