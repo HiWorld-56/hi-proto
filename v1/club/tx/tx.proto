@@ -107,7 +107,7 @@ service Tx {
 
 message PcOrderData {
     string did = 1;
-    string rn = 2;
+    string nonce = 2;
 }
 
 message PcOrder {
