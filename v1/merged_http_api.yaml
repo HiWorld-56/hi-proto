@@ -485,6 +485,9 @@ http:
   - selector: hi.did.Login.GetReqStatus
     post: /api/v1/login/get_req_status
     body: '*'
+  - selector: hi.did.Login.RefreshToken
+    post: /api/v1/login/refresh_token
+    body: '*'
   # Merchant
   - selector: hi.did.Merchant.Get
     get: /api/v1/merchant/get
