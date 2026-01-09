@@ -5,6 +5,12 @@ import "v1/hi.proto";
 
 package hi.did;
 
+message RefreshTokenReq {
+	hi.Node node = 1;
+	string did = 2;
+	string refresh_token = 3;
+}
+
 // hidid web/app/pc登录
 message LoginReq {
     hi.DID did = 1;
@@ -31,7 +37,7 @@ message ReqStatusResp {
 }
 
 service Login {
-    rpc RefreshToken (hi.RefreshTokenReq) returns (hi.Token); // 不鉴权
+    rpc RefreshToken (RefreshTokenReq) returns (hi.Token); // 不鉴权
     rpc Verify (hi.Web3Data) returns (LoginResp); // LoginReq // Web3鉴权
     rpc GenerateReqId (GenerateReqIdReq) returns (hi.ReqID); // 不鉴权
     rpc GetReqStatus (hi.ReqID) returns (ReqStatusResp); // 不鉴权

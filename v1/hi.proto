@@ -58,9 +58,3 @@ message Pagination {
  	int32 page = 1;
     int32 limit = 2;
 }
-
-message RefreshTokenReq {
-	hi.Node node = 1;
-	string did = 2;
-	string refresh_token = 3;
-}
