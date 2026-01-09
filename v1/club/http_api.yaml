@@ -193,3 +193,6 @@ http:
       body: "*"
     - selector: hi.club.tx.Tx.GetTx
       get: /api/v1/tx/get_tx
+    - selector: hi.club.tx.Tx.ListAllTx
+      post: /api/v1/tx/list_all_tx
+      body: "*"
