@@ -1,43 +1,36 @@
-
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
+import "v1/hi.proto";
 
 package hi.ai;
+
+message Content {
+	string type = 1;
+	string content = 2;
+}
+
+message SimpleReq {
+	repeated hi.ai.Content messages = 1;
+}
 
 message GenerateCidResp {
     string cid = 1;
 }
 
-message MessagesContent {
-	string type = 1;
-	string content = 2;
-}
-
 message DialogReq {
     string did = 1;
 	string cid = 2;
-	repeated MessagesContent messages = 3;
+	repeated Content messages = 3;
     string state = 4;
-    string return_plugin_use = 5;
-    string return_training_data = 6;
-    string return_context = 7;
-    string customer = 8;
+    string custom = 5;
+	bool return_plugin_use = 6;
+	bool return_training_data = 7;
+	bool return_context = 8;
 }
 
 message DialogResp {
     string reply = 1;
-}
-
-message DialogStreamReq {
-	string did = 1;
-	string cid = 2;
-	repeated MessagesContent messages = 3;
-	string state = 4;
-	string return_plugin_use = 5;
-	string return_training_data = 6;
-	string return_context = 7;
-    string customer = 8;
 }
 
 message DialogStreamResp {
@@ -52,48 +45,39 @@ message ClearContextReq {
 
 message GetContextReq {
     string cid = 1;
-    string bot_did = 2;
+    string bot = 2;
 }
 
-message FunctionCall {
-	string name = 1;
-	string arguments = 2;
-}
-
-message ToolCall {
-	optional int32 index = 1;
-	string id = 2;
-	string type = 3;
-    FunctionCall function = 4;
-}
-
-message ChatMessageImageURL {
-	string url = 1;
-	string detail = 2;
-}
-
-message ChatMessagePart {
-	string type = 1;
-	string text = 2;
-	ChatMessageImageURL image_url = 3;
-}
-
-message ChatCompletionMessage {
-	string role = 1;
-	string content = 2;
-	string refusal = 3;
-	string name = 4;
-	FunctionCall function_call = 5;
-	repeated ToolCall tool_calls = 6;
-	string tool_call_id = 7;
-	repeated ChatMessagePart multi_content = 8;
+message QA {
+    repeated Content q = 3; // User
+    string a = 2; // assistant
 }
 
 message GetContextResp {
-	repeated ChatCompletionMessage message_list = 1;
+	repeated QA list = 1;
 }
 
-message FunctionDefinition {
+message TextToSpeechReq {
+    string text = 1;
+    string model = 2;
+    string style = 3;
+}
+
+message TextToSpeechResp {
+    string url = 1;
+}
+
+message SpeechToTextReq {
+    string url = 1;
+    string model = 2;
+    string lang = 3;
+}
+
+message SpeechToTextResp {
+    string text = 1;
+}
+
+message Function {
 	string name = 1;
 	string description = 2;
 	bool strict = 3;
@@ -102,116 +86,92 @@ message FunctionDefinition {
 
 message Tool {
 	string type = 1;
-	FunctionDefinition function = 2;
+	Function function = 2;
 }
 
 message SpeechToSpeechReq {
     string did = 1;
     string cid = 2;
-    repeated MessagesContent messages = 3;
-    string voice = 4;
+    repeated Content messages = 3;
+    string style = 4;
     repeated Tool tools = 5;
     string tool_choice = 6;
-    string customer = 7;
+    string custom = 7;
     string state = 8;
-}
-
-message SpeechToSpeechResp {
-	optional string path = 1;
-	optional string tool_id = 2;
-	repeated ToolCall tool_calls = 3;
-}
-
-message ToolCallsResult {
-	string tool_call_id = 1;
-	repeated MessagesContent results = 2;
-}
-
-message CallToolsReq {
-	string tool_id = 1;
-	repeated ToolCallsResult tool_results = 2;
 }
 
 message TextToTextReq {
   string did = 1;
   string cid = 2;
-  repeated MessagesContent messages = 3;
-  string voice = 4;
+  repeated Content messages = 3;
   repeated Tool tools = 5;
   string tool_choice = 6;
-  string customer = 7;
+  string custom = 7;
   string state = 8;
 }
 
-message TextToTextResp {
-	optional string path = 1;
-	optional string tool_id = 2;
+message ToolCallResultsReq {
+	string id = 1;
+	repeated ToolCallResult results = 2;
+}
+
+message ToolCall {
+    string id = 1;
+    string name = 2;
+    string arguments = 3;
+}
+
+message ToolCallResult {
+	string id = 1;
+	repeated Content results = 2;
+}
+
+// final == true
+//   result = text / url
+//   tool_calls = null
+// final == false
+//   result = tool_id
+//   tool_calls = tool_calls
+message ChatResp {
+    bool final = 1;
+    string result = 2;
 	repeated ToolCall tool_calls = 3;
 }
 
-message TextToSpeechReq {
-    string message = 1;
-    string gpt_model = 2;
-    string voice = 3;
+message GetBotDelayReq {
+    string bot = 1;
+    string type = 2;
+    hi.Pagination pagination = 3;
 }
 
-message TextToSpeechResp {
-    string path = 1;
-}
-
-message SpeechToTextReq {
-    string url = 1;
-    string transcription_model = 2;
-    string lang = 3;
-}
-
-message SpeechToTextResp {
-    string reply = 1;
-}
-
-message MultiModalDialogReq {
-    string did = 1;
-    string cid = 2;
-    repeated MessagesContent messages = 3;
-    string voice = 4;
-    repeated Tool tools = 5;
-    string tool_choice = 6;
-    string customer = 7;
-    string state = 8;
-    bool enable_sts = 9; // true: 语音转语音， false: 文本转文本
-}
-
-message MultiModalDialogResp {
-	optional string reply = 1;
-	optional string tool_id = 2;
-	repeated ToolCall tool_calls = 3;
-}
-
-message MultiModalDialogToolCallsReq {
-    string tool_id = 1;
-	repeated ToolCallsResult tool_results = 2;
-    bool enable_sts = 3;
-}
-
-message MultiModalDialogToolCallsResp {
-	optional string reply = 1;
-	optional string tool_id = 2;
-	repeated ToolCall tool_calls = 3;
+message GetBotDelayResp {
+    message BotDelayUnit {
+        string bot = 1;
+        string uuid = 2;
+        string type = 3;
+        int32 llm = 4;
+        int32 llm2 = 5;
+        int32 stt = 6;
+        int32 tts = 7;
+        int32 function_call = 8;
+    }
+    int32 total = 1;
+	repeated BotDelayUnit units = 2;
 }
 
 // apiKey鉴权
 service Chat {
+    rpc Simple (SimpleReq) returns (hi.ai.DialogResp);
 	rpc GenerateCid (google.protobuf.Empty) returns (GenerateCidResp);
     rpc Dialog (DialogReq) returns (DialogResp);
-    rpc DialogStream (DialogStreamReq) returns (stream DialogStreamResp);
+    rpc DialogStream (DialogReq) returns (stream DialogStreamResp);
     rpc ClearContext (ClearContextReq) returns (google.protobuf.Empty);
     rpc GetContext (GetContextReq) returns (GetContextResp);
-    rpc SpeechToSpeech (SpeechToSpeechReq) returns (SpeechToSpeechResp);
-    rpc SpeechToSpeechResults (CallToolsReq) returns (SpeechToSpeechResp);
-    rpc TextToText (TextToTextReq) returns (TextToTextResp);
-    rpc TextToTextToolResults (CallToolsReq) returns (TextToTextResp);
     rpc TextToSpeech (TextToSpeechReq) returns (TextToSpeechResp);
     rpc SpeechToText (SpeechToTextReq) returns (SpeechToTextResp);
-    rpc MultiModalDialog (MultiModalDialogReq) returns (MultiModalDialogResp);
-    rpc MultiModalDialogToolCalls (MultiModalDialogToolCallsReq) returns (MultiModalDialogToolCallsResp);
+    rpc SpeechToSpeech (SpeechToSpeechReq) returns (ChatResp);
+    rpc SpeechToSpeech2 (ToolCallResultsReq) returns (ChatResp);
+    rpc TextToText (TextToTextReq) returns (ChatResp);
+    rpc TextToText2 (ToolCallResultsReq) returns (ChatResp);
+    rpc GetBotDelay (GetBotDelayReq) returns (GetBotDelayResp);
 }

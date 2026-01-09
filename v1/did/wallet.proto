@@ -55,7 +55,7 @@ message TotalAssetsResp {
 
 message ListUsersAssetsReq {
     string currency = 1;
-    hi.Pagination p = 2;
+    hi.Pagination pagination = 2;
 }
 
 message ListUsersAssetsResp {
@@ -64,7 +64,7 @@ message ListUsersAssetsResp {
         string avatar = 2;
         string n = 3;
     }
-    int64 total = 1;
+    int32 total = 1;
     repeated Unit list = 2;
 }
 
@@ -73,15 +73,17 @@ message GetUserAssetsReq {
   string coin = 2;
 }
 
+// 美元金额 = amount*price
+// 人民币金额 = amount*price*exchange
 message GetUserAssetsResp {
     message Unit {
         Coin coin = 1;
         string address = 2;
-        string amount = 3;
-        string cny = 4;
-        string usd = 5;
+        string amount = 3; // 金额
+        string price = 4;  // 币价，单位USDT
     }
     repeated Unit unit = 1;
+    string exchange = 3; // 汇率：USD->CNY
 }
 
 service Web {

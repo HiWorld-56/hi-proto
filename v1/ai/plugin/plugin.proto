@@ -1,5 +1,6 @@
 syntax = "proto3";
 
+
 import "v1/ai/chat.proto";
 
 package hi.ai.plugin;
@@ -12,7 +13,7 @@ message SearchReq {
 }
 
 message SearchResp {
-    repeated hi.ai.MessagesContent contents = 1;
+    repeated hi.ai.Content contents = 1;
 }
 
 message PythonReq {
@@ -22,7 +23,7 @@ message PythonReq {
 }
 
 message PythonResp {
-    repeated hi.ai.MessagesContent contents = 1;
+    repeated hi.ai.Content contents = 1;
 }
 
 service AiPlugin {

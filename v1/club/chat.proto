@@ -1,167 +1,22 @@
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
+import "v1/ai/chat.proto";
 
 package hi.club;
 
-message CID {
-	string conversation_id = 1; // TODO: 改成id
-}
-
-message SpeechToTextParam {
-	string audio_url = 1;
-	string Model = 2;
-	string Lang = 3;
-}
-
-message ChatReply {
-	string reply = 1;
-}
-
-message MessagesContent {
-	string type = 1;
-	string content = 2;
-}
-
-message ChatParam {
-	string conversation_id = 1; // TODO: 改成cid
-	string bot_did = 2;
-	repeated MessagesContent messages = 3;
-	string custom_prompt = 4; // 自定义提示词
-	string state = 5;
-}
-
-message StreamParam {
-	string did = 1;
-	string conversation_id = 2;  // TODO: 改成cid
-	repeated MessagesContent messages = 3;
-	string state = 4;
-	string return_plugin_use = 5;
-	string return_training_data = 6;
-	string return_context = 7;
-	string customer = 8;
-}
-
-message StreamReply {
-	int32 code = 1;
-	string Type = 2;
-	string message = 3;
-}
-
-
-message GetContextParam {
-	string conversation_id = 1;  // TODO: 改成cid
-	string bot_did = 2;
-}
-
-message FunctionDefinition {
-	string name = 1;
-	string description = 2;
-	bool strict = 3;
-	bytes parameters  = 4;
-}
-
-message Tool {
-	string type = 1;
-	FunctionDefinition function = 2;
-}
-
-message TextToTextParam {
-  string did = 1;
-  string conversation_id = 2;  // TODO: 改成cid
-  repeated MessagesContent messages = 3;
-  string voice = 4;
-  repeated Tool tools = 5;
-  string tool_choice = 6;
-  string customer = 7;
-  string state = 8;
-}
-
-message SpeechToSpeechParam {
-  string did = 1;
-  string conversation_id = 2;  // TODO: 改成cid
-  repeated MessagesContent messages = 3;
-  string voice = 4;
-  repeated Tool tools = 5;
-  string tool_choice = 6;
-  string customer = 7;
-  string state = 8;
-}
-
-message SpeechToSpeechReply {
-	optional string audio_url = 1;
-	optional string tool_id = 2;
-	repeated ToolCall tool_calls = 3;
-}
-
-message FunctionCall {
-	string name = 1;
-	string arguments = 2;
-}
-
-message ToolCall {
-	int32 index = 1;
-	string id = 2;
-	string type = 3;
-    FunctionCall function = 4;
-}
-
-message TextToTextReply {
-	optional string reply = 1;
-	optional string tool_id = 2;
-	repeated ToolCall tool_calls = 3;
-}
-
-message ToolCallsResult {
-	string tool_call_id = 1;
-	repeated MessagesContent results = 2;
-}
-
-message CallToolsParam {
-	string tool_id = 1;
-	repeated ToolCallsResult tool_results = 2;
-}
-
-// message ChatMessageImageURL {
-// 	string url = 1;
-// 	string detail = 2;
-// }
-
-// message ChatMessagePart {
-// 	string type = 1;
-// 	string text = 2;
-// 	ChatMessageImageURL image_url = 3;
-// }
-
-message ChatCompletionMessage {
-	string role = 1;
-	string content = 2;
-	string refusal = 3;
-	string name = 4;
-	FunctionCall function_call = 5;
-	repeated ToolCall tool_calls = 6;
-	string tool_call_id = 7;
-	// repeated ChatMessagePart = multi_content = 8;
-}
-
-message ChatCompletionMessageList {
-	repeated ChatCompletionMessage message_list = 1;
-}
-
-message DialogParam {
-	repeated MessagesContent messages = 1;
-}
-
+// apiKey鉴权
 service Chat {
-	rpc Dialog (DialogParam) returns (ChatReply); 
-	rpc GenerateCID (google.protobuf.Empty) returns (CID); // 产生CID
-	rpc SpeechToText (SpeechToTextParam) returns (ChatReply); // 语音转文本
-	rpc Chat (ChatParam) returns (ChatReply); // 非流式对话
-	rpc Stream (StreamParam) returns (stream StreamReply); // 流式对话
-	rpc ClearContext (CID) returns (google.protobuf.Empty); // 清除上下文
-	rpc GetContext (GetContextParam) returns (ChatCompletionMessageList); // 获取上下文
-	rpc SpeechToSpeech (SpeechToSpeechParam) returns (SpeechToSpeechReply); // 语音转语音
-	rpc SpeechToSpeechCallTools (CallToolsParam) returns (SpeechToSpeechReply); // 语音转语音的补充流程，调用Tool
-	rpc TextToText (TextToTextParam) returns (TextToTextReply); // 文本转文本
-	rpc TextToTextCallTools (CallToolsParam) returns (TextToTextReply); // 文本转文本的补充流程，调用Tool
+	rpc Simple (hi.ai.SimpleReq) returns (hi.ai.DialogResp);
+	rpc GenerateCid (google.protobuf.Empty) returns (hi.ai.GenerateCidResp);
+    rpc Dialog (hi.ai.DialogReq) returns (hi.ai.DialogResp);
+    rpc DialogStream (hi.ai.DialogReq) returns (stream hi.ai.DialogStreamResp);
+    rpc ClearContext (hi.ai.ClearContextReq) returns (google.protobuf.Empty);
+    rpc GetContext (hi.ai.GetContextReq) returns (hi.ai.GetContextResp);
+    rpc TextToSpeech (hi.ai.TextToSpeechReq) returns (hi.ai.TextToSpeechResp);
+    rpc SpeechToText (hi.ai.SpeechToTextReq) returns (hi.ai.SpeechToTextResp);
+    rpc SpeechToSpeech (hi.ai.SpeechToSpeechReq) returns (hi.ai.ChatResp);
+    rpc SpeechToSpeech2 (hi.ai.ToolCallResultsReq) returns (hi.ai.ChatResp);
+    rpc TextToText (hi.ai.TextToTextReq) returns (hi.ai.ChatResp);
+    rpc TextToText2 (hi.ai.ToolCallResultsReq) returns (hi.ai.ChatResp);
 }

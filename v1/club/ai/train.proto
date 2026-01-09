@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+import "v1/ai/train.proto";
+
+package hi.club.ai;
+
+// apiKey鉴权
+service BotTraining {
+    rpc TrainingBot (hi.ai.TrainingBotReq) returns (google.protobuf.Empty);
+    rpc TrainingStatus (hi.ai.TrainingStatusReq) returns (hi.ai.TrainingStatusResp);
+    rpc TrainingClear (hi.ai.TrainingClearReq) returns (google.protobuf.Empty);
+    rpc UploadFile (hi.ai.UploadFileReq) returns (google.protobuf.Empty);
+    rpc ListBotFile (hi.ai.ListBotFileReq) returns (hi.ai.ListBotFileResp);
+    rpc DeleteBotFile (hi.ai.DeleteBotFileReq) returns (google.protobuf.Empty);
+    rpc DeleteBotFiles (hi.ai.DeleteBotFilesReq) returns (google.protobuf.Empty);
+    rpc DeleteBotFilesByDid (hi.ai.DeleteBotFilesByDidReq) returns (google.protobuf.Empty);
+    rpc GetBotFile (hi.ai.GetBotFileReq) returns (hi.ai.GetBotFileResp);
+    rpc UpdateContent (hi.ai.UpdateCotentReq) returns (google.protobuf.Empty);
+    rpc CreateContent (hi.ai.CreateCotentReq) returns (hi.ai.CreateCotentResp);
+    rpc EditDegest (hi.ai.EditDigestReq) returns (google.protobuf.Empty);
+    rpc SetMemModel (hi.ai.SetMemModelReq) returns (google.protobuf.Empty);
+    rpc GetMemModel (hi.ai.GetMemModelReq) returns (hi.ai.GetMemModelResp);
+}

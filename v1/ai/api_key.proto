@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
 import "v1/hi.proto";
 
 package hi.ai;
@@ -10,7 +11,8 @@ message ApiKeyInfo {
     string did = 2;
     int32 rate_limit = 3;
     int32 is_active = 4;
-    int32 note = 5;
+    string note = 5;
+    int64 created_at = 6;
 }
 
 message CreateApiKeyResp {
@@ -27,7 +29,7 @@ message EditApiKeyResp {
 }
 
 message ListApiKeyResp {
-    int64 total = 1;
+    int32 total = 1;
     repeated ApiKeyInfo infos = 2;
 }
 

@@ -1,0 +1,161 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+
+import "v1/club/user.proto";
+import "v1/club/q3/q3.proto";
+import "v1/club/mqtt/mqtt.proto";
+
+package hi.club.group;
+
+message GroupCode {
+	string code = 1;
+}
+
+// 查询群信息的响应结构
+message Base {
+	hi.Unit base = 1;
+	string background = 2;
+	bool private = 3;
+	bool dnd = 4; // 免打扰
+	int32 muted = 5;
+	int64 created_at = 6;
+	int64 updated_at = 7;
+}
+
+message Unit {
+	hi.Unit base = 1;
+    string role = 2;
+	string ghost = 3;
+}
+
+message Info {
+    Base base = 1;
+	repeated Unit list = 3;
+}
+
+message GetReq {
+	string code = 1;
+}
+
+// 创建群聊
+message CreateReq {
+	string name = 1;
+}
+
+// 创建单聊
+message CreateSingleReq {
+	string did = 1;
+	string type = 2;
+}
+
+// 更新群信息
+message UpdateReq {
+	Base base = 1;
+	bool clear_background = 2;
+}
+
+// 组聊天消息列表参数
+message ListMessageReq {
+	string last_uuid = 1;
+	string code = 2;
+	string type = 3;
+}
+
+message ListMessageResp {
+	repeated hi.club.mqtt.Packet list = 1;
+}
+
+message ListBaseResp {
+	repeated Base list = 1;
+}
+
+message ListMemberReq {
+	string code = 1;
+	string type = 2;
+	hi.Pagination pagination = 3;
+}
+
+message GetMemberTotalReq {
+	string group = 1;
+}
+
+message GetMemberTotalResp {
+	int32 total = 1;
+}
+
+message InviteReq {
+	string group = 1;
+	repeated string bots = 3;
+	repeated string users = 4;
+}
+
+message JoinReq {
+	string group = 1;
+}
+
+message QuitReq {
+	string group = 1;
+}
+
+message RemoveReq {
+	string group = 1;
+  	repeated string bots = 3;
+  	repeated string users = 4;
+}
+
+message LastUUID {
+  string last_uuid = 1;
+  string code = 2;
+  string type = 3;
+}
+
+message ListLastUUID {
+	repeated LastUUID list = 1;
+}
+
+message SetRoleReq {
+  string group = 1;
+  repeated string users = 2;
+  string role = 3;
+}
+
+message GetRoleReq {
+  string group = 1;
+}
+
+message GetRoleResp {
+  string role = 1;
+}
+
+message MuteReq {
+  string group = 1;
+  bool muted = 2;
+}
+
+message ListGroupByDIDReq {
+	string bot = 1;
+}
+
+service Group {
+	rpc Get (GetReq) returns (Base); // 群信息
+	rpc Create (CreateReq) returns (Base); // 创建群
+	rpc CreateSingle (CreateSingleReq) returns (Base); // 创建单聊群
+	rpc Update (UpdateReq) returns (google.protobuf.Empty); // 更新群
+	rpc ListBase (google.protobuf.Empty) returns (ListBaseResp); // 群列表
+	rpc ListMember (ListMemberReq) returns (Info); // 群成员列表
+	rpc GetMemberTotal (GetMemberTotalReq) returns (GetMemberTotalResp); // 群成员总数
+	rpc Invite (InviteReq) returns (google.protobuf.Empty); // 群邀请
+	rpc Join (JoinReq) returns (google.protobuf.Empty); // 主动加群
+	rpc Quit (QuitReq) returns (google.protobuf.Empty); // 主动退群/解散群
+	rpc Remove (RemoveReq) returns (google.protobuf.Empty); // 移出群聊
+  	rpc ListMessage (ListMessageReq) returns (ListMessageResp); // 群消息列表
+  	rpc UpdateLastUUID (LastUUID) returns (google.protobuf.Empty); // 更新LastUUID
+	rpc CheckLastUUID (ListLastUUID) returns (ListLastUUID); // 检查LastUUID
+	rpc SetRole (SetRoleReq) returns (google.protobuf.Empty); // 设置/取消群管理员
+	rpc GetRole (GetRoleReq) returns (GetRoleResp); // 获取群成员角色
+	rpc Mute (MuteReq) returns (google.protobuf.Empty); // 设置/取消群管理员
+	rpc ListGroupByDID (ListGroupByDIDReq) returns (ListBaseResp); // 机器人组信息列表
+}
+

@@ -2,319 +2,71 @@ syntax = "proto3";
 
 import "google/protobuf/empty.proto";
 import "v1/hi.proto";
-import "v1/club/chat_user.proto";
+import "v1/ai/bot.proto";
 
 package hi.club;
 
-// 新建机器人参数
-message CreateBotParam {
-	string did = 1;
-	string name = 2;
-	int32 type = 3; // TODO: 改成string
-	string avatar = 4;
+message BindMasterReq {
+    string master = 1;
+	string bot = 2;
 }
 
-message BotDID {
-	string did = 1;
+message UnbindMasterReq {
+    string master = 1;
+	string bot = 2;
 }
 
-message Models {
-	repeated string model_list = 1;
+message BindStatusReq {
+    string master = 1;
+	string bot = 2;
 }
 
-message AudioModels {
-	repeated string audio_model_list = 1;
-	repeated string stt_lang_list = 2;
-}
-
-// 机器人信息
-message BotInfo {
-	string did = 1;
-	string name = 2;
-	int32 type = 3;          //  机器人类型 TODO: 改成string
-	string avatar = 4;
-	string background = 5;
-	string api_key = 6;
-	string user_did = 7;
-	int32 message_count = 8;
-	int32 qa_num = 9;
-	string system_prompt = 10;
-	string user_prompt = 11;
-	double freedom = 12;
-	string gpt_model = 13;
-	string embedding_model = 14;
-	string created_at = 15;
-	string mem_model = 16;
-	string use_mem = 17;
-	string use_tools = 18;
-	string note = 19;
-	string use_about = 20;
-	string org_name = 21;
-	string org_logo = 22;
-	string org_background = 23;
-	string about = 24;
-	string stt_model = 25;
-	string stt_lang = 26;
-	int32 favorited = 27;
-	string custom_prompt = 28;
-}
-
-message BotInfos {
-	repeated BotInfo bot_infos = 1;
-}
-
-message BotInfoList {
-	int64 total = 1;
-	repeated BotInfo bot_info_list = 2;
-}
-
-message BotStatisticsInfo {
-	int32 message_count = 1;
-	int32 use_token = 2;
-	int32 prompt_token = 3;
-	int32 mem_token = 4;
-}
-
-message BotInfoListParam {
-	string bot_did = 1;
-	hi.Pagination pagination = 2;
-}
-
-message FavoriteBotParam {
-	string bot_did = 1;
-	int32 operation = 2;
-}
-
-message BotListByDidsParam {
-	repeated string bot_did_list = 1;
-	hi.Pagination pagination = 2;
-}
-
-// 插件使用状态
-message PluginStatus {
-	string name = 1;
-	string enable = 2; 
-}
-
-message DrawConfig {
-  repeated string style_options = 1;
-  string default_style = 2;
-  repeated string quality_options = 3;
-  string default_quality = 4;
-  string model = 5;
-  repeated string size_options = 6;
-  string default_size = 7;
-  int32 draw_n = 8;
-}
-
-// 硬件机器人绑定/解绑/绑定状态请求参数
-message BindMasterParam {
+message BindStatusResp {
 	string master = 1;
-	string bot_did = 2;
 }
 
-message BotBindStatus {
-	optional string master = 1;
+
+message ListOnlineBotResp {
+    int32 total = 1;
+    repeated hi.ai.BotInfo infos = 2;
+}
+
+message GetBotMasterReq {
+    string bot = 1;
+}
+
+message GetBotMasterResp {
+    hi.Unit master = 1;
+}
+
+message OnlineBotsResp {
+    repeated hi.ai.BotInfo infos = 1;
 }
 
 service Bot {
-	rpc CreateBot (CreateBotParam) returns (BotDID); // 创建机器人
-	rpc ModelList (google.protobuf.Empty) returns (Models); // 机器人Model
-	rpc DefaultConfig (google.protobuf.Empty) returns (BotInfo); // 机器人默认配置
-	rpc EmbeddingModelList (google.protobuf.Empty) returns (Models); // 机器人Embedding Model
-	rpc AudioModelList (google.protobuf.Empty) returns (AudioModels); // 机器人语音Model
-	rpc UpdateBot (BotInfo) returns (google.protobuf.Empty); // 修改机器人
-	rpc DeleteBot (BotDID) returns (google.protobuf.Empty); // 删除机器人
-	rpc StatisticsInfo (BotDID) returns (BotStatisticsInfo); // 统计信息
-	rpc GetBotInfo (BotDID) returns (ChatUserInfo); // 获取机器人信息
-	rpc GetBotInfoList (BotInfoListParam) returns (BotInfoList);  // 机器人信息列表
-	rpc FavoriteBot (FavoriteBotParam) returns (google.protobuf.Empty); // 收藏机器人
-	rpc FavoriteBotList (BotInfoListParam) returns (BotInfoList); // 收藏的机器人列表
-	rpc BindMaster (BindMasterParam) returns (google.protobuf.Empty); // 绑定机器人
-	rpc UnbindMaster (BindMasterParam) returns (google.protobuf.Empty); // 解绑机器人
-	rpc BindStatus (BindMasterParam) returns (BotBindStatus); // 机器人绑定状态
-	rpc OnlineBotList (hi.Pagination) returns (BotInfoList); // 在线机器人列表
-	rpc OnlineBots (hi.DID) returns (BotInfos); // 用户的在线机器人
-	rpc GetBotMaster (BotDID) returns (hi.Unit); // 机器人主人
+    rpc ListLLM (google.protobuf.Empty) returns (hi.ai.ListLLMResp);
+    rpc ListEmbedding (google.protobuf.Empty) returns (hi.ai.ListEmbeddingResp);
+    rpc ListSTT (google.protobuf.Empty) returns (hi.ai.ListSTTResp);
+    rpc ListTTS (google.protobuf.Empty) returns (hi.ai.ListTTSResp);
+    rpc BotConfig (google.protobuf.Empty) returns (hi.ai.BotConfigResp);
+    rpc CreateBot (hi.ai.CreateBotReq) returns (hi.ai.CreateBotResp);
+    rpc EditBot (hi.ai.EditBotReq) returns (google.protobuf.Empty);
+    rpc ListBot (hi.Pagination) returns (hi.ai.ListBotResp);
+    rpc ListBotByDids (hi.ai.ListBotByDidsReq) returns (hi.ai.ListBotByDidsResp);
+    rpc DeleteBot (hi.ai.DeleteBotReq) returns (google.protobuf.Empty);
+    rpc FindBot (hi.ai.FindBotReq) returns (hi.ai.FindBotResp);
+    rpc FindBotCount (hi.ai.FindBotCountReq) returns (hi.ai.FindBotCountResp);
+    rpc Transfer (hi.ai.TransferReq) returns (google.protobuf.Empty);
+    rpc UpdatesToDefault (hi.ai.UpdatesToDefaultReq) returns (google.protobuf.Empty);
+    rpc FavoriteBot (hi.ai.FavoriteBotReq) returns (google.protobuf.Empty);
+    rpc ListFavoriteBot (hi.ai.ListFavoriteBotReq) returns (hi.ai.ListFavoriteBotResp);
+    rpc FavoriteBotListByDIDs (hi.ai.ListFavoriteBotByDIDsReq) returns (hi.ai.ListFavoriteBotByDIDsResp);
+
+    rpc BindMaster (BindMasterReq) returns (google.protobuf.Empty); // 绑定机器人
+	rpc UnbindMaster (UnbindMasterReq) returns (google.protobuf.Empty); // 解绑机器人
+	rpc BindStatus (BindStatusReq) returns (BindStatusResp); // 机器人绑定状态
+	rpc ListOnlineBot (hi.Pagination) returns (ListOnlineBotResp); // 在线机器人列表
+	rpc OnlineBots (hi.DID) returns (OnlineBotsResp); // 用户的在线机器人
+	rpc GetBotMaster (GetBotMasterReq) returns (GetBotMasterResp); // 机器人主人
 }
 
-/////////////////////////// 训练机器人 ///////////////////////////
-// 训练机器人参数
-message TrainingBotParam {
-  repeated int64 file_id_list = 1;
-  string bot_did = 2;
-}
-
-// 训练状态
-message BotTrainingStatus {
-  string status = 1;
-  int32 mem_count = 2;
-  int32 slice_count = 3;
-  string msg = 4;
-}
-
-// 训练文件
-message BotTrainingFile {
-	int64 file_id = 1;
-	string user_did = 2;
-	string bot_did = 3;
-	string content = 4;
-	string file_path = 5;
-	string title = 6;
-	int64 size = 7;
-	string type = 8;
-	int32 is_use = 9;
-	string digest = 10;
-	int64 training_time = 11;
-	int64 created_at = 12;
-	int64 updated_at = 13;
-}
-
-message BotTrainingFileList {
-	repeated BotTrainingFile training_file_list = 1;
-}
-
-message TrainingFileListParam {
-	string bot_did = 1;
-	bool use = 2;
-	hi.Pagination pagination = 3;
-}
-
-message TrainingFileID {
-	int64 id = 1;
-}
-
-message DeleteTrainingFileParam {
-	string bot_did = 1;
-	int64 file_id = 2;
-}
-
-message DeleteTrainingFilesParam {
-	string bot_did = 1;
-	repeated int64 file_id_list = 2;
-}
-
-message UpdateCotentParam {
-	string bot_did = 1;
-	int64 file_id = 2;
-	string content = 3;
-}
-
-message CreateCotentParam {
-	string bot_did = 1;
-	string content = 2;
-}
-
-message EditDigestParam {
-	int64 file_id = 1;
-	string bot_did = 2;
-	string digest = 3;
-}
-
-message CreateTrainingFileParam {
-	string bot_did = 1;
-	string filename = 2;
-	bytes file_content = 3;
-}
-
-service BotTraining {
-	rpc TrainingBot (TrainingBotParam) returns (google.protobuf.Empty); // 训练机器人
-	rpc TrainingStatus (BotDID) returns (BotTrainingStatus); // 查询训练状态
-	rpc TrainingClear (BotDID) returns (google.protobuf.Empty); // 清空记忆
-	rpc CreateTrainingFile (CreateTrainingFileParam) returns (BotTrainingFile); // 创建训练文件
-	rpc GetTrainingFileList (TrainingFileListParam) returns (BotTrainingFileList); // 训练文件列表
-	rpc DeleteTrainingFile (DeleteTrainingFileParam) returns (google.protobuf.Empty); // 删除训练文件
-	rpc DeleteTrainingFiles (DeleteTrainingFilesParam) returns (google.protobuf.Empty); // 批量删除训练文件
-	rpc GetTrainingFile (TrainingFileID) returns (BotTrainingFile); // 单个训练文件详情
-	rpc CreateContent (CreateCotentParam) returns (BotTrainingFile); // 创建非文件
-	rpc UpdateContent (UpdateCotentParam) returns (google.protobuf.Empty); // 修改非文件
-	rpc EditDigest (EditDigestParam) returns (google.protobuf.Empty); // 
-}
-
-/////////////////////////// 机器人插件 ///////////////////////////
-message Funcation {
-	string name = 1;
-	string enable = 2;
-}
-
-message FuncationList {
-	repeated Funcation funcation_list = 1;
-}
-
-message BotDrawConfig {
-	repeated string draw_style = 1;
-	string draw_style_default = 2;
-	repeated string draw_quality = 3;
-	string draw_quality_default = 4;
-	string draw_model = 5;
-	repeated string draw_size = 6;
-	string draw_size_default = 7;
-	int32 draw_n = 8;
-}
-
-message CreatePluginParam {
-	string bot_did = 1;
-	string name = 2;
-	string type = 3;
-	string url = 4;
-	string function_description = 5;
-	string draw_style = 6;
-	string draw_quality = 7;
-	string draw_size = 8;
-	string use_plugin_search = 9;
-	string use_plugin_python = 10;
-	string use_plugin_draw = 11;
-	string plugin_type = 12;
-}
-
-message DeletePluginParam {
-	string uuid = 1;
-}
-
-message EditPluginParam {
-  string uuid = 1;
-  string bot_did = 2;
-  string type = 3;
-  string url = 4;
-  string function_description = 5;
-  string plugin_type = 6;
-}
-
-message PluginListParam {
-	string bot_did = 1;
-	string name = 2;
-	hi.Pagination pagination = 3;
-}
-
-message PluginInfo {
-	string bot_did = 1;
-	string uuid = 2;
-	string name = 3;
-	string method = 4;
-	string type = 5;
-	string url = 6;
-	string note = 7;
-	string function_name = 8;
-	string function_description = 9;
-	string draw_style = 10;
-	string draw_quality = 11;
-	string draw_model = 12;
-	string draw_size = 13;
-	int32 draw_n = 14;
-	int64 created_at = 15;
-	string plugin_type = 16;
-}
-
-message PluginInfoList {
-	int64 total = 1;
-	repeated PluginInfo plugin_info_list = 2;
-}
-
-service BotPlugin {
-	rpc NameList (BotDID) returns (FuncationList); // 
-	rpc DrawConfig (google.protobuf.Empty) returns (BotDrawConfig); // 
-	rpc CreatePlugin (CreatePluginParam) returns (google.protobuf.Empty); // 创建插件
-	rpc DeletePlugin (DeletePluginParam) returns (google.protobuf.Empty); // 删除插件
-	rpc EditPlugin (EditPluginParam) returns (google.protobuf.Empty); // 编辑插件
-	rpc PluginList (PluginListParam) returns (PluginInfoList); // 插件列表
-}

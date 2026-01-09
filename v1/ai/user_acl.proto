@@ -5,48 +5,46 @@ import "v1/hi.proto";
 
 package hi.ai;
 
-message AddSuperUserReq {
+message UserACLAddReq {
     string did = 1;
     string type = 2;
 }
 
-message DeleteSuperUserReq {
+message UserACLDeleteReq {
     string did = 1;
     string type = 2;
 }
 
-message ListSuperUserReq {
+message UserACLListReq {
     string did = 1;
     string type = 2;
     hi.Pagination pagination = 3;
 }
 
-message SuperUserInfo {
-    string did = 1;
-    int32 type = 2;
-    repeated string permissions = 3;
-    string note = 4;
+message UserACLListResp {
+    message Unit {
+        string did = 1;
+        repeated string permissions = 2;
+        string note = 3;
+    }
+    int32 total = 1;
+    repeated Unit infos = 2;
 }
 
-message ListSuperUserResp {
-    int64 total = 1;
-    repeated SuperUserInfo infos = 2;
-}
-
-message ListSuperUserTypeResp {
+message UserACLListTypeResp {
     repeated string types = 1;
 }
 
-message EditSuperUserReq {
+message UserACLEditReq {
     string did = 1;
     string note = 2;
 }
 
 // Token鉴权
 service UserACL {
-    rpc Add (AddSuperUserReq) returns (google.protobuf.Empty);
-    rpc Delete (DeleteSuperUserReq) returns (google.protobuf.Empty);
-    rpc List (ListSuperUserReq) returns (ListSuperUserResp);
-    rpc ListType (google.protobuf.Empty) returns (ListSuperUserTypeResp);
-    rpc Edit (EditSuperUserReq) returns (google.protobuf.Empty);
+    rpc Add (UserACLAddReq) returns (google.protobuf.Empty);
+    rpc Delete (UserACLDeleteReq) returns (google.protobuf.Empty);
+    rpc List (UserACLListReq) returns (UserACLListResp);
+    rpc ListType (google.protobuf.Empty) returns (UserACLListTypeResp);
+    rpc Edit (UserACLEditReq) returns (google.protobuf.Empty);
 }

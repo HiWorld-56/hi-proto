@@ -1,8 +1,10 @@
 syntax = "proto3";
 
 import "v1/hi.proto";
+import "v1/ai/chat.proto";
+import "v1/club/q3/q3.proto";
 
-package hi.club;
+package hi.club.mqtt;
 
 message Packet {
     oneof kind {
@@ -11,13 +13,21 @@ message Packet {
     }
 }
 
+/*
+type: 
+kicked-out
+invite-friend
+invite-group
+q3-sync
+*/
 message Notice {
     string uuid = 1;
     string type = 2;
     hi.Unit from = 3;
     int64 timestamp = 4;
     int64 expiration = 5;
-    Extra extra = 6;
+    string status = 6;
+    Extra extra = 7;
 }
 
 message Prompt {
@@ -63,7 +73,7 @@ message Message {
     string cid = 2;
     string type = 3;
     hi.Unit from = 4;
-    repeated Content content = 5;
+    repeated hi.ai.Content content = 5;
     int64 timestamp = 6;
     Extra extra = 7;
     hi.Unit ghost = 8;
@@ -77,6 +87,8 @@ message Extra {
         Member member = 3;
         MemberExit member_exit = 4;
         GroupInfo group_info = 5;
+        hi.club.q3.GroupReadyResp ready = 6;
+        hi.club.q3.GroupEventReq event = 7;
     }
 }
 
@@ -96,13 +108,9 @@ message MemberExit {
     string type = 2;
 }
 
-message Content {
-    string type = 1;
-    string content = 2;
-}
-
 message GroupInfo {
     hi.Unit base = 1;
     string back_ground = 2;
     bool mute =3;
+    hi.Unit owner = 4;
 }

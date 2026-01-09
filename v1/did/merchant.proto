@@ -37,7 +37,8 @@ message MerchantSetReq {
 }
 
 message MerchantListResp {
-	repeated MerchantInfo list = 1;
+    int32 total = 1;
+	repeated MerchantInfo list = 2;
 }
 
 message UserProfileGetResp {

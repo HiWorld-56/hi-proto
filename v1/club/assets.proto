@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/did/wallet.proto";
+
+package hi.club;
+
+// message GetUserAssetsReq {
+//   string did = 1;
+//   string coin = 2;
+// }
+
+// message GetUserAssetsResp {
+//     message Unit {
+//         hi.did.Coin coin = 1;
+//         string address = 2;
+//         string amount = 3;
+//         string price = 4;
+//     }
+//     repeated Unit unit = 1;
+//     string exchange = 2;
+// }
+
+service Assets {
+    rpc GetUserAssets(hi.did.GetUserAssetsReq) returns (hi.did.GetUserAssetsResp);
+}

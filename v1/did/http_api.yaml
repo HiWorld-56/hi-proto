@@ -69,11 +69,14 @@ http:
     post: /api/v1/user_extend/delete
     body: "*"
 # Login
-  - selector: hi.did.Login.GenerateReq
-    post: /api/v1/login/generate_req
+  - selector: hi.did.Login.GenerateReqId
+    post: /api/v1/login/generate_req_id
     body: "*"
   - selector: hi.did.Login.GetReqStatus
     post: /api/v1/login/get_req_status
+    body: "*"
+  - selector: hi.did.Login.RefreshToken
+    post: /api/v1/login/refresh_token
     body: "*"
 # Merchant
   - selector: hi.did.Merchant.Get
