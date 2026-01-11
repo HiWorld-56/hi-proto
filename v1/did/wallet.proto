@@ -80,19 +80,10 @@ message GetUserAssetsResp {
         Coin coin = 1;
         string address = 2;
         string amount = 3; // 金额
-        string price = 4;  // 币价，单位USDT
+        string price = 4; // 币价，单位USDT
     }
     repeated Unit unit = 1;
     string exchange = 3; // 汇率：USD->CNY
-}
-
-service Web {
-    rpc UpdateAddresses (hi.Web3Data) returns (google.protobuf.Empty); // UpdateAddressesReq // Web3鉴权
-    rpc GetWallet (GetWalletReq) returns (GetWalletResp); // Token鉴权
-    rpc ListAddresses (ListAddressesReq) returns (ListAddressesResp); // Token鉴权
-    rpc TotalAssets (TotalAssetsReq) returns (TotalAssetsResp); // Token鉴权
-    rpc ListUsersAssets (ListUsersAssetsReq) returns (ListUsersAssetsResp); // Token鉴权
-    rpc GetUserAssets(GetUserAssetsReq) returns (GetUserAssetsResp); // Token鉴权
 }
 
 message UpdateAssetsReq { // Token ----> Real.DID
@@ -112,5 +103,11 @@ message UpdateAssetsReq { // Token ----> Real.DID
 }
 
 service Wallet {
+    rpc UpdateAddresses (hi.Web3Data) returns (google.protobuf.Empty); // Web3鉴权 // UpdateAddressesReq
     rpc UpdateAssets (UpdateAssetsReq) returns (google.protobuf.Empty); // Token鉴权
+    rpc GetWallet (GetWalletReq) returns (GetWalletResp); // Token鉴权
+    rpc ListAddresses (ListAddressesReq) returns (ListAddressesResp); // Token鉴权
+    rpc TotalAssets (TotalAssetsReq) returns (TotalAssetsResp); // Token鉴权
+    rpc ListUsersAssets (ListUsersAssetsReq) returns (ListUsersAssetsResp); // Token鉴权
+    rpc GetUserAssets(GetUserAssetsReq) returns (GetUserAssetsResp); // Token鉴权
 }
