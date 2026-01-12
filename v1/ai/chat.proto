@@ -146,6 +146,7 @@ message GetBotDelayResp {
         int32 stt = 6;
         int32 tts = 7;
         int32 function_call = 8;
+        int64 test_time = 9;
     }
     int32 total = 1;
 	repeated BotDelayUnit units = 2;
