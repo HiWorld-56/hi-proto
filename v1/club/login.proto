@@ -9,9 +9,7 @@ package hi.club;
 message EmbeddedLoginReq {
   string req_id = 1;
   string did = 2;
-  string app_name = 3;
-  string mac = 4;
-  string point = 5;
+  hi.Node node = 3;
 }
 
 message EmbeddedLoginResp {
@@ -22,7 +20,7 @@ message EmbeddedLoginResp {
 }
 
 message GenerateReqIdReq {
-    hi.DID did = 1;
+    string did = 1;
 	  hi.Node node = 2;
 }
 
