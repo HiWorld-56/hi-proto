@@ -21,12 +21,12 @@ message EmbeddedLoginResp {
 
 message GenerateReqIdReq {
     string did = 1;
-	  hi.Node node = 2;
+	hi.Node node = 2;
 }
 
 service Login {
 	rpc EmbeddedLogin (hi.Web3Data) returns (EmbeddedLoginResp); // Web3鉴权 / EmbeddedLoginReq
 	rpc RefreshToken (hi.did.RefreshTokenReq) returns (hi.Token); // 不鉴权
-  rpc GenerateReqId (GenerateReqIdReq) returns (hi.ReqID); // 不鉴权
-  rpc GetReqStatus (hi.ReqID) returns (hi.did.ReqStatusResp); // 不鉴权
+  	rpc GenerateReqId (GenerateReqIdReq) returns (hi.ReqID); // 不鉴权
+  	rpc GetReqStatus (hi.ReqID) returns (hi.did.ReqStatusResp); // 不鉴权
 }

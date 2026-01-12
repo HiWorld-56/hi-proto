@@ -6,7 +6,7 @@ import "v1/did/login.proto";
 package hi.ai;
 
 message GenerateReqIdReq {
-    hi.DID did = 1;
+    string did = 1;
 	hi.Node node = 2;
 }
 

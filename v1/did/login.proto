@@ -25,7 +25,7 @@ message LoginResp {
 }
 
 message GenerateReqIdReq {
-    hi.DID did = 1;
+    string did = 1;
 	hi.Node node = 2;
 }
 
