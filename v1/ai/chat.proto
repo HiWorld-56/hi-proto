@@ -77,37 +77,29 @@ message SpeechToTextResp {
     string text = 1;
 }
 
-message Function {
-	string name = 1;
-	string description = 2;
-	bool strict = 3;
-	bytes parameters  = 4;
-}
-
 message Tool {
-	string type = 1;
-	Function function = 2;
+    string function = 1;
 }
 
 message SpeechToSpeechReq {
     string did = 1;
     string cid = 2;
     repeated Content messages = 3;
-    string style = 4;
-    repeated Tool tools = 5;
-    string tool_choice = 6;
-    string custom = 7;
-    string state = 8;
+    repeated Tool tools = 4;
+    optional string tool_choice = 5;
+    optional string custom = 6;
+    optional string state = 7;
+    optional string style = 8;
 }
 
 message TextToTextReq {
   string did = 1;
   string cid = 2;
   repeated Content messages = 3;
-  repeated Tool tools = 5;
-  string tool_choice = 6;
-  string custom = 7;
-  string state = 8;
+  repeated Tool tools = 4;
+  optional string tool_choice = 5;
+  optional string custom = 6;
+  optional string state = 7;
 }
 
 message ToolCallResultsReq {
