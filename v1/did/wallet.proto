@@ -7,12 +7,12 @@ import "v1/did/base.proto";
 package hi.did;
 
 message UpdateAddressesReq {
-    string did = 1;
-    string btc = 2;
-    string eth = 3;
-    string trx = 4;
-    string sol = 5;
-    string apt = 6;
+    optional string did = 1;
+    optional string btc = 2;
+    optional string eth = 3;
+    optional string trx = 4;
+    optional string sol = 5;
+    optional string apt = 6;
 }
 
 message GetWalletReq {

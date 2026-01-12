@@ -21,9 +21,8 @@ message BindStatusReq {
 }
 
 message BindStatusResp {
-	string master = 1;
+	optional string master = 1; // None / master
 }
-
 
 message ListAllOnlineBotResp {
     int32 total = 1;
