@@ -77,42 +77,30 @@ message SpeechToTextResp {
     string text = 1;
 }
 
-message Function {
-	string name = 1;
-	string description = 2;
-	bool strict = 3;
-	bytes parameters  = 4;
-}
-
-message Tool {
-	string type = 1;
-	Function function = 2;
-}
-
 message SpeechToSpeechReq {
     string did = 1;
     string cid = 2;
     repeated Content messages = 3;
-    string style = 4;
-    repeated Tool tools = 5;
-    string tool_choice = 6;
-    string custom = 7;
-    string state = 8;
+    string tools = 4;
+    optional string tool_choice = 5;
+    optional string custom = 6;
+    optional string state = 7;
+    optional string style = 8;
 }
 
 message TextToTextReq {
-  string did = 1;
-  string cid = 2;
-  repeated Content messages = 3;
-  repeated Tool tools = 5;
-  string tool_choice = 6;
-  string custom = 7;
-  string state = 8;
+    string did = 1;
+    string cid = 2;
+    repeated Content messages = 3;
+    string tools = 4;
+    optional string tool_choice = 5;
+    optional string custom = 6;
+    optional string state = 7;
 }
 
 message ToolCallResultsReq {
 	string id = 1;
-	repeated ToolCallResult results = 2;
+	repeated ToolCallResult list = 2;
 }
 
 message ToolCall {
@@ -123,7 +111,7 @@ message ToolCall {
 
 message ToolCallResult {
 	string id = 1;
-	repeated Content results = 2;
+	repeated Content list = 2;
 }
 
 // final == true
@@ -154,6 +142,7 @@ message GetBotDelayResp {
         int32 stt = 6;
         int32 tts = 7;
         int32 function_call = 8;
+        int64 test_time = 9;
     }
     int32 total = 1;
 	repeated BotDelayUnit units = 2;

@@ -15,15 +15,13 @@ message UploadResp {
 }
 
 message DownloadReq {
-    string bucket = 1;
-    string name = 2;
+    string url = 1;
 }
 
 message DownloadResp {
     bytes content = 1;
 }
 
-// TODO: 添加流式接口
 service File {
     rpc Upload(UploadReq) returns (UploadResp);
     rpc Download(DownloadReq) returns (DownloadResp);

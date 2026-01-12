@@ -9,10 +9,6 @@ import "v1/club/mqtt/mqtt.proto";
 
 package hi.club.group;
 
-message GroupCode {
-	string code = 1;
-}
-
 // 查询群信息的响应结构
 message Base {
 	hi.Unit base = 1;
@@ -134,10 +130,6 @@ message MuteReq {
   bool muted = 2;
 }
 
-message ListGroupByDIDReq {
-	string bot = 1;
-}
-
 service Group {
 	rpc Get (GetReq) returns (Base); // 群信息
 	rpc Create (CreateReq) returns (Base); // 创建群
@@ -156,6 +148,4 @@ service Group {
 	rpc SetRole (SetRoleReq) returns (google.protobuf.Empty); // 设置/取消群管理员
 	rpc GetRole (GetRoleReq) returns (GetRoleResp); // 获取群成员角色
 	rpc Mute (MuteReq) returns (google.protobuf.Empty); // 设置/取消群管理员
-	rpc ListGroupByDID (ListGroupByDIDReq) returns (ListBaseResp); // 机器人组信息列表
 }
-
