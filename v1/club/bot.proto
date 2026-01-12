@@ -17,8 +17,7 @@ message UnbindMasterReq {
 }
 
 message BindStatusReq {
-    string master = 1;
-	string bot = 2;
+	string bot = 1;
 }
 
 message BindStatusResp {
