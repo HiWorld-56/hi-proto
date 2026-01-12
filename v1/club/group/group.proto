@@ -156,6 +156,5 @@ service Group {
 	rpc SetRole (SetRoleReq) returns (google.protobuf.Empty); // 设置/取消群管理员
 	rpc GetRole (GetRoleReq) returns (GetRoleResp); // 获取群成员角色
 	rpc Mute (MuteReq) returns (google.protobuf.Empty); // 设置/取消群管理员
-	rpc ListGroupByDID (ListGroupByDIDReq) returns (ListBaseResp); // 机器人组信息列表
 }
 
