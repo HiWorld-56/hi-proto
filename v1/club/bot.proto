@@ -25,9 +25,9 @@ message BindStatusResp {
 }
 
 
-message ListOnlineBotResp {
+message ListAllOnlineBotResp {
     int32 total = 1;
-    repeated hi.ai.BotInfo infos = 2;
+    repeated hi.ai.BotInfo list = 2;
 }
 
 message GetBotMasterReq {
@@ -38,8 +38,8 @@ message GetBotMasterResp {
     hi.Unit master = 1;
 }
 
-message OnlineBotsResp {
-    repeated hi.ai.BotInfo infos = 1;
+message ListOnlineBotResp {
+    repeated hi.ai.BotInfo list = 1;
 }
 
 service Bot {
@@ -64,8 +64,7 @@ service Bot {
     rpc BindMaster (BindMasterReq) returns (google.protobuf.Empty); // 绑定机器人
 	rpc UnbindMaster (UnbindMasterReq) returns (google.protobuf.Empty); // 解绑机器人
 	rpc BindStatus (BindStatusReq) returns (BindStatusResp); // 机器人绑定状态
-	rpc ListOnlineBot (hi.Pagination) returns (ListOnlineBotResp); // 在线机器人列表
-	rpc OnlineBots (hi.DID) returns (OnlineBotsResp); // 用户的在线机器人
+	rpc ListAllOnlineBot (hi.Pagination) returns (ListAllOnlineBotResp); // 在线机器人列表
+	rpc ListOnlineBot (hi.DID) returns (ListOnlineBotResp); // 用户的在线机器人
 	rpc GetBotMaster (GetBotMasterReq) returns (GetBotMasterResp); // 机器人主人
 }
-
