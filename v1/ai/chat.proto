@@ -77,15 +77,11 @@ message SpeechToTextResp {
     string text = 1;
 }
 
-message Tool {
-    string function = 1;
-}
-
 message SpeechToSpeechReq {
     string did = 1;
     string cid = 2;
     repeated Content messages = 3;
-    repeated Tool tools = 4;
+    string tools = 4;
     optional string tool_choice = 5;
     optional string custom = 6;
     optional string state = 7;
@@ -93,18 +89,18 @@ message SpeechToSpeechReq {
 }
 
 message TextToTextReq {
-  string did = 1;
-  string cid = 2;
-  repeated Content messages = 3;
-  repeated Tool tools = 4;
-  optional string tool_choice = 5;
-  optional string custom = 6;
-  optional string state = 7;
+    string did = 1;
+    string cid = 2;
+    repeated Content messages = 3;
+    string tools = 4;
+    optional string tool_choice = 5;
+    optional string custom = 6;
+    optional string state = 7;
 }
 
 message ToolCallResultsReq {
 	string id = 1;
-	repeated ToolCallResult results = 2;
+	repeated ToolCallResult list = 2;
 }
 
 message ToolCall {
@@ -115,7 +111,7 @@ message ToolCall {
 
 message ToolCallResult {
 	string id = 1;
-	repeated Content results = 2;
+	repeated Content list = 2;
 }
 
 // final == true
