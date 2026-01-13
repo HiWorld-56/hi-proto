@@ -12,7 +12,7 @@ message UploadReq {
 
 message UploadResp {
     string url = 1;
-    string thumb_url = 2;
+    optional string thumb_url = 2;
 }
 
 message DownloadReq {
