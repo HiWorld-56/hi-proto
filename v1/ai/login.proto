@@ -5,13 +5,8 @@ import "v1/did/login.proto";
 
 package hi.ai;
 
-message GenerateReqIdReq {
-    string did = 1;
-	hi.Node node = 2;
-}
-
 service Login {
     rpc RefreshToken (hi.did.RefreshTokenReq) returns (hi.Token); // 不鉴权
-    rpc GenerateReqId (GenerateReqIdReq) returns (hi.ReqID); // 不鉴权
+    rpc GenerateReqId (hi.did.GenerateReqIdReq) returns (hi.ReqID); // 不鉴权
     rpc GetReqStatus (hi.ReqID) returns (hi.did.ReqStatusResp);
 }
