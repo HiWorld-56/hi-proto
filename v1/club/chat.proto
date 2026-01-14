@@ -19,7 +19,7 @@ message Content {
     oneof kind {
         Chat chat = 2;
         hi.did.Transaction trans = 3;
-        tx.Trade trade = 4;
+        tx.TradeBase trade = 4;
     }
 }
 
