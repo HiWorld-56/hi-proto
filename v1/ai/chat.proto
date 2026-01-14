@@ -111,14 +111,9 @@ message ToolCallResultsReq {
 
 message ToolSupply {
     message Function {
-        message Parameters {
-            string type = 1;
-            google.protobuf.Struct properties = 2;
-            repeated string required = 3;
-        }
         string name = 1;
         string description = 2;
-        optional Parameters parameters = 3;
+        optional google.protobuf.Struct parameters = 3;
     }
     string type = 1;
     Function function = 2;
