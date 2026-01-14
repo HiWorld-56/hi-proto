@@ -1,32 +1,31 @@
 syntax = "proto3";
 
-
 import "v1/ai/chat.proto";
 
 package hi.ai.plugin;
 
 message SearchReq {
-    string type = 1;
-    string url = 2;
-    string uuid = 3;
-    string keyword = 4;
+  string type    = 1;
+  string url     = 2;
+  string uuid    = 3;
+  string keyword = 4;
 }
 
 message SearchResp {
-    repeated hi.ai.Content contents = 1;
+  repeated hi.ai.Content contents = 1;
 }
 
 message PythonReq {
-    string code = 1;
-    string code_params = 2;
-    string uuid = 3;
+  string code        = 1;
+  string code_params = 2;
+  string uuid        = 3;
 }
 
 message PythonResp {
-    repeated hi.ai.Content contents = 1;
+  repeated hi.ai.Content contents = 1;
 }
 
 service AiPlugin {
-	rpc Search (SearchReq) returns (SearchResp);
-    rpc Python (PythonReq) returns (PythonResp);
+  rpc Search (SearchReq) returns (SearchResp);
+  rpc Python (PythonReq) returns (PythonResp);
 }

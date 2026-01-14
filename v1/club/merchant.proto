@@ -7,6 +7,6 @@ import "v1/did/merchant.proto";
 package hi.club;
 
 service Merchant {
-	rpc List (google.protobuf.Empty) returns (hi.did.MerchantListResp);
-    rpc ListAll (hi.Pagination) returns (hi.did.MerchantListResp);
+  rpc List (google.protobuf.Empty) returns (hi.did.MerchantListResp);
+  rpc ListAll (hi.Pagination) returns (hi.did.MerchantListResp);
 }

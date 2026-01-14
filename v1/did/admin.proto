@@ -7,8 +7,8 @@ import "v1/did/merchant.proto";
 package hi.did;
 
 message InviteCodeCreateResp {
-    string code    = 1;
-    bool is_active = 3;
+  string code      = 1;
+  bool   is_active = 3;
 }
 
 message InviteCodeEditReq {
@@ -17,105 +17,105 @@ message InviteCodeEditReq {
 }
 
 message InviteCodeListResp {
-    message Unit {
-        string code    = 1;
-        bool is_active = 2;
-        string note    = 3;
-        int64 created_at = 4;
-    }
-    int32 total = 1;
-    repeated Unit infos = 2;
+  message Unit {
+    string code       = 1;
+    bool   is_active  = 2;
+    string note       = 3;
+    int64  created_at = 4;
+  }
+  int32         total = 1;
+  repeated Unit infos = 2;
 }
 
 message InviteCodeDeleteReq {
-    string code = 1;
+  string code = 1;
 }
 
 message InviteCodeVerifyReq {
-    string id = 1;
-    string code = 2;
-    string did = 3;
+  string id   = 1;
+  string code = 2;
+  string did  = 3;
 }
 
 service InviteCode {
-    rpc Create (google.protobuf.Empty) returns (InviteCodeCreateResp); // Token鉴权
-    rpc Edit (InviteCodeEditReq) returns (google.protobuf.Empty); // Token鉴权
-    rpc List (hi.Pagination) returns (InviteCodeListResp); // Token鉴权
-    rpc Delete (InviteCodeDeleteReq) returns (google.protobuf.Empty); // Token鉴权
-    rpc Verify (InviteCodeVerifyReq) returns (hi.Token); // 不鉴权
+  rpc Create (google.protobuf.Empty) returns (InviteCodeCreateResp); // Token鉴权
+  rpc Edit (InviteCodeEditReq) returns (google.protobuf.Empty); // Token鉴权
+  rpc List (hi.Pagination) returns (InviteCodeListResp); // Token鉴权
+  rpc Delete (InviteCodeDeleteReq) returns (google.protobuf.Empty); // Token鉴权
+  rpc Verify (InviteCodeVerifyReq) returns (hi.Token); // 不鉴权
 }
 
 message DAppInfo {
-    string uuid         = 1;  // 分类
-    string class        = 2;  // 分类
-    string logo         = 3;  // 应用图片
-    string title        = 4;  // 应用标题
-    string description  = 5;  // 应用描述
-    string url          = 6;  // 应用链接
-    bool nav            = 7;  // 是否在导航栏展示
-    bool external       = 8;  // 是否内置浏览器打开
-    bool promotion      = 9;  // 是否推广
+  string uuid        = 1; // 分类
+  string class       = 2; // 分类
+  string logo        = 3; // 应用图片
+  string title       = 4; // 应用标题
+  string description = 5; // 应用描述
+  string url         = 6; // 应用链接
+  bool   nav         = 7; // 是否在导航栏展示
+  bool   external    = 8; // 是否内置浏览器打开
+  bool   promotion   = 9; // 是否推广
 }
 
 message DAppListByClassResp {
-  repeated DAppInfo top = 1; // 视频类 Dapp
-  repeated DAppInfo popular = 2; // 热门 Dapp
+  repeated DAppInfo top       = 1; // 视频类 Dapp
+  repeated DAppInfo popular   = 2; // 热门 Dapp
   repeated DAppInfo recommend = 3; // 推荐 Dapp
 }
 
 message DAppGetRWAResp {
-    string url = 1;
+  string url = 1;
 }
 
 message DAppUpdateTopReq {
-    string url = 1;
-    string cover = 2;
+  string url   = 1;
+  string cover = 2;
 }
 
 message DAppUpdateOrderReq {
-    message Unit {
-        string uuid = 1;
-        int32 order = 2;
-    }
-    repeated Unit list = 1;
+  message Unit {
+    string uuid  = 1;
+    int32  order = 2;
+  }
+  repeated Unit list = 1;
 }
 
 message DAppDeleteReq {
-    string uuid = 1;
+  string uuid = 1;
 }
 
 service DApp {
-    rpc ListByClass (google.protobuf.Empty) returns (DAppListByClassResp); // Token鉴权
-    rpc GetRWA (google.protobuf.Empty) returns (DAppGetRWAResp); // Token鉴权
-    rpc GetTop (google.protobuf.Empty) returns (DAppInfo); // Token鉴权
-    rpc UpdateTop (DAppUpdateTopReq) returns (google.protobuf.Empty); // Token鉴权
-    rpc Create (DAppInfo) returns (google.protobuf.Empty); // Token鉴权
-    rpc Edit (DAppInfo) returns (google.protobuf.Empty); // Token鉴权
-    rpc UpdateOrder (DAppUpdateOrderReq) returns (google.protobuf.Empty); // Token鉴权
-    rpc Delete (DAppDeleteReq) returns (google.protobuf.Empty); // Token鉴权
+  rpc ListByClass (google.protobuf.Empty) returns (DAppListByClassResp); // Token鉴权
+  rpc GetRWA (google.protobuf.Empty) returns (DAppGetRWAResp); // Token鉴权
+  rpc GetTop (google.protobuf.Empty) returns (DAppInfo); // Token鉴权
+  rpc UpdateTop (DAppUpdateTopReq) returns (google.protobuf.Empty); // Token鉴权
+  rpc Create (DAppInfo) returns (google.protobuf.Empty); // Token鉴权
+  rpc Edit (DAppInfo) returns (google.protobuf.Empty); // Token鉴权
+  rpc UpdateOrder (DAppUpdateOrderReq) returns (google.protobuf.Empty); // Token鉴权
+  rpc Delete (DAppDeleteReq) returns (google.protobuf.Empty); // Token鉴权
 }
 
 message MerchantManageListReq {
-  string name = 1;
+  string        name       = 1;
   hi.Pagination pagination = 2;
 }
 
 message MerchantManageListResp {
-    message Unit {
-        MerchantInfo base = 1;
-        string comment = 2;
-    }
-    int32 total = 1;
-	repeated Unit list = 2;
+  message Unit {
+    MerchantInfo base    = 1;
+    string       comment = 2;
+  }
+  int32         total = 1;
+  repeated Unit list  = 2;
 }
 
 message MerchantManageEditReq {
-    string did = 1;
-	string comment = 2;
+  string did     = 1;
+  string comment = 2;
 }
 
 service MerchantManage {
-    rpc List (MerchantManageListReq) returns (MerchantManageListResp); // Token鉴权
-    rpc Delete (hi.DID) returns (google.protobuf.Empty); // Token鉴权
-    rpc Edit (MerchantManageEditReq) returns (google.protobuf.Empty); // Token鉴权
+  rpc List (MerchantManageListReq) returns (MerchantManageListResp); // Token鉴权
+  rpc Delete (hi.DID) returns (google.protobuf.Empty); // Token鉴权
+  rpc Edit (MerchantManageEditReq) returns (google.protobuf.Empty); // Token鉴权
 }

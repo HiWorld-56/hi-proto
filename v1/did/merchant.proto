@@ -8,74 +8,74 @@ import "v1/did/base.proto";
 package hi.did;
 
 message MerchantInfo {
-    hi.Unit master = 2;
-    hi.Unit server = 3;
-    string  name = 4;
-    string  logo = 5;
-    repeated Coin public_coins = 6; // 公共币种
-    repeated Coin custom_tokens = 7; // 自定义币种
-    string  qr_endpoint = 8;
-    string  app_endpoint = 9;
-    string  scheme = 10;
-    string  extend_token = 11;
-    int64   created_at = 12;
+  hi.Unit       master        = 2;
+  hi.Unit       server        = 3;
+  string        name          = 4;
+  string        logo          = 5;
+  repeated Coin public_coins  = 6; // 公共币种
+  repeated Coin custom_tokens = 7; // 自定义币种
+  string        qr_endpoint   = 8;
+  string        app_endpoint  = 9;
+  string        scheme        = 10;
+  string        extend_token  = 11;
+  int64         created_at    = 12;
 }
 
 message MerchantGetResp {
-    MerchantInfo info = 1;
+  MerchantInfo info = 1;
 }
 
 message MerchantSetReq {
-    string  server = 1;
-    string  name = 2;
-    string logo = 3;
-    repeated string coins = 4;
-    string  qr_endpoint = 5;
-    string  app_endpoint = 6;
-    string  scheme = 7;
-    string comment = 8;
+  string          server       = 1;
+  string          name         = 2;
+  string          logo         = 3;
+  repeated string coins        = 4;
+  string          qr_endpoint  = 5;
+  string          app_endpoint = 6;
+  string          scheme       = 7;
+  string          comment      = 8;
 }
 
 message MerchantListResp {
-    int32 total = 1;
-	repeated MerchantInfo list = 2;
+  int32                 total = 1;
+  repeated MerchantInfo list  = 2;
 }
 
 message UserProfileGetResp {
-    hi.Unit profile = 1;
+  hi.Unit profile = 1;
 }
 
 message UserProfileSetReq {
-    string did = 1;
-    string name = 2;
-    string avatar = 3;
+  string did    = 1;
+  string name   = 2;
+  string avatar = 3;
 }
 
 message BatchSaveMerchantReq {
-    repeated string user_dids = 1;
+  repeated string user_dids = 1;
 }
 
 service Merchant {
-    rpc Get (google.protobuf.Empty) returns (MerchantGetResp); // Token鉴权
-    rpc Set (MerchantSetReq) returns (google.protobuf.Empty); // Token鉴权
-    rpc List (hi.DID) returns (MerchantListResp); // Token鉴权
-    rpc GetUserProfile (hi.DID) returns (UserProfileGetResp); // Token鉴权
-    rpc SetUserProfile (UserProfileSetReq) returns (google.protobuf.Empty); // Token鉴权
-    rpc GetMerchant (hi.DID) returns (MerchantGetResp); // Token鉴权
-    rpc BatchSave (BatchSaveMerchantReq) returns (google.protobuf.Empty); // ExtendToken鉴权
+  rpc Get (google.protobuf.Empty) returns (MerchantGetResp); // Token鉴权
+  rpc Set (MerchantSetReq) returns (google.protobuf.Empty); // Token鉴权
+  rpc List (hi.DID) returns (MerchantListResp); // Token鉴权
+  rpc GetUserProfile (hi.DID) returns (UserProfileGetResp); // Token鉴权
+  rpc SetUserProfile (UserProfileSetReq) returns (google.protobuf.Empty); // Token鉴权
+  rpc GetMerchant (hi.DID) returns (MerchantGetResp); // Token鉴权
+  rpc BatchSave (BatchSaveMerchantReq) returns (google.protobuf.Empty); // ExtendToken鉴权
 }
 
 message MerchantNotifyReq {
-	string did = 1;
-	string nonce = 2;
+  string did   = 1;
+  string nonce = 2;
 }
 
 message OrderEventResp {
-	string event = 1;
-    string payload = 2;
+  string event   = 1;
+  string payload = 2;
 }
 
 service SSE {
-    rpc OrderEvents(hi.DID) returns (stream OrderEventResp);  // 不鉴权
-    rpc Notify (MerchantNotifyReq) returns (google.protobuf.Empty); // 不鉴权
+  rpc OrderEvents(hi.DID) returns (stream OrderEventResp);  // 不鉴权
+  rpc Notify (MerchantNotifyReq) returns (google.protobuf.Empty); // 不鉴权
 }

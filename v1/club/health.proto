@@ -5,5 +5,5 @@ import "google/protobuf/empty.proto";
 package hi.club;
 
 service Health {
-    rpc Check (google.protobuf.Empty) returns (google.protobuf.Empty); // 不鉴权
+  rpc Check (google.protobuf.Empty) returns (google.protobuf.Empty); // 不鉴权
 }

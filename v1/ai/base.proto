@@ -6,5 +6,5 @@ import "v1/did/base.proto";
 package hi.ai;
 
 service Base {
-    rpc ListSuperAdminUsers (google.protobuf.Empty) returns (hi.did.ListSuperAdminUsersResp); // 不鉴权
+  rpc ListSuperAdminUsers (google.protobuf.Empty) returns (hi.did.ListSuperAdminUsersResp); // 不鉴权
 }

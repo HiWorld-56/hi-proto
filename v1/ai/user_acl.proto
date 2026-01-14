@@ -6,45 +6,45 @@ import "v1/hi.proto";
 package hi.ai;
 
 message UserACLAddReq {
-    string did = 1;
-    string type = 2;
+  string did  = 1;
+  string type = 2;
 }
 
 message UserACLDeleteReq {
-    string did = 1;
-    string type = 2;
+  string did  = 1;
+  string type = 2;
 }
 
 message UserACLListReq {
-    string did = 1;
-    string type = 2;
-    hi.Pagination pagination = 3;
+  string        did        = 1;
+  string        type       = 2;
+  hi.Pagination pagination = 3;
 }
 
 message UserACLListResp {
-    message Unit {
-        string did = 1;
-        repeated string permissions = 2;
-        string note = 3;
-    }
-    int32 total = 1;
-    repeated Unit infos = 2;
+  message Unit {
+    string          did         = 1;
+    repeated string permissions = 2;
+    string          note        = 3;
+  }
+  int32         total = 1;
+  repeated Unit infos = 2;
 }
 
 message UserACLListTypeResp {
-    repeated string types = 1;
+  repeated string types = 1;
 }
 
 message UserACLEditReq {
-    string did = 1;
-    string note = 2;
+  string did  = 1;
+  string note = 2;
 }
 
 // Token鉴权
 service UserACL {
-    rpc Add (UserACLAddReq) returns (google.protobuf.Empty);
-    rpc Delete (UserACLDeleteReq) returns (google.protobuf.Empty);
-    rpc List (UserACLListReq) returns (UserACLListResp);
-    rpc ListType (google.protobuf.Empty) returns (UserACLListTypeResp);
-    rpc Edit (UserACLEditReq) returns (google.protobuf.Empty);
+  rpc Add (UserACLAddReq) returns (google.protobuf.Empty);
+  rpc Delete (UserACLDeleteReq) returns (google.protobuf.Empty);
+  rpc List (UserACLListReq) returns (UserACLListResp);
+  rpc ListType (google.protobuf.Empty) returns (UserACLListTypeResp);
+  rpc Edit (UserACLEditReq) returns (google.protobuf.Empty);
 }

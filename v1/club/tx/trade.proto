@@ -8,90 +8,90 @@ import "v1/did/trans.proto";
 package hi.club.tx;
 
 message TradeUnit {
-    hi.did.Coin coin = 1;
-    hi.Unit user = 2;
-    string sum = 3;
-    string amount = 4;
-    string fee = 5;
+  hi.did.Coin coin   = 1;
+  hi.Unit     user   = 2;
+  string      sum    = 3;
+  string      amount = 4;
+  string      fee    = 5;
 }
 
 message TradeBase {
-    TradeUnit from = 1;
-    TradeUnit to = 2;
-    string id = 3;
-    int64 timestamp = 4;
+  TradeUnit from      = 1;
+  TradeUnit to        = 2;
+  string    id        = 3;
+  int64     timestamp = 4;
 }
 
 message GetTradeFeeReq {
-    string coin = 1;
+  string coin = 1;
 }
 
 message GetTradeFeeResp {
-    string fee = 1;
+  string fee = 1;
 }
 
 message GetTradeReq {
-    string order = 1;
+  string order = 1;
 }
 
 message TradeTrans {
-    string id = 1;
-    hi.did.Transaction trans = 2;
-    string status = 3;
-    int64 timestamp = 4;
+  string             id        = 1;
+  hi.did.Transaction trans     = 2;
+  string             status    = 3;
+  int64              timestamp = 4;
 }
 
 message TradeDetail {
-    string order = 1;
-    string status = 2;
-    TradeUnit from = 3;
-    TradeUnit to = 4;
-    map<string, TradeTrans> list = 5;
-    int64 timestamp = 8;
+  string                  order     = 1;
+  string                  status    = 2;
+  TradeUnit               from      = 3;
+  TradeUnit               to        = 4;
+  map<string, TradeTrans> list      = 5;
+  int64                   timestamp = 8;
 }
 
 message GetTradeResp {
-    TradeDetail detail = 1;
+  TradeDetail detail = 1;
 }
 
 message AddTradeReq {
-    TradeDetail detail = 1;
+  TradeDetail detail = 1;
 }
 
 message AddTradeResp {
-    TradeDetail detail = 1;
+  TradeDetail detail = 1;
 }
 
 message UpdateTransHashReq {
-    string id = 1;
-    string hash = 2;
+  string id   = 1;
+  string hash = 2;
 }
 
 message ListTradeReq {
-    string did = 1;
-    hi.Pagination pagination = 2;
+  string        did        = 1;
+  hi.Pagination pagination = 2;
 }
 
 message ListTradeResp {
-    int32 total = 1;
-    repeated TradeDetail list = 2;
+  int32                total = 1;
+  repeated TradeDetail list  = 2;
 }
 
 message ListAllTradeReq {
-    string id = 1;
-    hi.Pagination pagination = 2;
+  string        id         = 1;
+  hi.Pagination pagination = 2;
 }
 
 message ListAllTradeResp {
-    int32 total = 1;
-    repeated TradeDetail list = 2;
+  int32                total = 1;
+  repeated TradeDetail list  = 2;
 }
 
 service Trade {
-	rpc GetTradeFee (GetTradeFeeReq) returns (GetTradeFeeResp);
-    rpc GetTrade (GetTradeReq) returns (GetTradeResp);
-    rpc AddTrade (AddTradeReq) returns (AddTradeResp);
-    rpc UpdateTransHash (UpdateTransHashReq) returns (google.protobuf.Empty);
-    rpc ListTrade (ListTradeReq) returns (ListTradeResp);
-    rpc ListAllTrade (ListAllTradeReq) returns (ListAllTradeResp);
+  rpc GetTradeFee (GetTradeFeeReq) returns (GetTradeFeeResp);
+  rpc GetTrade (GetTradeReq) returns (GetTradeResp);
+  rpc AddTrade (AddTradeReq) returns (AddTradeResp);
+  rpc UpdateTransHash (UpdateTransHashReq) returns (google.protobuf.Empty);
+  rpc ListTrade (ListTradeReq) returns (ListTradeResp);
+  rpc ListAllTrade (ListAllTradeReq) returns (ListAllTradeResp);
 }

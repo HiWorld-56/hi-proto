@@ -6,16 +6,16 @@ import "v1/did/base.proto";
 package hi.club;
 
 message GetConfigReq {
-    string name = 1;
+  string name = 1;
 }
 
 message GetConfigResp {
-    string value = 1;
+  string value = 1;
 }
 
 service Base {
-    rpc ListCoins (google.protobuf.Empty) returns (hi.did.ListCoinsResp); // 不鉴权
-    rpc LastetVersion (hi.did.LastetVersionReq) returns (hi.did.LastetVersionResp); // 不鉴权
-    rpc ListSuperAdminUsers (google.protobuf.Empty) returns (hi.did.ListSuperAdminUsersResp); // 不鉴权
-    rpc GetConfig (GetConfigReq) returns (GetConfigResp); // Token鉴权
+  rpc ListCoins (google.protobuf.Empty) returns (hi.did.ListCoinsResp); // 不鉴权
+  rpc LastetVersion (hi.did.LastetVersionReq) returns (hi.did.LastetVersionResp); // 不鉴权
+  rpc ListSuperAdminUsers (google.protobuf.Empty) returns (hi.did.ListSuperAdminUsersResp); // 不鉴权
+  rpc GetConfig (GetConfigReq) returns (GetConfigResp); // Token鉴权
 }

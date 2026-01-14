@@ -7,21 +7,21 @@ import "v1/did/login.proto";
 package hi.club;
 
 message EmbeddedReq {
-    string  req_id = 1;
-    string  did    = 2;
-    hi.Node node   = 3;
+  string  req_id = 1;
+  string  did    = 2;
+  hi.Node node   = 3;
 }
 
 message EmbeddedResp {
-    hi.Unit  base   = 1;
-    hi.Token token  = 2;
-    hi.Mqtt  mqtt   = 3;
-    string   master = 8;
+  hi.Unit  base   = 1;
+  hi.Token token  = 2;
+  hi.Mqtt  mqtt   = 3;
+  string   master = 8;
 }
 
 service Login {
-    rpc Embedded (hi.Web3Data) returns (EmbeddedResp); // Web3鉴权 / EmbeddedReq
-    rpc RefreshToken (hi.did.RefreshTokenReq) returns (hi.Token); // 不鉴权
-    rpc GenerateReqId (hi.did.GenerateReqIdReq) returns (hi.ReqID); // 不鉴权
-    rpc GetReqStatus (hi.ReqID) returns (hi.did.ReqStatusResp); // 不鉴权
+  rpc Embedded (hi.Web3Data) returns (EmbeddedResp); // Web3鉴权 / EmbeddedReq
+  rpc RefreshToken (hi.did.RefreshTokenReq) returns (hi.Token); // 不鉴权
+  rpc GenerateReqId (hi.did.GenerateReqIdReq) returns (hi.ReqID); // 不鉴权
+  rpc GetReqStatus (hi.ReqID) returns (hi.did.ReqStatusResp); // 不鉴权
 }

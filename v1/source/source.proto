@@ -1,29 +1,27 @@
 syntax = "proto3";
 
-// import "google/protobuf/empty.proto";
-
 package hi.source;
 
 message UploadReq {
-    string type = 1;
-    string name = 2;
-    bytes content = 3;
+  string type    = 1;
+  string name    = 2;
+  bytes  content = 3;
 }
 
 message UploadResp {
-    string url = 1;
-    optional string thumb_url = 2;
+  string          url       = 1;
+  optional string thumb_url = 2;
 }
 
 message DownloadReq {
-    string url = 1;
+  string url = 1;
 }
 
 message DownloadResp {
-    bytes content = 1;
+  bytes content = 1;
 }
 
 service File {
-    rpc Upload(UploadReq) returns (UploadResp);
-    rpc Download(DownloadReq) returns (DownloadResp);
+  rpc Upload(UploadReq) returns (UploadResp);
+  rpc Download(DownloadReq) returns (DownloadResp);
 }

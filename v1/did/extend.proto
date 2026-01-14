@@ -5,48 +5,48 @@ import "google/protobuf/empty.proto";
 package hi.did;
 
 message UserExtendSettingResp {
-    string token = 2;
-    string table = 3;
+  string token = 2;
+  string table = 3;
 }
 
 service UserExtendSetting {
-    rpc Update (google.protobuf.Empty) returns (UserExtendSettingResp); // Token鉴权
-    rpc Get (google.protobuf.Empty) returns (UserExtendSettingResp); // Token鉴权
+  rpc Update (google.protobuf.Empty) returns (UserExtendSettingResp); // Token鉴权
+  rpc Get (google.protobuf.Empty) returns (UserExtendSettingResp); // Token鉴权
 }
 
 message UserExtendInfo {
-    string logo   = 1;
-    int32 level   = 2;
-    string card   = 3;
-    string extend = 4;
+  string logo   = 1;
+  int32  level  = 2;
+  string card   = 3;
+  string extend = 4;
 }
 
 message UserExtendUpdateReq {
-    message Unit {
-        string did = 1;
-        UserExtendInfo info = 2;
-    }
-    repeated Unit unit = 2;
+  message Unit {
+    string         did  = 1;
+    UserExtendInfo info = 2;
+  }
+  repeated Unit unit = 2;
 }
 
 message UserExtendListReq {
-    repeated string list = 1; // did list
+  repeated string list = 1; // did list
 }
 
 message UserExtendListResp {
-    message Unit {
-        string did = 1;
-        UserExtendInfo info = 2;
-    }
-    repeated Unit unit = 2;
+  message Unit {
+    string         did  = 1;
+    UserExtendInfo info = 2;
+  }
+  repeated Unit unit = 2;
 }
 
 message UserExtendDeleteReq {
-    repeated string list = 1;
+  repeated string list = 1;
 }
 
 service UserExtend {
-    rpc Update (UserExtendUpdateReq) returns (google.protobuf.Empty); // Extend-Token鉴权
-    rpc List (UserExtendListReq) returns (UserExtendListResp); // Extend-Token鉴权
-    rpc Delete (UserExtendDeleteReq) returns (google.protobuf.Empty); // Extend-Token鉴权
+  rpc Update (UserExtendUpdateReq) returns (google.protobuf.Empty); // Extend-Token鉴权
+  rpc List (UserExtendListReq) returns (UserExtendListResp); // Extend-Token鉴权
+  rpc Delete (UserExtendDeleteReq) returns (google.protobuf.Empty); // Extend-Token鉴权
 }
