@@ -24,13 +24,13 @@ message Content {
 }
 
 message SimpleReq {
-  repeated Content list = 1;
+  repeated Content conts = 1;
 }
 
 message DialogReq {
   string           did                  = 1;
   string           cid                  = 2;
-  repeated Content list                 = 3;
+  repeated Content conts                = 3;
   string           state                = 4;
   string           custom               = 5;
   bool             return_plugin_use    = 6;
@@ -48,29 +48,29 @@ message GetContextResp {
 }
 
 message SpeechToSpeechReq {
-  string           did         = 1;
-  string           cid         = 2;
-  repeated Content list        = 3;
-  string           tools       = 4;
-  optional string  tool_choice = 5;
-  optional string  custom      = 6;
-  optional string  state       = 7;
-  optional string  style       = 8;
+  string                    did         = 1;
+  string                    cid         = 2;
+  repeated Content          conts       = 3;
+  repeated hi.ai.ToolSupply tools       = 4;
+  optional string           tool_choice = 5;
+  optional string           custom      = 6;
+  optional string           state       = 7;
+  optional string           style       = 8;
 }
 
 message TextToTextReq {
-  string           did         = 1;
-  string           cid         = 2;
-  repeated Content list        = 3;
-  string           tools       = 4;
-  optional string  tool_choice = 5;
-  optional string  custom      = 6;
-  optional string  state       = 7;
+  string                    did         = 1;
+  string                    cid         = 2;
+  repeated Content          conts       = 3;
+  repeated hi.ai.ToolSupply tools       = 4;
+  optional string           tool_choice = 5;
+  optional string           custom      = 6;
+  optional string           state       = 7;
 }
 
 message ToolCallResult {
-  string           id   = 1;
-  repeated Content list = 2;
+  string           id    = 1;
+  repeated Content conts = 2;
 }
 
 message ToolCallResultsReq {

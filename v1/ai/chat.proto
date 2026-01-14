@@ -12,7 +12,7 @@ message Content {
 }
 
 message SimpleReq {
-  repeated hi.ai.Content list = 1;
+  repeated Content conts = 1;
 }
 
 message GenerateCidResp {
@@ -22,7 +22,7 @@ message GenerateCidResp {
 message DialogReq {
   string           did                  = 1;
   string           cid                  = 2;
-  repeated Content list                 = 3;
+  repeated Content conts                = 3;
   string           state                = 4;
   string           custom               = 5;
   bool             return_plugin_use    = 6;
@@ -81,7 +81,7 @@ message SpeechToTextResp {
 message SpeechToSpeechReq {
   string              did         = 1;
   string              cid         = 2;
-  repeated Content    list        = 3;
+  repeated Content    conts       = 3;
   repeated ToolSupply tools       = 4;
   optional string     tool_choice = 5;
   optional string     custom      = 6;
@@ -92,7 +92,7 @@ message SpeechToSpeechReq {
 message TextToTextReq {
   string              did         = 1;
   string              cid         = 2;
-  repeated Content    list        = 3;
+  repeated Content    conts       = 3;
   repeated ToolSupply tools       = 4;
   optional string     tool_choice = 5;
   optional string     custom      = 6;
@@ -100,8 +100,8 @@ message TextToTextReq {
 }
 
 message ToolCallResult {
-  string           id   = 1;
-  repeated Content list = 2;
+  string           id    = 1;
+  repeated Content conts = 2;
 }
 
 message ToolCallResultsReq {
@@ -131,14 +131,14 @@ message ToolCall {
 
 // final == true
 //   result = text / url
-//   tool_calls = null
+//   tools = null
 // final == false
 //   result = tool_id
-//   tool_calls = tool_calls
+//   tools = tools
 message ChatResp {
-  bool              final      = 1;
-  string            result     = 2;
-  repeated ToolCall tool_calls = 3;
+  bool              final  = 1;
+  string            result = 2;
+  repeated ToolCall tools  = 3;
 }
 
 message GetBotDelayReq {

@@ -12,7 +12,7 @@ message SearchReq {
 }
 
 message SearchResp {
-  repeated hi.ai.Content contents = 1;
+  repeated Content conts = 1;
 }
 
 message PythonReq {
@@ -22,7 +22,7 @@ message PythonReq {
 }
 
 message PythonResp {
-  repeated hi.ai.Content contents = 1;
+  repeated Content conts = 1;
 }
 
 service AiPlugin {
