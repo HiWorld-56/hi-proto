@@ -2,21 +2,94 @@ syntax = "proto3";
 
 import "google/protobuf/empty.proto";
 import "v1/ai/chat.proto";
+import "v1/did/trans.proto";
+import  "v1/club/tx/trade.proto";
 
 package hi.club;
 
+message Content {
+    message Chat {
+        string content = 2;
+        optional string name = 3;
+        optional uint32 size = 4;
+        optional uint32 duration = 5;
+    }
+
+    string type = 1;
+    oneof kind {
+        Chat chat = 2;
+        hi.did.Transaction trans = 3;
+        tx.Trade trade = 4;
+    }
+}
+
+message SimpleReq {
+    repeated Content list = 1;
+}
+
+message DialogReq {
+    string did = 1;
+    string cid = 2;
+    repeated Content list = 3;
+    string state = 4;
+    string custom = 5;
+    bool return_plugin_use = 6;
+    bool return_training_data = 7;
+    bool return_context = 8;
+}
+
+message QA {
+    repeated Content q = 3; // User
+    string a = 2; // assistant
+}
+
+message GetContextResp {
+    repeated QA list = 1;
+}
+
+message SpeechToSpeechReq {
+    string did = 1;
+    string cid = 2;
+    repeated Content list = 3;
+    string tools = 4;
+    optional string tool_choice = 5;
+    optional string custom = 6;
+    optional string state = 7;
+    optional string style = 8;
+}
+
+message TextToTextReq {
+    string did = 1;
+    string cid = 2;
+    repeated Content list = 3;
+    string tools = 4;
+    optional string tool_choice = 5;
+    optional string custom = 6;
+    optional string state = 7;
+}
+
+message ToolCallResult {
+    string id = 1;
+    repeated Content list = 2;
+}
+
+message ToolCallResultsReq {
+    string id = 1;
+    repeated ToolCallResult list = 2;
+}
+
 // Token鉴权
 service Chat {
-	rpc Simple (hi.ai.SimpleReq) returns (hi.ai.DialogResp);
-	rpc GenerateCid (google.protobuf.Empty) returns (hi.ai.GenerateCidResp);
-    rpc Dialog (hi.ai.DialogReq) returns (hi.ai.DialogResp);
-    rpc DialogStream (hi.ai.DialogReq) returns (stream hi.ai.DialogStreamResp);
+    rpc Simple (SimpleReq) returns (hi.ai.DialogResp);
+    rpc GenerateCid (google.protobuf.Empty) returns (hi.ai.GenerateCidResp);
+    rpc Dialog (DialogReq) returns (hi.ai.DialogResp);
+    rpc DialogStream (DialogReq) returns (stream hi.ai.DialogStreamResp);
     rpc ClearContext (hi.ai.ClearContextReq) returns (google.protobuf.Empty);
-    rpc GetContext (hi.ai.GetContextReq) returns (hi.ai.GetContextResp);
+    rpc GetContext (hi.ai.GetContextReq) returns (GetContextResp);
     rpc TextToSpeech (hi.ai.TextToSpeechReq) returns (hi.ai.TextToSpeechResp);
     rpc SpeechToText (hi.ai.SpeechToTextReq) returns (hi.ai.SpeechToTextResp);
-    rpc SpeechToSpeech (hi.ai.SpeechToSpeechReq) returns (hi.ai.ChatResp);
-    rpc SpeechToSpeech2 (hi.ai.ToolCallResultsReq) returns (hi.ai.ChatResp);
-    rpc TextToText (hi.ai.TextToTextReq) returns (hi.ai.ChatResp);
-    rpc TextToText2 (hi.ai.ToolCallResultsReq) returns (hi.ai.ChatResp);
+    rpc SpeechToSpeech (SpeechToSpeechReq) returns (hi.ai.ChatResp);
+    rpc SpeechToSpeech2 (ToolCallResultsReq) returns (hi.ai.ChatResp);
+    rpc TextToText (TextToTextReq) returns (hi.ai.ChatResp);
+    rpc TextToText2 (ToolCallResultsReq) returns (hi.ai.ChatResp);
 }

@@ -1,22 +1,27 @@
 syntax = "proto3";
 
 import "v1/hi.proto";
+import "v1/did/base.proto";
 
 package hi.did;
+
+message Transaction {
+    string hash = 1;
+    string amount = 2;
+    hi.did.Coin coin = 3;
+    hi.Unit from = 4;
+    hi.Unit to = 5;
+}
 
 message InputOutputs {
     string value = 1;
     string address = 2;
 }
 
-message TransactionInfo {
-    string hash = 1;
-    string from = 2;
-    string to = 3;
-    string amount = 4;
-    string coin = 5;
-    repeated InputOutputs inputs = 6;
-    repeated InputOutputs outputs = 7;
+message TransactionExtend {
+    Transaction trans = 1;
+    repeated InputOutputs inputs = 2;
+    repeated InputOutputs outputs = 3;
 }
 
 message ListTransactionsReq {
@@ -27,7 +32,7 @@ message ListTransactionsReq {
 
 message ListTransactionsResp {
     message Unit {
-        TransactionInfo trans = 1;
+        TransactionExtend trans = 1;
         int32 direction = 5;
         int32 status = 6;
         int64 timestamp = 7;
@@ -37,20 +42,20 @@ message ListTransactionsResp {
 }
 
 message GetTransactionDetailReq {
-    TransactionInfo trans = 1;
+    TransactionExtend trans = 1;
     string verify_hash_dump = 6;
     string verify_tran = 7;
 }
 
 message GetTransactionDetailResp {
-    TransactionInfo trans = 1;
+    TransactionExtend trans = 1;
     string timestamp = 2;
     int64 confirmed_blocks = 3;
     string status = 4;
     string error = 5;
 }
 
-service Transaction {
+service Transfer {
     rpc ListTransactions (ListTransactionsReq) returns (ListTransactionsResp); // 不鉴权
     rpc GetTransactionDetail (GetTransactionDetailReq) returns (GetTransactionDetailResp); // 不鉴权
 }

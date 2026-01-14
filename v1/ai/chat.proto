@@ -8,12 +8,10 @@ package hi.ai;
 message Content {
     string type = 1;
     string content = 2;
-    optional string name = 3;
-    optional uint32 size = 4;
 }
 
 message SimpleReq {
-    repeated hi.ai.Content messages = 1;
+    repeated hi.ai.Content list = 1;
 }
 
 message GenerateCidResp {
@@ -23,7 +21,7 @@ message GenerateCidResp {
 message DialogReq {
     string did = 1;
     string cid = 2;
-    repeated Content messages = 3;
+    repeated Content list = 3;
     string state = 4;
     string custom = 5;
     bool return_plugin_use = 6;
@@ -82,7 +80,7 @@ message SpeechToTextResp {
 message SpeechToSpeechReq {
     string did = 1;
     string cid = 2;
-    repeated Content messages = 3;
+    repeated Content list = 3;
     string tools = 4;
     optional string tool_choice = 5;
     optional string custom = 6;
@@ -93,7 +91,7 @@ message SpeechToSpeechReq {
 message TextToTextReq {
     string did = 1;
     string cid = 2;
-    repeated Content messages = 3;
+    repeated Content list = 3;
     string tools = 4;
     optional string tool_choice = 5;
     optional string custom = 6;

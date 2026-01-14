@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 import "v1/hi.proto";
-import "v1/ai/chat.proto";
+import "v1/club/chat.proto";
 import "v1/club/q3/q3.proto";
 
 package hi.club.mqtt;
@@ -73,7 +73,7 @@ message Message {
     string cid = 2;
     string type = 3;
     hi.Unit from = 4;
-    repeated hi.ai.Content content = 5;
+    repeated club.Content content = 5;
     int64 timestamp = 6;
     Extra extra = 7;
     hi.Unit ghost = 8;

@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+import "v1/did/base.proto";
+
+package hi.club.tx;
+
+message PcOrderData {
+    string did = 1;
+    string nonce = 2;
+}
+
+message PcOrder {
+    string id = 1;
+    string order_id = 2;
+    string to_did = 3;
+    string amount = 4;
+    string type = 5;
+    string created_at = 6;
+    string updated_at = 7;
+    string deleted_at = 8;
+    string did = 9;
+    string status = 10;
+}
+
+message GetNotPulledPcOrdersResp {
+    repeated PcOrder orders = 1;
+}
+
+message UpdatePulledPcOrder {
+    string order_id = 1;
+    string status = 2;
+    string tx_hash = 3;
+    int64 timestamp = 4; 
+}
+
+message UpdatePulledPcOrderData {
+    string did = 1;
+    repeated UpdatePulledPcOrder orders = 2;
+}
+
+service Order {
+	rpc GetNotPulledPcOrders (hi.Web3Data) returns (GetNotPulledPcOrdersResp);
+    rpc UpdatePulledPcOrders (hi.Web3Data) returns (google.protobuf.Empty);
+}
