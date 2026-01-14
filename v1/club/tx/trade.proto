@@ -47,7 +47,7 @@ message TradeDetail {
     TradeUnit from = 3;
     TradeUnit to = 4;
     map<string, TradeTrans> list = 5;
-    string timestamp = 8;
+    int64 timestamp = 8;
 }
 
 message GetTradeResp {
