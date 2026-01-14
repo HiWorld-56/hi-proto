@@ -1,5 +1,6 @@
 syntax = "proto3";
 
+import "google/protobuf/struct.proto";
 import "google/protobuf/empty.proto";
 import "v1/hi.proto";
 
@@ -81,7 +82,7 @@ message SpeechToSpeechReq {
     string did = 1;
     string cid = 2;
     repeated Content list = 3;
-    string tools = 4;
+    repeated ToolSupply tools = 4;
     optional string tool_choice = 5;
     optional string custom = 6;
     optional string state = 7;
@@ -92,10 +93,15 @@ message TextToTextReq {
     string did = 1;
     string cid = 2;
     repeated Content list = 3;
-    string tools = 4;
+    repeated ToolSupply tools = 4;
     optional string tool_choice = 5;
     optional string custom = 6;
     optional string state = 7;
+}
+
+message ToolCallResult {
+    string id = 1;
+    repeated Content list = 2;
 }
 
 message ToolCallResultsReq {
@@ -103,20 +109,29 @@ message ToolCallResultsReq {
     repeated ToolCallResult list = 2;
 }
 
-message Function {
-    string name = 1;
-    string arguments = 2;
+message ToolSupply {
+    message Function {
+        message Parameters {
+            string type = 1;
+            google.protobuf.Struct properties = 2;
+            repeated string required = 3;
+        }
+        string name = 1;
+        string description = 2;
+        optional Parameters parameters = 3;
+    }
+    string type = 1;
+    Function function = 2;
 }
 
 message ToolCall {
+    message Function {
+        string name = 1;
+        string arguments = 2;
+    }
     string id = 1;
     string type = 2;
     Function function = 3;
-}
-
-message ToolCallResult {
-    string id = 1;
-    repeated Content list = 2;
 }
 
 // final == true
