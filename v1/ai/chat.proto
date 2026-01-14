@@ -8,6 +8,8 @@ package hi.ai;
 message Content {
     string type = 1;
     string content = 2;
+    optional string name = 3;
+    optional uint32 size = 4;
 }
 
 message SimpleReq {
