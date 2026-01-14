@@ -6,7 +6,7 @@ import "v1/ai/train.proto";
 
 package hi.club.ai;
 
-// apiKey鉴权
+// Token鉴权
 service BotTraining {
     rpc TrainingBot (hi.ai.TrainingBotReq) returns (google.protobuf.Empty);
     rpc TrainingStatus (hi.ai.TrainingStatusReq) returns (hi.ai.TrainingStatusResp);

@@ -5,7 +5,7 @@ import "v1/ai/chat.proto";
 
 package hi.club;
 
-// apiKey鉴权
+// Token鉴权
 service Chat {
 	rpc Simple (hi.ai.SimpleReq) returns (hi.ai.DialogResp);
 	rpc GenerateCid (google.protobuf.Empty) returns (hi.ai.GenerateCidResp);

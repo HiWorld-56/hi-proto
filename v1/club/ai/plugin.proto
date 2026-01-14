@@ -6,7 +6,7 @@ import "v1/ai/plugin.proto";
 
 package hi.club.ai;
 
-// apiKey鉴权
+// Token鉴权
 service Plugin {
     rpc DrawConfig (google.protobuf.Empty) returns (hi.ai.DrawConfigResp);
     rpc PluginSwitch (hi.ai.PluginSwitchReq) returns (hi.ai.PluginSwitchResp);
