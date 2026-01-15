@@ -12,19 +12,19 @@ message SimpleReq {
 }
 
 message DialogReq {
-  string           did                  = 1;
-  string           cid                  = 2;
-  repeated hi.club.mqtt.Content conts                = 3;
-  string           state                = 4;
-  string           custom               = 5;
-  bool             return_plugin_use    = 6;
-  bool             return_training_data = 7;
-  bool             return_context       = 8;
+  string                did                  = 1;
+  string                cid                  = 2;
+  repeated mqtt.Content conts                = 3;
+  string                state                = 4;
+  string                custom               = 5;
+  bool                  return_plugin_use    = 6;
+  bool                  return_training_data = 7;
+  bool                  return_context       = 8;
 }
 
 message QA {
-  repeated hi.club.mqtt.Content q = 3; // User
-  string           a = 2; // assistant
+  repeated mqtt.Content q = 3; // User
+  string                a = 2; // assistant
 }
 
 message GetContextResp {
@@ -34,7 +34,7 @@ message GetContextResp {
 message SpeechToSpeechReq {
   string                    did         = 1;
   string                    cid         = 2;
-  repeated hi.club.mqtt.Content conts   = 3;
+  repeated mqtt.Content     conts       = 3;
   repeated hi.ai.ToolSupply tools       = 4;
   optional string           tool_choice = 5;
   optional string           custom      = 6;
@@ -45,7 +45,7 @@ message SpeechToSpeechReq {
 message TextToTextReq {
   string                    did         = 1;
   string                    cid         = 2;
-  repeated hi.club.mqtt.Content          conts       = 3;
+  repeated mqtt.Content     conts       = 3;
   repeated hi.ai.ToolSupply tools       = 4;
   optional string           tool_choice = 5;
   optional string           custom      = 6;
@@ -53,8 +53,8 @@ message TextToTextReq {
 }
 
 message ToolCallResult {
-  string           id    = 1;
-  repeated hi.club.mqtt.Content conts = 2;
+  string                id    = 1;
+  repeated mqtt.Content conts = 2;
 }
 
 message ToolCallResultsReq {

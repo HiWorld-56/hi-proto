@@ -18,9 +18,9 @@ message ListSystemMessageReq {
 }
 
 message SystemMessages {
-  bool                         has_new = 1;
-  int32                        total   = 2;
-  repeated hi.club.mqtt.Notice list    = 3;
+  bool                 has_new = 1;
+  int32                total   = 2;
+  repeated mqtt.Notice list    = 3;
 }
 
 message DeleteSystemMessageReq {
