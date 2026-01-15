@@ -13,10 +13,10 @@ message EmbeddedReq {
 }
 
 message EmbeddedResp {
-  hi.Unit  base   = 1;
-  hi.Token token  = 2;
-  hi.Mqtt  mqtt   = 3;
-  string   master = 8;
+  hi.Unit         base   = 1;
+  hi.Token        token  = 2;
+  hi.Mqtt         mqtt   = 3;
+  optional string master = 4;
 }
 
 service Login {
