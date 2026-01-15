@@ -407,14 +407,14 @@ http:
     body: '*'
   - selector: hi.club.ai.BotTraining.GetMemModel
     get: /api/v1/bot_training/get_mem_model
-  # Club Tx
-  - selector: hi.club.tx.Tx.ListTx
-    post: /api/v1/tx/list_tx
+  # Club Trade
+  - selector: hi.club.tx.Trade.ListTrade
+    post: /api/v1/trade/list_trade
     body: '*'
-  - selector: hi.club.tx.Tx.GetTx
-    get: /api/v1/tx/get_tx
-  - selector: hi.club.tx.Tx.ListAllTx
-    post: /api/v1/tx/list_all_tx
+  - selector: hi.club.tx.Trade.GetTrade
+    get: /api/v1/trade/get_trade
+  - selector: hi.club.tx.Trade.ListAllTrade
+    post: /api/v1/trade/list_all_trade
     body: '*'
   # InviteCode
   - selector: hi.did.InviteCode.Create
