@@ -23,7 +23,7 @@ message DialogReq {
 }
 
 message QA {
-  repeated mqtt.Content q = 3; // User
+  repeated mqtt.Content q = 1; // User
   string                a = 2; // assistant
 }
 
