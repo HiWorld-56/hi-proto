@@ -1,8 +1,9 @@
 syntax = "proto3";
 
 import "v1/hi.proto";
-import "v1/club/chat.proto";
 import "v1/club/q3/q3.proto";
+import "v1/did/trans.proto";
+import "v1/club/tx/trade.proto";
 
 package hi.club.mqtt;
 
@@ -76,7 +77,7 @@ message Message {
   string                cid       = 2;
   string                type      = 3;
   hi.Unit               from      = 4;
-  repeated club.Content conts     = 5;
+  repeated Content      conts     = 5;
   int64                 timestamp = 6;
   Extra                 extra     = 7;
   hi.Unit               ghost     = 8;
@@ -116,4 +117,20 @@ message GroupInfo {
   string  back_ground = 2;
   bool    mute        = 3;
   hi.Unit owner       = 4;
+}
+
+message Content {
+  message Chat {
+    string          content  = 2;
+    optional string name     = 3;
+    optional uint32 size     = 4;
+    optional uint32 duration = 5;
+  }
+
+  string type = 1;
+  oneof kind {
+    Chat               chat  = 2;
+    hi.did.Transaction trans = 3;
+    tx.TradeBase       trade = 4;
+  }
 }
