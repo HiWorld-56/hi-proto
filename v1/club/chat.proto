@@ -5,10 +5,10 @@ import "v1/ai/chat.proto";
 import "v1/club/tx/trade.proto";
 import "v1/club/mqtt/mqtt.proto";
 
-package hi.club.chat;
+package hi.club;
 
 message SimpleReq {
-  repeated hi.club.mqtt.Content conts = 1;
+  repeated mqtt.Content conts = 1;
 }
 
 message DialogReq {
