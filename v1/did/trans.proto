@@ -11,6 +11,7 @@ message Transaction {
   hi.did.Coin coin   = 3;
   hi.Unit     from   = 4;
   hi.Unit     to     = 5;
+  string      remark = 6;
 }
 
 message InputOutputs {
