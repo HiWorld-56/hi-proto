@@ -236,6 +236,8 @@ http:
   # Club Base
   - selector: hi.club.Base.ListSuperAdminUsers
     post: /api/v1/base/list_super_admin_users
+  - selector: hi.club.Base.LastetVersion
+    get: /api/v1/base/lastet_version
   # Club Bot
   - selector: hi.club.Bot.ListLLM
     get: /api/v1/bot/list_llm
@@ -466,6 +468,8 @@ http:
   # Base
   - selector: hi.did.Base.ListSuperAdminUsers
     get: /api/v1/base/list_superadminusers
+  - selector: hi.did.Base.LastetVersion
+    get: /api/v1/base/lastet_version
   # UserExtendSetting
   - selector: hi.did.UserExtendSetting.Update
     post: /api/v1/user_extend_setting/update
