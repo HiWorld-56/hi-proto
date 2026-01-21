@@ -3,10 +3,12 @@ syntax = "proto3";
 import "google/protobuf/empty.proto";
 import "v1/hi.proto";
 
+package hi.did;
+
 message AgentInfo {
   string uuid             = 1;  // UUID
   string class            = 2;  // 分类：banner; agent
-  string sub_class        = 3;  // agent分类：curated-精选智能体; ordinary-普通智能体
+  string sub_class        = 3;  // 二级分类，agent分类：curated-精选智能体; ordinary-普通智能体
   string name             = 4;  // 名字
   string price            = 5;  // 价格
   string coin             = 6;  // 价格的币种名
@@ -19,7 +21,8 @@ message AgentInfo {
 }
 
 message AgentListReq {
-  hi.Pagination pagination = 1;
+  string class             = 1; // 分类：banner; agent
+  hi.Pagination pagination = 2;
 }
 
 message AgentListResp {

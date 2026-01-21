@@ -507,10 +507,26 @@ http:
   - selector: hi.did.Merchant.BatchSave
     post: /api/v1/merchant/batch_save
     body: '*'
-  # Web
+  # Wallet
   - selector: hi.did.Wallet.ListUsersAssets
-    post: /api/v1/web/list_user_assets
+    post: /api/v1/wallet/list_user_assets
     body: '*'
   - selector: hi.did.Wallet.GetUserAssets
-    post: /api/v1/web/get_user_assets
+    post: /api/v1/wallet/get_user_assets
+    body: '*'
+  # Agent
+  - selector: hi.did.Agent.List
+    post: /api/v1/agent/list
+    body: '*'
+  - selector: hi.did.Agent.Create
+    post: /api/v1/agent/create
+    body: '*'
+  - selector: hi.did.Agent.Edit
+    post: /api/v1/agent/edit
+    body: '*'
+  - selector: hi.did.Agent.Delete
+    post: /api/v1/agent/delete
+    body: '*'
+  - selector: hi.did.Agent.UpdateOrder
+    post: /api/v1/agent/update_order
     body: '*'
