@@ -93,7 +93,13 @@ message Extra {
     GroupInfo                 group_info  = 5;
     hi.club.q3.GroupReadyResp ready       = 6;
     hi.club.q3.GroupEventReq  event       = 7;
+    Peer                      peer        = 8;
   }
+}
+
+message Peer {
+  hi.Unit group = 1;
+  hi.Unit user  = 2;
 }
 
 message Mention {

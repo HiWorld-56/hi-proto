@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "v1/hi.proto";
+
+message AgentInfo {
+  string uuid             = 1;  // UUID
+  string class            = 2;  // 分类：banner; agent
+  string sub_class        = 3;  // agent分类：curated-精选智能体; ordinary-普通智能体
+  string name             = 4;  // 名字
+  string price            = 5;  // 价格
+  string coin             = 6;  // 价格的币种名
+  string logo             = 7;  // LOGO
+  string url              = 8;  // URL
+  string description      = 9;  // 描述
+  optional bool external  = 10; // 是否内置浏览器打开
+  optional bool nav       = 11; // 是否在导航栏展示
+  optional bool promotion = 12; // 是否推广
+}
+
+message AgentListReq {
+  hi.Pagination pagination = 1;
+}
+
+message AgentListResp {
+  int32 total             = 1;
+  repeated AgentInfo list = 2;
+}
+
+message AgentListByClassResp {
+  repeated AgentInfo curated  = 1; // 精选智能体
+  repeated AgentInfo ordinary = 2; // 普通智能体
+}
+
+message AgentUpdateOrderReq {
+  message Unit {
+    string uuid  = 1;
+    int32  order = 2;
+  }
+  string class       = 1; // 分类, banner; agent
+  repeated Unit list = 2;
+}
+
+message AgentDeleteReq {
+  string uuid = 1;
+}
+
+// Token鉴权
+service Agent {
+  rpc List (AgentListReq) returns (AgentListResp);
+  rpc ListByClass (google.protobuf.Empty) returns (AgentListByClassResp);
+  rpc Create (AgentInfo) returns (google.protobuf.Empty); 
+  rpc Edit (AgentInfo) returns (google.protobuf.Empty);
+  rpc Delete (AgentDeleteReq) returns (google.protobuf.Empty);
+  rpc UpdateOrder (AgentUpdateOrderReq) returns (google.protobuf.Empty);
+}
+
+
+
