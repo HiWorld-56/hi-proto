@@ -2,6 +2,7 @@ syntax = "proto3";
 
 import "google/protobuf/empty.proto";
 import "v1/hi.proto";
+import "v1/did/base.proto";
 
 package hi.did;
 
@@ -11,7 +12,7 @@ message AgentInfo {
   string sub_category     = 3;  // 二级分类，agent分类：curated-精选智能体; ordinary-普通智能体
   string name             = 4;  // 名字
   string price            = 5;  // 价格
-  string coin             = 6;  // 价格的币种名
+  did.Coin coin           = 6;  // 价格的币种
   string logo             = 7;  // LOGO
   string url              = 8;  // URL
   string description      = 9;  // 描述
@@ -55,7 +56,7 @@ message AgentDeleteReq {
 
 service Agent {
   rpc List (AgentListReq) returns (AgentListResp); // Token鉴权
-  rpc ListByClass (AgentListByClassReq) returns (AgentListByClassResp); // 不鉴权
+  rpc ListByClass (AgentListByClassReq) returns (AgentListByClassResp); // ExtendToken鉴权
   rpc Create (AgentInfo) returns (google.protobuf.Empty);  // Token鉴权
   rpc Edit (AgentInfo) returns (google.protobuf.Empty); // Token鉴权
   rpc Delete (AgentDeleteReq) returns (google.protobuf.Empty); // Token鉴权
