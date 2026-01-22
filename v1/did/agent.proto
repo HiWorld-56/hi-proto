@@ -7,8 +7,8 @@ package hi.did;
 
 message AgentInfo {
   string uuid             = 1;  // UUID
-  string class            = 2;  // 分类：banner; agent
-  string sub_class        = 3;  // 二级分类，agent分类：curated-精选智能体; ordinary-普通智能体
+  string category         = 2;  // 分类：banner; agent
+  string sub_category     = 3;  // 二级分类，agent分类：curated-精选智能体; ordinary-普通智能体
   string name             = 4;  // 名字
   string price            = 5;  // 价格
   string coin             = 6;  // 价格的币种名
@@ -21,7 +21,7 @@ message AgentInfo {
 }
 
 message AgentListReq {
-  string class             = 1; // 分类：banner; agent
+  string category          = 1; // 分类：banner; agent
   hi.Pagination pagination = 2;
 }
 
@@ -40,7 +40,7 @@ message AgentUpdateOrderReq {
     string uuid  = 1;
     int32  order = 2;
   }
-  string class       = 1; // 分类, banner; agent
+  string category    = 1; // 分类, banner; agent
   repeated Unit list = 2;
 }
 
