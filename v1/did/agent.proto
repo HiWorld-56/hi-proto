@@ -30,9 +30,14 @@ message AgentListResp {
   repeated AgentInfo list = 2;
 }
 
+message AgentListByClassReq {
+  string user = 1; // 商户DID
+}
+
 message AgentListByClassResp {
-  repeated AgentInfo curated  = 1; // 精选智能体
-  repeated AgentInfo ordinary = 2; // 普通智能体
+  repeated AgentInfo banner   = 1; // banner
+  repeated AgentInfo curated  = 2; // 精选智能体
+  repeated AgentInfo ordinary = 3; // 普通智能体
 }
 
 message AgentUpdateOrderReq {
@@ -48,14 +53,13 @@ message AgentDeleteReq {
   string uuid = 1;
 }
 
-// Token鉴权
 service Agent {
-  rpc List (AgentListReq) returns (AgentListResp);
-  rpc ListByClass (google.protobuf.Empty) returns (AgentListByClassResp);
-  rpc Create (AgentInfo) returns (google.protobuf.Empty); 
-  rpc Edit (AgentInfo) returns (google.protobuf.Empty);
-  rpc Delete (AgentDeleteReq) returns (google.protobuf.Empty);
-  rpc UpdateOrder (AgentUpdateOrderReq) returns (google.protobuf.Empty);
+  rpc List (AgentListReq) returns (AgentListResp); // Token鉴权
+  rpc ListByClass (AgentListByClassReq) returns (AgentListByClassResp); // 不鉴权
+  rpc Create (AgentInfo) returns (google.protobuf.Empty);  // Token鉴权
+  rpc Edit (AgentInfo) returns (google.protobuf.Empty); // Token鉴权
+  rpc Delete (AgentDeleteReq) returns (google.protobuf.Empty); // Token鉴权
+  rpc UpdateOrder (AgentUpdateOrderReq) returns (google.protobuf.Empty); // Token鉴权
 }
 
 

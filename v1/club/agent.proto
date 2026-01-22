@@ -1,0 +1,9 @@
+import "google/protobuf/empty.proto";
+import "v1/did/agent.proto";
+
+package hi.club;
+
+// 智能体
+service Agent {
+  rpc ListByClass (hi.did.AgentListByClassReq) returns (hi.did.AgentListByClassResp); // Token鉴权
+}
