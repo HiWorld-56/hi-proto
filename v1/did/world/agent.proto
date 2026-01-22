@@ -4,7 +4,7 @@ import "google/protobuf/empty.proto";
 import "v1/hi.proto";
 import "v1/did/base.proto";
 
-package hi.did;
+package hi.did.world;
 
 message AgentInfo {
   string uuid             = 1;  // UUID
