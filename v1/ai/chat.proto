@@ -141,26 +141,36 @@ message ChatResp {
   repeated ToolCall tools  = 3;
 }
 
-message GetBotDelayReq {
+message ListBotDelayReq {
   string        bot        = 1;
   string        type       = 2;
   hi.Pagination pagination = 3;
 }
 
-message GetBotDelayResp {
-  message BotDelayUnit {
-    string bot           = 1;
-    string uuid          = 2;
-    string type          = 3;
-    int32  llm           = 4;
-    int32  llm2          = 5;
-    int32  stt           = 6;
-    int32  tts           = 7;
-    int32  function_call = 8;
-    int64  test_time     = 9;
-  }
-  int32                 total = 1;
+message BotDelayUnit {
+  string bot           = 1;
+  string uuid          = 2;
+  string type          = 3;
+  int32  llm           = 4;
+  int32  llm2          = 5;
+  int32  stt           = 6;
+  int32  tts           = 7;
+  int32  function_call = 8;
+  int64  test_time     = 9;
+}
+
+message ListBotDelayResp {
+  int32 total                 = 1;
   repeated BotDelayUnit units = 2;
+}
+
+message GetBotDelayReq {
+  string bot  = 1;
+  string type = 2;
+}
+
+message GetBotDelayResp {
+  BotDelayUnit unit = 1;
 }
 
 // apiKey鉴权
@@ -177,5 +187,6 @@ service Chat {
   rpc SpeechToSpeech2 (ToolCallResultsReq) returns (ChatResp);
   rpc TextToText (TextToTextReq) returns (ChatResp);
   rpc TextToText2 (ToolCallResultsReq) returns (ChatResp);
+  rpc ListBotDelay (ListBotDelayReq) returns (ListBotDelayResp);
   rpc GetBotDelay (GetBotDelayReq) returns (GetBotDelayResp);
 }

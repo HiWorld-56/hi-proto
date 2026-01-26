@@ -220,9 +220,11 @@ http:
   - selector: hi.ai.Chat.TextToText2
     post: /api/v1/chat/text_to_text2
     body: '*'
-  - selector: hi.ai.Chat.GetBotDelay
-    post: /api/v1/chat/get_bot_delay
+  - selector: hi.ai.Chat.ListBotDelay
+    post: /api/v1/chat/list_bot_delay
     body: '*'
+  - selector: hi.ai.Chat.GetBotDelay
+    get: /api/v1/chat/get_bot_delay
   # Club Login
   - selector: hi.club.Login.GenerateReqId
     post: /api/v1/login/generate_req_id
