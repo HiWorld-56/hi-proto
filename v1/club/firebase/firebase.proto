@@ -16,7 +16,7 @@ message PushUnregisterReq {
 
 // Token鉴权
 service PushManager {
-  rpc Register (DeviceRegisterReq) returns (google.protobuf.Empty);
-  rpc Unregister (DeviceUnregisterReq) returns (google.protobuf.Empty);
+  rpc Register (PushRegisterReq) returns (google.protobuf.Empty);
+  rpc Unregister (PushUnregisterReq) returns (google.protobuf.Empty);
 }
 
