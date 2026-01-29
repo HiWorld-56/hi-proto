@@ -1,20 +1,21 @@
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
+import "v1/hi.proto";
 
-package hi.club;
+package hi.club.firebase;
 
-message DeviceRegisterReq {
-  string platform = 1; // 平台，android, web
-  string token    = 2; // 设备Token
+message PushRegisterReq {
+  hi.Node node = 1;
+  string token = 2; // 设备Token
 }
 
-message DeviceUnregisterReq {
+message PushUnregisterReq {
   string token = 1; // 设备Token
 }
 
 // Token鉴权
-service DeviceManager {
+service PushManager {
   rpc Register (DeviceRegisterReq) returns (google.protobuf.Empty);
   rpc Unregister (DeviceUnregisterReq) returns (google.protobuf.Empty);
 }
