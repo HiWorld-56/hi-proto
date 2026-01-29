@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package hi.club;
+
+message DeviceRegisterReq {
+  string platform = 1; // 平台，android, web
+  string token    = 2; // 设备Token
+}
+
+message DeviceUnregisterReq {
+  string token = 1; // 设备Token
+}
+
+// Token鉴权
+service DeviceManager {
+  rpc Register (DeviceRegisterReq) returns (google.protobuf.Empty);
+  rpc Unregister (DeviceUnregisterReq) returns (google.protobuf.Empty);
+}
+
