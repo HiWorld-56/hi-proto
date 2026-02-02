@@ -228,5 +228,6 @@ http:
 # AI PluginEndpoint
     - selector: hi.ai.endpoint.PluginEndpoint.Set
       post: /api/v1/plugin_endpoint/set
+      body: "*"
     - selector: hi.ai.endpoint.PluginEndpoint.Get
       get: /api/v1/plugin_endpoint/get   

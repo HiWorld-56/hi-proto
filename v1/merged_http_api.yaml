@@ -227,9 +227,10 @@ http:
     get: /api/v1/chat/get_bot_delay
   # AI PluginEndpoint
   - selector: hi.ai.endpoint.PluginEndpoint.Set
-    post: /api/v1/endpoint/plugin_endpoint/set
+    post: /api/v1/plugin_endpoint/set
+    body: '*'
   - selector: hi.ai.endpoint.PluginEndpoint.Get
-    get: /api/v1/endpoint/plugin_endpoint/get
+    get: /api/v1/plugin_endpoint/get
   # Club Login
   - selector: hi.club.Login.GenerateReqId
     post: /api/v1/login/generate_req_id
