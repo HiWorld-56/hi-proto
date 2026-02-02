@@ -8,11 +8,11 @@ message EndpointSetReq {
   string endpoint = 1;
 }
 
-message EndpointSetResp {
+message EndpointGetResp {
   string endpoint = 1;
 }
 
 service PluginEndpoint {
   rpc Set (EndpointSetReq) returns (google.protobuf.Empty);  // Token鉴权
-  rpc Get (google.protobuf.Empty) returns (EndpointSetResp); // Token鉴权
+  rpc Get (google.protobuf.Empty) returns (EndpointGetResp); // Token鉴权
 }
