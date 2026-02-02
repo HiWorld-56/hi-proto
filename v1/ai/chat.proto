@@ -28,6 +28,7 @@ message DialogReq {
   bool             return_plugin_use    = 6;
   bool             return_training_data = 7;
   bool             return_context       = 8;
+  optional string  token                = 9;
 }
 
 message DialogResp {
@@ -105,8 +106,10 @@ message ToolCallResult {
 }
 
 message ToolCallResultsReq {
-  string                  id   = 1;
-  repeated ToolCallResult list = 2;
+  string                  id    = 1;
+  repeated ToolCallResult list  = 2;
+  optional string         token = 3;
+  
 }
 
 message ToolSupply {

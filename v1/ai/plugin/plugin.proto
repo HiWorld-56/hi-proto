@@ -16,9 +16,10 @@ message SearchResp {
 }
 
 message PythonReq {
-  string code        = 1;
-  string code_params = 2;
-  string uuid        = 3;
+  string code           = 1;
+  string code_params    = 2;
+  string uuid           = 3;
+  optional string token = 4;
 }
 
 message PythonResp {
