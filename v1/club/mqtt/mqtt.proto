@@ -141,7 +141,7 @@ message PublishReq {
   Packet payload = 2;
 }
 
-service MqttPublisher {
+service Publisher {
   rpc Publish(PublishReq) returns (google.protobuf.Empty); // Token鉴权
 }
 
