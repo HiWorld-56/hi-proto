@@ -29,6 +29,7 @@ message DialogReq {
   bool             return_training_data = 7;
   bool             return_context       = 8;
   optional string  token                = 9;
+  optional string  token_user           = 10;
 }
 
 message DialogResp {
@@ -88,6 +89,8 @@ message SpeechToSpeechReq {
   optional string     custom      = 6;
   optional string     state       = 7;
   optional string     style       = 8;
+  optional string     token       = 9;
+  optional string     token_user  = 10;
 }
 
 message TextToTextReq {
@@ -98,6 +101,8 @@ message TextToTextReq {
   optional string     tool_choice = 5;
   optional string     custom      = 6;
   optional string     state       = 7;
+  optional string     token       = 8;
+  optional string     token_user  = 9;
 }
 
 message ToolCallResult {
@@ -106,10 +111,10 @@ message ToolCallResult {
 }
 
 message ToolCallResultsReq {
-  string                  id    = 1;
-  repeated ToolCallResult list  = 2;
-  optional string         token = 3;
-  
+  string                  id         = 1;
+  repeated ToolCallResult list       = 2;
+  optional string         token      = 3;
+  optional string         token_user = 4;
 }
 
 message ToolSupply {

@@ -14,6 +14,21 @@ service UserExtendSetting {
   rpc Get (google.protobuf.Empty) returns (UserExtendSettingResp); // Token鉴权
 }
 
+message Button {
+  string bg_color = 1; // 背景色
+  string title    = 2; // 按钮文字
+  string type     = 3; // url类型: url, scheme
+  string url      = 4; // 
+}
+
+message Card {
+  string title = 1; // 标题
+  string text  = 2; // 文本
+  string logo  = 3; // logo
+  Button left  = 4; // 左按钮
+  Button right = 5; // 右按钮
+}
+
 message UserExtendInfo {
   string logo   = 1;
   int32  level  = 2;
