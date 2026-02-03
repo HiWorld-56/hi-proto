@@ -4,6 +4,7 @@ import "v1/hi.proto";
 import "v1/club/q3/q3.proto";
 import "v1/did/trans.proto";
 import "v1/club/tx/trade.proto";
+import "google/protobuf/empty.proto";
 
 package hi.club.mqtt;
 
@@ -134,3 +135,13 @@ message Content {
     tx.TradeBase       trade = 4;
   }
 }
+
+message PublishReq {
+  string topic   = 1;
+  Packet payload = 2;
+}
+
+service MqttPublisher {
+  rpc Publish(PublishReq) returns (google.protobuf.Empty); // Token鉴权
+}
+
