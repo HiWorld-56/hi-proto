@@ -47,7 +47,8 @@ message UserExtendUpdateReq {
 }
 
 message UserExtendListReq {
-  repeated string list = 1; // did list
+  string        user       = 1; // 用户did
+  hi.Pagination pagination = 2;
 }
 
 message UserExtendListResp {

@@ -52,6 +52,15 @@ message BatchSaveMerchantReq {
   repeated string user_dids = 1;
 }
 
+message ExtendTokenGetReq {
+  string app  = 1; // 应用名字
+  string user = 2; // 商户did
+}
+
+message ExtendTokenGetResp {
+  string token = 1; // 扩展token
+}
+
 service Merchant {
   rpc Get (google.protobuf.Empty) returns (MerchantGetResp); // Token鉴权
   rpc Set (MerchantSetReq) returns (google.protobuf.Empty); // Token鉴权
@@ -60,6 +69,7 @@ service Merchant {
   rpc SetUserProfile (UserProfileSetReq) returns (google.protobuf.Empty); // Token鉴权
   rpc GetMerchant (hi.DID) returns (MerchantGetResp); // Token鉴权
   rpc BatchSave (BatchSaveMerchantReq) returns (google.protobuf.Empty); // ExtendToken鉴权
+  rpc GetExtendToken(ExtendTokenGetReq) returns (ExtendTokenGetResp); // 不鉴权
 }
 
 message MerchantNotifyReq {

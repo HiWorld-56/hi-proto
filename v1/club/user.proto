@@ -33,7 +33,11 @@ message HandleSystemMessageReq {
 }
 
 message ListFriendsResp {
-  repeated hi.Unit list = 1;
+  message Friend {
+    hi.Unit user = 1;
+    int32 level  = 2;
+  }
+  repeated Friend list = 1;
 }
 
 message AddFriendReq {
