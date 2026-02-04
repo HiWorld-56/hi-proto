@@ -6,8 +6,8 @@ import "v1/hi.proto";
 package hi.did;
 
 message UserExtendSettingResp {
-  string token = 2;
-  string table = 3;
+  string token = 1;
+  string table = 2;
 }
 
 service UserExtendSetting {
@@ -43,7 +43,7 @@ message UserExtendUpdateReq {
     string         did  = 1;
     UserExtendInfo info = 2;
   }
-  repeated Unit unit = 2;
+  repeated Unit unit = 1;
 }
 
 message UserExtendListReq {
