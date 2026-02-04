@@ -69,7 +69,6 @@ service Merchant {
   rpc SetUserProfile (UserProfileSetReq) returns (google.protobuf.Empty); // Token鉴权
   rpc GetMerchant (hi.DID) returns (MerchantGetResp); // Token鉴权
   rpc BatchSave (BatchSaveMerchantReq) returns (google.protobuf.Empty); // ExtendToken鉴权
-  rpc GetExtendToken(ExtendTokenGetReq) returns (ExtendTokenGetResp); // 不鉴权
 }
 
 message MerchantNotifyReq {
