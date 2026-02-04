@@ -56,7 +56,8 @@ message UserExtendListResp {
     hi.Unit        user = 1;
     UserExtendInfo info = 2;
   }
-  repeated Unit unit = 2;
+  int32         total = 1;
+  repeated Unit unit  = 2;
 }
 
 message UserExtendDeleteReq {
