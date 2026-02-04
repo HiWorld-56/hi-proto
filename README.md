@@ -17,3 +17,12 @@ buf dep update
 wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
 
 chmod +x /usr/local/bin/yq
+
+同时生成wheel和源码包
+python -m build
+
+只生成wheel包
+python -m build --wheel
+
+只生成源码包
+python -m build --sdist
