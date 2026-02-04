@@ -44,7 +44,7 @@ message UserExtendUnit {
 }
 
 message UserExtendUpdateReq {
-  repeated UserExtendUnit unit = 1;
+  repeated UserExtendUnit units = 1;
 }
 
 message UserExtendListReq {
@@ -58,7 +58,7 @@ message UserExtendListResp {
 }
 
 message UserExtendDeleteReq {
-  repeated string list = 1; // 用户did列表
+  repeated string users = 1; // 用户did列表
 }
 
 message ListByMerchantDidReq {
@@ -77,7 +77,6 @@ message UserExtendGetReq {
 message UserExtendGetResp {
   UserExtendUnit unit = 1;
 }
-
 
 service UserExtend {
   rpc Update (UserExtendUpdateReq) returns (google.protobuf.Empty); // Extend-Token鉴权
