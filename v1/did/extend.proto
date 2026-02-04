@@ -38,12 +38,13 @@ message UserExtendInfo {
   string         note   = 5;
 }
 
+message UserExtendUnit {
+  hi.Unit        user = 1;
+  UserExtendInfo info = 2;
+}
+
 message UserExtendUpdateReq {
-  message Unit {
-    string         did  = 1;
-    UserExtendInfo info = 2;
-  }
-  repeated Unit unit = 1;
+  repeated UserExtendUnit unit = 1;
 }
 
 message UserExtendListReq {
@@ -51,22 +52,13 @@ message UserExtendListReq {
   hi.Pagination pagination = 2;
 }
 
-message UserExtendUnit {
-  hi.Unit        user = 1;
-  UserExtendInfo info = 2;
-}
-
 message UserExtendListResp {
-  message Unit {
-    hi.Unit        user = 1;
-    UserExtendInfo info = 2;
-  }
-  int32         total = 1;
-  repeated Unit unit  = 2;
+  int32                   total = 1;
+  repeated UserExtendUnit units = 2;
 }
 
 message UserExtendDeleteReq {
-  repeated string list = 1;
+  repeated string list = 1; // 用户did列表
 }
 
 message ListByMerchantDidReq {
@@ -74,11 +66,7 @@ message ListByMerchantDidReq {
 }
 
 message ListByMerchantDidResp {
-  message Unit {
-    hi.Unit        user = 1;
-    UserExtendInfo info = 2;
-  }
-  repeated Unit unit  = 1;
+  repeated UserExtendUnit units = 1;
 }
 
 message UserExtendGetReq {
