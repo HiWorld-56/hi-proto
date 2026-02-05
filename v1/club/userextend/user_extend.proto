@@ -10,4 +10,5 @@ message UserExtendGetReq {
 
 service UserExtend {
   rpc Get (UserExtendGetReq) returns (hi.did.UserExtendGetResp); // Token鉴权
+  rpc ListByMerchantDid (hi.did.ListByMerchantDidReq) returns (hi.did.ListByMerchantDidResp); // Token鉴权
 }
