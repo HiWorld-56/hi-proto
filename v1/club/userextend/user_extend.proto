@@ -4,12 +4,7 @@ import "v1/did/extend.proto";
 
 package hi.club.userextend;
 
-message UserExtendGetReq {
-  string merchant = 1; // 商户did
-  string user     = 2; // 用户did
-}
-
 service UserExtend {
-  rpc Get (UserExtendGetReq) returns (hi.did.UserExtendGetResp); // Token鉴权
+  rpc Get (hi.did.UserExtendGetReq) returns (hi.did.UserExtendGetResp); // Token鉴权
   rpc ListByMerchantDid (hi.did.ListByMerchantDidReq) returns (hi.did.ListByMerchantDidResp); // Token鉴权
 }
