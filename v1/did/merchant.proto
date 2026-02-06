@@ -48,17 +48,12 @@ message UserProfileSetReq {
   string avatar = 3;
 }
 
-message BatchSaveMerchantReq {
-  repeated string user_dids = 1;
+message MerchantUsersSaveReq {
+  repeated string users = 1; // 用户did
 }
 
-message ExtendTokenGetReq {
-  string app  = 1; // 应用名字
-  string user = 2; // 商户did
-}
-
-message ExtendTokenGetResp {
-  string token = 1; // 扩展token
+message MerchantUsersDeleteReq {
+  repeated string users = 1; // 用户did
 }
 
 service Merchant {
@@ -68,7 +63,8 @@ service Merchant {
   rpc GetUserProfile (hi.DID) returns (UserProfileGetResp); // Token鉴权
   rpc SetUserProfile (UserProfileSetReq) returns (google.protobuf.Empty); // Token鉴权
   rpc GetMerchant (hi.DID) returns (MerchantGetResp); // Token鉴权
-  rpc BatchSave (BatchSaveMerchantReq) returns (google.protobuf.Empty); // ExtendToken鉴权
+  rpc SaveUesrs (MerchantUsersSaveReq) returns (google.protobuf.Empty); // ExtendToken鉴权, 批量添加商户的用户
+  rpc DeleteUesrs (MerchantUsersDeleteReq) returns (google.protobuf.Empty); // ExtendToken鉴权，批量删除商户的用户
 }
 
 message MerchantNotifyReq {

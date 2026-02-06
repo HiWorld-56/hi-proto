@@ -512,8 +512,11 @@ http:
   - selector: hi.did.Merchant.List
     post: /api/v1/merchant/list
     body: '*'
-  - selector: hi.did.Merchant.BatchSave
-    post: /api/v1/merchant/batch_save
+  - selector: hi.did.Merchant.SaveUesrs
+    post: /api/v1/merchant/save_uesrs
+    body: '*'
+  - selector: hi.did.Merchant.DeleteUesrs
+    post: /api/v1/merchant/delete_uesrs
     body: '*'
   # Wallet
   - selector: hi.did.Wallet.ListUsersAssets
