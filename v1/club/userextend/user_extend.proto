@@ -5,7 +5,8 @@ import "v1/did/extend.proto";
 package hi.club.userextend;
 
 message UserExtendGetReq {
-  string user = 1; // 用户did
+  string merchant = 1; // 商户did
+  string user     = 2; // 用户did
 }
 
 service UserExtend {
