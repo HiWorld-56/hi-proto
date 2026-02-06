@@ -31,11 +31,11 @@ message Card {
 }
 
 message UserExtendInfo {
-  string         logo   = 1;
-  optional int32 level  = 2;
-  string         card   = 3;
-  string         extend = 4;
-  string         note   = 5;
+  optional string logo   = 1;
+  optional int32  level  = 2;
+  optional string card   = 3;
+  optional string extend = 4;
+  optional string note   = 5;
 }
 
 message UserExtendUnit {
