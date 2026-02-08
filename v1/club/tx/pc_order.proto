@@ -6,6 +6,7 @@ import "v1/did/base.proto";
 
 package hi.club.tx;
 
+// GetNotPulledPcOrders接口请求参数Data部分的数据结构
 message PcOrderData {
   string did   = 1;
   string nonce = 2;
@@ -35,6 +36,7 @@ message UpdatePulledPcOrder {
   int64  timestamp = 4;
 }
 
+// UpdatePulledPcOrders接口请求参数Data部分数据结构
 message UpdatePulledPcOrderData {
   string                       did    = 1;
   repeated UpdatePulledPcOrder orders = 2;
