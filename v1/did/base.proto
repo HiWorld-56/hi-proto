@@ -33,7 +33,6 @@ message ListSuperAdminUsersResp {
 
 service Base {
   rpc ListCoins (google.protobuf.Empty) returns (ListCoinsResp); // 不鉴权
-  rpc TotalUsers (google.protobuf.Empty) returns (hi.Number); // 不鉴权
   rpc LastetVersion (LastetVersionReq) returns (LastetVersionResp); // 不鉴权
   rpc ListSuperAdminUsers (google.protobuf.Empty) returns (ListSuperAdminUsersResp); // 不鉴权
 }

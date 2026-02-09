@@ -102,6 +102,9 @@ http:
   - selector: hi.did.Wallet.GetUserAssets
     post: /api/v1/wallet/get_user_assets
     body: "*"
+  - selector: hi.did.Wallet.TotalAssets
+    post: /api/v1/wallet/total_assets
+    body: "*"
 # Agent
   - selector: hi.did.world.Agent.List
     post: /api/v1/world/agent/list
@@ -118,3 +121,9 @@ http:
   - selector: hi.did.world.Agent.UpdateOrder
     post: /api/v1/world/agent/update_order
     body: "*"
+# User
+  - selector: hi.did.User.List
+    post: /api/v1/user/list
+    body: "*"
+  - selector: hi.did.User.Total
+    get: /api/v1/user/total

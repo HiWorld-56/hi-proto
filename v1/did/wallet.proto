@@ -107,7 +107,7 @@ service Wallet {
   rpc UpdateAssets (UpdateAssetsReq) returns (google.protobuf.Empty); // Token鉴权
   rpc GetWallet (GetWalletReq) returns (GetWalletResp); // Token鉴权
   rpc ListAddresses (ListAddressesReq) returns (ListAddressesResp); // Token鉴权
-  rpc TotalAssets (TotalAssetsReq) returns (TotalAssetsResp); // Token鉴权
+  rpc TotalAssets (TotalAssetsReq) returns (TotalAssetsResp); // 不鉴权
   rpc ListUsersAssets (ListUsersAssetsReq) returns (ListUsersAssetsResp); // Token鉴权
   rpc GetUserAssets(GetUserAssetsReq) returns (GetUserAssetsResp); // Token鉴权
 }
