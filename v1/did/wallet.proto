@@ -56,7 +56,6 @@ message TotalAssetsResp {
 message ListUsersAssetsReq {
   string        currency   = 1;
   hi.Pagination pagination = 2;
-  string        did        = 3;
 }
 
 message ListUsersAssetsResp {
