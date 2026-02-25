@@ -16,15 +16,23 @@ message DrawConfigResp {
   int32           draw_n               = 8;
 }
 
+message PythonParam {
+  string name        = 1;
+  string type        = 2;
+  string description = 3;
+  bool   required    = 4; // 是否必填
+}
+
 message PluginItem {
-  string uuid        = 1;
-  string bot         = 2;
-  string type        = 3;
-  string sub_type    = 4;
-  string name        = 5;
-  string url         = 6;
-  string description = 7;
-  int64  created_at  = 8;
+  string uuid                        = 1;
+  string bot                         = 2;
+  string type                        = 3;
+  string sub_type                    = 4;
+  string name                        = 5;
+  string url                         = 6;
+  string description                 = 7;
+  int64  created_at                  = 8;
+  repeated PythonParam python_params = 9;
 }
 
 message PluginSwitchReq {
@@ -106,6 +114,19 @@ message GetDrawResp {
   int32  draw_n       = 5;
 }
 
+message PythonParamsCreateReq {
+  string          uuid        = 1;
+  optional string name        = 2;
+  optional string type        = 3;
+  optional string description = 4;
+  optional bool   required    = 5; // 是否必填
+}
+
+message PythonParamsDeleteReq {
+  string uuid = 1;
+  string name = 2;
+}
+
 // apiKey鉴权
 service Plugin {
   rpc DrawConfig (google.protobuf.Empty) returns (DrawConfigResp);
@@ -118,4 +139,6 @@ service Plugin {
   rpc DeleteByDids (DeletePluginByDidsReq) returns (google.protobuf.Empty);
   rpc Edit (EditPluginReq) returns (google.protobuf.Empty);
   rpc GetDraw (GetDrawReq) returns (GetDrawResp);
+  rpc PythonParamsCreate (PythonParamsCreateReq) returns (google.protobuf.Empty);
+  rpc PythonParamsDelete (PythonParamsDeleteReq) returns (google.protobuf.Empty);
 }

@@ -103,6 +103,12 @@ http:
     body: '*'
   - selector: hi.ai.Plugin.GetDraw
     get: /api/v1/plugin/get_draw
+  - selector: hi.ai.Plugin.PythonParamsCreate
+    post: /api/v1/plugin/python_params_create
+    body: '*'
+  - selector: hi.ai.Plugin.PythonParamsDelete
+    post: /api/v1/plugin/python_params_delete
+    body: '*'
   # AI BotTraining
   - selector: hi.ai.BotTraining.TrainingBot
     post: /api/v1/bot_training/training_bot

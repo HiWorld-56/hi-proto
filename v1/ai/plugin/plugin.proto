@@ -28,7 +28,17 @@ message PythonResp {
   repeated Content conts = 1;
 }
 
+message PythonProjectReq {
+  string          code_archive_url = 1;
+  string          code_params      = 2;
+  string          uuid             = 3;
+  optional string token            = 4;
+  optional string token_user       = 5;
+  optional string endpoint         = 6;
+}
+
 service AiPlugin {
   rpc Search (SearchReq) returns (SearchResp);
   rpc Python (PythonReq) returns (PythonResp);
+  rpc PythonProject (PythonProjectReq) returns (PythonResp);
 }
