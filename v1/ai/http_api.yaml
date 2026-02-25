@@ -109,6 +109,9 @@ http:
     - selector: hi.ai.Plugin.PythonParamsDelete
       post: /api/v1/plugin/python_params_delete
       body: "*"
+    - selector: hi.ai.Plugin.PythonParamsList
+      post: /api/v1/plugin/python_params_list
+      body: "*"
 # AI BotTraining
     - selector: hi.ai.BotTraining.TrainingBot
       post: /api/v1/bot_training/training_bot
