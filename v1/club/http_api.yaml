@@ -147,6 +147,15 @@ http:
       body: "*"
     - selector: hi.club.ai.Plugin.GetDraw
       get: /api/v1/plugin/get_draw
+    - selector: hi.club.ai.Plugin.PythonParamsCreate
+      post: /api/v1/plugin/python_params_create
+      body: "*"
+    - selector: hi.club.ai.Plugin.PythonParamsDelete
+      post: /api/v1/plugin/python_params_delete
+      body: "*"
+    - selector: hi.club.ai.Plugin.PythonParamsList
+      post: /api/v1/plugin/python_params_list
+      body: "*"
 # Club BotTraining
     - selector: hi.club.ai.BotTraining.TrainingBot
       post: /api/v1/bot_training/training_bot

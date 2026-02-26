@@ -18,4 +18,7 @@ service Plugin {
   rpc DeleteByDids (hi.ai.DeletePluginByDidsReq) returns (google.protobuf.Empty);
   rpc Edit (hi.ai.EditPluginReq) returns (google.protobuf.Empty);
   rpc GetDraw (hi.ai.GetDrawReq) returns (hi.ai.GetDrawResp);
+  rpc PythonParamsCreate (hi.ai.PythonParamsCreateReq) returns (google.protobuf.Empty);
+  rpc PythonParamsDelete (hi.ai.PythonParamsDeleteReq) returns (google.protobuf.Empty);
+  rpc PythonParamsList (hi.ai.PythonParamsListReq) returns (hi.ai.PythonParamsListResp);
 }
