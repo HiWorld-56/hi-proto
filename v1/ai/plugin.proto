@@ -107,11 +107,17 @@ message GetDrawResp {
 }
 
 message PythonParamsCreateReq {
-  string          uuid        = 1;
-  string          name        = 2;
-  optional string type        = 3;
-  optional string description = 4;
-  optional bool   required    = 5; // 是否必填
+  string uuid        = 1;
+  string name        = 2;
+  string type        = 3;
+  string description = 4;
+  bool   required    = 5; // 是否必填
+}
+
+message PythonParamsEditReq {
+  string uuid        = 1;
+  string name        = 2;
+  string description = 3;
 }
 
 message PythonParamsDeleteReq {
@@ -149,6 +155,7 @@ service Plugin {
   rpc Edit (EditPluginReq) returns (google.protobuf.Empty);
   rpc GetDraw (GetDrawReq) returns (GetDrawResp);
   rpc PythonParamsCreate (PythonParamsCreateReq) returns (google.protobuf.Empty);
+  rpc PythonParamsEdit (PythonParamsEditReq) returns (google.protobuf.Empty);
   rpc PythonParamsDelete (PythonParamsDeleteReq) returns (google.protobuf.Empty);
   rpc PythonParamsList (PythonParamsListReq) returns (PythonParamsListResp);
 }

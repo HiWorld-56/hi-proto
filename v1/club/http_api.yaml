@@ -150,6 +150,9 @@ http:
     - selector: hi.club.ai.Plugin.PythonParamsCreate
       post: /api/v1/plugin/python_params_create
       body: "*"
+    - selector: hi.club.ai.Plugin.PythonParamsEdit
+      post: /api/v1/plugin/python_params_edit
+      body: "*"
     - selector: hi.club.ai.Plugin.PythonParamsDelete
       post: /api/v1/plugin/python_params_delete
       body: "*"
