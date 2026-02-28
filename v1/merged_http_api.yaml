@@ -103,18 +103,11 @@ http:
     body: '*'
   - selector: hi.ai.Plugin.GetDraw
     get: /api/v1/plugin/get_draw
-  - selector: hi.ai.Plugin.PythonParamsCreate
-    post: /api/v1/plugin/python_params_create
+  - selector: hi.ai.Plugin.PythonParamsSet
+    post: /api/v1/plugin/python_params_set
     body: '*'
-  - selector: hi.ai.Plugin.PythonParamsEdit
-    post: /api/v1/plugin/python_params_edit
-    body: '*'
-  - selector: hi.ai.Plugin.PythonParamsDelete
-    post: /api/v1/plugin/python_params_delete
-    body: '*'
-  - selector: hi.ai.Plugin.PythonParamsList
-    post: /api/v1/plugin/python_params_list
-    body: '*'
+  - selector: hi.ai.Plugin.GetPythonParams
+    get: /api/v1/plugin/get_python_params
   # AI BotTraining
   - selector: hi.ai.BotTraining.TrainingBot
     post: /api/v1/bot_training/training_bot
@@ -387,18 +380,11 @@ http:
     body: '*'
   - selector: hi.club.ai.Plugin.GetDraw
     get: /api/v1/plugin/get_draw
-  - selector: hi.club.ai.Plugin.PythonParamsCreate
-    post: /api/v1/plugin/python_params_create
+  - selector: hi.club.ai.Plugin.PythonParamsSet
+    post: /api/v1/plugin/python_params_set
     body: '*'
-  - selector: hi.club.ai.Plugin.PythonParamsEdit
-    post: /api/v1/plugin/python_params_edit
-    body: '*'
-  - selector: hi.club.ai.Plugin.PythonParamsDelete
-    post: /api/v1/plugin/python_params_delete
-    body: '*'
-  - selector: hi.club.ai.Plugin.PythonParamsList
-    post: /api/v1/plugin/python_params_list
-    body: '*'
+  - selector: hi.club.ai.Plugin.GetPythonParams
+    get: /api/v1/plugin/get_python_params
   # Club BotTraining
   - selector: hi.club.ai.BotTraining.TrainingBot
     post: /api/v1/bot_training/training_bot

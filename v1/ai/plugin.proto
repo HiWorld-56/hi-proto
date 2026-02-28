@@ -106,40 +106,17 @@ message GetDrawResp {
   int32  draw_n       = 5;
 }
 
-message PythonParamsCreateReq {
-  string uuid        = 1;
-  string name        = 2;
-  string type        = 3;
-  string description = 4;
-  bool   required    = 5; // 是否必填
+message PythonParamsSetReq {
+  string uuid   = 1;
+  string params = 2;
 }
 
-message PythonParamsEditReq {
-  string uuid        = 1;
-  string name        = 2;
-  string description = 3;
-}
-
-message PythonParamsDeleteReq {
+message GetPythonParamsReq {
   string uuid = 1;
-  string name = 2;
 }
 
-message PythonParam {
-  string name        = 1;
-  string type        = 2;
-  string description = 3;
-  bool   required    = 4; // 是否必填
-}
-
-message PythonParamsListReq {
-  string        uuid       = 1;
-  hi.Pagination pagination = 2;
-}
-
-message PythonParamsListResp {
-  int32                total         = 1;
-  repeated PythonParam python_params = 2;
+message GetPythonParamsResp {
+  string params = 1;
 }
 
 // apiKey鉴权
@@ -154,8 +131,6 @@ service Plugin {
   rpc DeleteByDids (DeletePluginByDidsReq) returns (google.protobuf.Empty);
   rpc Edit (EditPluginReq) returns (google.protobuf.Empty);
   rpc GetDraw (GetDrawReq) returns (GetDrawResp);
-  rpc PythonParamsCreate (PythonParamsCreateReq) returns (google.protobuf.Empty);
-  rpc PythonParamsEdit (PythonParamsEditReq) returns (google.protobuf.Empty);
-  rpc PythonParamsDelete (PythonParamsDeleteReq) returns (google.protobuf.Empty);
-  rpc PythonParamsList (PythonParamsListReq) returns (PythonParamsListResp);
+  rpc PythonParamsSet (PythonParamsSetReq) returns (google.protobuf.Empty);
+  rpc GetPythonParams (GetPythonParamsReq) returns (GetPythonParamsResp);
 }
