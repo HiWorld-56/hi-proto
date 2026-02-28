@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/struct.proto";
 import "v1/hi.proto";
 
 package hi.ai;
@@ -107,8 +108,9 @@ message GetDrawResp {
 }
 
 message PythonParamsSetReq {
-  string uuid   = 1;
-  string params = 2;
+  string                 uuid   = 1;
+  google.protobuf.Struct params = 2;
+  // string params = 2;
 }
 
 message GetPythonParamsReq {
