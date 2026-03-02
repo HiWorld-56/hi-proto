@@ -17,8 +17,8 @@ message CreateApiKeyResp {
 }
 
 message EditApiKeyReq {
-  string          api_key = 1;
-  optional string note    = 2;
+  string api_key = 1;
+  string note    = 2;
 }
 
 message EditApiKeyResp {
