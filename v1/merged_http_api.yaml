@@ -436,6 +436,19 @@ http:
   - selector: hi.club.tx.Trade.ListAllTrade
     post: /api/v1/trade/list_all_trade
     body: '*'
+  # Club ApiKey
+  - selector: hi.club.apikey.ApiKey.Create
+    post: /api/v1/api_key/create
+    body: '*'
+  - selector: hi.club.apikey.ApiKey.Edit
+    post: /api/v1/api_key/edit
+    body: '*'
+  - selector: hi.club.apikey.ApiKey.List
+    post: /api/v1/api_key/list
+    body: '*'
+  - selector: hi.club.apikey.ApiKey.Delete
+    post: /api/v1/api_key/delete
+    body: '*'
   # InviteCode
   - selector: hi.did.InviteCode.Create
     post: /api/v1/invitecode/create

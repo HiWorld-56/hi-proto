@@ -117,7 +117,7 @@ message GetPythonParamsReq {
 }
 
 message GetPythonParamsResp {
-  string params = 1;
+  google.protobuf.Struct params = 1;
 }
 
 // apiKey鉴权
