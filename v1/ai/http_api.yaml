@@ -229,7 +229,8 @@ http:
       post: /api/v1/chat/list_bot_delay
       body: "*"
     - selector: hi.ai.Chat.GetBotDelay
-      get: /api/v1/chat/get_bot_delay
+      post: /api/v1/chat/get_bot_delay
+      body: "*"
 # AI PluginEndpoint
     - selector: hi.ai.endpoint.PluginEndpoint.Set
       post: /api/v1/plugin_endpoint/set
