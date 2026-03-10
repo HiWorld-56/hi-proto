@@ -100,6 +100,10 @@ message UpdateAssetsReq { // Token ----> Real.DID
   string bt_sol     = 53;
   string panda_sol  = 54;
   string apt        = 61;
+  string whds_apt   = 62;
+  string hwhd_apt   = 63;
+  string slkj_apt   = 64;
+  string wsm_apt    = 65;
 }
 
 service Wallet {
