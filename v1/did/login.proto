@@ -39,7 +39,7 @@ message ReqStatusResp {
 service Login {
   rpc RefreshToken (RefreshTokenReq) returns (hi.Token); // 不鉴权
   rpc Verify (hi.Web3Data) returns (LoginResp); // LoginReq // Web3鉴权
-  rpc ThirdPartyVerify (hi.Web3Data) returns (LoginResp); // 三方登录
+  rpc InternalVerify (hi.Web3Data) returns (LoginResp); // 内部服务使用 Web3鉴权
   rpc GenerateReqId (GenerateReqIdReq) returns (hi.ReqID); // 不鉴权
   rpc GetReqStatus (hi.ReqID) returns (ReqStatusResp); // 不鉴权
   rpc Notify (hi.Web3Data) returns (google.protobuf.Empty); // LoginReq // Web3鉴权
