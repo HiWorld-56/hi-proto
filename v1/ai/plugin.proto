@@ -51,11 +51,15 @@ message SearchCreateReq {
 }
 
 message PythonCreateReq {
-  string bot         = 1;
-  string type        = 2;
-  string url         = 3;
-  string name        = 4;
-  string description = 5;
+  string bot         = 1; // 机器人did
+  string type        = 2; // 设置为Python
+  string url         = 3; // 脚本zip压缩包url
+  string name        = 4; // 脚本zip压缩包名称
+  string description = 5; // 脚本描述
+}
+
+message PythonCreateResp {
+  string uuid = 1; // 插件id
 }
 
 message DrawCreateReq {
@@ -108,8 +112,8 @@ message GetDrawResp {
 }
 
 message PythonParamsSetReq {
-  string uuid   = 1;
-  google.protobuf.Struct params = 2;
+  string uuid   = 1;                  // 插件id
+  google.protobuf.Struct params = 2;  // 插件json参数
 }
 
 message GetPythonParamsReq {
@@ -125,7 +129,7 @@ service Plugin {
   rpc DrawConfig (google.protobuf.Empty) returns (DrawConfigResp);
   rpc PluginSwitch (PluginSwitchReq) returns (PluginSwitchResp);
   rpc SearchCreate (SearchCreateReq) returns (google.protobuf.Empty);
-  rpc PythonCreate (PythonCreateReq) returns (google.protobuf.Empty);
+  rpc PythonCreate (PythonCreateReq) returns (PythonCreateResp);
   rpc DrawCreate (DrawCreateReq) returns (DrawCreateResp);
   rpc List (ListPluginReq) returns (ListPluginResp);
   rpc Delete (DeletePluginReq) returns (google.protobuf.Empty);
