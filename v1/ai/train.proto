@@ -6,48 +6,48 @@ import "v1/hi.proto";
 package hi.ai;
 
 message TrainingBotReq {
-  repeated int32 ids = 1;
-  string         bot = 2;
+  repeated int32 ids = 1;  // 训练文件id列表
+  string         bot = 2;  // 机器人did
 }
 
 message TrainingStatusReq {
-  string bot = 1;
+  string bot = 1;  // 机器人did
 }
 
 message TrainingStatusResp {
-  string status      = 1;
-  int32  mem_count   = 2;
-  int32  slice_count = 3;
-  string message     = 4;
+  string status      = 1;  // 训练状态,success-训练成功,failed-训练失败
+  int32  mem_count   = 2;  
+  int32  slice_count = 3;  
+  string message     = 4;  // 训练状态描述
 }
 
 message TrainingClearReq {
-  string bot = 1;
+  string bot = 1;  // 机器人did
 }
 
 message UploadFileReq {
-  string bot      = 1;
-  string filename = 2;
-  bytes  content  = 3;
+  string bot      = 1;  // 机器人did
+  string filename = 2;  // 文件名
+  bytes  content  = 3;  // 文件内容
 }
 
 message BotTrainingFile {
-  int32  id            = 1;
-  string content       = 2; // content / path / url
-  string bot           = 3;
-  string title         = 4;
-  int32  size          = 5;
-  string type          = 6;
-  int32  is_use        = 7;
-  string digest        = 8;
-  int64  training_time = 9;
-  int64  created_at    = 10;
-  int64  updated_at    = 11;
+  int32  id            = 1;  // 训练文件id
+  string content       = 2;  // content（文件内容） / path / url
+  string bot           = 3;  // 机器人did
+  string title         = 4;  // 文件名
+  int32  size          = 5;  // 文件大小
+  string type          = 6;  // 文件类型
+  int32  is_use        = 7;  // 是否已经训练，0-未训练，1-已训练
+  string digest        = 8;  // 文件摘要
+  int64  training_time = 9;  // 训练时间
+  int64  created_at    = 10; // 创建时间
+  int64  updated_at    = 11; // 更新时间
 }
 
 message ListBotFileReq {
-  string        bot        = 1;
-  bool          use        = 2;
+  string        bot        = 1;  // 机器人did
+  bool          use        = 2;  // true-返回已训练的文件, false-返回所有文件
   hi.Pagination pagination = 3;
 }
 
@@ -57,20 +57,20 @@ message ListBotFileResp {
 }
 
 message DeleteBotFileReq {
-  int32 id = 1;
+  int32 id = 1;  // 训练文件id
 }
 
 message DeleteBotFilesReq {
-  string         bot = 1;
-  repeated int32 ids = 2;
+  string         bot = 1;  // 机器人did
+  repeated int32 ids = 2;  // 训练文件id列表
 }
 
 message DeleteBotFilesByDidReq {
-  repeated string bots = 1;
+  repeated string bots = 1;  // 机器人did列表
 }
 
 message GetBotFileReq {
-  int32 id = 1;
+  int32 id = 1;  // 训练文件id
 }
 
 message GetBotFileResp {
@@ -113,14 +113,14 @@ message GetMemModelResp {
 
 // apiKey鉴权
 service BotTraining {
-  rpc TrainingBot (TrainingBotReq) returns (google.protobuf.Empty);
-  rpc TrainingStatus (TrainingStatusReq) returns (TrainingStatusResp);
-  rpc TrainingClear (TrainingClearReq) returns (google.protobuf.Empty);
-  rpc UploadFile (UploadFileReq) returns (google.protobuf.Empty);
-  rpc ListBotFile (ListBotFileReq) returns (ListBotFileResp);
-  rpc DeleteBotFile (DeleteBotFileReq) returns (google.protobuf.Empty);
-  rpc DeleteBotFiles (DeleteBotFilesReq) returns (google.protobuf.Empty);
-  rpc DeleteBotFilesByDid (DeleteBotFilesByDidReq) returns (google.protobuf.Empty);
+  rpc TrainingBot (TrainingBotReq) returns (google.protobuf.Empty);        // 启动训练
+  rpc TrainingStatus (TrainingStatusReq) returns (TrainingStatusResp);     // 获取训练状态
+  rpc TrainingClear (TrainingClearReq) returns (google.protobuf.Empty);    // 清除训练状态
+  rpc UploadFile (UploadFileReq) returns (google.protobuf.Empty);          // 上传训练文件
+  rpc ListBotFile (ListBotFileReq) returns (ListBotFileResp);              // 获取训练文件列表
+  rpc DeleteBotFile (DeleteBotFileReq) returns (google.protobuf.Empty);    // 删除训练文件
+  rpc DeleteBotFiles (DeleteBotFilesReq) returns (google.protobuf.Empty);  // 批量删除训练文件
+  rpc DeleteBotFilesByDid (DeleteBotFilesByDidReq) returns (google.protobuf.Empty);  // 通过机器人did删除训练文件
   rpc GetBotFile (GetBotFileReq) returns (GetBotFileResp);
   rpc UpdateContent (UpdateCotentReq) returns (google.protobuf.Empty);
   rpc CreateContent (CreateCotentReq) returns (CreateCotentResp);
