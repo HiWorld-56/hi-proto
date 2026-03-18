@@ -129,13 +129,13 @@ service Plugin {
   rpc DrawConfig (google.protobuf.Empty) returns (DrawConfigResp);
   rpc PluginSwitch (PluginSwitchReq) returns (PluginSwitchResp);
   rpc SearchCreate (SearchCreateReq) returns (google.protobuf.Empty);
-  rpc PythonCreate (PythonCreateReq) returns (PythonCreateResp);
+  rpc PythonCreate (PythonCreateReq) returns (PythonCreateResp);            // 创建Python插件
   rpc DrawCreate (DrawCreateReq) returns (DrawCreateResp);
   rpc List (ListPluginReq) returns (ListPluginResp);
   rpc Delete (DeletePluginReq) returns (google.protobuf.Empty);
   rpc DeleteByDids (DeletePluginByDidsReq) returns (google.protobuf.Empty);
   rpc Edit (EditPluginReq) returns (google.protobuf.Empty);
   rpc GetDraw (GetDrawReq) returns (GetDrawResp);
-  rpc PythonParamsSet (PythonParamsSetReq) returns (google.protobuf.Empty);
+  rpc PythonParamsSet (PythonParamsSetReq) returns (google.protobuf.Empty); // 设置Python插件参数
   rpc GetPythonParams (GetPythonParamsReq) returns (GetPythonParamsResp);
 }
