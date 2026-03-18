@@ -113,7 +113,7 @@ message GetDrawResp {
 
 message PythonParamsSetReq {
   string uuid   = 1;                  // 插件id
-  google.protobuf.Struct params = 2;  // 插件json参数
+  google.protobuf.Struct params = 2;  // 插件参数
 }
 
 message GetPythonParamsReq {
