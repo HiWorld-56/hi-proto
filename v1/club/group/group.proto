@@ -42,8 +42,7 @@ message CreateReq {
 
 // 创建单聊
 message CreateSingleReq {
-  string did      = 1;
-  string merchant = 2;
+  string did = 1;
 }
 
 // 更新群信息
