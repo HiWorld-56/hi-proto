@@ -12,6 +12,10 @@ message ApiKeyInfo {
   int64  created_at = 3;
 }
 
+message CreateApiKeyReq {
+  string bot = 1; // 机器人did
+}
+
 message CreateApiKeyResp {
   ApiKeyInfo info = 1;
 }
@@ -25,6 +29,11 @@ message EditApiKeyResp {
   ApiKeyInfo info = 1;
 }
 
+message ListApiKeyReq {
+  string        bot        = 1; // 机器人did
+  hi.Pagination pagination = 2;
+}
+
 message ListApiKeyResp {
   int32               total = 1;
   repeated ApiKeyInfo infos = 2;
@@ -36,8 +45,8 @@ message DeleteApiKeyReq {
 
 // 使用token鉴权
 service ApiKey {
-  rpc Create (google.protobuf.Empty) returns (CreateApiKeyResp);
+  rpc Create (CreateApiKeyReq) returns (CreateApiKeyResp);
   rpc Edit (EditApiKeyReq) returns (EditApiKeyResp);
-  rpc List (hi.Pagination) returns (ListApiKeyResp);
+  rpc List (ListApiKeyReq) returns (ListApiKeyResp);
   rpc Delete (DeleteApiKeyReq) returns (google.protobuf.Empty);
 }
