@@ -20,9 +20,6 @@ message PythonReq {
   string          code        = 1;
   string          code_params = 2;
   string          uuid        = 3;
-  optional string token       = 4;
-  optional string token_user  = 5;
-  optional string endpoint    = 6;
 }
 
 message PythonResp {
@@ -33,9 +30,6 @@ message PythonProjectReq {
   string          code_archive_url = 1;
   string          code_params      = 2;
   string          uuid             = 3;
-  optional string token            = 4;
-  optional string token_user       = 5;
-  optional string endpoint         = 6;
 }
 
 message CleanupPythonProjectReq {
