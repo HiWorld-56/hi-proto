@@ -6,6 +6,14 @@ import "v1/did/base.proto";
 
 package hi.did;
 
+// 链（chain）：
+//    ethereum
+//    tron
+//    filecoin（已废弃）
+//    bitcoin
+//    solana
+//    aptos
+
 message UpdateAddressesReq {
   optional string did = 1;
   optional string btc = 2;
@@ -16,7 +24,7 @@ message UpdateAddressesReq {
 }
 
 message GetWalletReq {
-  string did  = 1;
+  string did   = 1;
   string chain = 2;
 }
 
