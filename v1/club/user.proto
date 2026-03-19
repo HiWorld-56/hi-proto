@@ -8,8 +8,9 @@ import "v1/club/mqtt/mqtt.proto";
 package hi.club;
 
 message UserInfo {
-  hi.Unit         base        = 1;
-  repeated string permissions = 2;
+  hi.Unit         base          = 1;
+  repeated string permissions   = 2;
+  string          verify_policy = 3; // 添加好友校验方式
 }
 
 message ListSystemMessageReq {
@@ -57,9 +58,17 @@ message UnprocessedSysMsgCountResp {
   int32 count = 1;
 }
 
+message UpdateUserReq {
+  hi.Unit user          = 1;
+  // auto_reject-自动拒绝
+  // manual_accept-手动同意
+  // auto_accept-自动同意
+  string  verify_policy = 2; // 添加好友校验方式
+}
+
 service User {
   rpc GetCurrentUser (google.protobuf.Empty) returns (UserInfo); // 当前用户信息
-  rpc UpdateUser (hi.Unit) returns (google.protobuf.Empty); // 用户信息
+  rpc UpdateUser (UpdateUserReq) returns (google.protobuf.Empty); // 用户信息
   rpc ListSystemMessage (ListSystemMessageReq) returns (SystemMessages); // 系统消息列表
   rpc DeleteSystemMessage (DeleteSystemMessageReq) returns (google.protobuf.Empty); // 删除系统消息
   rpc DeleteAllSystemMessage (google.protobuf.Empty) returns (google.protobuf.Empty); // 删除所有系统消息
