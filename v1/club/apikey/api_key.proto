@@ -13,7 +13,7 @@ message ApiKeyInfo {
 }
 
 message CreateApiKeyReq {
-  string bot = 1; // 机器人did
+  string user = 1; // 用户Did/硬件机器人Did
 }
 
 message CreateApiKeyResp {
@@ -30,7 +30,7 @@ message EditApiKeyResp {
 }
 
 message ListApiKeyReq {
-  string        bot        = 1; // 机器人did
+  string        user       = 1; // 用户Did/硬件机器人Did
   hi.Pagination pagination = 2;
 }
 
