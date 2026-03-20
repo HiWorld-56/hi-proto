@@ -2,6 +2,7 @@ syntax = "proto3";
 
 import "google/protobuf/empty.proto";
 import "v1/ai/chat.proto";
+import "v1/club/callback/user_callback.proto";
 
 package hi.ai.plugin;
 
@@ -17,9 +18,9 @@ message SearchResp {
 }
 
 message PythonReq {
-  string          code        = 1;
-  string          code_params = 2;
-  string          uuid        = 3;
+  string code        = 1;
+  string code_params = 2;
+  string uuid        = 3;
 }
 
 message PythonResp {
@@ -30,6 +31,7 @@ message PythonProjectReq {
   string          code_archive_url = 1;
   string          code_params      = 2;
   string          uuid             = 3;
+  repeated string envs             = 4; // 环境变量key=value数组
 }
 
 message CleanupPythonProjectReq {

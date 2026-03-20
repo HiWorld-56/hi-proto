@@ -1,52 +1,14 @@
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
-import "google/protobuf/wrappers.proto";
-import "v1/hi.proto";
+import "v1/did/apikey/api_key.proto";
 
 package hi.club.apikey;
 
-message ApiKeyInfo {
-  string value      = 1;
-  string note       = 2;
-  int64  created_at = 3;
-}
-
-message CreateApiKeyReq {
-  string user = 1; // 用户Did/硬件机器人Did
-}
-
-message CreateApiKeyResp {
-  ApiKeyInfo info = 1;
-}
-
-message EditApiKeyReq {
-  string api_key = 1;
-  string note    = 2;
-}
-
-message EditApiKeyResp {
-  ApiKeyInfo info = 1;
-}
-
-message ListApiKeyReq {
-  string        user       = 1; // 用户Did/硬件机器人Did
-  hi.Pagination pagination = 2;
-}
-
-message ListApiKeyResp {
-  int32               total = 1;
-  repeated ApiKeyInfo infos = 2;
-}
-
-message DeleteApiKeyReq {
-  string api_key = 1;
-}
-
 // 使用token鉴权
 service ApiKey {
-  rpc Create (CreateApiKeyReq) returns (CreateApiKeyResp);
-  rpc Edit (EditApiKeyReq) returns (EditApiKeyResp);
-  rpc List (ListApiKeyReq) returns (ListApiKeyResp);
-  rpc Delete (DeleteApiKeyReq) returns (google.protobuf.Empty);
+  rpc Create (hi.did.apikey.CreateApiKeyReq) returns (hi.did.apikey.CreateApiKeyResp);
+  rpc Edit (hi.did.apikey.EditApiKeyReq) returns (hi.did.apikey.EditApiKeyResp);
+  rpc List (hi.did.apikey.ListApiKeyReq) returns (hi.did.apikey.ListApiKeyResp);
+  rpc Delete (hi.did.apikey.DeleteApiKeyReq) returns (google.protobuf.Empty);
 }
