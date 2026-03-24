@@ -5,9 +5,11 @@ import "buf/validate/validate.proto";
 package hi.source;
 
 message UploadReq {
-  string type    = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // image/video/audio/file
-  string name    = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 文件名
+  string type    = 1 [(buf.validate.field).string.min_len = 1]; // image/video/audio/file
+  string name    = 2 [(buf.validate.field).string.min_len = 1]; // 文件名
   bytes  content = 3 [(buf.validate.field).bytes.min_len = 1]; // 文件内容
+
+  string thumb_url = 4 [(buf.validate.field).required = true];
 }
 
 message UploadResp {
@@ -16,7 +18,7 @@ message UploadResp {
 }
 
 message DownloadReq {
-  string url = 1 [(buf.validate.field).string = {pattern: "^\\S+$", uri: true}];
+  string url = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message DownloadResp {

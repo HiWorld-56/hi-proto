@@ -43,9 +43,10 @@ message AddFriendReq {
 }
 
 enum FriendRequestStatus {
-  FRIEND_REQUEST_STATUS_REJECTED = 0; // 好友申请拒绝
-  FRIEND_REQUEST_STATUS_SENT     = 1; // 好友申请已发送
-  FRIEND_REQUEST_STATUS_ADDED    = 2; // 好友添加成功
+  FRIEND_REQUEST_STATUS_UNSPECIFIED = 0; // 未设置
+  FRIEND_REQUEST_STATUS_REJECTED    = 1; // 好友申请拒绝
+  FRIEND_REQUEST_STATUS_SENT        = 2; // 好友申请已发送
+  FRIEND_REQUEST_STATUS_ADDED       = 3; // 好友添加成功
 }
 
 message AddFriendResp {
