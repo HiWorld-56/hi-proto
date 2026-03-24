@@ -1,11 +1,13 @@
 syntax = "proto3";
 
+import "buf/validate/validate.proto";
+
 package hi.source;
 
 message UploadReq {
-  string type    = 1; // image/video/audio/file
-  string name    = 2;
-  bytes  content = 3;
+  string type    = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // image/video/audio/file
+  string name    = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 文件名
+  bytes  content = 3 [(buf.validate.field).bytes.min_len = 1]; // 文件内容
 }
 
 message UploadResp {
@@ -14,7 +16,7 @@ message UploadResp {
 }
 
 message DownloadReq {
-  string url = 1;
+  string url = 1 [(buf.validate.field).string = {pattern: "^\\S+$", uri: true}];
 }
 
 message DownloadResp {

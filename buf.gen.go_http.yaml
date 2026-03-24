@@ -6,6 +6,9 @@ managed:
   override:
     - file_option: go_package_prefix
       value: github.com/HiWorld-56/hi-proto/gen/go
+  disable:
+  - file_option: go_package
+    module: buf.build/bufbuild/protovalidate
 
 plugins:
   - local: protoc-gen-go
@@ -24,7 +27,8 @@ plugins:
     out: gen/go
     opt:
       - paths=source_relative
-      # - standalone=true
       - generate_unbound_methods=true
       - grpc_api_configuration=v1/merged_http_api.yaml
     strategy: all
+
+
