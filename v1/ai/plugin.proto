@@ -18,14 +18,14 @@ message DrawConfigResp {
 }
 
 message PluginItem {
-  string uuid        = 1;
-  string bot         = 2;
-  string type        = 3;
-  string sub_type    = 4;
-  string name        = 5;
-  string url         = 6;
-  string description = 7;
-  int64  created_at  = 8;
+  string uuid        = 1; // 插件id
+  string bot         = 2; // 机器人did
+  string type        = 3; // 插件类型，Python插件-Python
+  string sub_type    = 4; // 插件子类型, Python插件-Python
+  string name        = 5; // 插件名字
+  string url         = 6; // 插件url
+  string description = 7; // 插件描述
+  int64  created_at  = 8; // 创建时间
 }
 
 message PluginSwitchReq {
@@ -94,6 +94,12 @@ message DeletePluginByDidsReq {
   repeated string bots = 1;
 }
 
+// 修改插件的参数设置：
+// 1. 插件uuid [必填]
+// 以下是可以修改的字段
+// 2. 插件名字，item.name
+// 3. 插件url, item.url
+// 4. 插件描述, item.description
 message EditPluginReq {
   string     uuid = 1;
   PluginItem item = 2;
@@ -112,8 +118,8 @@ message GetDrawResp {
 }
 
 message PythonParamsSetReq {
-  string uuid   = 1;                  // 插件id
-  google.protobuf.Struct params = 2;  // 插件参数
+  string                 uuid   = 1; // 插件id
+  google.protobuf.Struct params = 2; // 插件参数
 }
 
 message GetPythonParamsReq {
@@ -134,7 +140,7 @@ service Plugin {
   rpc List (ListPluginReq) returns (ListPluginResp);
   rpc Delete (DeletePluginReq) returns (google.protobuf.Empty);
   rpc DeleteByDids (DeletePluginByDidsReq) returns (google.protobuf.Empty);
-  rpc Edit (EditPluginReq) returns (google.protobuf.Empty);
+  rpc Edit (EditPluginReq) returns (google.protobuf.Empty);                 // 编辑插件
   rpc GetDraw (GetDrawReq) returns (GetDrawResp);
   rpc PythonParamsSet (PythonParamsSetReq) returns (google.protobuf.Empty); // 设置Python插件参数
   rpc GetPythonParams (GetPythonParamsReq) returns (GetPythonParamsResp);
