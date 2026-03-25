@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+
+import "google/protobuf/empty.proto";
+import "hi/did/api_key.proto";
+
+// 使用token鉴权
+service ApiKey {
+  rpc Create (hi.did.CreateApiKeyReq) returns (hi.did.CreateApiKeyResp);
+  rpc Edit (hi.did.EditApiKeyReq) returns (hi.did.EditApiKeyResp);
+  rpc List (hi.did.ListApiKeyReq) returns (hi.did.ListApiKeyResp);
+  rpc Delete (hi.did.DeleteApiKeyReq) returns (google.protobuf.Empty);
+}

@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package hi.did;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
+
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+
+message Coin {
+  string icon     = 1;
+  string name     = 2;
+  string category = 3; // public-公共币种, custom-自定义币种
+}
+
+message ListCoinsResp {
+  repeated Coin list = 1;
+}
+
+message LastetVersionReq {
+  string platform = 1; // android / ios / ...
+}
+
+message LastetVersionResp {
+  string          min_supported_version = 1;
+  string          latest_version        = 2;
+  string          download_url          = 3;
+  repeated string changes               = 4;
+  int64           release_time          = 5;
+}
+
+message ListSuperAdminUsersResp {
+  repeated string list = 1;
+}
+
+service Base {
+  rpc ListCoins (google.protobuf.Empty) returns (ListCoinsResp); // 不鉴权
+  rpc LastetVersion (LastetVersionReq) returns (LastetVersionResp); // 不鉴权
+  rpc ListSuperAdminUsers (google.protobuf.Empty) returns (ListSuperAdminUsersResp); // 不鉴权
+}
+
+service Assist {
+  rpc VerifySignature (hi.SignedData) returns (hi.DID); // Web3鉴权
+}

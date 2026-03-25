@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package hi.ai;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/ai";
+
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+
+message ApiKeyInfo {
+  string value      = 1;
+  string did        = 2;
+  int32  rate_limit = 3;
+  int32  is_active  = 4;
+  string note       = 5;
+  int64  created_at = 6;
+}
+
+message CreateApiKeyResp {
+  ApiKeyInfo info = 1;
+}
+
+message EditApiKeyReq {
+  string api_key = 1;
+  string note    = 2;
+}
+
+message EditApiKeyResp {
+  ApiKeyInfo info = 1;
+}
+
+message ListApiKeyResp {
+  int32               total = 1;
+  repeated ApiKeyInfo infos = 2;
+}
+
+message DeleteApiKeyReq {
+  string api_key = 1;
+}
+
+message ListAgentReq {
+  string        agent_did  = 1;
+  hi.Pagination pagination = 2;
+}
+
+// 使用token鉴权
+service ApiKey {
+  rpc Create (google.protobuf.Empty) returns (CreateApiKeyResp);
+  rpc Edit (EditApiKeyReq) returns (EditApiKeyResp);
+  rpc List (hi.Pagination) returns (ListApiKeyResp);
+  rpc Delete (DeleteApiKeyReq) returns (google.protobuf.Empty);
+}

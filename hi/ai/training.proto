@@ -1,0 +1,132 @@
+syntax = "proto3";
+
+package hi.ai;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/ai";
+
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+
+message TrainingAgentReq {
+  repeated int32 ids   = 1; // 训练文件id列表
+  string         agent = 2; // 智能体did
+}
+
+message TrainingStatusReq {
+  string agent = 1; // 智能体did
+}
+
+message TrainingStatusResp {
+  string status      = 1; // 训练状态,success-训练成功,failed-训练失败
+  int32  mem_count   = 2;
+  int32  slice_count = 3;
+  string message     = 4; // 训练状态描述
+}
+
+message TrainingClearReq {
+  string agent = 1; // 智能体did
+}
+
+message UploadFileReq {
+  string agent    = 1; // 智能体did
+  string filename = 2; // 文件名
+  bytes  content  = 3; // 文件内容
+}
+
+message AgentTrainingFile {
+  int32  id            = 1;  // 训练文件id
+  string content       = 2;  // content（文件内容） / path / url
+  string agent         = 3;  // 智能体did
+  string title         = 4;  // 文件名
+  int32  size          = 5;  // 文件大小
+  string type          = 6;  // 文件类型
+  int32  is_use        = 7;  // 是否已经训练，0-未训练，1-已训练
+  string digest        = 8;  // 文件摘要
+  int64  training_time = 9;  // 训练时间
+  int64  created_at    = 10; // 创建时间
+  int64  updated_at    = 11; // 更新时间
+}
+
+message ListAgentFileReq {
+  string        agent      = 1; // 智能体did
+  bool          use        = 2; // true-返回已训练的文件, false-返回所有文件
+  hi.Pagination pagination = 3;
+}
+
+message ListAgentFileResp {
+  int32                     total = 1;
+  repeated AgentTrainingFile list  = 2;
+}
+
+message DeleteAgentFileReq {
+  int32 id = 1; // 训练文件id
+}
+
+message DeleteAgentFilesReq {
+  string         agent = 1; // 智能体did
+  repeated int32 ids   = 2; // 训练文件id列表
+}
+
+message DeleteAgentFilesByDidReq {
+  repeated string agents = 1; // 智能体did列表
+}
+
+message GetAgentFileReq {
+  int32 id = 1; // 训练文件id
+}
+
+message GetAgentFileResp {
+  AgentTrainingFile file = 1;
+}
+
+message UpdateContentReq {
+  string agent   = 1;
+  int32  id      = 2;
+  string content = 3;
+}
+
+message CreateContentReq {
+  string agent   = 1;
+  string content = 2;
+}
+
+message CreateContentResp {
+  AgentTrainingFile file = 1;
+}
+
+message EditDigestReq {
+  int32  id     = 1;
+  string agent  = 2;
+  string digest = 3;
+}
+
+message SetMemModelReq {
+  string agent     = 1;
+  string mem_model = 2;
+}
+
+message GetMemModelReq {
+  string agent = 1;
+}
+
+message GetMemModelResp {
+  string mem_model = 1;
+}
+
+// apiKey鉴权
+service Training {
+  rpc TrainingAgent (TrainingAgentReq) returns (google.protobuf.Empty);       // 启动训练
+  rpc TrainingStatus (TrainingStatusReq) returns (TrainingStatusResp);        // 获取训练状态
+  rpc TrainingClear (TrainingClearReq) returns (google.protobuf.Empty);       // 清除训练状态
+  rpc UploadFile (UploadFileReq) returns (google.protobuf.Empty);             // 上传训练文件
+  rpc ListAgentFile (ListAgentFileReq) returns (ListAgentFileResp);           // 获取训练文件列表
+  rpc DeleteAgentFile (DeleteAgentFileReq) returns (google.protobuf.Empty);   // 删除训练文件
+  rpc DeleteAgentFiles (DeleteAgentFilesReq) returns (google.protobuf.Empty); // 批量删除训练文件
+  rpc DeleteAgentFilesByDid (DeleteAgentFilesByDidReq) returns (google.protobuf.Empty); // 通过智能体did删除训练文件
+  rpc GetAgentFile (GetAgentFileReq) returns (GetAgentFileResp);
+  rpc UpdateContent (UpdateContentReq) returns (google.protobuf.Empty);
+  rpc CreateContent (CreateContentReq) returns (CreateContentResp);
+  rpc EditDegest (EditDigestReq) returns (google.protobuf.Empty);
+  rpc SetMemModel (SetMemModelReq) returns (google.protobuf.Empty);
+  rpc GetMemModel (GetMemModelReq) returns (GetMemModelResp);
+}

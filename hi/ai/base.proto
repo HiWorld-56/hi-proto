@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package hi.ai;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/ai";
+
+import "google/protobuf/empty.proto";
+import "hi/did/base.proto";
+
+service Base {
+  rpc ListSuperAdminUsers (google.protobuf.Empty) returns (hi.did.ListSuperAdminUsersResp); // 不鉴权
+}

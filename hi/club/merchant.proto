@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+import "hi/did/merchant.proto";
+
+service Merchant {
+  rpc List (google.protobuf.Empty) returns (hi.did.MerchantListResp); // 查询用户所在的商户列表
+  rpc ListAll (hi.Pagination) returns (hi.did.MerchantListResp); // 查询所有商户列表
+}

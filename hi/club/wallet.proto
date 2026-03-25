@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+
+service Wallet {
+  rpc UpdateAddresses (hi.SignedData) returns (google.protobuf.Empty); // Web3鉴权 // UpdateAddressesReq
+}

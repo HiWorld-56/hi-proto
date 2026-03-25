@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+
+message Q3User {
+  hi.Entity user    = 1;
+  hi.Entity agent   = 2;
+  string    custom  = 3;
+  bool      creator = 4;
+  bool      topic   = 5;
+  bool      ready   = 6;
+}
+
+message Q3GroupCreateReq {
+  string name = 1;
+}
+
+message Q3GroupCreateResp {
+  string id = 1;
+}
+
+message Q3GroupEventReq {
+  string  id   = 1;
+  Q3User  user = 2;
+  string  to   = 3;
+}
+
+message Q3GroupReadyReq {
+  string id   = 1;
+  Q3User user = 2;
+}
+
+message Q3GroupReadyResp {
+  string    id    = 1;
+  bool      ready = 2;
+  hi.Entity group = 3;
+}
+
+message Q3HostingReq {
+  string group   = 1;
+  bool   hosting = 2;
+}
+
+message Q3GetInfosReq {
+  repeated string groups = 1;
+}
+
+message Q3Info {
+  message Unit {
+    hi.Entity ghost = 1;
+    hi.Entity agent = 2;
+  }
+
+  hi.Entity     group = 1;
+  repeated Unit list  = 2;
+}
+
+message Q3GetInfosResp {
+  repeated Q3Info list = 1;
+}
+
+service Q3 {
+  rpc GetInfos (Q3GetInfosReq) returns (Q3GetInfosResp); //
+  rpc Create (Q3GroupCreateReq) returns (Q3GroupCreateResp); // 创建群
+  rpc Event (Q3GroupEventReq) returns (google.protobuf.Empty); // 群事件
+  rpc Ready (Q3GroupReadyReq) returns (Q3GroupReadyResp); // 群就绪
+  rpc Hosting (Q3HostingReq) returns (google.protobuf.Empty); // 设置托管
+}

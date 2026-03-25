@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+
+import "hi/did/user_extension.proto";
+
+service UserExtension {
+  rpc Get (hi.did.UserExtensionGetReq) returns (hi.did.UserExtensionGetResp); // Token鉴权
+  rpc ListByMerchantDid (hi.did.ListByMerchantDidReq) returns (hi.did.ListByMerchantDidResp); // Token鉴权
+}

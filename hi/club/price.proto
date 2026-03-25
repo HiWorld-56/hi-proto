@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+
+import "hi/did/price.proto";
+
+service Price {
+  rpc GetPrice (hi.did.GetPriceReq) returns (hi.did.GetPriceResp); // 不鉴权
+}

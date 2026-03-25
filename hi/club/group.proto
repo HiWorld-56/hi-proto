@@ -1,0 +1,149 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+import "hi/club/messaging.proto";
+
+// 查询群信息的响应结构
+message GroupBase {
+  hi.Entity base       = 1;
+  string    background = 2;
+  bool      private    = 3;
+  bool      dnd        = 4; // 免打扰
+  int32     muted      = 5;
+  int64     created_at = 6;
+  int64     updated_at = 7;
+}
+
+message GroupMember {
+  hi.Entity base  = 1;
+  string    role  = 2;
+  string    ghost = 3;
+}
+
+message GroupInfo {
+  GroupBase            base = 1;
+  repeated GroupMember list = 2;
+}
+
+message GetGroupReq {
+  string code = 1;
+}
+
+// 创建群聊
+message CreateGroupReq {
+  string name = 1;
+}
+
+// 创建单聊
+message CreateSingleReq {
+  string did = 1;
+}
+
+// 更新群信息
+message UpdateGroupReq {
+  GroupBase base             = 1;
+  bool      clear_background = 2;
+}
+
+// 组聊天消息列表参数
+message ListGroupMessageReq {
+  string last_uuid = 1;
+  string code      = 2;
+  string type      = 3;
+}
+
+message ListGroupMessageResp {
+  repeated Packet list = 1;
+}
+
+message ListGroupBaseResp {
+  repeated GroupBase list = 1;
+}
+
+message ListGroupMemberReq {
+  string        code       = 1;
+  string        type       = 2;
+  hi.Pagination pagination = 3;
+}
+
+message GetGroupMemberTotalReq {
+  string group = 1;
+}
+
+message GetGroupMemberTotalResp {
+  int32 total = 1;
+}
+
+message InviteGroupReq {
+  string          group  = 1;
+  repeated string agents = 2;
+  repeated string users  = 3;
+}
+
+message JoinGroupReq {
+  string group = 1;
+}
+
+message QuitGroupReq {
+  string group = 1;
+}
+
+message RemoveGroupReq {
+  string          group  = 1;
+  repeated string agents = 2;
+  repeated string users  = 3;
+}
+
+message LastUUID {
+  string last_uuid = 1;
+  string code      = 2;
+  string type      = 3;
+}
+
+message ListLastUUID {
+  repeated LastUUID list = 1;
+}
+
+message SetRoleReq {
+  string          group = 1;
+  repeated string users = 2;
+  string          role  = 3;
+}
+
+message GetRoleReq {
+  string group = 1;
+}
+
+message GetRoleResp {
+  string role = 1;
+}
+
+message MuteGroupReq {
+  string group = 1;
+  bool   muted = 2;
+}
+
+service Group {
+  rpc Get (GetGroupReq) returns (GroupBase); // 群信息
+  rpc Create (CreateGroupReq) returns (GroupBase); // 创建群
+  rpc CreateSingle (CreateSingleReq) returns (GroupBase); // 创建单聊群
+  rpc Update (UpdateGroupReq) returns (google.protobuf.Empty); // 更新群
+  rpc ListBase (google.protobuf.Empty) returns (ListGroupBaseResp); // 群列表
+  rpc ListMember (ListGroupMemberReq) returns (GroupInfo); // 群成员列表
+  rpc GetMemberTotal (GetGroupMemberTotalReq) returns (GetGroupMemberTotalResp); // 群成员总数
+  rpc Invite (InviteGroupReq) returns (google.protobuf.Empty); // 群邀请
+  rpc Join (JoinGroupReq) returns (google.protobuf.Empty); // 主动加群
+  rpc Quit (QuitGroupReq) returns (google.protobuf.Empty); // 主动退群/解散群
+  rpc Remove (RemoveGroupReq) returns (google.protobuf.Empty); // 移出群聊
+  rpc ListMessage (ListGroupMessageReq) returns (ListGroupMessageResp); // 群消息列表
+  rpc UpdateLastUUID (LastUUID) returns (google.protobuf.Empty); // 更新LastUUID
+  rpc CheckLastUUID (ListLastUUID) returns (ListLastUUID); // 检查LastUUID
+  rpc SetRole (SetRoleReq) returns (google.protobuf.Empty); // 设置/取消群管理员
+  rpc GetRole (GetRoleReq) returns (GetRoleResp); // 获取群成员角色
+  rpc Mute (MuteGroupReq) returns (google.protobuf.Empty); // 设置/取消群管理员
+}

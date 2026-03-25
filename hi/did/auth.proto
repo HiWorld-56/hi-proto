@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package hi.did;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
+
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+
+message RefreshTokenReq {
+  hi.ClientInfo node          = 1;
+  string        did           = 2;
+  string        refresh_token = 3;
+}
+
+// hidid web/app/pc登录
+message LoginReq {
+  hi.DID        did    = 1;
+  hi.ClientInfo node   = 2;
+  hi.RequestId  req_id = 3;
+}
+
+message LoginResp {
+  hi.Entity          user  = 1;
+  hi.AuthToken       token = 2;
+  hi.MqttCredentials mqtt  = 3;
+}
+
+message GenerateReqIdReq {
+  string        did  = 1;
+  hi.ClientInfo node = 2;
+}
+
+message ReqStatusResp {
+  hi.Entity          base   = 1;
+  string             status = 2;
+  hi.AuthToken       token  = 3;
+  hi.MqttCredentials mqtt   = 4;
+}
+
+service Auth {
+  rpc RefreshToken (RefreshTokenReq) returns (hi.AuthToken); // 不鉴权
+  rpc Verify (hi.SignedData) returns (LoginResp); // LoginReq // Web3鉴权
+  rpc VerifyOffline (hi.SignedData) returns (LoginResp); // 内部服务使用 Web3鉴权
+  rpc GenerateReqId (GenerateReqIdReq) returns (hi.RequestId); // 不鉴权
+  rpc GetReqStatus (hi.RequestId) returns (ReqStatusResp); // 不鉴权
+  rpc Notify (hi.SignedData) returns (google.protobuf.Empty); // LoginReq // Web3鉴权
+  rpc Logout (google.protobuf.Empty) returns (google.protobuf.Empty); // Token鉴权
+}

@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package hi.ai;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/ai";
+
+import "google/protobuf/empty.proto";
+
+message SettingInfo {
+  string proxy_url = 1;
+  bool   enable    = 2;
+  string endpoint  = 3;
+}
+
+message SettingEditReq {
+  SettingInfo info = 1;
+}
+
+message SettingGetResp {
+  SettingInfo info = 1;
+}
+
+// Token鉴权
+service Setting {
+  rpc Edit (SettingEditReq) returns (google.protobuf.Empty);
+  rpc Get (google.protobuf.Empty) returns (SettingGetResp);
+}

@@ -1,0 +1,218 @@
+type: google.api.Service
+config_version: 3
+
+http:
+  rules:
+# Auth
+  - selector: hi.club.Auth.GenerateReqId
+    post: /api/v1/auth/generate_req_id
+    body: "*"
+  - selector: hi.club.Auth.GetReqStatus
+    post: /api/v1/auth/get_req_status
+    body: "*"
+  - selector: hi.club.Auth.RefreshToken
+    post: /api/v1/auth/refresh_token
+    body: "*"
+# Base
+  - selector: hi.club.Base.ListSuperAdminUsers
+    post: /api/v1/base/list_super_admin_users
+  - selector: hi.club.Base.LastetVersion
+    get: /api/v1/base/lastet_version
+# Agent
+  - selector: hi.club.Agent.ListLLM
+    get: /api/v1/agent/list_llm
+  - selector: hi.club.Agent.ListEmbedding
+    get: /api/v1/agent/list_embedding
+  - selector: hi.club.Agent.ListSTT
+    get: /api/v1/agent/list_stt
+  - selector: hi.club.Agent.ListTTS
+    get: /api/v1/agent/list_tts
+  - selector: hi.club.Agent.AgentConfig
+    get: /api/v1/agent/agent_config
+  - selector: hi.club.Agent.CreateAgent
+    post: /api/v1/agent/create_agent
+    body: "*"
+  - selector: hi.club.Agent.EditAgent
+    post: /api/v1/agent/edit_agent
+    body: "*"
+  - selector: hi.club.Agent.ListAgent
+    post: /api/v1/agent/list_agent
+    body: "*"
+  - selector: hi.club.Agent.ListAgentByDids
+    post: /api/v1/agent/list_agent_by_dids
+    body: "*"
+  - selector: hi.club.Agent.DeleteAgent
+    post: /api/v1/agent/delete_agent
+    body: "*"
+  - selector: hi.club.Agent.FindAgent
+    get: /api/v1/agent/find_agent
+  - selector: hi.club.Agent.FindAgentCount
+    post: /api/v1/agent/find_agent_count
+    body: "*"
+  - selector: hi.club.Agent.Transfer
+    post: /api/v1/agent/transfer
+    body: "*"
+  - selector: hi.club.Agent.UpdatesToDefault
+    post: /api/v1/agent/updates_to_default
+    body: "*"
+  - selector: hi.club.Agent.FavoriteAgent
+    post: /api/v1/agent/favorite_agent
+    body: "*"
+  - selector: hi.club.Agent.ListFavoriteAgent
+    post: /api/v1/agent/list_favorite_agent
+    body: "*"
+  - selector: hi.club.Agent.FavoriteAgentListByDIDs
+    post: /api/v1/agent/favorite_agent_list_by_dids
+    body: "*"
+# UserACL
+  - selector: hi.club.UserACL.Add
+    post: /api/v1/user_acl/add
+    body: "*"
+  - selector: hi.club.UserACL.Delete
+    post: /api/v1/user_acl/delete
+    body: "*"
+  - selector: hi.club.UserACL.List
+    post: /api/v1/user_acl/list
+    body: "*"
+  - selector: hi.club.UserACL.ListType
+    get: /api/v1/user_acl/list_type
+  - selector: hi.club.UserACL.Edit
+    post: /api/v1/user_acl/edit
+    body: "*"
+# Health
+  - selector: hi.club.Health.Check
+    get: /api/v1/health/check
+# Chat
+  - selector: hi.club.Chat.Simple
+    post: /api/v1/chat/simple
+    body: "*"
+  - selector: hi.club.Chat.GenerateCid
+    get: /api/v1/chat/generate_cid
+  - selector: hi.club.Chat.Dialog
+    post: /api/v1/chat/dialog
+    body: "*"
+  - selector: hi.club.Chat.DialogStream
+    post: /api/v1/chat/dialog_stream
+    body: "*"
+  - selector: hi.club.Chat.ClearContext
+    post: /api/v1/chat/clear_context
+    body: "*"
+  - selector: hi.club.Chat.GetContext
+    post: /api/v1/chat/get_context
+    body: "*"
+  - selector: hi.club.Chat.TextToSpeech
+    post: /api/v1/chat/text_to_speech
+    body: "*"
+  - selector: hi.club.Chat.SpeechToText
+    post: /api/v1/chat/speech_to_text
+    body: "*"
+  - selector: hi.club.Chat.SpeechToSpeech
+    post: /api/v1/chat/speech_to_speech
+    body: "*"
+  - selector: hi.club.Chat.SpeechToSpeech2
+    post: /api/v1/chat/speech_to_speech2
+    body: "*"
+  - selector: hi.club.Chat.TextToText
+    post: /api/v1/chat/text_to_text
+    body: "*"
+  - selector: hi.club.Chat.TextToText2
+    post: /api/v1/chat/text_to_text2
+    body: "*"
+# Plugin
+  - selector: hi.club.Plugin.DrawConfig
+    get: /api/v1/plugin/draw_config
+  - selector: hi.club.Plugin.PluginSwitch
+    post: /api/v1/plugin/plugin_switch
+    body: "*"
+  - selector: hi.club.Plugin.SearchCreate
+    post: /api/v1/plugin/search_create
+    body: "*"
+  - selector: hi.club.Plugin.PythonCreate
+    post: /api/v1/plugin/python_create
+    body: "*"
+  - selector: hi.club.Plugin.DrawCreate
+    post: /api/v1/plugin/draw_create
+    body: "*"
+  - selector: hi.club.Plugin.List
+    post: /api/v1/plugin/list
+    body: "*"
+  - selector: hi.club.Plugin.Delete
+    post: /api/v1/plugin/delete
+    body: "*"
+  - selector: hi.club.Plugin.DeleteByDids
+    post: /api/v1/plugin/delete_by_dids
+    body: "*"
+  - selector: hi.club.Plugin.Edit
+    post: /api/v1/plugin/edit
+    body: "*"
+  - selector: hi.club.Plugin.GetDraw
+    get: /api/v1/plugin/get_draw
+  - selector: hi.club.Plugin.PythonParamsSet
+    post: /api/v1/plugin/python_params_set
+    body: "*"
+  - selector: hi.club.Plugin.GetPythonParams
+    get: /api/v1/plugin/get_python_params
+# Training
+  - selector: hi.club.Training.TrainingAgent
+    post: /api/v1/training/training_agent
+    body: "*"
+  - selector: hi.club.Training.TrainingStatus
+    post: /api/v1/training/training_status
+    body: "*"
+  - selector: hi.club.Training.TrainingClear
+    post: /api/v1/training/training_clear
+    body: "*"
+  - selector: hi.club.Training.UploadFile
+    post: /api/v1/training/upload_file
+    body: "*"
+  - selector: hi.club.Training.ListAgentFile
+    post: /api/v1/training/list_agent_file
+    body: "*"
+  - selector: hi.club.Training.DeleteAgentFile
+    post: /api/v1/training/delete_agent_file
+    body: "*"
+  - selector: hi.club.Training.DeleteAgentFiles
+    post: /api/v1/training/delete_agent_files
+    body: "*"
+  - selector: hi.club.Training.DeleteAgentFilesByDid
+    post: /api/v1/training/delete_agent_files_by_did
+    body: "*"
+  - selector: hi.club.Training.GetAgentFile
+    post: /api/v1/training/get_agent_file
+    body: "*"
+  - selector: hi.club.Training.UpdateContent
+    post: /api/v1/training/update_content
+    body: "*"
+  - selector: hi.club.Training.CreateContent
+    post: /api/v1/training/create_content
+    body: "*"
+  - selector: hi.club.Training.EditDegest
+    post: /api/v1/training/edit_degest
+    body: "*"
+  - selector: hi.club.Training.SetMemModel
+    post: /api/v1/training/set_mem_model
+    body: "*"
+  - selector: hi.club.Training.GetMemModel
+    get: /api/v1/training/get_mem_model
+# Trade
+  - selector: hi.club.Trade.ListTrade
+    post: /api/v1/trade/list_trade
+    body: "*"
+  - selector: hi.club.Trade.GetTrade
+    get: /api/v1/trade/get_trade
+  - selector: hi.club.Trade.ListAllTrade
+    post: /api/v1/trade/list_all_trade
+    body: "*"
+# ApiKey
+  - selector: hi.club.ApiKey.Create
+    post: /api/v1/api_key/create
+    body: "*"
+  - selector: hi.club.ApiKey.Edit
+    post: /api/v1/api_key/edit
+    body: "*"
+  - selector: hi.club.ApiKey.List
+    post: /api/v1/api_key/list
+    body: "*"
+  - selector: hi.club.ApiKey.Delete
+    post: /api/v1/api_key/delete
+    body: "*"

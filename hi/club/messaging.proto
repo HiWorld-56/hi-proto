@@ -1,0 +1,148 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+import "hi/club/q3.proto";
+import "hi/did/transfer.proto";
+import "hi/club/trade.proto";
+
+message Packet {
+  oneof kind {
+    Notice  notice  = 1;
+    Message message = 2;
+  }
+}
+
+/*
+ type:
+ kicked-out
+ invite-friend
+ invite-group
+ q3-sync
+ */
+message Notice {
+  string    uuid       = 1;
+  string    type       = 2;
+  hi.Entity from       = 3;
+  int64     timestamp  = 4;
+  int64     expiration = 5;
+  string    status     = 6;
+  Extra     extra      = 7;
+}
+
+message Prompt {
+  string custom = 1;
+  string state  = 2;
+}
+
+/*
+ Message.type
+ ----------------------------------------------------------------------------------------------------
+ 常规消息: chat
+ example
+ A >>> Message
+ type = chat
+ from = A
+ ghost = null
+ ----------------------------------------------------------------------------------------------------
+ 草稿消息: draft
+ A创建原始消息，需要B修改确认后，作为一条新消息，由B发送出去，发送者显示为A。
+ example:
+ A >>> Message_1
+ type = draft
+ from = A
+ ghost = B
+ B >>> Message_2
+ type = chat
+ from = A
+ ghost = B
+ ----------------------------------------------------------------------------------------------------
+ 代笔消息: chat
+ B创建的消息，由B发出，发送者显示为A。
+ example:
+ B >>> Message
+ type = chat
+ from = A
+ ghost = B
+ 非法消息: invalid
+ 未通过安全验证的消息
+ ----------------------------------------------------------------------------------------------------
+ 任意聊天中:
+ type != chat 时: 一律不显示
+ type == chat 时: 发送者显示为 from
+ */
+message Message {
+  string           uuid      = 1;
+  string           cid       = 2;
+  string           type      = 3;
+  hi.Entity        from      = 4;
+  repeated Content conts     = 5;
+  int64            timestamp = 6;
+  Extra            extra     = 7;
+  hi.Entity        ghost     = 8;
+  Prompt           prompt    = 9;
+}
+
+message Extra {
+  oneof kind {
+    hi.Entity        unit        = 1;
+    Mention          mention     = 2;
+    Member           member      = 3;
+    MemberExit       member_exit = 4;
+    GroupUpdate      group_info  = 5;
+    Q3GroupReadyResp ready       = 6;
+    Q3GroupEventReq  event       = 7;
+  }
+}
+
+message Mention {
+  hi.Entity          group = 1;
+  bool               all   = 2;
+  repeated hi.Entity list  = 3;
+}
+
+message Member {
+  hi.Entity group = 1;
+  hi.Entity user  = 2;
+}
+
+message MemberExit {
+  Member member = 1;
+  string type   = 2;
+}
+
+message GroupUpdate {
+  hi.Entity base        = 1;
+  string    back_ground = 2;
+  bool      mute        = 3;
+  hi.Entity owner       = 4;
+}
+
+message Content {
+  message Chat {
+    string          content  = 1;
+    optional string name     = 2;
+    optional uint32 size     = 3;
+    optional uint32 duration = 4;
+  }
+
+  string type = 1;
+  oneof kind {
+    Chat                      chat  = 2;
+    hi.did.Transaction        trans = 3;
+    TradeBase                 trade = 4;
+  }
+}
+
+message PublishReq {
+  string topic   = 1;
+  Packet payload = 2;
+}
+
+service Publisher {
+  rpc Publish (PublishReq) returns (google.protobuf.Empty); // Token鉴权
+}

@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package hi.source;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/source";
+
+import "buf/validate/validate.proto";
+
+message UploadReq {
+  string type    = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // image/video/audio/file/avatar/code
+  string name    = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 文件名
+  bytes  content = 3 [(buf.validate.field).bytes.min_len = 1]; // 文件内容
+}
+
+message UploadResp {
+  string          url       = 1;
+  optional string thumb_url = 2;
+}
+
+message DownloadReq {
+  string url = 1 [(buf.validate.field).string = {pattern: "^\\S+$", uri: true}];
+}
+
+message DownloadResp {
+  bytes content = 1;
+}
+
+service File {
+  rpc Upload(UploadReq) returns (UploadResp);
+  rpc Download(DownloadReq) returns (DownloadResp);
+}

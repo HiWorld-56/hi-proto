@@ -1,0 +1,176 @@
+syntax = "proto3";
+
+package hi.ai;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/ai";
+
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+
+/////////////////////////////// 智能体 ///////////////////////////////
+message Prompt {
+  string system = 1;
+  string user   = 2;
+}
+
+message Model {
+  string llm       = 1;
+  string stt       = 2;
+  string tts       = 3;
+  string embedding = 4;
+}
+
+// 智能体配置
+message AgentConfig {
+  Prompt         prompt            = 1;
+  optional float freedom           = 2; // 控制模型输出的随机性，值越大越随机
+  Model          model             = 3;
+  optional int32 qa_num            = 4; // 上下文组数
+  bool           use_mem           = 11; // 启用记忆（启用训练数据）
+  bool           use_plugin_search = 12; // 启用搜索插件
+  bool           use_plugin_python = 13; // 启用python插件
+  bool           use_plugin_draw   = 14; // 启用画图插件
+}
+
+message TokenUsage {
+  int32 output = 1; // 模型生成输出时消耗的token数。
+  int32 input  = 2; // 模型输入时消耗的token数
+  int32 mem    = 3; // 训练消耗的token数
+}
+
+message AgentInfo {
+  hi.Entity   base       = 1;
+  AgentConfig config     = 2;
+  string      creator    = 3;
+  string      note       = 4;
+  TokenUsage  token      = 5;
+  int64       created_at = 6;
+  bool        favorited  = 7;
+}
+
+message AgentConfigResp {
+  AgentConfig config = 1;
+}
+
+message ListLLMResp {
+  repeated string models = 1;
+}
+
+message ListEmbeddingResp {
+  repeated string models = 1;
+}
+
+message ListSTTResp {
+  repeated string models = 1;
+  repeated string langs  = 2;
+}
+
+message ListTTSResp {
+  repeated string models = 1;
+}
+
+message CreateAgentReq {
+  hi.Entity base = 1;
+}
+
+message CreateAgentResp {
+  hi.Entity   base    = 1;
+  AgentConfig config  = 2;
+  hi.Entity   creator = 3;
+}
+
+message EditAgentReq {
+  hi.Entity   base   = 1;
+  AgentConfig config = 2;
+  string      note   = 3;
+}
+
+message ListAgentResp {
+  int32               total = 1;
+  repeated AgentInfo  infos = 2;
+}
+
+message ListAgentByDidsReq {
+  repeated string dids       = 1;
+  hi.Pagination   pagination = 2;
+}
+
+message ListAgentByDidsResp {
+  int32               total = 1;
+  repeated AgentInfo  infos = 2;
+}
+
+message DeleteAgentReq {
+  string did = 1;
+}
+
+message FindAgentReq {
+  string did = 1;
+}
+
+message FindAgentResp {
+  AgentInfo info = 1;
+}
+
+message FindAgentCountReq {
+  string did = 1;
+}
+
+message FindAgentCountResp {
+  int32      message_count = 1;
+  TokenUsage token         = 2;
+}
+
+message TransferReq {
+  string agent = 1;
+  string to    = 2;
+}
+
+message UpdatesToDefaultReq {
+  repeated string dids = 1;
+}
+
+message FavoriteAgentReq {
+  string did = 1;
+  string opt = 2;
+}
+
+message ListFavoriteAgentReq {
+  hi.Pagination pagination = 1;
+}
+
+message ListFavoriteAgentResp {
+  int32               total = 1;
+  repeated AgentInfo  infos = 2;
+}
+
+message ListFavoriteAgentByDIDsReq {
+  repeated string dids       = 1;
+  hi.Pagination   pagination = 2;
+}
+
+message ListFavoriteAgentByDIDsResp {
+  int32               total = 1;
+  repeated AgentInfo  infos = 2;
+}
+
+// apiKey鉴权
+service Agent {
+  rpc ListLLM (google.protobuf.Empty) returns (ListLLMResp);
+  rpc ListEmbedding (google.protobuf.Empty) returns (ListEmbeddingResp);
+  rpc ListSTT (google.protobuf.Empty) returns (ListSTTResp);
+  rpc ListTTS (google.protobuf.Empty) returns (ListTTSResp);
+  rpc AgentConfig (google.protobuf.Empty) returns (AgentConfigResp);
+  rpc CreateAgent (CreateAgentReq) returns (CreateAgentResp);
+  rpc EditAgent (EditAgentReq) returns (google.protobuf.Empty);
+  rpc ListAgent (hi.Pagination) returns (ListAgentResp);
+  rpc ListAgentByDids (ListAgentByDidsReq) returns (ListAgentByDidsResp);
+  rpc DeleteAgent (DeleteAgentReq) returns (google.protobuf.Empty);
+  rpc FindAgent (FindAgentReq) returns (FindAgentResp);
+  rpc FindAgentCount (FindAgentCountReq) returns (FindAgentCountResp);
+  rpc Transfer (TransferReq) returns (google.protobuf.Empty);
+  rpc UpdatesToDefault (UpdatesToDefaultReq) returns (google.protobuf.Empty);
+  rpc FavoriteAgent (FavoriteAgentReq) returns (google.protobuf.Empty);
+  rpc ListFavoriteAgent (ListFavoriteAgentReq) returns (ListFavoriteAgentResp);
+  rpc FavoriteAgentListByDIDs (ListFavoriteAgentByDIDsReq) returns (ListFavoriteAgentByDIDsResp);
+}

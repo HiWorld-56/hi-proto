@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+import "hi/ai/agent.proto";
+
+message BindMasterReq {
+  string master = 1;
+  string agent  = 2;
+}
+
+message UnbindMasterReq {
+  string master = 1;
+  string agent  = 2;
+}
+
+message BindStatusReq {
+  string agent = 1;
+}
+
+message BindStatusResp {
+  optional string master = 1; // None / master
+}
+
+message ListAllOnlineAgentResp {
+  int32                   total = 1;
+  repeated hi.ai.AgentInfo list  = 2;
+}
+
+message GetAgentMasterReq {
+  string agent = 1;
+}
+
+message GetAgentMasterResp {
+  hi.Entity master = 1;
+}
+
+message ListOnlineAgentResp {
+  repeated hi.ai.AgentInfo list = 1;
+}
+
+service Agent {
+  rpc ListLLM (google.protobuf.Empty) returns (hi.ai.ListLLMResp);
+  rpc ListEmbedding (google.protobuf.Empty) returns (hi.ai.ListEmbeddingResp);
+  rpc ListSTT (google.protobuf.Empty) returns (hi.ai.ListSTTResp);
+  rpc ListTTS (google.protobuf.Empty) returns (hi.ai.ListTTSResp);
+  rpc AgentConfig (google.protobuf.Empty) returns (hi.ai.AgentConfigResp);
+  rpc CreateAgent (hi.ai.CreateAgentReq) returns (hi.ai.CreateAgentResp);
+  rpc EditAgent (hi.ai.EditAgentReq) returns (google.protobuf.Empty);
+  rpc ListAgent (hi.Pagination) returns (hi.ai.ListAgentResp);
+  rpc ListAgentByDids (hi.ai.ListAgentByDidsReq) returns (hi.ai.ListAgentByDidsResp);
+  rpc DeleteAgent (hi.ai.DeleteAgentReq) returns (google.protobuf.Empty);
+  rpc FindAgent (hi.ai.FindAgentReq) returns (hi.ai.FindAgentResp);
+  rpc FindAgentCount (hi.ai.FindAgentCountReq) returns (hi.ai.FindAgentCountResp);
+  rpc Transfer (hi.ai.TransferReq) returns (google.protobuf.Empty);
+  rpc UpdatesToDefault (hi.ai.UpdatesToDefaultReq) returns (google.protobuf.Empty);
+  rpc FavoriteAgent (hi.ai.FavoriteAgentReq) returns (google.protobuf.Empty);
+  rpc ListFavoriteAgent (hi.ai.ListFavoriteAgentReq) returns (hi.ai.ListFavoriteAgentResp);
+  rpc FavoriteAgentListByDIDs (hi.ai.ListFavoriteAgentByDIDsReq) returns (hi.ai.ListFavoriteAgentByDIDsResp);
+
+  rpc BindMaster (BindMasterReq) returns (google.protobuf.Empty); // 绑定智能体
+  rpc UnbindMaster (UnbindMasterReq) returns (google.protobuf.Empty); // 解绑智能体
+  rpc BindStatus (BindStatusReq) returns (BindStatusResp); // 智能体绑定状态
+  rpc ListAllOnlineAgent (hi.Pagination) returns (ListAllOnlineAgentResp); // 在线智能体列表
+  rpc ListOnlineAgent (hi.DID) returns (ListOnlineAgentResp); // 用户的在线智能体
+  rpc GetAgentMaster (GetAgentMasterReq) returns (GetAgentMasterResp); // 智能体主人
+}

@@ -54,9 +54,8 @@ dkms.conf
 .DS_Store
 
 # hi_proto
-go.sum
 gen/
+http/merged.yaml
 buf.lock
-v1/merged_http_api.yaml
-club_1
+go.sum
 hi-grpc-client

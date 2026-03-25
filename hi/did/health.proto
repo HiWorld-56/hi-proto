@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package hi.did;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
+
+import "google/protobuf/empty.proto";
+
+service Health {
+  rpc Check (google.protobuf.Empty) returns (google.protobuf.Empty); // 不鉴权
+}
