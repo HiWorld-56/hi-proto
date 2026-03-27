@@ -17,7 +17,7 @@ message GetConfigResp {
 
 service Base {
   rpc ListCoins (google.protobuf.Empty) returns (hi.did.ListCoinsResp); // 不鉴权
-  rpc LastetVersion (hi.did.LatestVersionReq) returns (hi.did.LatestVersionResp); // 不鉴权
+  rpc LatestVersion (hi.did.LatestVersionReq) returns (hi.did.LatestVersionResp); // 不鉴权
   rpc ListSuperAdminUsers (google.protobuf.Empty) returns (hi.did.ListSuperAdminUsersResp); // 不鉴权
   rpc GetConfig (GetConfigReq) returns (GetConfigResp); // Token鉴权
 }
