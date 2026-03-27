@@ -53,8 +53,8 @@ http:
 # Base
   - selector: hi.did.Base.ListSuperAdminUsers
     get: /api/v1/base/list_superadminusers
-  - selector: hi.did.Base.LastetVersion
-    get: /api/v1/base/lastet_version
+  - selector: hi.did.Base.LatestVersion
+    get: /api/v1/base/latest_version
 # UserExtensionSettings
   - selector: hi.did.UserExtensionSettings.Update
     post: /api/v1/user_extension_settings/update

@@ -17,11 +17,11 @@ message ListCoinsResp {
   repeated Coin list = 1;
 }
 
-message LastetVersionReq {
+message LatestVersionReq {
   string platform = 1; // android / ios / ...
 }
 
-message LastetVersionResp {
+message LatestVersionResp {
   string          min_supported_version = 1;
   string          latest_version        = 2;
   string          download_url          = 3;
@@ -35,7 +35,7 @@ message ListSuperAdminUsersResp {
 
 service Base {
   rpc ListCoins (google.protobuf.Empty) returns (ListCoinsResp); // 不鉴权
-  rpc LastetVersion (LastetVersionReq) returns (LastetVersionResp); // 不鉴权
+  rpc LatestVersion (LatestVersionReq) returns (LatestVersionResp); // 不鉴权
   rpc ListSuperAdminUsers (google.protobuf.Empty) returns (ListSuperAdminUsersResp); // 不鉴权
 }
 
