@@ -16,8 +16,8 @@ http:
 # Base
   - selector: hi.club.Base.ListSuperAdminUsers
     post: /api/v1/base/list_super_admin_users
-  - selector: hi.club.Base.LastetVersion
-    get: /api/v1/base/lastet_version
+  - selector: hi.club.Base.LatestVersion
+    get: /api/v1/base/latest_version
 # Agent
   - selector: hi.club.Agent.ListLLM
     get: /api/v1/agent/list_llm
