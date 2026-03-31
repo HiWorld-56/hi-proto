@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+
+import "hi/did/agent_market.proto";
+
+// 智能体市场
+service AgentMarket {
+  rpc ListByClass (hi.did.AgentListByClassReq) returns (hi.did.AgentListByClassResp); // Token鉴权
+}

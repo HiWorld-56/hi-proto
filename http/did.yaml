@@ -1,0 +1,126 @@
+type: google.api.Service
+config_version: 3
+
+http:
+  rules:
+# InviteCode
+  - selector: hi.did.InviteCode.Create
+    post: /api/v1/invitecode/create
+  - selector: hi.did.InviteCode.Edit
+    post: /api/v1/invitecode/edit
+    body: "*"
+  - selector: hi.did.InviteCode.List
+    post: /api/v1/invitecode/list
+    body: "*"
+  - selector: hi.did.InviteCode.Delete
+    post: /api/v1/invitecode/delete
+    body: "*"
+  - selector: hi.did.InviteCode.Verify
+    post: /api/v1/invitecode/verify
+    body: "*"
+# DApp
+  - selector: hi.did.DApp.ListByClass
+    get: /api/v1/dapp/list_by_class
+  - selector: hi.did.DApp.GetRWA
+    get: /api/v1/dapp/get_rwa
+  - selector: hi.did.DApp.GetTop
+    get: /api/v1/dapp/list_top
+  - selector: hi.did.DApp.UpdateTop
+    post: /api/v1/dapp/update_top
+    body: "*"
+  - selector: hi.did.DApp.Create
+    post: /api/v1/dapp/create
+    body: "*"
+  - selector: hi.did.DApp.Edit
+    post: /api/v1/dapp/edit
+    body: "*"
+  - selector: hi.did.DApp.UpdateOrder
+    post: /api/v1/dapp/update_order
+    body: "*"
+  - selector: hi.did.DApp.Delete
+    post: /api/v1/dapp/delete
+    body: "*"
+# MerchantManage
+  - selector: hi.did.MerchantManage.List
+    post: /api/v1/merchant_manage/list
+    body: "*"
+  - selector: hi.did.MerchantManage.Delete
+    post: /api/v1/merchant_manage/delete
+    body: "*"
+  - selector: hi.did.MerchantManage.Edit
+    post: /api/v1/merchant_manage/edit
+    body: "*"
+# Base
+  - selector: hi.did.Base.ListSuperAdminUsers
+    get: /api/v1/base/list_superadminusers
+  - selector: hi.did.Base.LatestVersion
+    get: /api/v1/base/latest_version
+# UserExtensionSettings
+  - selector: hi.did.UserExtensionSettings.Update
+    post: /api/v1/user_extension_settings/update
+  - selector: hi.did.UserExtensionSettings.Get
+    get: /api/v1/user_extension_settings/get
+# UserExtension
+  - selector: hi.did.UserExtension.Update
+    post: /api/v1/user_extension/update
+    body: "*"
+  - selector: hi.did.UserExtension.List
+    post: /api/v1/user_extension/list
+    body: "*"
+  - selector: hi.did.UserExtension.Delete
+    post: /api/v1/user_extension/delete
+    body: "*"
+# Auth
+  - selector: hi.did.Auth.GenerateReqId
+    post: /api/v1/auth/generate_req_id
+    body: "*"
+  - selector: hi.did.Auth.GetReqStatus
+    post: /api/v1/auth/get_req_status
+    body: "*"
+  - selector: hi.did.Auth.RefreshToken
+    post: /api/v1/auth/refresh_token
+    body: "*"
+# Merchant
+  - selector: hi.did.Merchant.Get
+    get: /api/v1/merchant/get
+  - selector: hi.did.Merchant.Set
+    post: /api/v1/merchant/set
+    body: "*"
+  - selector: hi.did.Merchant.List
+    post: /api/v1/merchant/list
+    body: "*"
+  - selector: hi.did.Merchant.SaveUesrs
+    post: /api/v1/merchant/save_uesrs
+    body: "*"
+  - selector: hi.did.Merchant.DeleteUesrs
+    post: /api/v1/merchant/delete_uesrs
+    body: "*"
+# Wallet
+  - selector: hi.did.Wallet.ListUsersAssets
+    post: /api/v1/wallet/list_user_assets
+    body: "*"
+  - selector: hi.did.Wallet.GetUserAssets
+    post: /api/v1/wallet/get_user_assets
+    body: "*"
+  - selector: hi.did.Wallet.TotalAssets
+    post: /api/v1/wallet/total_assets
+    body: "*"
+# AgentMarket
+  - selector: hi.did.AgentMarket.List
+    post: /api/v1/agent_market/list
+    body: "*"
+  - selector: hi.did.AgentMarket.Create
+    post: /api/v1/agent_market/create
+    body: "*"
+  - selector: hi.did.AgentMarket.Edit
+    post: /api/v1/agent_market/edit
+    body: "*"
+  - selector: hi.did.AgentMarket.Delete
+    post: /api/v1/agent_market/delete
+    body: "*"
+  - selector: hi.did.AgentMarket.UpdateOrder
+    post: /api/v1/agent_market/update_order
+    body: "*"
+# User
+  - selector: hi.did.User.Total
+    get: /api/v1/user/total

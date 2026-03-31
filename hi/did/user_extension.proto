@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package hi.did;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
+
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+
+message UserExtensionSettingResp {
+  string token = 1;
+  string table = 2;
+}
+
+service UserExtensionSettings {
+  rpc Update (google.protobuf.Empty) returns (UserExtensionSettingResp); // Token鉴权
+  rpc Get (google.protobuf.Empty) returns (UserExtensionSettingResp); // Token鉴权
+}
+
+message Button {
+  string bg_color = 1; // 背景色
+  string title    = 2; // 按钮文字
+  string type     = 3; // url类型: url, scheme
+  string url      = 4; //
+}
+
+message Card {
+  string title = 1; // 标题
+  string text  = 2; // 文本
+  string logo  = 3; // logo
+  Button left  = 4; // 左按钮
+  Button right = 5; // 右按钮
+}
+
+message UserExtensionInfo {
+  optional string logo   = 1;
+  optional int32  level  = 2;
+  optional string card   = 3;
+  optional string extend = 4;
+  optional string note   = 5;
+}
+
+message UserExtensionUnit {
+  hi.Entity         user = 1;
+  UserExtensionInfo info = 2;
+}
+
+message UserExtensionUpdateReq {
+  repeated UserExtensionUnit units = 1;
+}
+
+message UserExtensionListReq {
+  string        user       = 1; // 用户did
+  hi.Pagination pagination = 2;
+}
+
+message UserExtensionListResp {
+  int32                      total = 1;
+  repeated UserExtensionUnit units = 2;
+}
+
+message UserExtensionDeleteReq {
+  repeated string users = 1; // 用户did列表
+}
+
+message ListByMerchantDidReq {
+  string merchant = 1; // 商户did
+}
+
+message ListByMerchantDidResp {
+  repeated UserExtensionUnit units = 1;
+}
+
+message UserExtensionGetReq {
+  string merchant = 1;
+  string user     = 2;
+}
+
+message UserExtensionGetResp {
+  UserExtensionUnit unit = 1;
+}
+
+service UserExtension {
+  rpc Update (UserExtensionUpdateReq) returns (google.protobuf.Empty); // Extend-Token鉴权
+  rpc List (UserExtensionListReq) returns (UserExtensionListResp); // Extend-Token鉴权
+  rpc Delete (UserExtensionDeleteReq) returns (google.protobuf.Empty); // Extend-Token鉴权
+  rpc ListByMerchantDid (ListByMerchantDidReq) returns (ListByMerchantDidResp); // Extend-Token鉴权
+  rpc Get (UserExtensionGetReq) returns (UserExtensionGetResp); // Extend-Token鉴权
+}

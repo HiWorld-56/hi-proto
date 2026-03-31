@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+
+import "hi/common.proto";
+import "hi/did/auth.proto";
+
+message EmbeddedReq {
+  string        req_id = 1;
+  string        did    = 2;
+  hi.ClientInfo node   = 3;
+}
+
+message EmbeddedResp {
+  hi.Entity          base   = 1;
+  hi.AuthToken       token  = 2;
+  hi.MqttCredentials mqtt   = 3;
+  optional string    master = 4;
+}
+
+service Auth {
+  rpc Embedded (hi.SignedData) returns (EmbeddedResp); // Web3鉴权 / EmbeddedReq
+  rpc RefreshToken (hi.did.RefreshTokenReq) returns (hi.AuthToken); // 不鉴权
+  rpc GenerateReqId (hi.did.GenerateReqIdReq) returns (hi.RequestId); // 不鉴权
+  rpc GetReqStatus (hi.RequestId) returns (hi.did.ReqStatusResp); // 不鉴权
+  rpc Verify (hi.SignedData) returns (hi.did.LoginResp); // LoginReq // Web3鉴权
+}

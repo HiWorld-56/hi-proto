@@ -3,20 +3,20 @@
 all: clean go dart python
 
 merge:
-	@chmod +x merge_http_api_yaml.sh
-	@bash merge_http_api_yaml.sh
+	@chmod +x http/merge.sh
+	@bash http/merge.sh
 
 go:
-	buf generate --template buf.gen.go.yaml
+	buf generate --template codegen/go.yaml
 
 go-http: merge
-	buf generate --template buf.gen.go_http.yaml
+	buf generate --template codegen/go_http.yaml
 
 dart:
-	buf generate --template buf.gen.dart.yaml
+	buf generate --template codegen/dart.yaml
 
 python:
-	buf generate --template buf.gen.python.yaml
+	buf generate --template codegen/python.yaml
 
 clean:
 	rm -rf gen

@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+
+import "google/protobuf/empty.proto";
+import "hi/did/base.proto";
+
+message GetConfigReq {
+  string name = 1;
+}
+
+message GetConfigResp {
+  string value = 1;
+}
+
+service Base {
+  rpc ListCoins (google.protobuf.Empty) returns (hi.did.ListCoinsResp); // 不鉴权
+  rpc LatestVersion (hi.did.LatestVersionReq) returns (hi.did.LatestVersionResp); // 不鉴权
+  rpc ListSuperAdminUsers (google.protobuf.Empty) returns (hi.did.ListSuperAdminUsersResp); // 不鉴权
+  rpc GetConfig (GetConfigReq) returns (GetConfigResp); // Token鉴权
+}

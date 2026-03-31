@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package hi.ai;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/ai";
+
+import "google/protobuf/empty.proto";
+
+message EndpointSetReq {
+  string endpoint = 1;
+}
+
+message EndpointGetResp {
+  string endpoint = 1;
+}
+
+service PluginEndpoint {
+  rpc Set (EndpointSetReq) returns (google.protobuf.Empty); // Token鉴权
+  rpc Get (google.protobuf.Empty) returns (EndpointGetResp); // Token鉴权
+}

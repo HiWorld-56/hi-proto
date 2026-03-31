@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package hi.did;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
+
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+
+message UserListReq {
+  hi.Pagination pagination = 1;
+}
+
+message UserListResp {
+  int32              total = 1;
+  repeated hi.Entity list  = 2;
+}
+
+message UserTotalResp {
+  int32 total = 1;
+}
+
+service User {
+  rpc Edit (hi.Entity) returns (google.protobuf.Empty);  // Token鉴权
+  rpc Query (google.protobuf.Empty) returns (hi.Entity); // Token鉴权
+  rpc Total (google.protobuf.Empty) returns (UserTotalResp); // 不鉴权
+}

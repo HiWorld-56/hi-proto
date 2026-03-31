@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package hi;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi";
+
+// Auth: None / Token / Extend-Token
+
+message SignedData {
+  bytes  data      = 1;
+  string signature = 2;
+}
+
+message DID {
+  string id = 1;
+}
+
+message Entity {
+  string type   = 1;
+  string did    = 2;
+  string name   = 3;
+  string avatar = 4;
+  int64  update = 5;
+}
+
+message MqttCredentials {
+  string id       = 1;
+  string username = 2;
+  string password = 3;
+}
+
+message AuthToken {
+  string token         = 1;
+  string refresh_token = 2;
+}
+
+message Nonce {
+  string nonce = 1;
+}
+
+message RequestId {
+  string id = 1;
+}
+
+message State {
+  bool state = 1;
+}
+
+message Number {
+  int64 n = 1;
+}
+
+message ClientInfo {
+  string app = 1; // HiDID、HiAI、HiClub、Third
+  string dev = 2; // web、app、pc、embeded
+  string mac = 3; // Null / Mac or Static UUID (Preventing being kicked off)
+}
+
+message Pagination {
+  int32 page  = 1;
+  int32 limit = 2;
+}

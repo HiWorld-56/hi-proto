@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+
+import "hi/did/wallet.proto";
+
+service Assets {
+  rpc GetUserAssets (hi.did.GetUserAssetsReq) returns (hi.did.GetUserAssetsResp);
+}

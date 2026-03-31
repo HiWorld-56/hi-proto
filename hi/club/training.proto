@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+
+import "google/protobuf/empty.proto";
+import "hi/ai/training.proto";
+
+// Token鉴权
+service Training {
+  rpc TrainingAgent (hi.ai.TrainingAgentReq) returns (google.protobuf.Empty);                // 启动训练
+  rpc TrainingStatus (hi.ai.TrainingStatusReq) returns (hi.ai.TrainingStatusResp);           // 获取训练状态
+  rpc TrainingClear (hi.ai.TrainingClearReq) returns (google.protobuf.Empty);                // 清除训练状态
+  rpc UploadFile (hi.ai.UploadFileReq) returns (google.protobuf.Empty);                      // 上传训练文件
+  rpc ListAgentFile (hi.ai.ListAgentFileReq) returns (hi.ai.ListAgentFileResp);              // 获取训练文件列表
+  rpc DeleteAgentFile (hi.ai.DeleteAgentFileReq) returns (google.protobuf.Empty);            // 删除训练文件
+  rpc DeleteAgentFiles (hi.ai.DeleteAgentFilesReq) returns (google.protobuf.Empty);          // 批量删除训练文件
+  rpc DeleteAgentFilesByDid (hi.ai.DeleteAgentFilesByDidReq) returns (google.protobuf.Empty); // 通过智能体did删除训练文件
+  rpc GetAgentFile (hi.ai.GetAgentFileReq) returns (hi.ai.GetAgentFileResp);
+  rpc UpdateContent (hi.ai.UpdateContentReq) returns (google.protobuf.Empty);
+  rpc CreateContent (hi.ai.CreateContentReq) returns (hi.ai.CreateContentResp);
+  rpc EditDegest (hi.ai.EditDigestReq) returns (google.protobuf.Empty);
+  rpc SetMemModel (hi.ai.SetMemModelReq) returns (google.protobuf.Empty);
+  rpc GetMemModel (hi.ai.GetMemModelReq) returns (hi.ai.GetMemModelResp);
+}

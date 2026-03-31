@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package hi.did;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
+
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+
+message ApiKeyInfo {
+  string user       = 1;
+  string value      = 2;
+  string note       = 3;
+  int64  created_at = 4;
+}
+
+message CreateApiKeyReq {
+  string user = 1; // 用户Did/硬件机器人Did
+}
+
+message CreateApiKeyResp {
+  ApiKeyInfo info = 1;
+}
+
+message EditApiKeyReq {
+  string api_key = 1;
+  string note    = 2;
+}
+
+message EditApiKeyResp {
+  ApiKeyInfo info = 1;
+}
+
+message ListApiKeyReq {
+  string        user       = 1; // 用户Did/硬件机器人Did
+  hi.Pagination pagination = 2;
+}
+
+message ListApiKeyResp {
+  int32               total = 1;
+  repeated ApiKeyInfo infos = 2;
+}
+
+message DeleteApiKeyReq {
+  string api_key = 1;
+}
+
+message GetApiKeyReq {
+  string api_key = 1;
+}
+
+message GetApiKeyResp {
+  ApiKeyInfo info = 1;
+}
+
+service ApiKey {
+  rpc Create (CreateApiKeyReq) returns (CreateApiKeyResp);
+  rpc Edit (EditApiKeyReq) returns (EditApiKeyResp);
+  rpc List (ListApiKeyReq) returns (ListApiKeyResp);
+  rpc Delete (DeleteApiKeyReq) returns (google.protobuf.Empty);
+  rpc Get (GetApiKeyReq) returns (GetApiKeyResp);
+}

@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package hi.did;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
+
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+
+// 三方app/web登录回调
+service LoginCallback {
+  rpc Login (hi.SignedData) returns (google.protobuf.Empty); // LoginReq // Web3鉴权
+}
+
+// 三方app/web支付回调
+service PayCallback {
+  rpc Pay (hi.SignedData) returns (google.protobuf.Empty); // PayData // Web3鉴权
+}

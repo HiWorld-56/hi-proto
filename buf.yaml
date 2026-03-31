@@ -1,13 +1,14 @@
-# For details on buf.yaml configuration, visit https://buf.build/docs/configuration/v2/buf-yaml
 version: v2
+modules:
+  - path: .
+    excludes:
+      - v1
 lint:
   use:
-    - STANDARD
+    - BASIC
 breaking:
   use:
     - FILE
-modules:
-  - path: .
 deps:
   - buf.build/protocolbuffers/wellknowntypes
   - buf.build/bufbuild/protovalidate

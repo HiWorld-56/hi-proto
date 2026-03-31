@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package hi.ai;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/ai";
+
+import "hi/common.proto";
+
+message GetUserApiKeyReq {
+  string user = 1; // 用户Did/智能体Did
+}
+
+message GetUserApiKeyResp {
+  hi.Entity user    = 1;
+  string    api_key = 2;
+}
+
+service UserCallback {
+  rpc GetUserApiKey (GetUserApiKeyReq) returns (GetUserApiKeyResp); // 获取用户API Key和基础信息
+}

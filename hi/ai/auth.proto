@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package hi.ai;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/ai";
+
+import "hi/common.proto";
+import "hi/did/auth.proto";
+
+service Auth {
+  rpc RefreshToken (hi.did.RefreshTokenReq) returns (hi.AuthToken); // 不鉴权
+  rpc GenerateReqId (hi.did.GenerateReqIdReq) returns (hi.RequestId); // 不鉴权
+  rpc GetReqStatus (hi.RequestId) returns (hi.did.ReqStatusResp);
+}
