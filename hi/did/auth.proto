@@ -38,6 +38,10 @@ message ReqStatusResp {
   hi.MqttCredentials mqtt   = 4;
 }
 
+message LogoutReq {
+  hi.DID did = 1;
+}
+
 service Auth {
   rpc RefreshToken (RefreshTokenReq) returns (hi.AuthToken); // 不鉴权
   rpc Verify (hi.SignedData) returns (LoginResp); // LoginReq // Web3鉴权
@@ -45,5 +49,5 @@ service Auth {
   rpc GenerateReqId (GenerateReqIdReq) returns (hi.RequestId); // 不鉴权
   rpc GetReqStatus (hi.RequestId) returns (ReqStatusResp); // 不鉴权
   rpc Notify (hi.SignedData) returns (google.protobuf.Empty); // LoginReq // Web3鉴权
-  rpc Logout (google.protobuf.Empty) returns (google.protobuf.Empty); // Token鉴权
+  rpc Logout (hi.SignedData) returns (google.protobuf.Empty); // Web3鉴权
 }
