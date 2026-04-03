@@ -77,14 +77,13 @@ message Prompt {
  */
 message Message {
   string           uuid      = 1;
-  string           cid       = 2;
-  string           type      = 3;
-  hi.Entity        from      = 4;
-  repeated Content conts     = 5;
-  int64            timestamp = 6;
-  Extra            extra     = 7;
-  hi.Entity        ghost     = 8;
-  Prompt           prompt    = 9;
+  string           type      = 2;
+  hi.Entity        from      = 3;
+  repeated Content conts     = 4;
+  int64            timestamp = 5;
+  Extra            extra     = 6;
+  hi.Entity        ghost     = 7;
+  Prompt           prompt    = 8;
 }
 
 message Extra {
@@ -132,9 +131,9 @@ message Content {
 
   string type = 1;
   oneof kind {
-    Chat                      chat  = 2;
-    hi.did.Transaction        trans = 3;
-    TradeBase                 trade = 4;
+    Chat               chat  = 2;
+    hi.did.Transaction trans = 3;
+    TradeBase          trade = 4;
   }
 }
 
