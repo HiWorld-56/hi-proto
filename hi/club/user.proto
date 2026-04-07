@@ -12,6 +12,7 @@ message UserInfo {
   hi.Entity       base          = 1;
   repeated string permissions   = 2;
   string          verify_policy = 3; // 添加好友校验方式
+  string          moment        = 4; // 用户动态
 }
 
 message ListSystemMessageReq {
@@ -37,6 +38,7 @@ message HandleSystemMessageReq {
 message FriendInfo {
   hi.Entity base   = 1;
   string    remark = 2; // 备注名
+  string    moment = 3; // 用户动态
 }
 
 message ListFriendsResp {
@@ -80,7 +82,8 @@ message UpdateUserReq {
   // auto_reject-自动拒绝
   // manual_accept-手动同意
   // auto_accept-自动同意
-  string verify_policy = 2; // 添加好友校验方式
+  string          verify_policy = 2; // 添加好友校验方式
+  optional string moment        = 3; // 用户动态
 }
 
 message SetRemarkReq {
