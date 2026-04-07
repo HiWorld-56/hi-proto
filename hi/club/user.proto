@@ -20,9 +20,9 @@ message ListSystemMessageReq {
 }
 
 message SystemMessages {
-  bool             has_new = 1;
-  int32            total   = 2;
-  repeated Notice  list    = 3;
+  bool            has_new = 1;
+  int32           total   = 2;
+  repeated Notice list    = 3;
 }
 
 message DeleteSystemMessageReq {
@@ -34,8 +34,13 @@ message HandleSystemMessageReq {
   string status = 2;
 }
 
+message FriendInfo {
+  hi.Entity base   = 1;
+  string    remark = 2; // 备注名
+}
+
 message ListFriendsResp {
-  repeated hi.Entity list = 1;
+  repeated FriendInfo list = 1;
 }
 
 message AddFriendReq {
@@ -78,6 +83,11 @@ message UpdateUserReq {
   string verify_policy = 2; // 添加好友校验方式
 }
 
+message SetRemarkReq {
+  string user   = 1; // 被备注的用户did
+  string remark = 2; // 备注名
+}
+
 service User {
   rpc GetCurrentUser (google.protobuf.Empty) returns (UserInfo); // 当前用户信息
   rpc UpdateUser (UpdateUserReq) returns (google.protobuf.Empty); // 用户信息
@@ -91,4 +101,5 @@ service User {
   rpc ListGroups (google.protobuf.Empty) returns (ListGroupReqResp); // 智能体所在群的群Code
   rpc GetOther (GetUserReq) returns (hi.Entity); // 根据DID获取用户基本信息
   rpc UnprocessedSysMsgCount (google.protobuf.Empty) returns (UnprocessedSysMsgCountResp);
+  rpc SetRemark (SetRemarkReq) returns (google.protobuf.Empty);
 }

@@ -27,7 +27,7 @@ message BindStatusResp {
 }
 
 message ListAllOnlineAgentResp {
-  int32                   total = 1;
+  int32                    total = 1;
   repeated hi.ai.AgentInfo list  = 2;
 }
 
@@ -43,6 +43,16 @@ message ListOnlineAgentResp {
   repeated hi.ai.AgentInfo list = 1;
 }
 
+message AgentInfo {
+  hi.ai.AgentInfo info   = 1;
+  string          remark = 2; // 备注名
+}
+
+message ListAgentResp {
+  int32              total = 1;
+  repeated AgentInfo infos = 2;
+}
+
 service Agent {
   rpc ListLLM (google.protobuf.Empty) returns (hi.ai.ListLLMResp);
   rpc ListEmbedding (google.protobuf.Empty) returns (hi.ai.ListEmbeddingResp);
@@ -51,7 +61,7 @@ service Agent {
   rpc AgentConfig (google.protobuf.Empty) returns (hi.ai.AgentConfigResp);
   rpc CreateAgent (hi.ai.CreateAgentReq) returns (hi.ai.CreateAgentResp);
   rpc EditAgent (hi.ai.EditAgentReq) returns (google.protobuf.Empty);
-  rpc ListAgent (hi.Pagination) returns (hi.ai.ListAgentResp);
+  rpc ListAgent (hi.Pagination) returns (ListAgentResp);
   rpc ListAgentByDids (hi.ai.ListAgentByDidsReq) returns (hi.ai.ListAgentByDidsResp);
   rpc DeleteAgent (hi.ai.DeleteAgentReq) returns (google.protobuf.Empty);
   rpc FindAgent (hi.ai.FindAgentReq) returns (hi.ai.FindAgentResp);

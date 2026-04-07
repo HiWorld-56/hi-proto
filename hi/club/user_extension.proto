@@ -6,7 +6,16 @@ option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
 
 import "hi/did/user_extension.proto";
 
+message UserExtensionInfo {
+  hi.did.UserExtensionUnit unit   = 1;
+  string                   remark = 2; // 备注名
+}
+
+message ListByMerchantDidResp {
+  repeated UserExtensionInfo infos = 1;
+}
+
 service UserExtension {
   rpc Get (hi.did.UserExtensionGetReq) returns (hi.did.UserExtensionGetResp); // Token鉴权
-  rpc ListByMerchantDid (hi.did.ListByMerchantDidReq) returns (hi.did.ListByMerchantDidResp); // Token鉴权
+  rpc ListByMerchantDid (hi.did.ListByMerchantDidReq) returns (ListByMerchantDidResp); // Token鉴权
 }
