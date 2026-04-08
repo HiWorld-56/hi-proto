@@ -18,7 +18,7 @@ message UploadResp {
 }
 
 message DownloadReq {
-  string url = 1 [(buf.validate.field).string = {pattern: "^\\S+$", uri: true}];
+  string url = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}];
 }
 
 message DownloadResp {
