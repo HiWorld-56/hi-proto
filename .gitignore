@@ -58,5 +58,4 @@ gen/
 http/merged.yaml
 buf.lock
 go.sum
-hi-grpc-client
 go.mod
