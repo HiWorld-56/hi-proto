@@ -25,7 +25,33 @@ message DownloadResp {
   bytes content = 1;
 }
 
+message UploadStreamReq {
+  oneof data {
+    UploadMeta meta  = 1; // 文件元数据，第一个请求包
+    bytes      chunk = 2; // 文件内容分片，后续请求包
+  }
+}
+message UploadMeta {
+  string type  = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // image/video/audio/file/avatar/code
+  string name  = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 文件名
+}
+
+message DownloadStreamResp {
+  bytes chunk  = 1; // 文件内容分片
+  int64 sent   = 2; // 已发送字节数（累计）, 单位：字节
+  int64 total  = 3; // 文件总大小, 单位：字节
+  int64 offset = 4; // 当前块起始位置, 单位：字节
+}
+
+message DownloadStreamReq {
+  string url = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}]; // 文件URL或存储路径
+  int64 offset = 2 [(buf.validate.field).int64 = {gte: 0}]; // 起始偏移量（字节），0表示从头开始，支持断点续传
+  int64 limit = 3 [(buf.validate.field).int64 = {gte: 0}]; // 限制下载大小（字节），0表示下载全部
+}
+
 service File {
-  rpc Upload(UploadReq) returns (UploadResp);
-  rpc Download(DownloadReq) returns (DownloadResp);
+  rpc Upload(UploadReq) returns (UploadResp); // 一次性上传
+  rpc Download(DownloadReq) returns (DownloadResp); // 一次性下载
+  rpc UploadStream(stream UploadStreamReq) returns (UploadResp); // 流式上传（客户端流）
+  rpc DownloadStream(DownloadStreamReq) returns (stream DownloadStreamResp); // 流式下载（服务端流）
 }
