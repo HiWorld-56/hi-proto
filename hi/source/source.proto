@@ -40,18 +40,18 @@ message DownloadStreamResp {
   bytes chunk  = 1; // 文件内容分片
   int64 sent   = 2; // 已发送字节数（累计）, 单位：字节
   int64 total  = 3; // 文件总大小, 单位：字节
-  int64 offset = 4; // 当前块起始位置, 单位：字节
+  int64 offset = 4; // 当前块在文件中的起始字节位置
 }
 
 message DownloadStreamReq {
-  string url = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}]; // 文件URL或存储路径
+  string url   = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}]; // 文件URL
   int64 offset = 2 [(buf.validate.field).int64 = {gte: 0}]; // 起始偏移量（字节），0表示从头开始，支持断点续传
-  int64 limit = 3 [(buf.validate.field).int64 = {gte: 0}]; // 限制下载大小（字节），0表示下载全部
+  int64 limit  = 3 [(buf.validate.field).int64 = {gte: 0}]; // 限制下载大小（字节），0表示下载全部
 }
 
 service File {
   rpc Upload(UploadReq) returns (UploadResp); // 一次性上传
   rpc Download(DownloadReq) returns (DownloadResp); // 一次性下载
-  rpc UploadStream(stream UploadStreamReq) returns (UploadResp); // 流式上传（客户端流）
-  rpc DownloadStream(DownloadStreamReq) returns (stream DownloadStreamResp); // 流式下载（服务端流）
+  rpc UploadStream(stream UploadStreamReq) returns (UploadResp); // 流式上传
+  rpc DownloadStream(DownloadStreamReq) returns (stream DownloadStreamResp); // 流式下载
 }
