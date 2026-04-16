@@ -66,7 +66,7 @@ message DeleteFriendReq {
 }
 
 message ListGroupReqResp {
-  repeated string list = 1;
+  repeated hi.Entity list = 1;
 }
 
 message GetUserReq {
@@ -109,7 +109,7 @@ service User {
   rpc ListFriends (google.protobuf.Empty) returns (ListFriendsResp); // 当前用户好友
   rpc AddFriend (AddFriendReq) returns (AddFriendResp); // 添加好友
   rpc DeleteFriend (DeleteFriendReq) returns (google.protobuf.Empty); // 删除好友
-  rpc ListGroups (google.protobuf.Empty) returns (ListGroupReqResp); // 智能体所在群的群Code
+  rpc ListGroups (google.protobuf.Empty) returns (ListGroupReqResp); // 智能体所在群的群列表
   rpc GetOther (GetUserReq) returns (hi.Entity); // 根据DID获取用户基本信息
   rpc UnprocessedSysMsgCount (google.protobuf.Empty) returns (UnprocessedSysMsgCountResp);
   rpc SetRemark (SetRemarkReq) returns (google.protobuf.Empty);
