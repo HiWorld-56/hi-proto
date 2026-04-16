@@ -6,4 +6,4 @@ plugins:
     opt: 
       - grpc
     include_imports: true
-#    include_wkt: true
+    include_wkt: true
