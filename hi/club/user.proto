@@ -91,6 +91,14 @@ message SetRemarkReq {
   string remark = 2; // 备注名
 }
 
+message ListOnlineUserReq {
+  repeated string users = 1; // 用户did列表
+}
+
+message ListOnlineUserResp {
+  repeated hi.Entity list = 1; // 在线的用户列表
+}
+
 service User {
   rpc GetCurrentUser (google.protobuf.Empty) returns (UserInfo); // 当前用户信息
   rpc UpdateUser (UpdateUserReq) returns (google.protobuf.Empty); // 用户信息
@@ -105,4 +113,5 @@ service User {
   rpc GetOther (GetUserReq) returns (hi.Entity); // 根据DID获取用户基本信息
   rpc UnprocessedSysMsgCount (google.protobuf.Empty) returns (UnprocessedSysMsgCountResp);
   rpc SetRemark (SetRemarkReq) returns (google.protobuf.Empty);
+  rpc ListOnlineUser (ListOnlineUserReq) returns (ListOnlineUserResp); // 在线用户列表
 }
