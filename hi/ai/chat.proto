@@ -2,14 +2,14 @@ syntax = "proto3";
 
 package hi.ai;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/ai";
-
-import "google/protobuf/struct.proto";
 import "google/protobuf/empty.proto";
+import "google/protobuf/struct.proto";
 import "hi/common.proto";
 
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/ai";
+
 message Content {
-  string type    = 1;
+  string type = 1;
   string content = 2;
 }
 
@@ -22,14 +22,14 @@ message GenerateCidResp {
 }
 
 message DialogReq {
-  string           did                  = 1;
-  string           cid                  = 2;
-  repeated Content conts                = 3;
-  string           state                = 4;
-  string           custom               = 5;
-  bool             return_plugin_use    = 6;
-  bool             return_training_data = 7;
-  bool             return_context       = 8;
+  string did = 1;
+  string cid = 2;
+  repeated Content conts = 3;
+  string state = 4;
+  string custom = 5;
+  bool return_plugin_use = 6;
+  bool return_training_data = 7;
+  bool return_context = 8;
 }
 
 message DialogResp {
@@ -37,8 +37,8 @@ message DialogResp {
 }
 
 message DialogStreamResp {
-  int32  code    = 1;
-  string type    = 2;
+  int32 code = 1;
+  string type = 2;
   string message = 3;
 }
 
@@ -47,12 +47,12 @@ message ClearContextReq {
 }
 
 message GetContextReq {
-  string cid   = 1;
+  string cid = 1;
   string agent = 2;
 }
 
 message QA {
-  string           a = 1; // assistant
+  string a = 1; // assistant
   repeated Content q = 2; // User
 }
 
@@ -60,74 +60,74 @@ message GetContextResp {
   repeated QA list = 1;
 }
 
-message TextToSpeechReq {
-  string text  = 1;
+message SimpleTextToSpeechReq {
+  string text = 1;
   string model = 2;
   string style = 3;
 }
 
-message TextToSpeechResp {
+message SimpleTextToSpeechResp {
   string url = 1;
 }
 
-message SpeechToTextReq {
-  string url   = 1;
+message SimpleSpeechToTextReq {
+  string url = 1;
   string model = 2;
-  string lang  = 3;
+  string lang = 3;
 }
 
-message SpeechToTextResp {
+message SimpleSpeechToTextResp {
   string text = 1;
 }
 
 message SpeechToSpeechReq {
-  string              did         = 1;
-  string              cid         = 2;
-  repeated Content    conts       = 3;
-  repeated ToolSupply tools       = 4;
-  optional string     tool_choice = 5;
-  optional string     custom      = 6;
-  optional string     state       = 7;
-  optional string     style       = 8;
+  string did = 1;
+  string cid = 2;
+  repeated Content conts = 3;
+  repeated ToolSupply tools = 4;
+  optional string tool_choice = 5;
+  optional string custom = 6;
+  optional string state = 7;
+  optional string style = 8;
 }
 
 message TextToTextReq {
-  string              did         = 1;
-  string              cid         = 2;
-  repeated Content    conts       = 3;
-  repeated ToolSupply tools       = 4;
-  optional string     tool_choice = 5;
-  optional string     custom      = 6;
-  optional string     state       = 7;
+  string did = 1;
+  string cid = 2;
+  repeated Content conts = 3;
+  repeated ToolSupply tools = 4;
+  optional string tool_choice = 5;
+  optional string custom = 6;
+  optional string state = 7;
 }
 
 message ToolCallResult {
-  string           id    = 1;
+  string id = 1;
   repeated Content conts = 2;
 }
 
 message ToolCallResultsReq {
-  string                  id   = 1;
+  string id = 1;
   repeated ToolCallResult list = 2;
 }
 
 message ToolSupply {
   message Function {
-    string                          name        = 1;
-    string                          description = 2;
-    optional google.protobuf.Struct parameters  = 3;
+    string name = 1;
+    string description = 2;
+    optional google.protobuf.Struct parameters = 3;
   }
-  string   type     = 1;
+  string type = 1;
   Function function = 2;
 }
 
 message ToolCall {
   message Function {
-    string name      = 1;
+    string name = 1;
     string arguments = 2;
   }
-  string   id       = 1;
-  string   type     = 2;
+  string id = 1;
+  string type = 2;
   Function function = 3;
 }
 
@@ -138,72 +138,73 @@ message ToolCall {
 //   result = tool_id
 //   tools = tools
 message ChatResp {
-  bool              final  = 1;
-  string            result = 2;
-  repeated ToolCall tools  = 3;
+  bool final = 1;
+  string result = 2;
+  repeated ToolCall tools = 3;
 }
 
 message ListAgentDelayReq {
-  string        agent      = 1;
-  string        type       = 2;
+  string agent = 1;
+  string type = 2;
   hi.Pagination pagination = 3;
 }
 
 message AgentDelayUnit {
-  string agent         = 1;
-  string uuid          = 2;
-  string type          = 3;
-  int32  llm           = 4;
-  int32  llm2          = 5;
-  int32  stt           = 6;
-  int32  tts           = 7;
-  int32  function_call = 8;
-  int64  test_time     = 9;
+  string agent = 1;
+  string uuid = 2;
+  string type = 3;
+  int32 llm = 4;
+  int32 llm2 = 5;
+  int32 stt = 6;
+  int32 tts = 7;
+  int32 function_call = 8;
+  int64 test_time = 9;
 }
 
 message ListAgentDelayResp {
-  int32                   total = 1;
+  int32 total = 1;
   repeated AgentDelayUnit units = 2;
 }
 
 message GetAgentDelayReq {
-  string        agent      = 1;
-  string        type       = 2;
+  string agent = 1;
+  string type = 2;
   hi.Pagination pagination = 3;
 }
 
 message GetAgentDelayResp {
-  int32                   total = 1;
+  int32 total = 1;
   repeated AgentDelayUnit units = 2;
 }
 
-message SpeechToTextFlowReq {
-  string              did         = 1;
-  string              cid         = 2;
-  repeated Content    conts       = 3;
-  repeated ToolSupply tools       = 4;
-  optional string     tool_choice = 5;
-  optional string     custom      = 6;
-  optional string     state       = 7;
-  optional string     style       = 8;
+message SpeechToTextReq {
+  string did = 1;
+  string cid = 2;
+  repeated Content conts = 3;
+  repeated ToolSupply tools = 4;
+  optional string tool_choice = 5;
+  optional string custom = 6;
+  optional string state = 7;
 }
 
 // apiKey鉴权
 service Chat {
-  rpc Simple (SimpleReq) returns (DialogResp);
-  rpc GenerateCid (google.protobuf.Empty) returns (GenerateCidResp);
-  rpc Dialog (DialogReq) returns (DialogResp);
-  rpc DialogStream (DialogReq) returns (stream DialogStreamResp);
-  rpc ClearContext (ClearContextReq) returns (google.protobuf.Empty);
-  rpc GetContext (GetContextReq) returns (GetContextResp);
-  rpc TextToSpeech (TextToSpeechReq) returns (TextToSpeechResp);
-  rpc SpeechToText (SpeechToTextReq) returns (SpeechToTextResp);
-  rpc SpeechToSpeech (SpeechToSpeechReq) returns (ChatResp);
-  rpc SpeechToSpeech2 (ToolCallResultsReq) returns (ChatResp);
-  rpc TextToText (TextToTextReq) returns (ChatResp);
-  rpc TextToText2 (ToolCallResultsReq) returns (ChatResp);
-  rpc ListAgentDelay (ListAgentDelayReq) returns (ListAgentDelayResp);
-  rpc GetAgentDelay (GetAgentDelayReq) returns (GetAgentDelayResp);
-  rpc SpeechToTextFlow (SpeechToTextFlowReq) returns (ChatResp);
-  rpc SpeechToTextFlow2 (ToolCallResultsReq) returns (ChatResp);
+  rpc Simple(SimpleReq) returns (DialogResp);
+  rpc GenerateCid(google.protobuf.Empty) returns (GenerateCidResp);
+  rpc Dialog(DialogReq) returns (DialogResp);
+  rpc DialogStream(DialogReq) returns (stream DialogStreamResp);
+  rpc ClearContext(ClearContextReq) returns (google.protobuf.Empty);
+  rpc GetContext(GetContextReq) returns (GetContextResp);
+  rpc ListAgentDelay(ListAgentDelayReq) returns (ListAgentDelayResp);
+  rpc GetAgentDelay(GetAgentDelayReq) returns (GetAgentDelayResp);
+
+  rpc SimpleTextToSpeech(SimpleTextToSpeechReq) returns (SimpleTextToSpeechResp);
+  rpc SimpleSpeechToText(SimpleSpeechToTextReq) returns (SimpleSpeechToTextResp);
+
+  rpc SpeechToSpeech(SpeechToSpeechReq) returns (ChatResp);
+  rpc SpeechToSpeech2(ToolCallResultsReq) returns (ChatResp);
+  rpc TextToText(TextToTextReq) returns (ChatResp);
+  rpc TextToText2(ToolCallResultsReq) returns (ChatResp);
+  rpc SpeechToText(SpeechToTextReq) returns (ChatResp);
+  rpc SpeechToText2(ToolCallResultsReq) returns (ChatResp);
 }
