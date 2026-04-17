@@ -177,6 +177,17 @@ message GetAgentDelayResp {
   repeated AgentDelayUnit units = 2;
 }
 
+message SpeechToTextFlowReq {
+  string              did         = 1;
+  string              cid         = 2;
+  repeated Content    conts       = 3;
+  repeated ToolSupply tools       = 4;
+  optional string     tool_choice = 5;
+  optional string     custom      = 6;
+  optional string     state       = 7;
+  optional string     style       = 8;
+}
+
 // apiKey鉴权
 service Chat {
   rpc Simple (SimpleReq) returns (DialogResp);
@@ -193,4 +204,6 @@ service Chat {
   rpc TextToText2 (ToolCallResultsReq) returns (ChatResp);
   rpc ListAgentDelay (ListAgentDelayReq) returns (ListAgentDelayResp);
   rpc GetAgentDelay (GetAgentDelayReq) returns (GetAgentDelayResp);
+  rpc SpeechToTextFlow (SpeechToTextFlowReq) returns (ChatResp);
+  rpc SpeechToTextFlow2 (ToolCallResultsReq) returns (ChatResp);
 }
