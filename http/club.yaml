@@ -100,11 +100,11 @@ http:
   - selector: hi.club.Chat.GetContext
     post: /api/v1/chat/get_context
     body: "*"
-  - selector: hi.club.Chat.TextToSpeech
-    post: /api/v1/chat/text_to_speech
+  - selector: hi.club.Chat.SimpleTextToSpeech
+    post: /api/v1/chat/simple_text_to_speech
     body: "*"
-  - selector: hi.club.Chat.SpeechToText
-    post: /api/v1/chat/speech_to_text
+  - selector: hi.club.Chat.SimpleSpeechToText
+    post: /api/v1/chat/simple_speech_to_text
     body: "*"
   - selector: hi.club.Chat.SpeechToSpeech
     post: /api/v1/chat/speech_to_speech
@@ -117,6 +117,12 @@ http:
     body: "*"
   - selector: hi.club.Chat.TextToText2
     post: /api/v1/chat/text_to_text2
+    body: "*"
+  - selector: hi.club.Chat.SpeechToText
+    post: /api/v1/chat/speech_to_text
+    body: "*"
+  - selector: hi.club.Chat.SpeechToText2
+    post: /api/v1/chat/speech_to_text2
     body: "*"
 # Plugin
   - selector: hi.club.Plugin.DrawConfig

@@ -207,11 +207,11 @@ http:
   - selector: hi.ai.Chat.GetContext
     post: /api/v1/chat/get_context
     body: "*"
-  - selector: hi.ai.Chat.TextToSpeech
-    post: /api/v1/chat/text_to_speech
+  - selector: hi.ai.Chat.SimpleTextToSpeech
+    post: /api/v1/chat/simple_text_to_speech
     body: "*"
-  - selector: hi.ai.Chat.SpeechToText
-    post: /api/v1/chat/speech_to_text
+  - selector: hi.ai.Chat.SimpleSpeechToText
+    post: /api/v1/chat/simple_speech_to_text
     body: "*"
   - selector: hi.ai.Chat.SpeechToSpeech
     post: /api/v1/chat/speech_to_speech
@@ -230,6 +230,12 @@ http:
     body: "*"
   - selector: hi.ai.Chat.GetAgentDelay
     post: /api/v1/chat/get_agent_delay
+    body: "*"
+  - selector: hi.ai.Chat.SpeechToText
+    post: /api/v1/chat/speech_to_text
+    body: "*"
+  - selector: hi.ai.Chat.SpeechToText2
+    post: /api/v1/chat/speech_to_text2
     body: "*"
 # PluginEndpoint
   - selector: hi.ai.PluginEndpoint.Set
