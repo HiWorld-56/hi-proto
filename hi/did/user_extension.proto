@@ -6,6 +6,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "buf/validate/validate.proto";
 
 message UserExtensionSettingResp {
   string token = 1;
@@ -64,7 +65,7 @@ message UserExtensionDeleteReq {
 }
 
 message ListByMerchantDidReq {
-  string merchant = 1; // 商户did
+  string merchant = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}]; // 商户did
 }
 
 message ListByMerchantDidResp {
