@@ -118,7 +118,8 @@ message UpdateAssetsReq { // Token ----> Real.DID
 }
 
 message GetUserByAddressReq {
-  string address = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}]; // 钱包地址
+  string chain   = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}]; // 链类型
+  string address = 2 [(buf.validate.field).string = {pattern: "^\\S+$"}]; // 钱包地址
 }
 
 message GetUserByAddressResp {
