@@ -7,6 +7,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/did/base.proto";
+import "buf/validate/validate.proto";
 
 // 链（chain）：
 //    ethereum
@@ -116,6 +117,14 @@ message UpdateAssetsReq { // Token ----> Real.DID
   string wsm_apt    = 65;
 }
 
+message GetUserByAddressReq {
+  string address = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}]; // 钱包地址
+}
+
+message GetUserByAddressResp {
+  string did = 1; // 用户did
+}
+
 service Wallet {
   rpc UpdateAddresses (hi.SignedData) returns (google.protobuf.Empty); // Web3鉴权 // UpdateAddressesReq
   rpc UpdateAssets (UpdateAssetsReq) returns (google.protobuf.Empty); // Token鉴权
@@ -124,4 +133,5 @@ service Wallet {
   rpc TotalAssets (TotalAssetsReq) returns (TotalAssetsResp); // 不鉴权
   rpc ListUsersAssets (ListUsersAssetsReq) returns (ListUsersAssetsResp); // 不鉴权
   rpc GetUserAssets (GetUserAssetsReq) returns (GetUserAssetsResp); // Token鉴权
+  rpc GetUserByAddress (GetUserByAddressReq) returns (GetUserByAddressResp); 
 }
