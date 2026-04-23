@@ -118,8 +118,7 @@ message UpdateAssetsReq { // Token ----> Real.DID
 }
 
 message GetUserByAddressReq {
-  string chain   = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}]; // 链类型
-  string address = 2 [(buf.validate.field).string = {pattern: "^\\S+$"}]; // 钱包地址
+  string address = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}]; // 钱包地址
 }
 
 message GetUserByAddressResp {
@@ -134,5 +133,5 @@ service Wallet {
   rpc TotalAssets (TotalAssetsReq) returns (TotalAssetsResp); // 不鉴权
   rpc ListUsersAssets (ListUsersAssetsReq) returns (ListUsersAssetsResp); // 不鉴权
   rpc GetUserAssets (GetUserAssetsReq) returns (GetUserAssetsResp); // Token鉴权
-  rpc GetUserByAddress (GetUserByAddressReq) returns (GetUserByAddressResp); 
+  rpc GetUserByAddress (GetUserByAddressReq) returns (GetUserByAddressResp);
 }
