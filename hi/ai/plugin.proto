@@ -10,14 +10,14 @@ import "hi/common.proto";
 import "hi/ai/chat.proto";
 
 message DrawConfigResp {
-  repeated string draw_style           = 1;
-  string          draw_style_default   = 2;
-  repeated string draw_quality         = 3;
-  string          draw_quality_default = 4;
-  string          draw_model           = 5;
-  repeated string draw_size            = 6;
-  string          draw_size_default    = 7;
-  int32           draw_n               = 8;
+  repeated string style           = 1;
+  string          style_default   = 2;
+  repeated string quality         = 3;
+  string          quality_default = 4;
+  string          model           = 5;
+  repeated string size            = 6;
+  string          size_default    = 7;
+  int32           n               = 8;
 }
 
 message PluginItem {
@@ -83,6 +83,7 @@ message DalleConfig {
   string style   = 2;
   string quality = 3;
   string size    = 4;
+  int32  n       = 5;
 }
 
 message GptImageConfig {
@@ -144,12 +145,19 @@ message GetDrawReq {
   string agent = 1;
 }
 
+// message GetDrawResp {
+//   string draw_style   = 1;
+//   string draw_quality = 2;
+//   string draw_model   = 3;
+//   string draw_size    = 4;
+//   int32  draw_n       = 5;
+// }
+
 message GetDrawResp {
-  string draw_style   = 1;
-  string draw_quality = 2;
-  string draw_model   = 3;
-  string draw_size    = 4;
-  int32  draw_n       = 5;
+  oneof kind {
+    DalleConfig    dalle     = 1;
+    GptImageConfig gpt_image = 2;
+  }
 }
 
 message PythonParamsSetReq {
