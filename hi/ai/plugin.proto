@@ -87,12 +87,12 @@ message DalleConfig {
 }
 
 message GptImageConfig {
-  string model          = 1;
-  string output_format  = 2;
-  string background     = 3;
-  int32  partial_images = 4;
-  string moderation     = 5;
-  string input_fidelity = 6;
+  string         model          = 1;
+  string         output_format  = 2;
+  string         background     = 3;
+  optional int32 partial_images = 4;
+  string         moderation     = 5;
+  string         input_fidelity = 6;
 }
 
 message DrawCreateReq {
