@@ -65,17 +65,49 @@ message PythonCreateResp {
   string uuid = 1; // 插件id
 }
 
+// message DrawCreateReq {
+//   string agent        = 1;
+//   string draw_style   = 2;
+//   string draw_quality = 3;
+//   string draw_size    = 4;
+// }
+
+// message DrawCreateResp {
+//   string draw_style   = 1;
+//   string draw_quality = 2;
+//   string draw_size    = 3;
+// }
+
+message DalleConfig {
+  string model   = 1;
+  string style   = 2;
+  string quality = 3;
+  string size    = 4;
+}
+
+message GptImageConfig {
+  string model          = 1;
+  string output_format  = 2;
+  string background     = 3;
+  int32  partial_images = 4;
+  string moderation     = 5;
+  string input_fidelity = 6;
+}
+
 message DrawCreateReq {
-  string agent        = 1;
-  string draw_style   = 2;
-  string draw_quality = 3;
-  string draw_size    = 4;
+  string agent = 1;
+
+  oneof kind {
+    DalleConfig    dalle     = 2;
+    GptImageConfig gpt_image = 3;
+  }
 }
 
 message DrawCreateResp {
-  string draw_style   = 1;
-  string draw_quality = 2;
-  string draw_size    = 3;
+  oneof kind {
+    DalleConfig    dalle     = 1;
+    GptImageConfig gpt_image = 2;
+  }
 }
 
 message ListPluginReq {
