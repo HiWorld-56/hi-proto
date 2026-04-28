@@ -21,7 +21,7 @@ message EmbeddedResp {
 }
 
 service Auth {
-  rpc Embedded (hi.SignedData) returns (EmbeddedResp); // Web3鉴权 / EmbeddedReq
+  rpc Embedded (hi.SignedData) returns (EmbeddedResp); // Web3鉴权 / EmbeddedReq --> LoginReq
   rpc RefreshToken (hi.did.RefreshTokenReq) returns (hi.AuthToken); // 不鉴权
   rpc GenerateReqId (hi.did.GenerateReqIdReq) returns (hi.RequestId); // 不鉴权
   rpc GetReqStatus (hi.RequestId) returns (hi.did.ReqStatusResp); // 不鉴权
