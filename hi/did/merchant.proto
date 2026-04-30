@@ -41,8 +41,8 @@ message MerchantListResp {
 }
 
 message UserProfileGetResp {
-  hi.Entity          profile = 1;
-  hi.MqttCredentials mqtt    = 2;
+  hi.Entity          base = 1;
+  hi.MqttCredentials mqtt = 2;
 }
 
 message UserProfileSetReq {
