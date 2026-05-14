@@ -23,6 +23,7 @@ message Packet {
  invite-friend
  invite-group
  q3-sync
+ unbind-hwbot
  */
 message Notice {
   string    uuid       = 1;
