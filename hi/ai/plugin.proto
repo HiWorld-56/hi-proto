@@ -173,6 +173,14 @@ message GetPythonParamsResp {
   google.protobuf.Struct params = 1;
 }
 
+message GetPluginReq {
+  string uuid = 1;
+}
+
+message GetPluginResp {
+  PluginItem item = 1;
+}
+
 // apiKey鉴权
 service Plugin {
   rpc DrawConfig (google.protobuf.Empty) returns (DrawConfigResp);
@@ -187,6 +195,7 @@ service Plugin {
   rpc GetDraw (GetDrawReq) returns (GetDrawResp);
   rpc PythonParamsSet (PythonParamsSetReq) returns (google.protobuf.Empty); // 设置Python插件参数
   rpc GetPythonParams (GetPythonParamsReq) returns (GetPythonParamsResp);
+  rpc GetPlugin (GetPluginReq) returns (GetPluginResp);
 }
 
 // 插件执行接口
