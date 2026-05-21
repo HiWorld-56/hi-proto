@@ -57,11 +57,13 @@ message SearchCreateReq {
 message PythonCreateReq {
   string agent = 1; // 智能体did
   string type  = 2; // 设置为Python
-  string url   = 3; // 脚本zip压缩包url
+  string url   = 3[(buf.validate.field).string = {
+    uri: true
+  }]; // 脚本zip压缩包url
   string name        = 4[(buf.validate.field).string = {
-    pattern: "^[a-zA-Z0-9][a-zA-Z0-9_-]*[a-zA-Z0-9]$"
+    pattern: "^[a-zA-Z0-9][a-zA-Z0-9_.-]*[a-zA-Z0-9]$"
   }
-  ]; // 脚本zip压缩包名称
+  ]; // 脚本zip压缩包名字, 名字只能包含英文字母数字下划线连字符, 开头和结尾只能是字母或数字
   string description = 5; // 脚本描述
 }
 
