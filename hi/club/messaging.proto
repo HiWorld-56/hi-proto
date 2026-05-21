@@ -9,6 +9,7 @@ import "hi/common.proto";
 import "hi/club/q3.proto";
 import "hi/did/transfer.proto";
 import "hi/club/trade.proto";
+import "hi/ai/plugin.proto";
 
 message Packet {
   oneof kind {
@@ -24,6 +25,7 @@ message Packet {
  invite-group
  q3-sync
  unbind-hwbot
+ python-plugin-loaded
  */
 message Notice {
   string    uuid       = 1;
@@ -96,6 +98,7 @@ message Extra {
     GroupUpdate      group_info  = 5;
     Q3GroupReadyResp ready       = 6;
     Q3GroupEventReq  event       = 7;
+    ai.PluginItem    plugin      = 8;
   }
 }
 
