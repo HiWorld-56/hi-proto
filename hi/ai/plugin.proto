@@ -8,6 +8,7 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/struct.proto";
 import "hi/common.proto";
 import "hi/ai/chat.proto";
+import "buf/validate/validate.proto";
 
 message DrawConfigResp {
   repeated string style           = 1;
@@ -54,10 +55,13 @@ message SearchCreateReq {
 }
 
 message PythonCreateReq {
-  string agent       = 1; // 智能体did
-  string type        = 2; // 设置为Python
-  string url         = 3; // 脚本zip压缩包url
-  string name        = 4; // 脚本zip压缩包名称
+  string agent = 1; // 智能体did
+  string type  = 2; // 设置为Python
+  string url   = 3; // 脚本zip压缩包url
+  string name        = 4[(buf.validate.field).string = {
+    pattern: "^[a-zA-Z0-9][a-zA-Z0-9_-]*[a-zA-Z0-9]$"
+  }
+  ]; // 脚本zip压缩包名称
   string description = 5; // 脚本描述
 }
 

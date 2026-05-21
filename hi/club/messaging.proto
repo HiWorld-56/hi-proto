@@ -25,6 +25,7 @@ message Packet {
  invite-group
  q3-sync
  unbind-hwbot
+ bind-hwbot
  python-script-loaded
  */
 message Notice {
