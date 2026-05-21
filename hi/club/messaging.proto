@@ -25,7 +25,7 @@ message Packet {
  invite-group
  q3-sync
  unbind-hwbot
- python-plugin-loaded
+ python-script-loaded
  */
 message Notice {
   string    uuid       = 1;
