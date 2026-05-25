@@ -1,0 +1,36 @@
+type: google.api.Service
+config_version: 3
+
+http:
+  rules:
+# Auth
+  - selector: hi.media.Auth.GenerateReqId
+    post: /api/v1/auth/generate_req_id
+    body: "*"
+  - selector: hi.media.Auth.GetReqStatus
+    post: /api/v1/auth/get_req_status
+    body: "*"
+  - selector: hi.media.Auth.RefreshToken
+    post: /api/v1/auth/refresh_token
+    body: "*"
+# InviteCode
+  - selector: hi.media.InviteCode.Create
+    post: /api/v1/invite_code/create
+  - selector: hi.media.InviteCode.Edit
+    post: /api/v1/invite_code/edit
+    body: "*"
+  - selector: hi.media.InviteCode.List
+    post: /api/v1/invite_code/list
+    body: "*"
+  - selector: hi.media.InviteCode.Delete
+    post: /api/v1/invite_code/delete
+    body: "*"
+  - selector: hi.media.InviteCode.Verify
+    post: /api/v1/invite_code/verify
+    body: "*"
+# Base
+  - selector: hi.media.Base.ListSuperAdminUsers
+    post: /api/v1/base/list_super_admin_users
+# Health
+  - selector: hi.media.Health.Check
+    get: /api/v1/health/check
