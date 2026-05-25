@@ -27,6 +27,7 @@ message Packet {
  unbind-hwbot
  bind-hwbot
  python-script-loaded
+ update-hwbot
  */
 message Notice {
   string    uuid       = 1;
