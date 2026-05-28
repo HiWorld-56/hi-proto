@@ -17,7 +17,7 @@ message EmbeddedResp {
   hi.Entity          base   = 1;
   hi.AuthToken       token  = 2;
   hi.MqttCredentials mqtt   = 3;
-  optional string    master = 4;
+  hi.Entity          master = 4;
 }
 
 service Auth {
