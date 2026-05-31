@@ -93,7 +93,7 @@ message Message {
 
 message Extra {
   oneof kind {
-    hi.Entity        unit        = 1;
+    hi.Entity        entity      = 1;
     Mention          mention     = 2;
     Member           member      = 3;
     MemberExit       member_exit = 4;
