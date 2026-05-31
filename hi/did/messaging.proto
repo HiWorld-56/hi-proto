@@ -4,7 +4,6 @@ package hi.did;
 
 option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
 
-import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/did/transfer.proto";
 
