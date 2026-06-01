@@ -171,21 +171,6 @@ http:
     body: "*"
   - selector: hi.ai.Setting.Get
     get: /api/v1/setting/get
-# InviteCode
-  - selector: hi.ai.InviteCode.Create
-    post: /api/v1/invite_code/create
-  - selector: hi.ai.InviteCode.Edit
-    post: /api/v1/invite_code/edit
-    body: "*"
-  - selector: hi.ai.InviteCode.List
-    post: /api/v1/invite_code/list
-    body: "*"
-  - selector: hi.ai.InviteCode.Delete
-    post: /api/v1/invite_code/delete
-    body: "*"
-  - selector: hi.ai.InviteCode.Verify
-    post: /api/v1/invite_code/verify
-    body: "*"
 # Health
   - selector: hi.ai.Health.Check
     get: /api/v1/health/check
