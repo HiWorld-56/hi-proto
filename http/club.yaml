@@ -79,6 +79,9 @@ http:
   - selector: hi.club.UserACL.Edit
     post: /api/v1/user_acl/edit
     body: "*"
+# Health
+  - selector: hi.club.Health.Check
+    get: /api/v1/health/check
 # Chat
   - selector: hi.club.Chat.Simple
     post: /api/v1/chat/simple

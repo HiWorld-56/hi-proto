@@ -171,6 +171,9 @@ http:
     body: "*"
   - selector: hi.ai.Setting.Get
     get: /api/v1/setting/get
+# Health
+  - selector: hi.ai.Health.Check
+    get: /api/v1/health/check
 # Chat
   - selector: hi.ai.Chat.Simple
     post: /api/v1/chat/simple
