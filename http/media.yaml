@@ -34,3 +34,12 @@ http:
 # Health
   - selector: hi.media.Health.Check
     get: /api/v1/health/check
+# User
+  - selector: hi.media.User.Get
+    get: /api/v1/user/get
+  - selector: hi.media.User.List
+    post: /api/v1/user/list
+  - selector: hi.media.User.Edit
+    post: /api/v1/user/edit
+  - selector: hi.media.User.Delete
+    post: /api/v1/user/delete
