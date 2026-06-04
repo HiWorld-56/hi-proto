@@ -6,7 +6,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/media";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
-import "hi/did/admin.proto";
+import "buf/validate/validate.proto";
 
 message UserInfo {
   hi.Entity base = 1;
@@ -14,7 +14,7 @@ message UserInfo {
 }
 
 message GetUserReq {
-  string did = 1;
+  string did = 1[(buf.validate.field).string.pattern="^\\S+$"];
 }
 
 message GetUserResp {
@@ -31,12 +31,12 @@ message ListUserResp {
 }
 
 message EditUserReq {
-  string did  = 1;
+  string did  = 1[(buf.validate.field).string.pattern="^\\S+$"];
   string note = 2;
 }
 
 message DeleteUserReq {
-  string did = 1;
+  string did = 1[(buf.validate.field).string.pattern="^\\S+$"];
 }
 
 // Token鉴权
