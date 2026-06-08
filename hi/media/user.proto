@@ -22,7 +22,8 @@ message GetUserResp {
 }
 
 message ListUserReq {
-  hi.Pagination pagination = 1;
+  string        did        = 1[(buf.validate.field).string.pattern="^\\S+$"];
+  hi.Pagination pagination = 2;
 }
 
 message ListUserResp {

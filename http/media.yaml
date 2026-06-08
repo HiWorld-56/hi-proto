@@ -30,7 +30,7 @@ http:
     body: "*"
 # Base
   - selector: hi.media.Base.ListSuperAdminUsers
-    post: /api/v1/base/list_super_admin_users
+    get: /api/v1/base/list_superadminusers
 # Health
   - selector: hi.media.Health.Check
     get: /api/v1/health/check
