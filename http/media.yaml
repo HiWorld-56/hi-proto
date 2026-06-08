@@ -35,8 +35,6 @@ http:
   - selector: hi.media.Health.Check
     get: /api/v1/health/check
 # User
-  - selector: hi.media.User.Get
-    get: /api/v1/user/get
   - selector: hi.media.User.List
     post: /api/v1/user/list
     body: "*"
