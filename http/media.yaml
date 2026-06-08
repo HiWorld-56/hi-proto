@@ -39,7 +39,10 @@ http:
     get: /api/v1/user/get
   - selector: hi.media.User.List
     post: /api/v1/user/list
+    body: "*"
   - selector: hi.media.User.Edit
     post: /api/v1/user/edit
+    body: "*"
   - selector: hi.media.User.Delete
     post: /api/v1/user/delete
+    body: "*"
