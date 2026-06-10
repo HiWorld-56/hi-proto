@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package hi.media;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/media";
+
+import "hi/common.proto";
+import "hi/did/auth.proto";
+
+// 不鉴权
+service Auth {
+  rpc RefreshToken (hi.did.RefreshTokenReq) returns (hi.AuthToken);
+  rpc GenerateReqId (hi.did.GenerateReqIdReq) returns (hi.RequestId);
+  rpc GetReqStatus (hi.RequestId) returns (hi.did.ReqStatusResp);
+}

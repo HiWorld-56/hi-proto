@@ -23,7 +23,7 @@ message BindStatusReq {
 }
 
 message BindStatusResp {
-  optional string master = 1; // None / master
+  hi.Entity master = 1; // None / master
 }
 
 message ListAllOnlineAgentResp {

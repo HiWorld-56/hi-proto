@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package hi.media;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/media";
+
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+import "buf/validate/validate.proto";
+
+message UserInfo {
+  hi.Entity base = 1;
+  string    note = 2;
+}
+
+message ListUserReq {
+  string        did        = 1;
+  hi.Pagination pagination = 2;
+}
+
+message ListUserResp {
+  int32             total = 1;
+  repeated UserInfo list  = 2;
+}
+
+message EditUserReq {
+  string did  = 1[(buf.validate.field).string.pattern="^\\S+$"];
+  string note = 2;
+}
+
+message DeleteUserReq {
+  string did = 1[(buf.validate.field).string.pattern="^\\S+$"];
+}
+
+// Token鉴权
+service User {
+  rpc List (ListUserReq) returns (ListUserResp);
+  rpc Edit (EditUserReq) returns (google.protobuf.Empty);
+  rpc Delete (DeleteUserReq) returns (google.protobuf.Empty);
+}

@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package hi.ai;
+package hi.media;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/ai";
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/media";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
