@@ -11,16 +11,21 @@ import "hi/club/messaging.proto";
 import "hi/ai/plugin.proto";
 import "hi/did/transfer.proto";
 
-// hinj_brain <-> hinj_face IPC（ZMQ ROUTER/DEALER，payload 为本文件消息的 protobuf 二进制）
+// hinj_brain <-> hinj_face IPC
+//
+// 传输层：ZMQ ROUTER/DEALER，payload 为本文件定义的 protobuf 二进制单帧。
+// 注册机制：face 启动后周期性发裸字节 "PING"，brain 回 "PONG"，
+//   brain 以此将 face 的 ZMQ identity 加入在线模块集合，才能向 face 发送消息。
+//   周期发送仅为应对 brain 重启后身份丢失的情况，非传统心跳。
 
-// 二态开关：listen 开始/结束、语音输入开始/结束等
+// 二态开关：语音监听开始/结束、音频播放开始/结束等
 enum StateToggle {
   STATE_UNKNOWN = 0;
   STATE_START   = 1;
   STATE_END     = 2;
 }
 
-// 表情
+// 机器人情绪表达
 enum Emotion {
   EMOTION_UNKNOWN   = 0;
   EMOTION_ANGER     = 1;
@@ -28,55 +33,67 @@ enum Emotion {
   EMOTION_FRUSTRATE = 3;
 }
 
-// 机器人上线初始化：自身身份 + 当前所有者（未绑定时 master 为空）
+// 机器人初始化：自身身份 + 当前所有者
+// master 缺省表示尚未绑定所有者
 message BotInit {
   hi.Entity bot    = 1;
   hi.Entity master = 2;
 }
 
-// 所有者绑定/解绑事件
+// 所有者变更事件
+// trigger: bind（新绑定）/ unbind（解绑，此时 master 缺省）/ update（资料更新，绑定关系不变）
 message MasterEvent {
-  hi.Entity master  = 1; // unbind 时为空
-  string    trigger = 2; // bind / unbind
+  hi.Entity master  = 1;
+  string    trigger = 2;
 }
 
-// 单聊/语音文本回复
+// AI 文字回复
+// uuid 由 brain 在本次对话开始时生成，通过 show_im_request（覆写 Message.uuid）
+// 和 show_im_reply / show_voice_reply 两端传递，face 据此将回复路由到对应的对话框。
+// value 为 AI 输出的纯文本，不封装为 Message 结构。
 message TextReply {
   string uuid  = 1;
   string value = 2;
 }
 
-// 语音播放
+// TTS 音频播放
+// uuid 与对应的 TextReply.uuid 一致，audio 为完整音频文件的原始字节。
 message AudioPlay {
   string uuid  = 1;
   bytes  audio = 2;
 }
 
-// brain -> face
+// brain -> face：所有指令通过 oneof 路由
 message BrainToFace {
   oneof cmd {
-    BotInit            init_bot         = 1;
+    // 初始化
+    BotInit               init_bot         = 1;  // face 上线时推送，携带机器人和所有者身份
 
-    StateToggle        show_listen      = 2;
-    Emotion            show_emotion     = 3;
-    hi.club.Message    show_im_request  = 4;
-    TextReply          show_im_reply    = 5;
-    TextReply          show_voice_reply = 6;
-    google.protobuf.Empty show_qr_code  = 7;
+    // 交互状态
+    StateToggle           show_listen      = 2;  // 语音监听开始/结束
+    Emotion               show_emotion     = 3;  // 情绪表达
 
-    hi.Entity          event_bot         = 8;
-    MasterEvent        event_master      = 9;
-    hi.club.GroupInfo  event_members     = 10;
-    hi.ai.PluginItem   event_plugin      = 11;
-    hi.did.Transaction event_transaction = 12;
+    // 对话内容
+    hi.club.Message       show_im_request  = 4;  // 收到 IM 消息（单聊/所有者/群聊）
+    TextReply             show_im_reply    = 5;  // IM 对话的 AI 回复
+    TextReply             show_voice_reply = 6;  // 语音对话的 AI 回复
+    google.protobuf.Empty show_qr_code     = 7;  // 展示机器人 DID 二维码
 
-    AudioPlay          play_audio = 13;
+    // 状态事件
+    hi.Entity             event_bot         = 8;  // 机器人自身资料变更
+    MasterEvent           event_master      = 9;  // 所有者绑定状态变化
+    hi.club.GroupInfo     event_members     = 10; // 群成员列表（全量）
+    hi.ai.PluginItem      event_plugin      = 11; // 插件加载完成
+    hi.did.Transaction    event_transaction = 12; // 收到转账
+
+    // 媒体
+    AudioPlay             play_audio = 13; // TTS 音频播放
   }
 }
 
 // face -> brain
 message FaceToBrain {
   oneof cmd {
-    StateToggle voice_state = 1; // 语音输入 开始/结束
+    StateToggle voice_state = 1; // 音频播放开始/结束，brain 据此控制麦克风静音
   }
 }
