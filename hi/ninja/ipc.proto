@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package hi.ninja;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/ninja";
+
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+import "hi/club/group.proto";
+import "hi/club/messaging.proto";
+import "hi/ai/plugin.proto";
+import "hi/did/transfer.proto";
+
+// hinj_brain <-> hinj_face IPC（ZMQ ROUTER/DEALER，payload 为本文件消息的 protobuf 二进制）
+
+// 二态开关：listen 开始/结束、语音输入开始/结束等
+enum StateToggle {
+  STATE_UNKNOWN = 0;
+  STATE_START   = 1;
+  STATE_END     = 2;
+}
+
+// 表情
+enum Emotion {
+  EMOTION_UNKNOWN   = 0;
+  EMOTION_ANGER     = 1;
+  EMOTION_LAUGH     = 2;
+  EMOTION_FRUSTRATE = 3;
+}
+
+// 机器人上线初始化：自身身份 + 当前所有者（未绑定时 master 为空）
+message BotInit {
+  hi.Entity bot    = 1;
+  hi.Entity master = 2;
+}
+
+// 所有者绑定/解绑事件
+message MasterEvent {
+  hi.Entity master  = 1; // unbind 时为空
+  string    trigger = 2; // bind / unbind
+}
+
+// 单聊/语音文本回复
+message TextReply {
+  string uuid  = 1;
+  string value = 2;
+}
+
+// 语音播放
+message AudioPlay {
+  string uuid  = 1;
+  bytes  audio = 2;
+}
+
+// brain -> face
+message BrainToFace {
+  oneof cmd {
+    BotInit            init_bot         = 1;
+
+    StateToggle        show_listen      = 2;
+    Emotion            show_emotion     = 3;
+    hi.club.Message    show_im_request  = 4;
+    TextReply          show_im_reply    = 5;
+    TextReply          show_voice_reply = 6;
+    google.protobuf.Empty show_qr_code  = 7;
+
+    hi.Entity          event_bot         = 8;
+    MasterEvent        event_master      = 9;
+    hi.club.GroupInfo  event_members     = 10;
+    hi.ai.PluginItem   event_plugin      = 11;
+    hi.did.Transaction event_transaction = 12;
+
+    AudioPlay          play_audio = 13;
+  }
+}
+
+// face -> brain
+message FaceToBrain {
+  oneof cmd {
+    StateToggle voice_state = 1; // 语音输入 开始/结束
+  }
+}
