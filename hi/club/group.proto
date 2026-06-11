@@ -24,6 +24,11 @@ message GroupMember {
   string    role = 2;
 }
 
+message Q3GroupMember {
+  GroupMember member = 1;
+  string      ghost  = 2;
+}
+
 message GroupInfo {
   GroupBase            base = 1;
   repeated GroupMember list = 2;
@@ -72,6 +77,17 @@ message ListGroupMemberReq {
 
 message GetGroupMemberTotalReq {
   string group = 1;
+}
+
+message ListQ3GroupMemberReq {
+  string        code       = 1;
+  string        type       = 2;
+  hi.Pagination pagination = 3;
+}
+
+message Q3GroupInfo {
+  GroupBase              base = 1;
+  repeated Q3GroupMember list = 2;
 }
 
 message GetGroupMemberTotalResp {
@@ -134,6 +150,7 @@ service Group {
   rpc Update (UpdateGroupReq) returns (google.protobuf.Empty); // 更新群
   rpc ListBase (google.protobuf.Empty) returns (ListGroupBaseResp); // 群列表
   rpc ListMember (ListGroupMemberReq) returns (GroupInfo); // 群成员列表
+  rpc ListQ3GroupMember (ListQ3GroupMemberReq) returns (Q3GroupInfo); // Q3群成员列表
   rpc GetMemberTotal (GetGroupMemberTotalReq) returns (GetGroupMemberTotalResp); // 群成员总数
   rpc Invite (InviteGroupReq) returns (google.protobuf.Empty); // 群邀请
   rpc Join (JoinGroupReq) returns (google.protobuf.Empty); // 主动加群
