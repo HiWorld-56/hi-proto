@@ -21,11 +21,11 @@ message Packet {
   群通知（topic: hiclub/v1/group/群Code）
 
   group-dissolve      群已解散
-  member-join         成员加入群（主动加入 / 接受邀请）          / Member
-  member-exit         成员主动退群                              / Member
-  member-update       成员资料更新（头像、昵称等）               / GroupMember
-  member-role-update  成员角色变更                              / google.protobuf.StringValue（role 值）
-  group-update        群基础信息更新（名称、头像等）             / GroupBase
+  member-join         成员加入群（主动加入 / 接受邀请）          / hi.club.Member
+  member-exit         成员主动退群                              / hi.club.Member
+  member-update       成员资料更新（头像、昵称等）               / hi.club.GroupMember
+  member-role-update  成员角色变更                              / string（role 值）
+  group-update        群基础信息更新（名称、头像等）             / hi.club.GroupBase
 
   单聊通知（topic: hiclub/v1/single/用户Did）
 
@@ -34,14 +34,14 @@ message Packet {
   friend-invite-reject  我发出的好友邀请已被对方拒绝（无需响应）
   friend-auto-add       我已被自动添加为对方好友，双方已成为好友
   friend-delete         我已被对方删除好友
-  group-invite          收到入群邀请（自动 accept）              / Member
+  group-invite          收到入群邀请（自动 accept）              / hi.club.Member
   group-invite-reject   我邀请他人入群已被对方拒绝（无需响应）
-  group-kick            我已被踢出群聊                          / MemberExit
+  group-kick            我已被踢出群聊                          / hi.club.MemberExit
   q3-sync               Q3 数据同步
   hwbot-bind            hwbot 绑定完成
   hwbot-unbind          hwbot 解绑完成
   hwbot-update          hwbot 资料更新                         / hi.Entity
-  plugin-load           插件/脚本加载完成                      / ai.PluginItem
+  plugin-load           插件/脚本加载完成                      / hi.ai.PluginItem
 */
 message Notice {
   string uuid = 1;
