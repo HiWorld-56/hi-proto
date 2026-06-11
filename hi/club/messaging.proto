@@ -137,13 +137,6 @@ message MemberExit {
   string type   = 2;
 }
 
-message GroupUpdate {
-  hi.Entity base        = 1;
-  string    back_ground = 2;
-  bool      mute        = 3;
-  hi.Entity owner       = 4;
-}
-
 message Content {
   message Chat {
     string          content  = 1;
