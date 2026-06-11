@@ -20,7 +20,7 @@ message Packet {
 /* type:
 
    群通知（topic: hiclub/v1/group/<群Id>）
-   group-dissolve      群已解散
+   group-dissolve      群已解散                                / hi.club.GroupBase
    member-join         成员加入群（主动加入 / 接受邀请）          / hi.club.Member
    member-exit         成员主动退群                            / hi.club.Member
    member-update       成员资料更新（头像、名字等）               / hi.club.GroupMember
