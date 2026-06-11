@@ -20,9 +20,8 @@ message GroupBase {
 }
 
 message GroupMember {
-  hi.Entity base  = 1;
-  string    role  = 2;
-  string    ghost = 3;
+  hi.Entity base = 1;
+  string    role = 2;
 }
 
 message GroupInfo {

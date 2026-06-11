@@ -6,6 +6,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
 
 import "hi/common.proto";
 import "hi/did/transfer.proto";
+import "google/protobuf/any.proto";
 
 message Packet {
   oneof kind {
@@ -18,14 +19,14 @@ message Packet {
  transaction
  */
 message Notice {
-  string    uuid  = 1;
-  string    type  = 2;
-  hi.Entity from  = 3;
-  Extra     extra = 4;
+  string              uuid  = 1;
+  string              type  = 2;
+  hi.Entity           from  = 3;
+  google.protobuf.Any extra = 4;
 }
 
-message Extra {
-  oneof kind {
-    Transaction trans = 1;
-  }
-}
+// message Extra {
+//   oneof kind {
+//     Transaction trans = 1;
+//   }
+// }
