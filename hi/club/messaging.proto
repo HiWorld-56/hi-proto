@@ -20,14 +20,29 @@ message Packet {
 
 /*
  type:
- kicked-out
- invite-friend
- invite-group
- q3-sync
- unbind-hwbot
- bind-hwbot
- python-script-loaded
- update-hwbot
+ invite-friend：邀请好友
+ invite-friend-accept：接受好友邀请
+ invite-friend-reject：拒绝好友邀请
+ auto-added-friend：自动添加好友
+ delete-friend：删除好友
+ invite-group：邀请加群
+ invite-group-accept：接受群邀请
+ invite-group-reject：拒绝群邀请
+ kicked-out：被踢出群聊
+ dissolve: 解散群
+ exit-group: 退群
+ group-role-admin: 设置群成员角色为管理员
+ group-role-member: 设置群成员角色为普通成员
+ join-group: 主动加群（搜索加群）
+ background：修改群背景
+ group-name：修改群名称
+ group-avatar：修改群头像
+ delete-bot：删除机器人
+ q3-sync：q3同步
+ unbind-hwbot：解绑hwbot
+ bind-hwbot：绑定hwbot
+ python-script-loaded：python脚本加载完成
+ update-hwbot：更新hwbot
  */
 message Notice {
   string    uuid       = 1;
