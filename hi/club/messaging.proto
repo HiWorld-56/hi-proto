@@ -5,12 +5,10 @@ package hi.club;
 option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/any.proto";
 import "hi/common.proto";
-import "hi/club/q3.proto";
 import "hi/did/transfer.proto";
 import "hi/club/trade.proto";
-import "hi/ai/plugin.proto";
-import "google/protobuf/any.proto";
 
 message Packet {
   oneof kind {
