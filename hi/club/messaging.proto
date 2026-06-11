@@ -28,9 +28,7 @@ message Packet {
  group-role-admin: 设置群成员角色为管理员
  group-role-member: 设置群成员角色为普通成员
  join-group: 主动加群（搜索加群）
- background：修改群背景
- group-name：修改群名称
- group-avatar：修改群头像
+ update-group: 更新群信息
 
  单聊通知:(topic: hiclub/v1/single/用户Did)
  invite-friend：邀请好友
