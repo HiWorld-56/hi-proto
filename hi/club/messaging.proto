@@ -24,7 +24,7 @@ message Packet {
   member-join         成员加入群（主动加入 / 接受邀请）          / hi.club.Member
   member-exit         成员主动退群                              / hi.club.Member
   member-update       成员资料更新（头像、昵称等）               / hi.club.GroupMember
-  member-role-update  成员角色变更                              / string（role 值）
+  member-role-update  成员角色变更                              / google.protobuf.StringValue（role 值）
   group-update        群基础信息更新（名称、头像等）             / hi.club.GroupBase
 
   单聊通知（topic: hiclub/v1/single/用户Did）
