@@ -88,6 +88,9 @@ message BrainToFace {
 
     // 媒体
     AudioPlay             play_audio = 13; // TTS 音频播放
+
+    // 好友变更
+    hi.Entity             event_friend_delete = 14; // 被对方删除好友，face 从单聊列表移除该成员
   }
 }
 
