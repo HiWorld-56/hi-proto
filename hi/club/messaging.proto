@@ -30,7 +30,6 @@ message Packet {
    friend-invite         收到好友邀请（自动 accept）
    friend-invite-accept  我发出的好友邀请已被对方接受，双方已成为好友
    friend-invite-reject  我发出的好友邀请已被对方拒绝（无需响应）
-   friend-auto-add       我已被自动添加为对方好友，双方已成为好友
    friend-delete         我已被对方删除好友
    group-invite          收到入群邀请（自动 accept）              / hi.club.Member
    group-invite-reject   我邀请他人入群已被对方拒绝（无需响应）
