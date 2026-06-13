@@ -13,16 +13,6 @@ message Packet {
   }
 }
 
-/* extra:
-   Transaction
-   notes:
-   update_xxx => ["name", "avatar", "background", ...]
-*/
-message Extra {
-  google.protobuf.Any extra = 1;
-  repeated string notes = 2;
-}
-
 /*
    type:
    transaction: 其他人向自己发起交易
@@ -31,5 +21,6 @@ message Notice {
   string uuid = 1;
   string type = 2;
   hi.Entity from = 3;
-  Extra extra = 4;
+  google.protobuf.Any extra = 4;
+  string ex_type = 5;
 }
