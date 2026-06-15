@@ -40,6 +40,16 @@ message BotInit {
   hi.Entity master = 2;
 }
 
+// 好友列表（全量，初始化时推送）
+message FriendList {
+  repeated hi.Entity list = 1;
+}
+
+// 群成员列表（全量，初始化时批量推送）
+message GroupInfoList {
+  repeated hi.club.GroupInfo list = 1;
+}
+
 // 所有者变更事件
 // trigger: bind（新绑定）/ unbind（解绑，此时 master 缺省）/ update（资料更新，绑定关系不变）
 message MasterEvent {
@@ -88,6 +98,14 @@ message BrainToFace {
 
     // 媒体
     AudioPlay             play_audio = 13; // TTS 音频播放
+
+    // 好友变更
+    FriendList            event_friends       = 15; // 好友列表全量推送（初始化时）
+    hi.Entity             event_friend_delete = 14; // 被对方删除好友，face 从单聊列表移除该成员
+    hi.Entity             event_friend_add    = 16; // 新增好友，face 将其加入单聊成员列表
+
+    // 群成员初始化（全量批量，初始化时推送）
+    GroupInfoList         members_init        = 17;
   }
 }
 

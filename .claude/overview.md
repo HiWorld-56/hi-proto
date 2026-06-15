@@ -2,9 +2,9 @@
 
 遇到下列概念时，请先阅读对应文档，避免产生误解：
 
-- **Entity**（实体）：系统中一切可拥有 DID 身份的对象，不只是人类用户 → @claude/concepts/entity.md
-- **UserExtension**（用户扩展）：商户级可扩展用户数据表系统，非普通用户资料 → @claude/concepts/user_extension.md
-- **Q3**：特殊单聊模式的产品系列命名，非通用技术术语 → @claude/concepts/q3.md
+- **Entity**（实体）：系统中一切可拥有 DID 身份的对象，不只是人类用户 → @.claude/concepts/entity.md
+- **UserExtension**（用户扩展）：商户级可扩展用户数据表系统，非普通用户资料 → @.claude/concepts/user_extension.md
+- **Q3**：特殊单聊模式的产品系列命名，非通用技术术语 → @.claude/concepts/q3.md
 
 ---
 
