@@ -1,5 +1,5 @@
 # Overview
-@claude/overview.md
+@.claude/overview.md
 
 ## 协作原则
 
