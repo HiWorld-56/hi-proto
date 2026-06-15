@@ -91,6 +91,7 @@ message BrainToFace {
 
     // 好友变更
     hi.Entity             event_friend_delete = 14; // 被对方删除好友，face 从单聊列表移除该成员
+    hi.Entity             event_friend_add    = 15; // 新增好友，face 将其加入单聊成员列表
   }
 }
 
