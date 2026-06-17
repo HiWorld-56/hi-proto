@@ -106,7 +106,18 @@ message BrainToFace {
 
     // 群成员初始化（全量批量，初始化时推送）
     GroupInfoList         members_init        = 17;
+
+    // 系统状态：NTP 时间同步 + 网络连通性（face 上线推送 + 状态变化时推送）
+    StatusEvent           event_status        = 18;
   }
+}
+
+// 系统状态快照
+// ntp:  系统时间已同步（时间戳 > 1_750_000_000，即 2025-06 之后）
+// wifi: 服务器 TCP 443 可达
+message StatusEvent {
+  bool ntp  = 1;
+  bool wifi = 2;
 }
 
 // face -> brain
