@@ -96,7 +96,7 @@ message BrainToFace {
     hi.ai.PluginItem      event_plugin      = 11; // 插件加载完成
     hi.did.Transaction    event_transaction = 12; // 收到转账
 
-    // 媒体
+    // 媒体：uuid="" 时路由到 dialog_voice，否则按 uuid 路由到对应 IM dialog
     AudioPlay             play_audio = 13; // TTS 音频播放
 
     // 好友变更
@@ -109,6 +109,7 @@ message BrainToFace {
 
     // 系统状态：NTP 时间同步 + 网络连通性（face 上线推送 + 状态变化时推送）
     StatusEvent           event_status        = 18;
+
   }
 }
 
