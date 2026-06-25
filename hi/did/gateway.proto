@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package hi.did;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
+
+import "google/protobuf/empty.proto";
+
+message GatewayConfigUnit {
+  string name    = 1; //aptos/bitcoin/ethereum/solana/tatum/tron-grpc/tron-http
+  string url     = 2;
+  string api_key = 3;
+}
+
+message GatewayConfigListResp {
+  repeated GatewayConfigUnit list = 1;
+}
+
+message GatewayConfigSaveReq {
+  repeated GatewayConfigUnit list = 1;
+}
+
+service GatewayConfig  {
+  rpc List (google.protobuf.Empty) returns (GatewayConfigListResp);
+  rpc Save (GatewayConfigSaveReq) returns (google.protobuf.Empty);
+  rpc Reset (google.protobuf.Empty) returns (google.protobuf.Empty);
+}
