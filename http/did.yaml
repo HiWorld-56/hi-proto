@@ -127,8 +127,6 @@ http:
 # GatewayConfig
   - selector: hi.did.GatewayConfig.List
     get: /api/v1/gateway_config/list
-  - selector: hi.did.GatewayConfig.Save
-    post: /api/v1/gateway_config/save
+  - selector: hi.did.GatewayConfig.Set
+    post: /api/v1/gateway_config/set
     body: "*"
-  - selector: hi.did.GatewayConfig.Reset
-    post: /api/v1/gateway_config/reset

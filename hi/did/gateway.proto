@@ -16,12 +16,11 @@ message GatewayConfigListResp {
   repeated GatewayConfigUnit list = 1;
 }
 
-message GatewayConfigSaveReq {
+message GatewayConfigSetReq {
   repeated GatewayConfigUnit list = 1;
 }
 
 service GatewayConfig  {
   rpc List (google.protobuf.Empty) returns (GatewayConfigListResp);
-  rpc Save (GatewayConfigSaveReq) returns (google.protobuf.Empty);
-  rpc Reset (google.protobuf.Empty) returns (google.protobuf.Empty);
+  rpc Set (GatewayConfigSetReq) returns (google.protobuf.Empty);
 }
