@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+
+import "hi/did/gateway.proto";
+import "google/protobuf/empty.proto";
+
+service GatewayConfig  {
+  rpc List (google.protobuf.Empty) returns (hi.did.GatewayConfigListResp);
+}
