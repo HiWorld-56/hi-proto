@@ -65,10 +65,6 @@ message ListGroupMessageResp {
   repeated Packet list = 1;
 }
 
-message ListGroupBaseResp {
-  repeated GroupBase list = 1;
-}
-
 message ListGroupMemberReq {
   string        code       = 1;
   string        type       = 2;
@@ -146,7 +142,6 @@ service Group {
   rpc Create (CreateGroupReq) returns (GroupBase); // 创建群
   rpc CreateSingle (CreateSingleReq) returns (GroupBase); // 创建单聊群
   rpc Update (UpdateGroupReq) returns (google.protobuf.Empty); // 更新群
-  rpc ListBase (google.protobuf.Empty) returns (ListGroupBaseResp); // 群列表
   rpc ListMember (ListGroupMemberReq) returns (GroupInfo); // 群成员列表
   rpc ListQ3GroupMember (ListQ3GroupMemberReq) returns (Q3GroupInfo); // Q3群成员列表
   rpc GetMemberTotal (GetGroupMemberTotalReq) returns (GetGroupMemberTotalResp); // 群成员总数
