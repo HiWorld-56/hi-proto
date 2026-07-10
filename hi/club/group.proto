@@ -96,8 +96,7 @@ message GetGroupMemberTotalResp {
 
 message InviteGroupReq {
   string          group  = 1;
-  repeated string agents = 2;
-  repeated string users  = 3;
+  repeated string members = 2;
 }
 
 message JoinGroupReq {
@@ -110,8 +109,7 @@ message QuitGroupReq {
 
 message RemoveGroupReq {
   string          group  = 1;
-  repeated string agents = 2;
-  repeated string users  = 3;
+  repeated string members = 2;
 }
 
 message LastUUID {
