@@ -56,6 +56,5 @@ dkms.conf
 # hi_proto
 gen/
 http/merged.yaml
-buf.lock
 go.sum
 go.mod
