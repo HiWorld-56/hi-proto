@@ -108,3 +108,13 @@ require github.com/HiWorld-56/hi-proto vX.Y.Z         # 无 replace
 代码 `import github.com/HiWorld-56/hi-proto/gen/go/hi/...` 一个字不改。第三方(公共 github 路径 / gRPC)不受影响。
 
 **走不通的路(别再试)**:`replace .../hi-proto/gen/go => git.hi.lan/.../hi-proto-code/go`——生成码内部 import 用 github、而模块名 git.hi.lan,mismatch,go 报 `does not contain package`。因为这个约束,go 模块只能放仓根(rust/ dart/ 仍子目录);根 go 模块用普通 tag `vX.Y.Z`,三语言共用。
+
+## 后端批量迁移结果(2026-07,6 个用 hi-proto 的其余后端)
+
+这些后端原来用 `replace github.com/HiWorld-56/hi-proto vX => ../hi-proto`(同级目录,非 submodule)。切方案 A(require v0.1.0 + 删 replace + insteadOf,import 零改动):
+
+- ✅ **backend-hi-source / backend-hi-ai-plugin**:纯依赖切换,build 过,已推。
+- ✅ **backend-hi-ai**:兼带 proto 漂移修复(`LoginReq.Did/ReqId` 由消息改 string,去 `.Id`),已推。
+- ✅ **backend-hi-media**:兼带漂移修复(邀请码消息类型 `InviteCodeXxxReq/Resp` 从 `hi.media` 迁到 `hi.did` 包;`InviteCode` 服务仍在 `hi.media`;Did/ReqId 改 string),已推。
+- ⏸️ **backend-hi-club-trade / backend-hi-club-transaction**:**搁置,待 `fa` 校验接口**。原 `hidid.Transfer.GetTransactionDetail(传 hash+金额+币种+from+to)` 已从 proto 删除。它承担的是"订单交易校验"语义(链上确认 + 校验金额/收付方)。当前 proto 只有 `Transfer.TxStatus(coin,hash)`(仅查链上状态,给 hidid app 用),直接替代会丢金额/收付方校验、且状态词汇不匹配(旧 none/processing/chained/confirmed/success/failed/http_err/hash_dup → 新 pending/confirming/success/failed/notfound),`notfound/pending/confirming` 落旧 switch 的 default 会被误判成功。
+  - **正确方案**:hidid 后端新增专用校验接口(暂称 `fa`,入参订单号/金额/币种/交易时间等),内部先 `TxStatus` 确认链上成功、再校验金额等,返回校验结论。需先在 hi-proto 加此 RPC + backend-hi-did 实现,再让这两个服务调它。属设计任务,未做。
