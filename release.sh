@@ -21,7 +21,7 @@ echo "[1/4] 合并 HTTP 配置"
 
 echo "[2/4] go-http → $CODE"
 ( cd "$HIPROTO"; unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy
-  rm -rf "$CODE/go/hi"; buf generate --template codegen/go_http_code.yaml )
+  rm -rf "$CODE/gen"; buf generate --template codegen/go_http_code.yaml )
 
 echo "[3/4] rust → $CODE/rust/src/gen"
 ( cd "$HIPROTO/codegen/rust-gen"
@@ -45,8 +45,8 @@ echo "== 已推 dev =="
 if [ -n "$VERSION" ]; then
   git checkout -q main
   git merge -q --ff-only dev
-  git tag "$VERSION"; git tag "go/$VERSION"        # rust/dart 用 vX;go 子目录 module 用 go/vX
-  ( unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy; git push origin main "$VERSION" "go/$VERSION" )
+  git tag "$VERSION"        # 三语言共用一个普通 tag(go 是根模块)
+  ( unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy; git push origin main "$VERSION" )
   git checkout -q dev
   echo "== 已发版 $VERSION(main + tag)=="
 fi
