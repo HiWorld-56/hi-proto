@@ -44,7 +44,25 @@ message TxStatusResp {
   uint32 progress = 2; // 进度，0-100
 }
 
+message VerifyTransactionReq {
+  string coin   = 1; // 预期币种（定位链/合约）
+  string hash   = 2; // 链上交易 hash
+  string amount = 3; // 预期金额（最小单位整数串，与 tx_detail 口径一致）
+  string from   = 4; // 预期付款方地址
+  string to     = 5; // 预期收款方地址
+}
+
+message VerifyTransactionResp {
+  string state            = 1; // pending / confirming / success / failed / notfound
+  bool   passed           = 2; // 业务校验是否通过（仅 state=success 有意义）
+  string reason           = 3; // 未过原因：AMOUNT_ERR / FROM_ERR / TO_ERR / CONTRACTADDRESS_ERR
+  int64  confirmed_blocks = 4; // 链上确认数
+  int64  timestamp        = 5; // 交易时间（ms）；调用方据此自行做时限校验（业务层解耦）
+  uint32 query_count      = 6; // 该 hash 在缓存窗口内被查询次数（业务侧据此防伪）
+}
+
 service Transfer {
   rpc History (HistoryReq) returns (HistoryResp); // 不鉴权
   rpc TxStatus (TxStatusReq) returns (TxStatusResp); // 不鉴权
+  rpc VerifyTransaction (VerifyTransactionReq) returns (VerifyTransactionResp); // 不鉴权 // 两阶段：链上确认 + 业务比对
 }
