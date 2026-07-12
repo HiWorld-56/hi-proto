@@ -1,6 +1,6 @@
 # hi-proto 多语言依赖分发方案
 
-> ⚠️ 本文是设计/历史记录,经历过多次布局调整(pre-method-A → go 仓根 → **go/ 子目录**)。**消费方引用方式以 `hi-proto-code/README.md` 为准**。
+> ⚠️ 本文是设计/历史记录,经历过多次布局调整(pre-method-A → go 仓根 → go/ 子目录 → **最终:go.mod 回仓根、普通单 tag vX、module github.com/HiWorld-56/hi-proto、import .../hi-proto/go/hi**)。**消费方引用方式以 `hi-proto-code/README.md` 为准**。
 
 > 设计记录。目的:把"各消费方 submodule + 本地生成"改成"CI 集中生成 + 各语言包管理器按版本依赖"。
 
