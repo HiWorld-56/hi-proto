@@ -1,0 +1,10 @@
+[package]
+name = "hi-proto-rust-gen"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1"
+walkdir = "2"
+tonic-prost-build = "0.14"
+pbjson-build = "0.9"

@@ -58,3 +58,8 @@ gen/
 http/merged.yaml
 go.sum
 go.mod
+
+# 生成工具产物
+codegen/rust-gen/target/
+http/merged.yaml
+gen/
