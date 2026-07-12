@@ -82,7 +82,7 @@ CI 机 = **dev(.64)**,工作路径 `/home/lo/wip/`(与其他项目并列)。
 - [x] 首次生成 + 推 dev/main,tag **v0.1.0**(go/rust)、**v0.2.0**(+dart pubspec 版本对齐)
 - [x] 切 hiclub-core-mqtt → hi-proto-code(编译验证,5356a9e)
 - [x] 切 hinj_brain → hi-proto-code **+ 删 reencode**(登录/群@bot 已验,ae8b5d3/20fde54)
-- [x] 切 backend-hi-club(50da49f)/ backend-hi-wallet(dccc517)→ require v0.1.0 + insteadOf,删 replace/submodule/proto 目标,**import 零改动**,make build/go build rc=0
+- [x] 切 backend-hi-club(50da49f)/ backend-hi-did(dccc517)→ require v0.1.0 + insteadOf,删 replace/submodule/proto 目标,**import 零改动**,make build/go build rc=0
 - [x] hiclub-simple-app(Dart)切 hi_proto@v0.2.0(7fba77a),删 vendored lib/src/proto,pub get + analyze 通过
 - [ ] 其余 Dart 端(hiclub-app 真前端 / hidid-app)同款切(未本地检出,按需)
 - [ ] (可选)脚本挂 Gitea Actions 全自动
