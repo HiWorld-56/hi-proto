@@ -77,7 +77,7 @@ CI 机 = **dev(.64)**,工作路径 `/home/lo/wip/`(与其他项目并列)。
 
 - [x] 本文档入库(hi-proto)
 - [x] rust 预生成工具 `codegen/rust-gen/`(复用 tonic-prost-build/pbjson-build,非 buf 远程插件)
-- [x] 建 `hi-proto-code` 仓 + 骨架(**go 在仓根** module=github.com/HiWorld-56/hi-proto / rust/ crate / dart/)
+- [x] 建 `hi-proto-code` 仓 + 骨架(**go 在  子目录**(曾放仓根,后为保持根目录只有 dart/go/rust 而移入) module=github.com/HiWorld-56/hi-proto / rust/ crate / dart/)
 - [x] .64 `release.sh`:生成 go-http/rust/dart → 推 dev(发版 merge main + 打普通 tag vX.Y.Z)
 - [x] 首次生成 + 推 dev/main,tag **v0.1.0**(go/rust)、**v0.2.0**(+dart pubspec 版本对齐)
 - [x] 切 hiclub-core-mqtt → hi-proto-code(编译验证,5356a9e)
