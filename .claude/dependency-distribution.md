@@ -21,25 +21,28 @@ hi-proto 是全生态(backend Go、app Dart、hinj_brain / hiclub-core-mqtt Rust
 
 代码进各语言**全局缓存**(`~/.cargo`、`~/go/pkg/mod`、`~/.pub-cache`),**不进业务仓**;业务仓只有一行依赖声明。生成代码只在 `hi-proto-code` 这一个 artifact 仓提交一份(源码型 module 系统无二进制仓库,源码总得有个能拉的地方),由 CI 产出,不散落、不手动。
 
-## hi-proto-code 仓布局(一个 tag 通吃)
+## hi-proto-code 仓布局(纯三目录,各自自包含)
 
 ```
 hi-proto-code/
-  go.mod, *.go        # Go module 在【仓根】(go-http:grpc + grpc-gateway HTTP) → 用普通 tag vX.Y.Z
-  Cargo.toml          # [workspace] members=["rust"],让 cargo 能按包名找到 rust crate
-  rust/               # package "hi-proto":预生成的 prost/tonic .rs(消费方无需 protoc)
-  dart/               # pubspec + 预生成 dart
-  (python/ 视需要)
+  go/     go.mod(module git.hi.lan/HiWorld-56/hi-proto-code/go)+ go.sum + hi/**.pb.go(grpc+gateway)
+  rust/   Cargo.toml(package "hi-proto")+ src/lib.rs + src/gen/**(prost/tonic/pbjson 预生成,消费方无需 protoc)
+  dart/   pubspec.yaml + lib/**(protobuf+grpc)
 ```
 
-**为什么 Go module 放仓根**:Go 若把 module 放子目录,tag 要带前缀 `go/vX.Y.Z`,很绕;放根则**一个普通 tag `vX.Y.Z` 同时服务 go / rust / dart**。Rust/Dart 各自从子目录取,不受影响。
+**布局原则**:仓根不放任何散件,每种语言的工程配置都收进自己目录,避免 root 混杂/冲突。
+- Rust:crate 在 `rust/` 子目录,**无需 root workspace**——`{ git, package = "hi-proto" }` cargo 能按包名找到(已验证)。
+- Go:`go/` 是子目录 module,导入路径 `git.hi.lan/HiWorld-56/hi-proto-code/go`;**发版 tag 要带前缀 `go/vX.Y.Z`**(Go 多 module 仓规矩)。
+- Dart:`{ path: dart }` 原生支持。
+
+**tag 约定**:发版打**两个** tag —— `vX.Y.Z`(rust/dart)+ `go/vX.Y.Z`(go 子目录 module)。release.sh 自动打两个。
 
 ## 依赖写法
 
 | 语言 | 开发期(跟 dev 分支) | 发版(pin tag) |
 |---|---|---|
-| Rust | `hi-proto = { git = ".../hi-proto-code.git", branch = "dev", package = "hi-proto" }` | `tag = "vX.Y.Z"` |
-| Go | `go get .../hi-proto-code@dev` | `@vX.Y.Z` |
+| Rust | `hi-proto = { git = "ssh://gitea@git.hi.lan/HiWorld-56/hi-proto-code.git", branch = "dev", package = "hi-proto" }` | `tag = "vX.Y.Z"` |
+| Go | `go get .../hi-proto-code/go@dev` | `.../hi-proto-code/go@vX.Y.Z`(解析 go/vX.Y.Z tag) |
 | Dart | `hi_proto: { git: { url: ..., ref: dev, path: dart } }` | `ref: vX.Y.Z` |
 
 Rust 没有"git 子路径"语法,靠 `package = "hi-proto"` 按包名在仓里找到 rust crate(效果等价"指路径")。
