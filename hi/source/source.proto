@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package hi.source;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/source";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/source";
 
 import "buf/validate/validate.proto";
 

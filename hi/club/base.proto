@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package hi.club;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 import "google/protobuf/empty.proto";
 import "hi/did/base.proto";

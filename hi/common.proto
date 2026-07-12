@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package hi;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi";
 
 // Auth: None / Token / Extend-Token
 

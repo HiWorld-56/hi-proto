@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package hi.ninja;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/ninja";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ninja";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";

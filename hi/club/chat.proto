@@ -6,7 +6,7 @@ import "google/protobuf/empty.proto";
 import "hi/ai/chat.proto";
 import "hi/club/messaging.proto";
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 message SimpleReq {
   repeated Content conts = 1;

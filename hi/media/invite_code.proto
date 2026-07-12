@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package hi.media;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/media";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";

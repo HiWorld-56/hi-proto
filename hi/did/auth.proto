@@ -5,7 +5,7 @@ package hi.did;
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 
 message RefreshTokenReq {
   hi.ClientInfo node = 1;

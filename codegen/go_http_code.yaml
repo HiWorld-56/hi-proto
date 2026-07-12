@@ -9,12 +9,12 @@ managed:
     module: buf.build/bufbuild/protovalidate
 plugins:
   - local: protoc-gen-go
-    out: ../hi-proto-code/gen/go
+    out: ../hi-proto-code/go
     opt: [paths=source_relative, Mgoogle/api/annotations.proto=google.golang.org/genproto/googleapis/api/annotations]
   - local: protoc-gen-go-grpc
-    out: ../hi-proto-code/gen/go
+    out: ../hi-proto-code/go
     opt: [paths=source_relative, require_unimplemented_servers=false]
   - local: protoc-gen-grpc-gateway
-    out: ../hi-proto-code/gen/go
+    out: ../hi-proto-code/go
     opt: [paths=source_relative, generate_unbound_methods=true, grpc_api_configuration=http/merged.yaml]
     strategy: all

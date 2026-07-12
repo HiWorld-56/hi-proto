@@ -8,7 +8,7 @@ import "hi/club/trade.proto";
 import "hi/common.proto";
 import "hi/did/transfer.proto";
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 message Packet {
   oneof kind {

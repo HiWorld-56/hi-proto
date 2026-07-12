@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package hi.did;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 
 import "hi/did/base.proto";
 
