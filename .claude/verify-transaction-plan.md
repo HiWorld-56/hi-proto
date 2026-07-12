@@ -5,7 +5,7 @@
 ## 语义(两阶段 + 防作弊)
 
 一次调用完成:
-1. **重复计数(不再硬拒绝)**:某 hash 校验通过后进单条超时 cache 并**计数**;窗口内每次再查同一 hash 计数 +1,并把 `query_count` 一并返回业务端,**由业务端自行判断是否异常**(后端不返回 hash_dup、不拒绝)。理由:网络波动导致业务端合理重查不该被误判为恶意刷钱;是否可疑交给业务端按次数阈值决定。
+1. **计数防重(不再硬拒绝)**:交易通过校验后 hash 进 cache,**TTL 1 小时且滑动**(每次被查都重置 1h 超时,超时重置机制沿用旧设计不变);cache 项带**计数字段**,每查该 hash 计数 +1。`query_count` 随查询结果一起返回,业务端看到的是**成功 + 计数**(不是 hash_dup 报错),**自行按计数做防伪**。理由:网络波动导致业务端合理重查不该被误判为恶意刷钱;是否可疑交给业务端按次数阈值决定。
 2. **阶段1 链上**:按 hash 查链上交易状态(pending/confirming/success/failed/notfound)。
 3. **阶段2 业务**(仅链上 success 时):把链上实际的**金额/币种(合约地址)/from/to** 跟**传入的预期值**逐项比对;并做**交易时间窗**校验(交易时间超过合法时限判无效,防旧 hash 反复欺诈)。任一不符给出原因码。
 
@@ -43,7 +43,8 @@ service Transfer { ... rpc VerifyTransaction (VerifyTransactionReq) returns (Ver
 
 **backend-hi-did**
 - `coreapi`:`TxDetail(chain,txid)` 包装。
-- `service.VerifyTransaction(param)`:按 hash 计数 cache(改造旧 `verifyHashCache`/`getTxHashLock`→ 存计数、返回 `query_count`,不拒绝)→ tx_detail → 阶段2 比对(金额 decimal 精确、合约地址、from/to EqualFold)+ 交易时间窗。
+- `service.VerifyTransaction(param)`:按 hash 计数 cache(改造旧 `verifyHashCache`/`getTxHashLock`→ TTL 1h 滑动、存计数字段、每查 +1、返回 `query_count`,不拒绝)→ tx_detail → 阶段2 比对(金额 decimal 精确、合约地址、from/to EqualFold)+ 交易时间窗。
+- 逐链真链实测:hidid_core 自带节点信息/配置(见其 config + examples/),可在其上直接对真链验证 tx_detail。
 - handler `TransferServer.VerifyTransaction` + 注册路由。
 
 **hi-proto-code**:重生成 + 打 tag v0.3.0。
