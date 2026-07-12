@@ -36,11 +36,13 @@ echo "[4/4] dart → $CODE/dart/lib"
 cd "$CODE"
 git checkout -q dev
 git add -A
-if git diff --cached --quiet; then echo "== 产物无变更,结束 =="; exit 0; fi
-SHA=$(git -C "$HIPROTO" rev-parse --short HEAD)
-git -c user.name="ci" -c user.email="ci@hi.lan" commit -q -m "sync from hi-proto@${SHA}"
-( unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy; git push origin dev )
-echo "== 已推 dev =="
+if git diff --cached --quiet; then echo "== 产物无变更(仅可能补 tag)=="; NOCHANGE=1; fi
+if [ -z "$NOCHANGE" ]; then
+  SHA=$(git -C "$HIPROTO" rev-parse --short HEAD)
+  git -c user.name="ci" -c user.email="ci@hi.lan" commit -q -m "sync from hi-proto@${SHA}"
+  ( unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy; git push origin dev )
+  echo "== 已推 dev =="
+fi
 
 if [ -n "$VERSION" ]; then
   git checkout -q main
