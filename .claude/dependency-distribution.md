@@ -76,15 +76,19 @@ CI 机 = **dev(.64)**,工作路径 `/home/lo/wip/`(与其他项目并列)。
 ## 落地步骤(checklist)
 
 - [x] 本文档入库(hi-proto)
-- [ ] hi-proto 新增 `codegen/rust.yaml`(buf neoeinstein-prost/tonic)
-- [ ] 建 `hi-proto-code` 仓(gitea)+ 根骨架(go.mod / Cargo.toml workspace / rust/ / dart/)
-- [ ] .64 写 `release.sh`:buf 生成 go-http/rust/dart → 落 hi-proto-code 各目录 → 推 dev(发版再 merge main + 打 tag)
-- [ ] 首次生成 + 推 dev,打首个 tag
-- [ ] 切 hiclub-core-mqtt → hi-proto-code(验证编译)
-- [ ] 切 hinj_brain → hi-proto-code **+ 删 reencode**(验证登录 / 群 @bot)
-- [ ] 切 backend-hi-club / backend-hi-wallet(Go)→ 删 replace
-- [ ] app(Dart)切依赖
+- [x] rust 预生成工具 `codegen/rust-gen/`(复用 tonic-prost-build/pbjson-build,非 buf 远程插件)
+- [x] 建 `hi-proto-code` 仓 + 骨架(**go 在仓根** module=github.com/HiWorld-56/hi-proto / rust/ crate / dart/)
+- [x] .64 `release.sh`:生成 go-http/rust/dart → 推 dev(发版 merge main + 打普通 tag vX.Y.Z)
+- [x] 首次生成 + 推 dev/main,tag **v0.1.0**(go/rust)、**v0.2.0**(+dart pubspec 版本对齐)
+- [x] 切 hiclub-core-mqtt → hi-proto-code(编译验证,5356a9e)
+- [x] 切 hinj_brain → hi-proto-code **+ 删 reencode**(登录/群@bot 已验,ae8b5d3/20fde54)
+- [x] 切 backend-hi-club(50da49f)/ backend-hi-wallet(dccc517)→ require v0.1.0 + insteadOf,删 replace/submodule/proto 目标,**import 零改动**,make build/go build rc=0
+- [x] hiclub-simple-app(Dart)切 hi_proto@v0.2.0(7fba77a),删 vendored lib/src/proto,pub get + analyze 通过
+- [ ] 其余 Dart 端(hiclub-app 真前端 / hidid-app)同款切(未本地检出,按需)
 - [ ] (可选)脚本挂 Gitea Actions 全自动
+
+## 重要:根 go 模块与版本耦合
+go 模块在**仓根**,go module zip 会包含 `dart/`、`rust/`(它们无自己的 go.mod)。**故任何 dart/rust 改动都会改变 go 可见的模块哈希 → 不能重打同名 tag**(否则消费方 go.sum 校验失败)。每次发布用**新 tag**;go 消费方停在自己 require 的旧 tag 不受影响(如后端在 v0.1.0、app 在 v0.2.0,各自独立)。这是"单 tag 通吃三语言"换来的小代价。
 
 ## 备注
 
