@@ -63,3 +63,5 @@ go.mod
 codegen/rust-gen/target/
 http/merged.yaml
 gen/
+codegen/rust-gen/target/
+codegen/rust-gen/Cargo.lock

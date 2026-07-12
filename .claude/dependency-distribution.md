@@ -91,12 +91,17 @@ CI 机 = **dev(.64)**,工作路径 `/home/lo/wip/`(与其他项目并列)。
 - 单仓装三语言的唯一小代价:每个包管理器拉依赖时会把**整个仓(含另两语言目录)**拉进它自己的全局缓存(如 cargo 会把 go/ dart/ 也 clone 到缓存但只编 rust crate)—— 仅缓存冗余、一次性、可忽略;业务仓仍是干净的一行依赖。用"仓库数量少"换"一点缓存冗余",划算。
 - 版本升级仍是消费方**主动决策**(改 branch/tag),这是特性不是缺陷:比 submodule"看着都拉了其实一新一旧"的静默漂移强 —— 显式、可 review、可 CI 卡一致性。
 
-
 ## Go:保持 import 不变(replace 重定向)
 
-Go 里模块路径=类型身份,不能像 Rust 那样解耦。但用  可**重定向拉取位置、消费方 import 零改动**:
-- hi-proto-code/go:(内部 import 也用 github,全场一个名), + 自 replace (独立编译用)。布局仍干净 。
-- 消费方 go.mod(import 一个字不动):
-  
-  + GOPRIVATE=git.hi.lan + git insteadOf ssh。
-- 第三方(用 github 路径、走 gRPC)不受影响。
+Go 里模块路径=类型身份,不能像 Rust 那样解耦。但用 `replace` 可**重定向拉取位置、消费方 import 零改动**:
+
+- **hi-proto-code/go**(布局仍干净 `go/hi/...`,无嵌套):
+  - `go_package_prefix = github.com/HiWorld-56/hi-proto/gen/go`(内部 import 也用 github,全场一个名 → 不会 two-paths)
+  - `go.mod`: `module git.hi.lan/HiWorld-56/hi-proto-code/go` + 自 replace `github.com/HiWorld-56/hi-proto/gen/go => ./`(让它能独立编译)
+- **消费方 go.mod**(import 一个字不动):
+  ```
+  require github.com/HiWorld-56/hi-proto/gen/go vX
+  replace github.com/HiWorld-56/hi-proto/gen/go => git.hi.lan/HiWorld-56/hi-proto-code/go vY
+  ```
+  + `GOPRIVATE=git.hi.lan` + `git config url."ssh://gitea@git.hi.lan/".insteadOf "https://git.hi.lan/"`
+- **第三方**(用 github 路径、走 gRPC)不受影响。
