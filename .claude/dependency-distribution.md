@@ -1,5 +1,7 @@
 # hi-proto 多语言依赖分发方案
 
+> ⚠️ 本文是设计/历史记录,经历过多次布局调整(pre-method-A → go 仓根 → **go/ 子目录**)。**消费方引用方式以 `hi-proto-code/README.md` 为准**。
+
 > 设计记录。目的:把"各消费方 submodule + 本地生成"改成"CI 集中生成 + 各语言包管理器按版本依赖"。
 
 ## 背景 / 问题
@@ -25,14 +27,14 @@ hi-proto 是全生态(backend Go、app Dart、hinj_brain / hiclub-core-mqtt Rust
 
 ```
 hi-proto-code/
-  go/     go.mod(module git.hi.lan/HiWorld-56/hi-proto-code/go)+ go.sum + hi/**.pb.go(grpc+gateway)
+  go/     go.mod(module github.com/HiWorld-56/hi-proto/go(经 insteadOf 桥到 gitea hi-proto-code))+ go.sum + hi/**.pb.go(grpc+gateway)
   rust/   Cargo.toml(package "hi-proto")+ src/lib.rs + src/gen/**(prost/tonic/pbjson 预生成,消费方无需 protoc)
   dart/   pubspec.yaml + lib/**(protobuf+grpc)
 ```
 
 **布局原则**:仓根不放任何散件,每种语言的工程配置都收进自己目录,避免 root 混杂/冲突。
 - Rust:crate 在 `rust/` 子目录,**无需 root workspace**——`{ git, package = "hi-proto" }` cargo 能按包名找到(已验证)。
-- Go:`go/` 是子目录 module,导入路径 `git.hi.lan/HiWorld-56/hi-proto-code/go`;**发版 tag 要带前缀 `go/vX.Y.Z`**(Go 多 module 仓规矩)。
+- Go:`go/` 是子目录 module,导入路径 `github.com/HiWorld-56/hi-proto/go(经 insteadOf 桥到 gitea hi-proto-code)`;**发版 tag 要带前缀 `go/vX.Y.Z`**(Go 多 module 仓规矩)。
 - Dart:`{ path: dart }` 原生支持。
 
 **tag 约定**:发版打**两个** tag —— `vX.Y.Z`(rust/dart)+ `go/vX.Y.Z`(go 子目录 module)。release.sh 自动打两个。
@@ -42,7 +44,7 @@ hi-proto-code/
 | 语言 | 开发期(跟 dev 分支) | 发版(pin tag) |
 |---|---|---|
 | Rust | `hi-proto = { git = "ssh://gitea@git.hi.lan/HiWorld-56/hi-proto-code.git", branch = "dev", package = "hi-proto" }` | `tag = "vX.Y.Z"` |
-| Go | `go get .../hi-proto-code/go@dev` | `.../hi-proto-code/go@vX.Y.Z`(解析 go/vX.Y.Z tag) |
+| Go | `go get .../hi-proto/go@... (tag go/vX)` | `.../hi-proto/go@vX.Y.Z`(解析 go/vX.Y.Z tag) |
 | Dart | `hi_proto: { git: { url: ..., ref: dev, path: dart } }` | `ref: vX.Y.Z` |
 
 Rust 没有"git 子路径"语法,靠 `package = "hi-proto"` 按包名在仓里找到 rust crate(效果等价"指路径")。
@@ -77,7 +79,7 @@ CI 机 = **dev(.64)**,工作路径 `/home/lo/wip/`(与其他项目并列)。
 
 - [x] 本文档入库(hi-proto)
 - [x] rust 预生成工具 `codegen/rust-gen/`(复用 tonic-prost-build/pbjson-build,非 buf 远程插件)
-- [x] 建 `hi-proto-code` 仓 + 骨架(**go 在  子目录**(曾放仓根,后为保持根目录只有 dart/go/rust 而移入) module=github.com/HiWorld-56/hi-proto / rust/ crate / dart/)
+- [x] 建 `hi-proto-code` 仓 + 骨架(**go 在 `go/` 子目录**(module=`github.com/HiWorld-56/hi-proto/go`,曾放仓根、后为保持根目录只有 dart/go/rust 而移入)/ rust/ crate / dart/)
 - [x] .64 `release.sh`:生成 go-http/rust/dart → 推 dev(发版 merge main + 打普通 tag vX.Y.Z)
 - [x] 首次生成 + 推 dev/main,tag **v0.1.0**(go/rust)、**v0.2.0**(+dart pubspec 版本对齐)
 - [x] 切 hiclub-core-mqtt → hi-proto-code(编译验证,5356a9e)
@@ -97,7 +99,7 @@ go 模块在**仓根**,go module zip 会包含 `dart/`、`rust/`(它们无自己
 
 ## Go:保持 import 不变(模块名=github,靠 insteadOf 拉)
 
-Go 里“模块名 = import 前缀”,二者必须一致。所以 hi-proto-code 的 **go 模块放仓根**,`go.mod` module=`github.com/HiWorld-56/hi-proto`,生成物在 `gen/go/hi/...`(go_package_prefix=`github.com/HiWorld-56/hi-proto/gen/go`)。消费方:
+hi-proto-code 的 **go 在 `go/` 子目录**:`go/go.mod` module=`github.com/HiWorld-56/hi-proto/go`,生成物 `go/hi/...`(go_package_prefix=`github.com/HiWorld-56/hi-proto/go`,managed 模式设,覆盖 proto 的 option)。根目录只留 dart/go/rust。消费方:
 
 ```
 require github.com/HiWorld-56/hi-proto vX.Y.Z         # 无 replace
