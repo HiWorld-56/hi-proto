@@ -45,8 +45,10 @@ echo "== 已推 dev =="
 if [ -n "$VERSION" ]; then
   git checkout -q main
   git merge -q --ff-only dev
-  git tag "$VERSION"; git tag "go/$VERSION"        # rust/dart 用普通 tag vX;go 子目录模块用 go/vX
-  ( unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy; git push origin main "$VERSION" "go/$VERSION" )
+  git tag "$VERSION"        # 单 tag:go.mod 在仓根,普通 vX;go/rust/dart 三语言共用
+  ( unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy; git push origin main "$VERSION" )
   git checkout -q dev
-  echo "== 已发版 $VERSION(main + tag)=="
+  # 源仓 hi-proto 打同一个版本号(产物仓版本 = 源仓版本,始终一致)
+  ( cd "$HIPROTO"; git tag "$VERSION" 2>/dev/null; unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy; git push origin "$VERSION" )
+  echo "== 已发版 $VERSION(hi-proto + hi-proto-code 同版本 $VERSION)=="
 fi
