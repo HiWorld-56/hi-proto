@@ -3,7 +3,7 @@ managed:
   enabled: true
   override:
     - file_option: go_package_prefix
-      value: git.hi.lan/HiWorld-56/hi-proto-code/go
+      value: github.com/HiWorld-56/hi-proto/gen/go
   disable:
   - file_option: go_package
     module: buf.build/bufbuild/protovalidate
