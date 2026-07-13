@@ -60,3 +60,9 @@ message Pagination {
   int32 page  = 1;
   int32 limit = 2;
 }
+
+// 服务自身版本/环境(所有 Base 服务共用;各服务实现返回自己的 bin 版本与探测到的环境)。
+message ServerVersionResp {
+  string version = 1; // bin 版本(git tag 注入)
+  string env     = 2; // 运行环境:dev/prod(echo 探测得出)
+}

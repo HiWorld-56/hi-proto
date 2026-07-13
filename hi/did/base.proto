@@ -37,6 +37,7 @@ service Base {
   rpc ListCoins (google.protobuf.Empty) returns (ListCoinsResp); // 不鉴权
   rpc LatestVersion (LatestVersionReq) returns (LatestVersionResp); // 不鉴权
   rpc ListSuperAdminUsers (google.protobuf.Empty) returns (ListSuperAdminUsersResp); // 不鉴权
+  rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp); // 不鉴权:查服务自身版本+环境
 }
 
 service Assist {
