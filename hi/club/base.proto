@@ -6,6 +6,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 import "google/protobuf/empty.proto";
 import "hi/did/base.proto";
+import "hi/common.proto";
 
 message GetConfigReq {
   string name = 1;
@@ -20,4 +21,5 @@ service Base {
   rpc LatestVersion (hi.did.LatestVersionReq) returns (hi.did.LatestVersionResp); // 不鉴权
   rpc ListSuperAdminUsers (google.protobuf.Empty) returns (hi.did.ListSuperAdminUsersResp); // 不鉴权
   rpc GetConfig (GetConfigReq) returns (GetConfigResp); // Token鉴权
+  rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp); // 不鉴权:查服务自身版本+环境
 }

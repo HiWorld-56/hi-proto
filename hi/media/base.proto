@@ -6,7 +6,9 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
 
 import "google/protobuf/empty.proto";
 import "hi/did/base.proto";
+import "hi/common.proto";
 
 service Base {
   rpc ListSuperAdminUsers (google.protobuf.Empty) returns (hi.did.ListSuperAdminUsersResp); // 不鉴权
+  rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp); // 不鉴权:查服务自身版本+环境
 }
