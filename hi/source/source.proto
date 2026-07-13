@@ -5,6 +5,8 @@ package hi.source;
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/source";
 
 import "buf/validate/validate.proto";
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
 
 message UploadReq {
   string type    = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // image/video/audio/file/avatar/code
@@ -56,4 +58,8 @@ service File {
   rpc Download(DownloadReq) returns (DownloadResp); // 文件下载
   rpc UploadStream(stream UploadStreamReq) returns (UploadResp); // 流式上传
   rpc DownloadStream(DownloadStreamReq) returns (stream DownloadStreamResp); // 流式下载
+}
+
+service Base {
+  rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp); // 不鉴权:查服务自身版本+环境
 }
