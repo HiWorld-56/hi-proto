@@ -49,10 +49,6 @@ message CreateSingleReq {
 }
 
 // 更新群信息
-message UpdateGroupReq {
-  GroupBase base             = 1;
-  bool      clear_background = 2;
-}
 
 // 组聊天消息列表参数
 message ListGroupMessageReq {
@@ -141,7 +137,7 @@ service Group {
   rpc Get (GetGroupReq) returns (GroupBase); // 群信息
   rpc Create (CreateGroupReq) returns (GroupBase); // 创建群
   rpc CreateSingle (CreateSingleReq) returns (GroupBase); // 创建单聊群
-  rpc Update (UpdateGroupReq) returns (google.protobuf.Empty); // 更新群
+  rpc Update (GroupBase) returns (google.protobuf.Empty); // 更新群(直接传 GroupBase;清空背景=传空串)
   rpc ListMember (ListGroupMemberReq) returns (GroupInfo); // 群成员列表
   rpc ListQ3GroupMember (ListQ3GroupMemberReq) returns (Q3GroupInfo); // Q3群成员列表
   rpc GetMemberTotal (GetGroupMemberTotalReq) returns (GetGroupMemberTotalResp); // 群成员总数

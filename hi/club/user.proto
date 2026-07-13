@@ -7,6 +7,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/club/messaging.proto";
+import "hi/club/group.proto";
 
 message UserInfo {
   hi.Entity       base          = 1;
@@ -66,7 +67,7 @@ message DeleteFriendReq {
 }
 
 message ListGroupResp {
-  repeated hi.Entity list = 1;
+  repeated GroupBase list = 1; // 群基本信息(含 dnd/muted 等),不再只回 Entity
 }
 
 message GetUserReq {
