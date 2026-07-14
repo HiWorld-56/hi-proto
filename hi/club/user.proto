@@ -36,14 +36,14 @@ message HandleSystemMessageReq {
   string status = 2;
 }
 
-message FriendInfo {
+message RelationInfo {
   hi.Entity base   = 1;
   string    remark = 2; // 备注名
   string    moment = 3; // 用户动态
 }
 
-message ListFriendsResp {
-  repeated FriendInfo list = 1;
+message RelationListResp {
+  repeated RelationInfo list = 1;
 }
 
 message AddFriendReq {
@@ -107,7 +107,8 @@ service User {
   rpc DeleteSystemMessage (DeleteSystemMessageReq) returns (google.protobuf.Empty); // 删除系统消息
   rpc DeleteAllSystemMessage (google.protobuf.Empty) returns (google.protobuf.Empty); // 删除所有系统消息
   rpc HandleSystemMessage (HandleSystemMessageReq) returns (google.protobuf.Empty); // 处理系统消息
-  rpc ListFriends (google.protobuf.Empty) returns (ListFriendsResp); // 当前用户好友
+  rpc ListFriend (google.protobuf.Empty) returns (RelationListResp); // 当前用户好友(friend 关系)
+  rpc ListServitor (google.protobuf.Empty) returns (RelationListResp); // 当前用户仆从(master 关系,人或 bot)
   rpc AddFriend (AddFriendReq) returns (AddFriendResp); // 添加好友
   rpc DeleteFriend (DeleteFriendReq) returns (google.protobuf.Empty); // 删除好友
   rpc ListGroup (google.protobuf.Empty) returns (ListGroupResp); // 当前用户所在的群列表
