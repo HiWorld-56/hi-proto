@@ -118,7 +118,7 @@ message MerchantManageEditReq {
 }
 
 service MerchantManage {
-  rpc List (MerchantManageListReq) returns (MerchantManageListResp) { option (hi.auth) = AUTH_NONE; } // Token鉴权
+  rpc List (MerchantManageListReq) returns (MerchantManageListResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 管理面:全部商户;此前误在免鉴权表里(免登录可拉全量)
   rpc Delete (hi.DID) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
   rpc Edit (MerchantManageEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
 }

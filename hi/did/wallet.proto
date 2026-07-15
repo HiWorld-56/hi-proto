@@ -133,6 +133,6 @@ service Wallet {
   rpc ListAddresses (ListAddressesReq) returns (ListAddressesResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
   rpc TotalAssets (TotalAssetsReq) returns (TotalAssetsResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
   rpc ListUsersAssets (ListUsersAssetsReq) returns (ListUsersAssetsResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
-  rpc GetUserAssets (GetUserAssetsReq) returns (GetUserAssetsResp) { option (hi.auth) = AUTH_NONE; } // Token鉴权
+  rpc GetUserAssets (GetUserAssetsReq) returns (GetUserAssetsResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 用户资产;此前误在免鉴权表里(任何人可查)
   rpc GetUserByAddress (GetUserByAddressReq) returns (GetUserByAddressResp) { option (hi.auth) = AUTH_TOKEN; }
 }

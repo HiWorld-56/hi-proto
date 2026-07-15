@@ -16,6 +16,11 @@ export PATH="/home/lo/golang/go/bin:/home/lo/go/bin:$HOME/.cargo/bin:$PATH"
 
 echo "[hi-proto] $(git -C "$HIPROTO" rev-parse --short HEAD)"
 
+# 鉴权标注校验:每个 rpc 必须显式标注 hi.auth。规则长在方法上,后端拦截器读 descriptor;
+# 漏标即 fail-closed(线上会被拒绝),故在生成前就拦下,而不是等上线才发现。
+echo "[0/4] 校验 hi.auth 标注"
+python3 "$HIPROTO/codegen/check_auth.py"
+
 echo "[1/4] 合并 HTTP 配置"
 ( cd "$HIPROTO" && make merge >/dev/null )
 
