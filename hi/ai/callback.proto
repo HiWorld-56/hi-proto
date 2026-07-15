@@ -17,5 +17,5 @@ message GetUserApiKeyResp {
 }
 
 service UserCallback {
-  rpc GetUserApiKey (GetUserApiKeyReq) returns (GetUserApiKeyResp) { option (hi.auth) = AUTH_TOKEN; } // 获取用户API Key和基础信息
+  rpc GetUserApiKey (GetUserApiKeyReq) returns (GetUserApiKeyResp) { option (hi.auth) = AUTH_NONE; } // 获取用户API Key和基础信息
 }

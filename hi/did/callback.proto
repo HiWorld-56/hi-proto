@@ -10,10 +10,10 @@ import "hi/options.proto";
 
 // 三方app/web登录回调
 service LoginCallback {
-  rpc Login (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // LoginReq // Web3鉴权
+  rpc Login (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; } // LoginReq // Web3鉴权
 }
 
 // 三方app/web支付回调
 service PayCallback {
-  rpc Pay (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // PayData // Web3鉴权
+  rpc Pay (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; } // PayData // Web3鉴权
 }
