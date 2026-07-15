@@ -21,6 +21,8 @@ message GatewayConfigSetReq {
 }
 
 service GatewayConfig  {
-  rpc List (google.protobuf.Empty) returns (GatewayConfigListResp);
+  rpc ListGatewayConfigs (google.protobuf.Empty) returns (GatewayConfigListResp);
+
+  rpc List (google.protobuf.Empty) returns (GatewayConfigListResp) { option deprecated = true; } // DEPRECATED: 改用 ListGatewayConfigs
   rpc Set (GatewayConfigSetReq) returns (google.protobuf.Empty);
 }

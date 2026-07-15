@@ -13,7 +13,8 @@ service Training {
   rpc TrainingStatus (hi.ai.TrainingStatusReq) returns (hi.ai.TrainingStatusResp);           // 获取训练状态
   rpc TrainingClear (hi.ai.TrainingClearReq) returns (google.protobuf.Empty);                // 清除训练状态
   rpc UploadFile (hi.ai.UploadFileReq) returns (google.protobuf.Empty);                      // 上传训练文件
-  rpc ListAgentFile (hi.ai.ListAgentFileReq) returns (hi.ai.ListAgentFileResp);              // 获取训练文件列表
+  rpc ListAgentFiles (hi.ai.ListAgentFileReq) returns (hi.ai.ListAgentFileResp);              // 获取训练文件列表
+  rpc ListAgentFile (hi.ai.ListAgentFileReq) returns (hi.ai.ListAgentFileResp) { option deprecated = true; } // DEPRECATED: 改用 ListAgentFiles
   rpc DeleteAgentFile (hi.ai.DeleteAgentFileReq) returns (google.protobuf.Empty);            // 删除训练文件
   rpc DeleteAgentFiles (hi.ai.DeleteAgentFilesReq) returns (google.protobuf.Empty);          // 批量删除训练文件
   rpc DeleteAgentFilesByDid (hi.ai.DeleteAgentFilesByDidReq) returns (google.protobuf.Empty); // 通过智能体did删除训练文件

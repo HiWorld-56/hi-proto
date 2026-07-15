@@ -12,7 +12,8 @@ import "hi/did/admin.proto";
 service InviteCode {
   rpc Create (google.protobuf.Empty) returns (hi.did.InviteCodeCreateResp); // Token鉴权
   rpc Edit (hi.did.InviteCodeEditReq) returns (google.protobuf.Empty); // Token鉴权
-  rpc List (hi.Pagination) returns (hi.did.InviteCodeListResp); // Token鉴权
+  rpc ListInviteCodes (hi.Pagination) returns (hi.did.InviteCodeListResp); // Token鉴权
+  rpc List (hi.Pagination) returns (hi.did.InviteCodeListResp) { option deprecated = true; } // DEPRECATED: 改用 ListInviteCodes
   rpc Delete (hi.did.InviteCodeDeleteReq) returns (google.protobuf.Empty); // Token鉴权
   rpc Verify (hi.did.InviteCodeVerifyReq) returns (hi.AuthToken); // 不鉴权
 }

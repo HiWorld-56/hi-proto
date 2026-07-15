@@ -156,14 +156,20 @@ message ListFavoriteAgentByDIDsResp {
 
 // apiKey鉴权
 service Agent {
-  rpc ListLLM (google.protobuf.Empty) returns (ListLLMResp);
-  rpc ListEmbedding (google.protobuf.Empty) returns (ListEmbeddingResp);
-  rpc ListSTT (google.protobuf.Empty) returns (ListSTTResp);
-  rpc ListTTS (google.protobuf.Empty) returns (ListTTSResp);
+  rpc ListLlmModels (google.protobuf.Empty) returns (ListLLMResp);
+
+  rpc ListLLM (google.protobuf.Empty) returns (ListLLMResp) { option deprecated = true; } // DEPRECATED: 改用 ListLlmModels
+  rpc ListEmbeddings (google.protobuf.Empty) returns (ListEmbeddingResp);
+  rpc ListEmbedding (google.protobuf.Empty) returns (ListEmbeddingResp) { option deprecated = true; } // DEPRECATED: 改用 ListEmbeddings
+  rpc ListSttModels (google.protobuf.Empty) returns (ListSTTResp);
+  rpc ListSTT (google.protobuf.Empty) returns (ListSTTResp) { option deprecated = true; } // DEPRECATED: 改用 ListSttModels
+  rpc ListTtsModels (google.protobuf.Empty) returns (ListTTSResp);
+  rpc ListTTS (google.protobuf.Empty) returns (ListTTSResp) { option deprecated = true; } // DEPRECATED: 改用 ListTtsModels
   rpc AgentConfig (google.protobuf.Empty) returns (AgentConfigResp);
   rpc CreateAgent (CreateAgentReq) returns (CreateAgentResp);
   rpc EditAgent (EditAgentReq) returns (google.protobuf.Empty);
-  rpc ListAgent (hi.Pagination) returns (ListAgentResp);
+  rpc ListAgents (hi.Pagination) returns (ListAgentResp);
+  rpc ListAgent (hi.Pagination) returns (ListAgentResp) { option deprecated = true; } // DEPRECATED: 改用 ListAgents
   rpc ListAgentByDids (ListAgentByDidsReq) returns (ListAgentByDidsResp);
   rpc DeleteAgent (DeleteAgentReq) returns (google.protobuf.Empty);
   rpc FindAgent (FindAgentReq) returns (FindAgentResp);
@@ -171,6 +177,7 @@ service Agent {
   rpc Transfer (TransferReq) returns (google.protobuf.Empty);
   rpc UpdatesToDefault (UpdatesToDefaultReq) returns (google.protobuf.Empty);
   rpc FavoriteAgent (FavoriteAgentReq) returns (google.protobuf.Empty);
-  rpc ListFavoriteAgent (ListFavoriteAgentReq) returns (ListFavoriteAgentResp);
+  rpc ListFavoriteAgents (ListFavoriteAgentReq) returns (ListFavoriteAgentResp);
+  rpc ListFavoriteAgent (ListFavoriteAgentReq) returns (ListFavoriteAgentResp) { option deprecated = true; } // DEPRECATED: 改用 ListFavoriteAgents
   rpc FavoriteAgentListByDIDs (ListFavoriteAgentByDIDsReq) returns (ListFavoriteAgentByDIDsResp);
 }

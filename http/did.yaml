@@ -9,7 +9,7 @@ http:
   - selector: hi.did.InviteCode.Edit
     post: /api/v1/invitecode/edit
     body: "*"
-  - selector: hi.did.InviteCode.List
+  - selector: hi.did.InviteCode.ListInviteCodes
     post: /api/v1/invitecode/list
     body: "*"
   - selector: hi.did.InviteCode.Delete
@@ -41,7 +41,7 @@ http:
     post: /api/v1/dapp/delete
     body: "*"
 # MerchantManage
-  - selector: hi.did.MerchantManage.List
+  - selector: hi.did.MerchantManage.ListMerchants
     post: /api/v1/merchant_manage/list
     body: "*"
   - selector: hi.did.MerchantManage.Delete
@@ -86,7 +86,7 @@ http:
   - selector: hi.did.Merchant.Set
     post: /api/v1/merchant/set
     body: "*"
-  - selector: hi.did.Merchant.List
+  - selector: hi.did.Merchant.ListMerchants
     post: /api/v1/merchant/list
     body: "*"
   - selector: hi.did.Merchant.SaveUesrs
@@ -125,7 +125,7 @@ http:
   - selector: hi.did.User.Total
     get: /api/v1/user/total
 # GatewayConfig
-  - selector: hi.did.GatewayConfig.List
+  - selector: hi.did.GatewayConfig.ListGatewayConfigs
     get: /api/v1/gateway_config/list
   - selector: hi.did.GatewayConfig.Set
     post: /api/v1/gateway_config/set

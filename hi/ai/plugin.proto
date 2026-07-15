@@ -194,7 +194,8 @@ service Plugin {
   rpc SearchCreate (SearchCreateReq) returns (google.protobuf.Empty);
   rpc PythonCreate (PythonCreateReq) returns (PythonCreateResp); // 创建Python插件
   rpc DrawCreate (DrawCreateReq) returns (DrawCreateResp);
-  rpc List (ListPluginReq) returns (ListPluginResp);
+  rpc ListPlugins (ListPluginReq) returns (ListPluginResp);
+  rpc List (ListPluginReq) returns (ListPluginResp) { option deprecated = true; } // DEPRECATED: 改用 ListPlugins
   rpc Delete (DeletePluginReq) returns (google.protobuf.Empty);
   rpc DeleteByDids (DeletePluginByDidsReq) returns (google.protobuf.Empty);
   rpc Edit (EditPluginReq) returns (google.protobuf.Empty); // 编辑插件

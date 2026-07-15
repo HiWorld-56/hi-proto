@@ -119,7 +119,8 @@ service Training {
   rpc TrainingStatus (TrainingStatusReq) returns (TrainingStatusResp);        // 获取训练状态
   rpc TrainingClear (TrainingClearReq) returns (google.protobuf.Empty);       // 清除训练状态
   rpc UploadFile (UploadFileReq) returns (google.protobuf.Empty);             // 上传训练文件
-  rpc ListAgentFile (ListAgentFileReq) returns (ListAgentFileResp);           // 获取训练文件列表
+  rpc ListAgentFiles (ListAgentFileReq) returns (ListAgentFileResp);           // 获取训练文件列表
+  rpc ListAgentFile (ListAgentFileReq) returns (ListAgentFileResp) { option deprecated = true; } // DEPRECATED: 改用 ListAgentFiles
   rpc DeleteAgentFile (DeleteAgentFileReq) returns (google.protobuf.Empty);   // 删除训练文件
   rpc DeleteAgentFiles (DeleteAgentFilesReq) returns (google.protobuf.Empty); // 批量删除训练文件
   rpc DeleteAgentFilesByDid (DeleteAgentFilesByDidReq) returns (google.protobuf.Empty); // 通过智能体did删除训练文件

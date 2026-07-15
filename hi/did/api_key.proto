@@ -56,7 +56,8 @@ message GetApiKeyResp {
 service ApiKey {
   rpc Create (CreateApiKeyReq) returns (CreateApiKeyResp);
   rpc Edit (EditApiKeyReq) returns (EditApiKeyResp);
-  rpc List (ListApiKeyReq) returns (ListApiKeyResp);
+  rpc ListApiKeys (ListApiKeyReq) returns (ListApiKeyResp);
+  rpc List (ListApiKeyReq) returns (ListApiKeyResp) { option deprecated = true; } // DEPRECATED: 改用 ListApiKeys
   rpc Delete (DeleteApiKeyReq) returns (google.protobuf.Empty);
   rpc Get (GetApiKeyReq) returns (GetApiKeyResp);
 }

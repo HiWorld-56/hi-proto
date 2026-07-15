@@ -138,14 +138,17 @@ service Group {
   rpc Create (CreateGroupReq) returns (GroupBase); // 创建群
   rpc CreateSingle (CreateSingleReq) returns (GroupBase); // 创建单聊群
   rpc Update (GroupBase) returns (google.protobuf.Empty); // 更新群(直接传 GroupBase;清空背景=传空串)
-  rpc ListMember (ListGroupMemberReq) returns (GroupInfo); // 群成员列表
-  rpc ListQ3GroupMember (ListQ3GroupMemberReq) returns (Q3GroupInfo); // Q3群成员列表
+  rpc ListMembers (ListGroupMemberReq) returns (GroupInfo); // 群成员列表
+  rpc ListMember (ListGroupMemberReq) returns (GroupInfo) { option deprecated = true; } // DEPRECATED: 改用 ListMembers
+  rpc ListQ3GroupMembers (ListQ3GroupMemberReq) returns (Q3GroupInfo); // Q3群成员列表
+  rpc ListQ3GroupMember (ListQ3GroupMemberReq) returns (Q3GroupInfo) { option deprecated = true; } // DEPRECATED: 改用 ListQ3GroupMembers
   rpc GetMemberTotal (GetGroupMemberTotalReq) returns (GetGroupMemberTotalResp); // 群成员总数
   rpc Invite (InviteGroupReq) returns (google.protobuf.Empty); // 群邀请
   rpc Join (JoinGroupReq) returns (google.protobuf.Empty); // 主动加群
   rpc Quit (QuitGroupReq) returns (google.protobuf.Empty); // 主动退群/解散群
   rpc Remove (RemoveGroupReq) returns (google.protobuf.Empty); // 移出群聊
-  rpc ListMessage (ListGroupMessageReq) returns (ListGroupMessageResp); // 群消息列表
+  rpc ListMessages (ListGroupMessageReq) returns (ListGroupMessageResp); // 群消息列表
+  rpc ListMessage (ListGroupMessageReq) returns (ListGroupMessageResp) { option deprecated = true; } // DEPRECATED: 改用 ListMessages
   rpc UpdateLastUUID (LastUUID) returns (google.protobuf.Empty); // 更新LastUUID
   rpc CheckLastUUID (ListLastUUID) returns (ListLastUUID); // 检查LastUUID
   rpc SetRole (SetRoleReq) returns (google.protobuf.Empty); // 设置/取消群管理员

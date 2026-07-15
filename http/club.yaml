@@ -19,13 +19,13 @@ http:
   - selector: hi.club.Base.LatestVersion
     get: /api/v1/base/latest_version
 # Agent
-  - selector: hi.club.Agent.ListLLM
+  - selector: hi.club.Agent.ListLlmModels
     get: /api/v1/agent/list_llm
-  - selector: hi.club.Agent.ListEmbedding
+  - selector: hi.club.Agent.ListEmbeddings
     get: /api/v1/agent/list_embedding
-  - selector: hi.club.Agent.ListSTT
+  - selector: hi.club.Agent.ListSttModels
     get: /api/v1/agent/list_stt
-  - selector: hi.club.Agent.ListTTS
+  - selector: hi.club.Agent.ListTtsModels
     get: /api/v1/agent/list_tts
   - selector: hi.club.Agent.AgentConfig
     get: /api/v1/agent/agent_config
@@ -55,7 +55,7 @@ http:
   - selector: hi.club.Agent.FavoriteAgent
     post: /api/v1/agent/favorite_agent
     body: "*"
-  - selector: hi.club.Agent.ListFavoriteAgent
+  - selector: hi.club.Agent.ListFavoriteAgents
     post: /api/v1/agent/list_favorite_agent
     body: "*"
   - selector: hi.club.Agent.FavoriteAgentListByDIDs
@@ -68,10 +68,10 @@ http:
   - selector: hi.club.UserACL.Delete
     post: /api/v1/user_acl/delete
     body: "*"
-  - selector: hi.club.UserACL.List
+  - selector: hi.club.UserACL.ListUserAcls
     post: /api/v1/user_acl/list
     body: "*"
-  - selector: hi.club.UserACL.ListType
+  - selector: hi.club.UserACL.ListUserAclTypes
     get: /api/v1/user_acl/list_type
   - selector: hi.club.UserACL.Edit
     post: /api/v1/user_acl/edit
@@ -136,7 +136,7 @@ http:
   - selector: hi.club.Plugin.DrawCreate
     post: /api/v1/plugin/draw_create
     body: "*"
-  - selector: hi.club.Plugin.List
+  - selector: hi.club.Plugin.ListPlugins
     post: /api/v1/plugin/list
     body: "*"
   - selector: hi.club.Plugin.Delete
@@ -168,7 +168,7 @@ http:
   - selector: hi.club.Training.UploadFile
     post: /api/v1/training/upload_file
     body: "*"
-  - selector: hi.club.Training.ListAgentFile
+  - selector: hi.club.Training.ListAgentFiles
     post: /api/v1/training/list_agent_file
     body: "*"
   - selector: hi.club.Training.DeleteAgentFile
@@ -213,7 +213,7 @@ http:
   - selector: hi.club.ApiKey.Edit
     post: /api/v1/api_key/edit
     body: "*"
-  - selector: hi.club.ApiKey.List
+  - selector: hi.club.ApiKey.ListApiKeys
     post: /api/v1/api_key/list
     body: "*"
   - selector: hi.club.ApiKey.Delete

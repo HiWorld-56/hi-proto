@@ -19,7 +19,7 @@ http:
   - selector: hi.ai.ApiKey.Edit
     post: /api/v1/api_key/edit
     body: "*"
-  - selector: hi.ai.ApiKey.List
+  - selector: hi.ai.ApiKey.ListApiKeys
     post: /api/v1/api_key/list
     body: "*"
   - selector: hi.ai.ApiKey.Delete
@@ -29,13 +29,13 @@ http:
   - selector: hi.ai.Base.ListSuperAdminUsers
     post: /api/v1/base/list_super_admin_users
 # Agent
-  - selector: hi.ai.Agent.ListLLM
+  - selector: hi.ai.Agent.ListLlmModels
     get: /api/v1/agent/list_llm
-  - selector: hi.ai.Agent.ListEmbedding
+  - selector: hi.ai.Agent.ListEmbeddings
     get: /api/v1/agent/list_embedding
-  - selector: hi.ai.Agent.ListSTT
+  - selector: hi.ai.Agent.ListSttModels
     get: /api/v1/agent/list_stt
-  - selector: hi.ai.Agent.ListTTS
+  - selector: hi.ai.Agent.ListTtsModels
     get: /api/v1/agent/list_tts
   - selector: hi.ai.Agent.AgentConfig
     get: /api/v1/agent/agent_config
@@ -45,7 +45,7 @@ http:
   - selector: hi.ai.Agent.EditAgent
     post: /api/v1/agent/edit_agent
     body: "*"
-  - selector: hi.ai.Agent.ListAgent
+  - selector: hi.ai.Agent.ListAgents
     post: /api/v1/agent/list_agent
     body: "*"
   - selector: hi.ai.Agent.ListAgentByDids
@@ -68,7 +68,7 @@ http:
   - selector: hi.ai.Agent.FavoriteAgent
     post: /api/v1/agent/favorite_agent
     body: "*"
-  - selector: hi.ai.Agent.ListFavoriteAgent
+  - selector: hi.ai.Agent.ListFavoriteAgents
     post: /api/v1/agent/list_favorite_agent
     body: "*"
   - selector: hi.ai.Agent.FavoriteAgentListByDIDs
@@ -89,7 +89,7 @@ http:
   - selector: hi.ai.Plugin.DrawCreate
     post: /api/v1/plugin/draw_create
     body: "*"
-  - selector: hi.ai.Plugin.List
+  - selector: hi.ai.Plugin.ListPlugins
     post: /api/v1/plugin/list
     body: "*"
   - selector: hi.ai.Plugin.Delete
@@ -121,7 +121,7 @@ http:
   - selector: hi.ai.Training.UploadFile
     post: /api/v1/training/upload_file
     body: "*"
-  - selector: hi.ai.Training.ListAgentFile
+  - selector: hi.ai.Training.ListAgentFiles
     post: /api/v1/training/list_agent_file
     body: "*"
   - selector: hi.ai.Training.DeleteAgentFile
@@ -157,10 +157,10 @@ http:
   - selector: hi.ai.UserACL.Delete
     post: /api/v1/user_acl/delete
     body: "*"
-  - selector: hi.ai.UserACL.List
+  - selector: hi.ai.UserACL.ListUserAcls
     post: /api/v1/user_acl/list
     body: "*"
-  - selector: hi.ai.UserACL.ListType
+  - selector: hi.ai.UserACL.ListUserAclTypes
     get: /api/v1/user_acl/list_type
   - selector: hi.ai.UserACL.Edit
     post: /api/v1/user_acl/edit
@@ -177,7 +177,7 @@ http:
   - selector: hi.ai.InviteCode.Edit
     post: /api/v1/invitecode/edit
     body: "*"
-  - selector: hi.ai.InviteCode.List
+  - selector: hi.ai.InviteCode.ListInviteCodes
     post: /api/v1/invitecode/list
     body: "*"
   - selector: hi.ai.InviteCode.Delete
@@ -225,7 +225,7 @@ http:
   - selector: hi.ai.Chat.TextToText2
     post: /api/v1/chat/text_to_text2
     body: "*"
-  - selector: hi.ai.Chat.ListAgentDelay
+  - selector: hi.ai.Chat.ListAgentDelays
     post: /api/v1/chat/list_agent_delay
     body: "*"
   - selector: hi.ai.Chat.GetAgentDelay
