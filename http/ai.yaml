@@ -26,8 +26,6 @@ http:
     post: /api/v1/api_key/delete
     body: "*"
 # Base
-  - selector: hi.ai.Base.ListSuperAdminUsers
-    post: /api/v1/base/list_super_admin_users
 # Agent
   - selector: hi.ai.Agent.ListLlmModels
     get: /api/v1/agent/list_llm
