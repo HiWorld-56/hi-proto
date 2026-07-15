@@ -81,9 +81,27 @@ rpc 改名 = gRPC 方法路径变 → **所有未同步的客户端 UNIMPLEMENTE
 - **其它**:hi-grpc-client-python
 - **三方**:hi-prj.md 明载三方按正式 proto 对接 → **会被打断**,需提前通告
 
-## 六、落地顺序(建议)
-1. `VERSION` **1.3.1 → 2.0.0**(wire 破坏,按 semver 必须进主版本)
-2. hi-proto 改完 → CI 出 `v2.0.0-dev1` → 内部消费方按 devN 灰度
+## 六、落地顺序
+
+### 版本决策:走 **1.4.0**,不进 2.0.0(⚠️ 踩过坑,别再提议)
+按 semver,wire 破坏本该进主版本。**但 Go 的语义导入版本(SIV)是硬规则**:
+主版本 ≥2 时模块路径必须带 `/v2` 后缀,否则 `go mod` 直接拒绝:
+```
+require github.com/HiWorld-56/hi-proto: version "v2.0.0-dev1"
+        invalid: should be v0 or v1, not v2
+```
+进 2.0.0 就意味着 hi-proto-code 的 `go.mod` 要改 `module .../hi-proto/v2`,
+且 **8 个后端每一行 import 都要加 `/v2`**(Rust/Dart 无此约束,只有 Go 有)。
+
+**结论:这次是"命名本来就错了"的整改,不是 API 增删**——破坏该破坏,但不值得为
+一次改名把整个 Go 生态拖进 `/v2` 迁移。故 **VERSION 1.3.1 → 1.4.0**,wire 破坏
+落在 minor 里,消费方按 `-devN` 灰度对齐。
+
+> 曾误打 `v2.0.0-dev1`(两仓),因 Go 拿不到、且按版本序会永远是"最新"而毒化
+> `@latest` 解析,已删除。
+
+1. `VERSION` **1.3.1 → 1.4.0**
+2. hi-proto 改完 → CI 出 `v1.4.0-devN` → 内部消费方按 devN 灰度
 3. 顺序:proto → 8 个后端 handler → Rust(core → brain)→ 前端(同事)→ 通告三方
 4. **后端与客户端必须同版本同时上**(方法路径变,无法灰度共存);
    若要平滑,可**新旧方法并存一个版本**(旧的标 `deprecated`),下个大版本再删——推荐走这条,避免一刀切停服。
