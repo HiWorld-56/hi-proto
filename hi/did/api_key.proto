@@ -6,6 +6,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "hi/options.proto";
 
 message ApiKeyInfo {
   string user       = 1;
@@ -54,9 +55,9 @@ message GetApiKeyResp {
 }
 
 service ApiKey {
-  rpc Create (CreateApiKeyReq) returns (CreateApiKeyResp);
-  rpc Edit (EditApiKeyReq) returns (EditApiKeyResp);
-  rpc List (ListApiKeyReq) returns (ListApiKeyResp);
-  rpc Delete (DeleteApiKeyReq) returns (google.protobuf.Empty);
-  rpc Get (GetApiKeyReq) returns (GetApiKeyResp);
+  rpc Create (CreateApiKeyReq) returns (CreateApiKeyResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }
+  rpc Edit (EditApiKeyReq) returns (EditApiKeyResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }
+  rpc List (ListApiKeyReq) returns (ListApiKeyResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }
+  rpc Delete (DeleteApiKeyReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; }
+  rpc Get (GetApiKeyReq) returns (GetApiKeyResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }
 }

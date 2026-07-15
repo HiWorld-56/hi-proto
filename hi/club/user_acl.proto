@@ -6,11 +6,12 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 import "google/protobuf/empty.proto";
 import "hi/ai/user_acl.proto";
+import "hi/options.proto";
 
 service UserACL {
-  rpc Add (hi.ai.UserACLAddReq) returns (google.protobuf.Empty);
-  rpc Delete (hi.ai.UserACLDeleteReq) returns (google.protobuf.Empty);
-  rpc List (hi.ai.UserACLListReq) returns (hi.ai.UserACLListResp);
-  rpc ListTypes (google.protobuf.Empty) returns (hi.ai.UserACLListTypeResp);
-  rpc Edit (hi.ai.UserACLEditReq) returns (google.protobuf.Empty);
+  rpc Add (hi.ai.UserACLAddReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
+  rpc Delete (hi.ai.UserACLDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
+  rpc List (hi.ai.UserACLListReq) returns (hi.ai.UserACLListResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc ListTypes (google.protobuf.Empty) returns (hi.ai.UserACLListTypeResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc Edit (hi.ai.UserACLEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
 }

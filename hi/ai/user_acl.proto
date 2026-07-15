@@ -6,6 +6,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "hi/options.proto";
 
 message UserACLAddReq {
   string did  = 1;
@@ -44,9 +45,9 @@ message UserACLEditReq {
 
 // Token鉴权
 service UserACL {
-  rpc Add (UserACLAddReq) returns (google.protobuf.Empty);
-  rpc Delete (UserACLDeleteReq) returns (google.protobuf.Empty);
-  rpc List (UserACLListReq) returns (UserACLListResp);
-  rpc ListTypes (google.protobuf.Empty) returns (UserACLListTypeResp);
-  rpc Edit (UserACLEditReq) returns (google.protobuf.Empty);
+  rpc Add (UserACLAddReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
+  rpc Delete (UserACLDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
+  rpc List (UserACLListReq) returns (UserACLListResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc ListTypes (google.protobuf.Empty) returns (UserACLListTypeResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc Edit (UserACLEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
 }

@@ -5,8 +5,9 @@ package hi.club;
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 import "hi/did/agent_market.proto";
+import "hi/options.proto";
 
 // 智能体市场
 service AgentMarket {
-  rpc ListByClass (hi.did.AgentListByClassReq) returns (hi.did.AgentListByClassResp); // Token鉴权
+  rpc ListByClass (hi.did.AgentListByClassReq) returns (hi.did.AgentListByClassResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
 }

@@ -5,6 +5,7 @@ package hi.ai;
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
 
 import "google/protobuf/empty.proto";
+import "hi/options.proto";
 
 message EndpointSetReq {
   string endpoint = 1;
@@ -15,6 +16,6 @@ message EndpointGetResp {
 }
 
 service PluginEndpoint {
-  rpc Set (EndpointSetReq) returns (google.protobuf.Empty); // Token鉴权
-  rpc Get (google.protobuf.Empty) returns (EndpointGetResp); // Token鉴权
+  rpc Set (EndpointSetReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc Get (google.protobuf.Empty) returns (EndpointGetResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
 }

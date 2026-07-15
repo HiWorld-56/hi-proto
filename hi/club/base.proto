@@ -7,6 +7,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 import "google/protobuf/empty.proto";
 import "hi/did/base.proto";
 import "hi/common.proto";
+import "hi/options.proto";
 
 message GetConfigReq {
   string name = 1;
@@ -17,9 +18,9 @@ message GetConfigResp {
 }
 
 service Base {
-  rpc ListCoins (google.protobuf.Empty) returns (hi.did.ListCoinsResp); // 不鉴权
-  rpc LatestVersion (hi.did.LatestVersionReq) returns (hi.did.LatestVersionResp); // 不鉴权
-  rpc ListSuperAdminUsers (google.protobuf.Empty) returns (hi.did.ListSuperAdminUsersResp); // 不鉴权
-  rpc GetConfig (GetConfigReq) returns (GetConfigResp); // Token鉴权
-  rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp); // 不鉴权:查服务自身版本+环境
+  rpc ListCoins (google.protobuf.Empty) returns (hi.did.ListCoinsResp) { option (hi.auth) = AUTH_TOKEN; } // 不鉴权
+  rpc LatestVersion (hi.did.LatestVersionReq) returns (hi.did.LatestVersionResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
+  rpc ListSuperAdminUsers (google.protobuf.Empty) returns (hi.did.ListSuperAdminUsersResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
+  rpc GetConfig (GetConfigReq) returns (GetConfigResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权:查服务自身版本+环境
 }

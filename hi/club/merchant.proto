@@ -7,8 +7,9 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/did/merchant.proto";
+import "hi/options.proto";
 
 service Merchant {
-  rpc List (google.protobuf.Empty) returns (hi.did.MerchantListResp); // 查询用户所在的商户列表
-  rpc ListAll (hi.Pagination) returns (hi.did.MerchantListResp); // 查询所有商户列表
+  rpc List (google.protobuf.Empty) returns (hi.did.MerchantListResp) { option (hi.auth) = AUTH_TOKEN; } // 查询用户所在的商户列表
+  rpc ListAll (hi.Pagination) returns (hi.did.MerchantListResp) { option (hi.auth) = AUTH_TOKEN; } // 查询所有商户列表
 }

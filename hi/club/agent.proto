@@ -7,6 +7,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/ai/agent.proto";
+import "hi/options.proto";
 
 message BindMasterReq {
   string master = 1;
@@ -46,25 +47,25 @@ message GetAgentMasterResp {
 }
 
 service Agent {
-  rpc ListLlmModels (google.protobuf.Empty) returns (hi.ai.ListLLMResp);
-  rpc ListEmbeddings (google.protobuf.Empty) returns (hi.ai.ListEmbeddingResp);
-  rpc ListSttModels (google.protobuf.Empty) returns (hi.ai.ListSTTResp);
-  rpc ListTtsModels (google.protobuf.Empty) returns (hi.ai.ListTTSResp);
-  rpc AgentConfig (google.protobuf.Empty) returns (hi.ai.AgentConfigResp);
-  rpc CreateAgent (hi.ai.CreateAgentReq) returns (hi.ai.CreateAgentResp);
-  rpc EditAgent (hi.ai.EditAgentReq) returns (google.protobuf.Empty);
-  rpc List (hi.ai.ListAgentReq) returns (hi.ai.ListAgentResp); // 公开(免鉴权);转发 ai.Agent.List;合并原 ListAgentByDids
-  rpc ListFavorites (hi.ai.ListFavoriteReq) returns (hi.ai.ListAgentResp); // 需鉴权;转发 ai.Agent.ListFavorites;合并原 ListFavoriteAgents + FavoriteAgentListByDIDs
-  rpc DeleteAgent (hi.ai.DeleteAgentReq) returns (google.protobuf.Empty);
-  rpc FindAgent (hi.ai.FindAgentReq) returns (hi.ai.FindAgentResp);
-  rpc FindAgentCount (hi.ai.FindAgentCountReq) returns (hi.ai.FindAgentCountResp);
-  rpc Transfer (hi.ai.TransferReq) returns (google.protobuf.Empty);
-  rpc UpdatesToDefault (hi.ai.UpdatesToDefaultReq) returns (google.protobuf.Empty);
-  rpc FavoriteAgent (hi.ai.FavoriteAgentReq) returns (google.protobuf.Empty);
+  rpc ListLlmModels (google.protobuf.Empty) returns (hi.ai.ListLLMResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc ListEmbeddings (google.protobuf.Empty) returns (hi.ai.ListEmbeddingResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc ListSttModels (google.protobuf.Empty) returns (hi.ai.ListSTTResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc ListTtsModels (google.protobuf.Empty) returns (hi.ai.ListTTSResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc AgentConfig (google.protobuf.Empty) returns (hi.ai.AgentConfigResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc CreateAgent (hi.ai.CreateAgentReq) returns (hi.ai.CreateAgentResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc EditAgent (hi.ai.EditAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
+  rpc List (hi.ai.ListAgentReq) returns (hi.ai.ListAgentResp) { option (hi.auth) = AUTH_NONE; } // 公开(免鉴权);转发 ai.Agent.List;合并原 ListAgentByDids
+  rpc ListFavorites (hi.ai.ListFavoriteReq) returns (hi.ai.ListAgentResp) { option (hi.auth) = AUTH_TOKEN; } // 需鉴权;转发 ai.Agent.ListFavorites;合并原 ListFavoriteAgents + FavoriteAgentListByDIDs
+  rpc DeleteAgent (hi.ai.DeleteAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
+  rpc FindAgent (hi.ai.FindAgentReq) returns (hi.ai.FindAgentResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc FindAgentCount (hi.ai.FindAgentCountReq) returns (hi.ai.FindAgentCountResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc Transfer (hi.ai.TransferReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
+  rpc UpdatesToDefault (hi.ai.UpdatesToDefaultReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
+  rpc FavoriteAgent (hi.ai.FavoriteAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
 
-  rpc BindMaster (BindMasterReq) returns (google.protobuf.Empty); // 绑定智能体
-  rpc UnbindMaster (UnbindMasterReq) returns (google.protobuf.Empty); // 解绑智能体
-  rpc BindStatus (BindStatusReq) returns (BindStatusResp); // 智能体绑定状态
-  rpc ListOnline (ListOnlineReq) returns (ListOnlineResp); // 在线智能体(club 本地 presence);owner_did 可选,空=全部
-  rpc GetAgentMaster (GetAgentMasterReq) returns (GetAgentMasterResp); // 智能体主人
+  rpc BindMaster (BindMasterReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // 绑定智能体
+  rpc UnbindMaster (UnbindMasterReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // 解绑智能体
+  rpc BindStatus (BindStatusReq) returns (BindStatusResp) { option (hi.auth) = AUTH_TOKEN; } // 智能体绑定状态
+  rpc ListOnline (ListOnlineReq) returns (ListOnlineResp) { option (hi.auth) = AUTH_NONE; } // 在线智能体(club 本地 presence);owner_did 可选,空=全部
+  rpc GetAgentMaster (GetAgentMasterReq) returns (GetAgentMasterResp) { option (hi.auth) = AUTH_NONE; } // 智能体主人
 }

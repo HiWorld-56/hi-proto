@@ -7,6 +7,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "buf/validate/validate.proto";
+import "hi/options.proto";
 
 message UserExtensionSettingResp {
   string token = 1;
@@ -14,8 +15,8 @@ message UserExtensionSettingResp {
 }
 
 service UserExtensionSettings {
-  rpc Update (google.protobuf.Empty) returns (UserExtensionSettingResp); // Token鉴权
-  rpc Get (google.protobuf.Empty) returns (UserExtensionSettingResp); // Token鉴权
+  rpc Update (google.protobuf.Empty) returns (UserExtensionSettingResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc Get (google.protobuf.Empty) returns (UserExtensionSettingResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
 }
 
 message Button {
@@ -82,9 +83,9 @@ message UserExtensionGetResp {
 }
 
 service UserExtension {
-  rpc Update (UserExtensionUpdateReq) returns (google.protobuf.Empty); // Extend-Token鉴权
-  rpc List (UserExtensionListReq) returns (UserExtensionListResp); // Extend-Token鉴权
-  rpc Delete (UserExtensionDeleteReq) returns (google.protobuf.Empty); // Extend-Token鉴权
-  rpc ListByMerchantDid (ListByMerchantDidReq) returns (ListByMerchantDidResp); // Extend-Token鉴权
-  rpc Get (UserExtensionGetReq) returns (UserExtensionGetResp); // Extend-Token鉴权
+  rpc Update (UserExtensionUpdateReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // Extend-Token鉴权
+  rpc List (UserExtensionListReq) returns (UserExtensionListResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // Extend-Token鉴权
+  rpc Delete (UserExtensionDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // Extend-Token鉴权
+  rpc ListByMerchantDid (ListByMerchantDidReq) returns (ListByMerchantDidResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // Extend-Token鉴权
+  rpc Get (UserExtensionGetReq) returns (UserExtensionGetResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // Extend-Token鉴权
 }

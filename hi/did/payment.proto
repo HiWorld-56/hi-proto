@@ -6,6 +6,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "hi/options.proto";
 
 message Order {
   string id   = 1; // req_id
@@ -14,6 +15,6 @@ message Order {
 }
 
 service Pay {
-  rpc GenerateReq (hi.ClientInfo) returns (hi.RequestId); // 不鉴权
-  rpc Notify (hi.SignedData) returns (google.protobuf.Empty); // Order // Web3鉴权
+  rpc GenerateReq (hi.ClientInfo) returns (hi.RequestId) { option (hi.auth) = AUTH_NONE; } // 不鉴权
+  rpc Notify (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; } // Order // Web3鉴权
 }

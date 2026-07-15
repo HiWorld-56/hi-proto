@@ -5,6 +5,7 @@ package hi.ai;
 import "google/protobuf/empty.proto";
 import "google/protobuf/struct.proto";
 import "hi/common.proto";
+import "hi/options.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
 
@@ -189,22 +190,22 @@ message SpeechToTextReq {
 
 // apiKey鉴权
 service Chat {
-  rpc Simple(SimpleReq) returns (DialogResp);
-  rpc GenerateCid(google.protobuf.Empty) returns (GenerateCidResp);
-  rpc Dialog(DialogReq) returns (DialogResp);
-  rpc DialogStream(DialogReq) returns (stream DialogStreamResp);
-  rpc ClearContext(ClearContextReq) returns (google.protobuf.Empty);
-  rpc GetContext(GetContextReq) returns (GetContextResp);
-  rpc ListAgentDelays (ListAgentDelayReq) returns (ListAgentDelayResp);
-  rpc GetAgentDelay(GetAgentDelayReq) returns (GetAgentDelayResp);
+  rpc Simple (SimpleReq) returns (DialogResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc GenerateCid (google.protobuf.Empty) returns (GenerateCidResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc Dialog (DialogReq) returns (DialogResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc DialogStream (DialogReq) returns (stream DialogStreamResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc ClearContext (ClearContextReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; }
+  rpc GetContext (GetContextReq) returns (GetContextResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc ListAgentDelays (ListAgentDelayReq) returns (ListAgentDelayResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc GetAgentDelay (GetAgentDelayReq) returns (GetAgentDelayResp) { option (hi.auth) = AUTH_TOKEN; }
 
-  rpc SimpleTextToSpeech(SimpleTextToSpeechReq) returns (SimpleTextToSpeechResp);
-  rpc SimpleSpeechToText(SimpleSpeechToTextReq) returns (SimpleSpeechToTextResp);
+  rpc SimpleTextToSpeech (SimpleTextToSpeechReq) returns (SimpleTextToSpeechResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc SimpleSpeechToText (SimpleSpeechToTextReq) returns (SimpleSpeechToTextResp) { option (hi.auth) = AUTH_API_KEY; }
 
-  rpc SpeechToSpeech(SpeechToSpeechReq) returns (ChatResp);
-  rpc SpeechToSpeech2(ToolCallResultsReq) returns (ChatResp);
-  rpc TextToText(TextToTextReq) returns (ChatResp);
-  rpc TextToText2(ToolCallResultsReq) returns (ChatResp);
-  rpc SpeechToText(SpeechToTextReq) returns (ChatResp);
-  rpc SpeechToText2(ToolCallResultsReq) returns (ChatResp);
+  rpc SpeechToSpeech (SpeechToSpeechReq) returns (ChatResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc SpeechToSpeech2 (ToolCallResultsReq) returns (ChatResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc TextToText (TextToTextReq) returns (ChatResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc TextToText2 (ToolCallResultsReq) returns (ChatResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc SpeechToText (SpeechToTextReq) returns (ChatResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc SpeechToText2 (ToolCallResultsReq) returns (ChatResp) { option (hi.auth) = AUTH_API_KEY; }
 }

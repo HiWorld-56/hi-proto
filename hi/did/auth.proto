@@ -4,6 +4,7 @@ package hi.did;
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "hi/options.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 
@@ -43,11 +44,11 @@ message LogoutReq {
 }
 
 service Auth {
-  rpc RefreshToken(RefreshTokenReq) returns (hi.AuthToken); // 不鉴权
-  rpc Verify(hi.SignedData) returns (LoginResp); // LoginReq // Web3鉴权
-  rpc VerifyOffline(hi.SignedData) returns (LoginResp); // 内部服务使用 Web3鉴权
-  rpc GenerateReqId(GenerateReqIdReq) returns (hi.RequestId); // 不鉴权
-  rpc GetReqStatus(hi.RequestId) returns (ReqStatusResp); // 不鉴权
-  rpc Notify(hi.SignedData) returns (google.protobuf.Empty); // LoginReq // Web3鉴权
-  rpc Logout(hi.SignedData) returns (google.protobuf.Empty); // Web3鉴权
+  rpc RefreshToken (RefreshTokenReq) returns (hi.AuthToken) { option (hi.auth) = AUTH_NONE; } // 不鉴权
+  rpc Verify (hi.SignedData) returns (LoginResp) { option (hi.auth) = AUTH_NONE; } // LoginReq // Web3鉴权
+  rpc VerifyOffline (hi.SignedData) returns (LoginResp) { option (hi.auth) = AUTH_NONE; } // 内部服务使用 Web3鉴权
+  rpc GenerateReqId (GenerateReqIdReq) returns (hi.RequestId) { option (hi.auth) = AUTH_NONE; } // 不鉴权
+  rpc GetReqStatus (hi.RequestId) returns (ReqStatusResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
+  rpc Notify (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; } // LoginReq // Web3鉴权
+  rpc Logout (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; } // Web3鉴权
 }

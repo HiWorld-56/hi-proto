@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package hi;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi";
+
+import "google/protobuf/descriptor.proto";
+
+// 方法鉴权档位。
+//
+// 设计要点:**规则长在方法身上**,后端拦截器读 descriptor 判断,不再维护 Go 里的字符串表。
+//   - 改名时选项跟着方法走 → 物理上不可能错位(历史上曾因改名导致 15 处鉴权静默漂移)
+//   - 删方法时规则一并消失 → 不会留下悬空条目
+//   - 未标注 = AUTH_UNSPECIFIED(0)= **fail-closed,拦截器直接拒绝**
+//     (旧的表驱动方式是 fail-open:不在表里就掉进某个默认档,did 那个默认档还更宽松)
+//
+// CI 校验:每个 rpc 必须显式标注;标注与后端实现不一致即构建失败。
+enum Auth {
+  AUTH_UNSPECIFIED  = 0; // 未标注 —— 拦截器拒绝(fail-closed);仅作为漏标的哨兵,不要主动使用
+  AUTH_NONE         = 1; // 免鉴权:公开接口(健康检查、版本、登录握手、给三方查在线机器人等)
+  AUTH_TOKEN        = 2; // 用户 token(JWT):普通登录用户
+  AUTH_EXTEND_TOKEN = 3; // 商户 ExtendToken:hisrv 商户身份,ctx 内含 merchant_did / extend_table
+  AUTH_API_KEY      = 4; // apiKey:三方程序化调用
+  AUTH_SUPERADMIN   = 5; // 超管:在 AUTH_TOKEN 基础上再校验 caller did ∈ 超管名单
+                         // (内部全局控制/查看接口的后门;名单见 hi_chat_dids.purpose=0 & enable=1)
+}
+
+extend google.protobuf.MethodOptions {
+  // 该方法要求的鉴权档位。**每个 rpc 都必须标注**,不标注即 fail-closed。
+  Auth auth = 50001;
+}

@@ -6,6 +6,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 
 import "hi/common.proto";
 import "hi/did/base.proto";
+import "hi/options.proto";
 
 message Transaction {
   string    hash   = 1;
@@ -62,7 +63,7 @@ message VerifyTransactionResp {
 }
 
 service Transfer {
-  rpc History (HistoryReq) returns (HistoryResp); // 不鉴权
-  rpc TxStatus (TxStatusReq) returns (TxStatusResp); // 不鉴权
-  rpc VerifyTransaction (VerifyTransactionReq) returns (VerifyTransactionResp); // 不鉴权 // 两阶段：链上确认 + 业务比对
+  rpc History (HistoryReq) returns (HistoryResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
+  rpc TxStatus (TxStatusReq) returns (TxStatusResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
+  rpc VerifyTransaction (VerifyTransactionReq) returns (VerifyTransactionResp) { option (hi.auth) = AUTH_TOKEN; } // 不鉴权 // 两阶段：链上确认 + 业务比对
 }

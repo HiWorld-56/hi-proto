@@ -6,6 +6,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "hi/options.proto";
 
 /////////////////////////////// 智能体 ///////////////////////////////
 message Prompt {
@@ -142,19 +143,19 @@ message FavoriteAgentReq {
 
 // apiKey鉴权
 service Agent {
-  rpc ListLlmModels (google.protobuf.Empty) returns (ListLLMResp);
-  rpc ListEmbeddings (google.protobuf.Empty) returns (ListEmbeddingResp);
-  rpc ListSttModels (google.protobuf.Empty) returns (ListSTTResp);
-  rpc ListTtsModels (google.protobuf.Empty) returns (ListTTSResp);
-  rpc AgentConfig (google.protobuf.Empty) returns (AgentConfigResp);
-  rpc CreateAgent (CreateAgentReq) returns (CreateAgentResp);
-  rpc EditAgent (EditAgentReq) returns (google.protobuf.Empty);
-  rpc List (ListAgentReq) returns (ListAgentResp); // 公开;合并原 ListAgent + ListAgentByDids
-  rpc ListFavorites (ListFavoriteReq) returns (ListAgentResp); // 需鉴权;合并原 ListFavoriteAgents + FavoriteAgentListByDIDs
-  rpc DeleteAgent (DeleteAgentReq) returns (google.protobuf.Empty);
-  rpc FindAgent (FindAgentReq) returns (FindAgentResp);
-  rpc FindAgentCount (FindAgentCountReq) returns (FindAgentCountResp);
-  rpc Transfer (TransferReq) returns (google.protobuf.Empty);
-  rpc UpdatesToDefault (UpdatesToDefaultReq) returns (google.protobuf.Empty);
-  rpc FavoriteAgent (FavoriteAgentReq) returns (google.protobuf.Empty);
+  rpc ListLlmModels (google.protobuf.Empty) returns (ListLLMResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc ListEmbeddings (google.protobuf.Empty) returns (ListEmbeddingResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc ListSttModels (google.protobuf.Empty) returns (ListSTTResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc ListTtsModels (google.protobuf.Empty) returns (ListTTSResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc AgentConfig (google.protobuf.Empty) returns (AgentConfigResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc CreateAgent (CreateAgentReq) returns (CreateAgentResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc EditAgent (EditAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; }
+  rpc List (ListAgentReq) returns (ListAgentResp) { option (hi.auth) = AUTH_API_KEY; } // 公开;合并原 ListAgent + ListAgentByDids
+  rpc ListFavorites (ListFavoriteReq) returns (ListAgentResp) { option (hi.auth) = AUTH_TOKEN; } // 需鉴权;合并原 ListFavoriteAgents + FavoriteAgentListByDIDs
+  rpc DeleteAgent (DeleteAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; }
+  rpc FindAgent (FindAgentReq) returns (FindAgentResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc FindAgentCount (FindAgentCountReq) returns (FindAgentCountResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc Transfer (TransferReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; }
+  rpc UpdatesToDefault (UpdatesToDefaultReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; }
+  rpc FavoriteAgent (FavoriteAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; }
 }

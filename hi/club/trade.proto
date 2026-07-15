@@ -8,6 +8,7 @@ import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/did/base.proto";
 import "hi/did/transfer.proto";
+import "hi/options.proto";
 
 message TradeUnit {
   hi.did.Coin coin   = 1;
@@ -82,9 +83,9 @@ message ListTradeResp {
 }
 
 service Trade {
-  rpc GetTradeFee (GetTradeFeeReq) returns (GetTradeFeeResp);
-  rpc GetTrade (GetTradeReq) returns (GetTradeResp);
-  rpc AddTrade (AddTradeReq) returns (AddTradeResp);
-  rpc UpdateTransHash (UpdateTransHashReq) returns (google.protobuf.Empty);
-  rpc List (ListTradeReq) returns (ListTradeResp); // 合并原 ListTrade(按 did)+ ListAllTrade(按 id/全量),过滤走参数
+  rpc GetTradeFee (GetTradeFeeReq) returns (GetTradeFeeResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc GetTrade (GetTradeReq) returns (GetTradeResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc AddTrade (AddTradeReq) returns (AddTradeResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc UpdateTransHash (UpdateTransHashReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
+  rpc List (ListTradeReq) returns (ListTradeResp) { option (hi.auth) = AUTH_TOKEN; } // 合并原 ListTrade(按 did)+ ListAllTrade(按 id/全量),过滤走参数
 }

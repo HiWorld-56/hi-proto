@@ -7,6 +7,7 @@ import "google/protobuf/empty.proto";
 import "hi/club/trade.proto";
 import "hi/common.proto";
 import "hi/did/transfer.proto";
+import "hi/options.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
@@ -153,5 +154,5 @@ message PublishReq {
 }
 
 service Publisher {
-  rpc Publish(PublishReq) returns (google.protobuf.Empty); // Token鉴权
+  rpc Publish (PublishReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
 }

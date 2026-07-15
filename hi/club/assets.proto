@@ -5,7 +5,8 @@ package hi.club;
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 import "hi/did/wallet.proto";
+import "hi/options.proto";
 
 service Assets {
-  rpc GetUserAssets (hi.did.GetUserAssetsReq) returns (hi.did.GetUserAssetsResp);
+  rpc GetUserAssets (hi.did.GetUserAssetsReq) returns (hi.did.GetUserAssetsResp) { option (hi.auth) = AUTH_NONE; }
 }

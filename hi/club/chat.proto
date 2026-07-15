@@ -5,6 +5,7 @@ package hi.club;
 import "google/protobuf/empty.proto";
 import "hi/ai/chat.proto";
 import "hi/club/messaging.proto";
+import "hi/options.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
@@ -75,20 +76,20 @@ message SpeechToTextReq {
 
 // Token鉴权
 service Chat {
-  rpc Simple(SimpleReq) returns (hi.ai.DialogResp);
-  rpc GenerateCid(google.protobuf.Empty) returns (hi.ai.GenerateCidResp);
-  rpc Dialog(DialogReq) returns (hi.ai.DialogResp);
-  rpc DialogStream(DialogReq) returns (stream hi.ai.DialogStreamResp);
-  rpc ClearContext(hi.ai.ClearContextReq) returns (google.protobuf.Empty);
-  rpc GetContext(hi.ai.GetContextReq) returns (GetContextResp);
+  rpc Simple (SimpleReq) returns (hi.ai.DialogResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc GenerateCid (google.protobuf.Empty) returns (hi.ai.GenerateCidResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc Dialog (DialogReq) returns (hi.ai.DialogResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc DialogStream (DialogReq) returns (stream hi.ai.DialogStreamResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc ClearContext (hi.ai.ClearContextReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
+  rpc GetContext (hi.ai.GetContextReq) returns (GetContextResp) { option (hi.auth) = AUTH_TOKEN; }
 
-  rpc SimpleTextToSpeech(hi.ai.SimpleTextToSpeechReq) returns (hi.ai.SimpleTextToSpeechResp);
-  rpc SimpleSpeechToText(hi.ai.SimpleSpeechToTextReq) returns (hi.ai.SimpleSpeechToTextResp);
+  rpc SimpleTextToSpeech (hi.ai.SimpleTextToSpeechReq) returns (hi.ai.SimpleTextToSpeechResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc SimpleSpeechToText (hi.ai.SimpleSpeechToTextReq) returns (hi.ai.SimpleSpeechToTextResp) { option (hi.auth) = AUTH_TOKEN; }
 
-  rpc SpeechToSpeech(SpeechToSpeechReq) returns (hi.ai.ChatResp);
-  rpc SpeechToSpeech2(ToolCallResultsReq) returns (hi.ai.ChatResp);
-  rpc TextToText(TextToTextReq) returns (hi.ai.ChatResp);
-  rpc TextToText2(ToolCallResultsReq) returns (hi.ai.ChatResp);
-  rpc SpeechToText(SpeechToTextReq) returns (hi.ai.ChatResp);
-  rpc SpeechToText2(ToolCallResultsReq) returns (hi.ai.ChatResp);
+  rpc SpeechToSpeech (SpeechToSpeechReq) returns (hi.ai.ChatResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc SpeechToSpeech2 (ToolCallResultsReq) returns (hi.ai.ChatResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc TextToText (TextToTextReq) returns (hi.ai.ChatResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc TextToText2 (ToolCallResultsReq) returns (hi.ai.ChatResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc SpeechToText (SpeechToTextReq) returns (hi.ai.ChatResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc SpeechToText2 (ToolCallResultsReq) returns (hi.ai.ChatResp) { option (hi.auth) = AUTH_TOKEN; }
 }

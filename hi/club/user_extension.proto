@@ -5,6 +5,7 @@ package hi.club;
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 import "hi/did/user_extension.proto";
+import "hi/options.proto";
 
 message UserExtensionInfo {
   hi.did.UserExtensionUnit unit   = 1;
@@ -16,6 +17,6 @@ message ListByMerchantDidResp {
 }
 
 service UserExtension {
-  rpc Get (hi.did.UserExtensionGetReq) returns (hi.did.UserExtensionGetResp); // Token鉴权
-  rpc ListByMerchantDid (hi.did.ListByMerchantDidReq) returns (ListByMerchantDidResp); // Token鉴权
+  rpc Get (hi.did.UserExtensionGetReq) returns (hi.did.UserExtensionGetResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc ListByMerchantDid (hi.did.ListByMerchantDidReq) returns (ListByMerchantDidResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
 }

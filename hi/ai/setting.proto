@@ -5,6 +5,7 @@ package hi.ai;
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
 
 import "google/protobuf/empty.proto";
+import "hi/options.proto";
 
 message SettingInfo {
   string proxy_url = 1;
@@ -22,6 +23,6 @@ message SettingGetResp {
 
 // Token鉴权
 service Setting {
-  rpc Edit (SettingEditReq) returns (google.protobuf.Empty);
-  rpc Get (google.protobuf.Empty) returns (SettingGetResp);
+  rpc Edit (SettingEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
+  rpc Get (google.protobuf.Empty) returns (SettingGetResp) { option (hi.auth) = AUTH_TOKEN; }
 }

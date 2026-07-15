@@ -6,6 +6,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "hi/options.proto";
 
 message Coin {
   string icon     = 1;
@@ -34,12 +35,12 @@ message ListSuperAdminUsersResp {
 }
 
 service Base {
-  rpc ListCoins (google.protobuf.Empty) returns (ListCoinsResp); // 不鉴权
-  rpc LatestVersion (LatestVersionReq) returns (LatestVersionResp); // 不鉴权
-  rpc ListSuperAdminUsers (google.protobuf.Empty) returns (ListSuperAdminUsersResp); // 不鉴权
-  rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp); // 不鉴权:查服务自身版本+环境
+  rpc ListCoins (google.protobuf.Empty) returns (ListCoinsResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
+  rpc LatestVersion (LatestVersionReq) returns (LatestVersionResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
+  rpc ListSuperAdminUsers (google.protobuf.Empty) returns (ListSuperAdminUsersResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
+  rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权:查服务自身版本+环境
 }
 
 service Assist {
-  rpc VerifySignature (hi.SignedData) returns (hi.DID); // Web3鉴权
+  rpc VerifySignature (hi.SignedData) returns (hi.DID) { option (hi.auth) = AUTH_NONE; } // Web3鉴权
 }

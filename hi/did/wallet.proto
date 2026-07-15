@@ -8,6 +8,7 @@ import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/did/base.proto";
 import "buf/validate/validate.proto";
+import "hi/options.proto";
 
 // 链（chain）：
 //    ethereum
@@ -126,12 +127,12 @@ message GetUserByAddressResp {
 }
 
 service Wallet {
-  rpc UpdateAddresses (hi.SignedData) returns (google.protobuf.Empty); // Web3鉴权 // UpdateAddressesReq
-  rpc UpdateAssets (UpdateAssetsReq) returns (google.protobuf.Empty); // Token鉴权
-  rpc GetWallet (GetWalletReq) returns (GetWalletResp); // Token鉴权
-  rpc ListAddresses (ListAddressesReq) returns (ListAddressesResp); // Token鉴权
-  rpc TotalAssets (TotalAssetsReq) returns (TotalAssetsResp); // 不鉴权
-  rpc ListUsersAssets (ListUsersAssetsReq) returns (ListUsersAssetsResp); // 不鉴权
-  rpc GetUserAssets (GetUserAssetsReq) returns (GetUserAssetsResp); // Token鉴权
-  rpc GetUserByAddress (GetUserByAddressReq) returns (GetUserByAddressResp);
+  rpc UpdateAddresses (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; } // Web3鉴权 // UpdateAddressesReq
+  rpc UpdateAssets (UpdateAssetsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc GetWallet (GetWalletReq) returns (GetWalletResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc ListAddresses (ListAddressesReq) returns (ListAddressesResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc TotalAssets (TotalAssetsReq) returns (TotalAssetsResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
+  rpc ListUsersAssets (ListUsersAssetsReq) returns (ListUsersAssetsResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
+  rpc GetUserAssets (GetUserAssetsReq) returns (GetUserAssetsResp) { option (hi.auth) = AUTH_NONE; } // Token鉴权
+  rpc GetUserByAddress (GetUserByAddressReq) returns (GetUserByAddressResp) { option (hi.auth) = AUTH_TOKEN; }
 }

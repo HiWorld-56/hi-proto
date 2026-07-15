@@ -7,6 +7,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/did/merchant.proto";
+import "hi/options.proto";
 
 message InviteCodeCreateResp {
   string code      = 1;
@@ -40,11 +41,11 @@ message InviteCodeVerifyReq {
 }
 
 service InviteCode {
-  rpc Create (google.protobuf.Empty) returns (InviteCodeCreateResp); // Token鉴权
-  rpc Edit (InviteCodeEditReq) returns (google.protobuf.Empty); // Token鉴权
-  rpc List (hi.Pagination) returns (InviteCodeListResp); // Token鉴权
-  rpc Delete (InviteCodeDeleteReq) returns (google.protobuf.Empty); // Token鉴权
-  rpc Verify (InviteCodeVerifyReq) returns (hi.AuthToken); // 不鉴权
+  rpc Create (google.protobuf.Empty) returns (InviteCodeCreateResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc Edit (InviteCodeEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc List (hi.Pagination) returns (InviteCodeListResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc Delete (InviteCodeDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc Verify (InviteCodeVerifyReq) returns (hi.AuthToken) { option (hi.auth) = AUTH_NONE; } // 不鉴权
 }
 
 message DAppInfo {
@@ -87,14 +88,14 @@ message DAppDeleteReq {
 }
 
 service DApp {
-  rpc ListByClass (google.protobuf.Empty) returns (DAppListByClassResp); // Token鉴权
-  rpc GetRWA (google.protobuf.Empty) returns (DAppGetRWAResp); // Token鉴权
-  rpc GetTop (google.protobuf.Empty) returns (DAppInfo); // Token鉴权
-  rpc UpdateTop (DAppUpdateTopReq) returns (google.protobuf.Empty); // Token鉴权
-  rpc Create (DAppInfo) returns (google.protobuf.Empty); // Token鉴权
-  rpc Edit (DAppInfo) returns (google.protobuf.Empty); // Token鉴权
-  rpc UpdateOrder (DAppUpdateOrderReq) returns (google.protobuf.Empty); // Token鉴权
-  rpc Delete (DAppDeleteReq) returns (google.protobuf.Empty); // Token鉴权
+  rpc ListByClass (google.protobuf.Empty) returns (DAppListByClassResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc GetRWA (google.protobuf.Empty) returns (DAppGetRWAResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc GetTop (google.protobuf.Empty) returns (DAppInfo) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc UpdateTop (DAppUpdateTopReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc Create (DAppInfo) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc Edit (DAppInfo) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc UpdateOrder (DAppUpdateOrderReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc Delete (DAppDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
 }
 
 message MerchantManageListReq {
@@ -117,7 +118,7 @@ message MerchantManageEditReq {
 }
 
 service MerchantManage {
-  rpc List (MerchantManageListReq) returns (MerchantManageListResp); // Token鉴权
-  rpc Delete (hi.DID) returns (google.protobuf.Empty); // Token鉴权
-  rpc Edit (MerchantManageEditReq) returns (google.protobuf.Empty); // Token鉴权
+  rpc List (MerchantManageListReq) returns (MerchantManageListResp) { option (hi.auth) = AUTH_NONE; } // Token鉴权
+  rpc Delete (hi.DID) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc Edit (MerchantManageEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
 }

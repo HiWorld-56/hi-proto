@@ -7,6 +7,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/did/base.proto";
+import "hi/options.proto";
 
 message AgentInfo {
   string uuid             = 1;  // UUID
@@ -57,10 +58,10 @@ message AgentDeleteReq {
 }
 
 service AgentMarket {
-  rpc List (AgentListReq) returns (AgentListResp); // Token鉴权
-  rpc ListByClass (AgentListByClassReq) returns (AgentListByClassResp); // ExtendToken鉴权
-  rpc Create (AgentInfo) returns (google.protobuf.Empty); // Token鉴权
-  rpc Edit (AgentInfo) returns (google.protobuf.Empty); // Token鉴权
-  rpc Delete (AgentDeleteReq) returns (google.protobuf.Empty); // Token鉴权
-  rpc UpdateOrder (AgentUpdateOrderReq) returns (google.protobuf.Empty); // Token鉴权
+  rpc List (AgentListReq) returns (AgentListResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc ListByClass (AgentListByClassReq) returns (AgentListByClassResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // ExtendToken鉴权
+  rpc Create (AgentInfo) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc Edit (AgentInfo) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc Delete (AgentDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc UpdateOrder (AgentUpdateOrderReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
 }

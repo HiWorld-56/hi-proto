@@ -7,6 +7,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "buf/validate/validate.proto";
+import "hi/options.proto";
 
 message UserInfo {
   hi.Entity base = 1;
@@ -34,7 +35,7 @@ message DeleteUserReq {
 
 // Token鉴权
 service User {
-  rpc List (ListUserReq) returns (ListUserResp);
-  rpc Edit (EditUserReq) returns (google.protobuf.Empty);
-  rpc Delete (DeleteUserReq) returns (google.protobuf.Empty);
+  rpc List (ListUserReq) returns (ListUserResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc Edit (EditUserReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
+  rpc Delete (DeleteUserReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
 }

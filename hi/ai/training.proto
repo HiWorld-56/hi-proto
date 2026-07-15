@@ -6,6 +6,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "hi/options.proto";
 
 message TrainingAgentReq {
   repeated int32 ids   = 1; // 训练文件id列表
@@ -115,18 +116,18 @@ message GetMemModelResp {
 
 // apiKey鉴权
 service Training {
-  rpc TrainingAgent (TrainingAgentReq) returns (google.protobuf.Empty);       // 启动训练
-  rpc TrainingStatus (TrainingStatusReq) returns (TrainingStatusResp);        // 获取训练状态
-  rpc TrainingClear (TrainingClearReq) returns (google.protobuf.Empty);       // 清除训练状态
-  rpc UploadFile (UploadFileReq) returns (google.protobuf.Empty);             // 上传训练文件
-  rpc ListAgentFiles (ListAgentFileReq) returns (ListAgentFileResp);           // 获取训练文件列表
-  rpc DeleteAgentFile (DeleteAgentFileReq) returns (google.protobuf.Empty);   // 删除训练文件
-  rpc DeleteAgentFiles (DeleteAgentFilesReq) returns (google.protobuf.Empty); // 批量删除训练文件
-  rpc DeleteAgentFilesByDid (DeleteAgentFilesByDidReq) returns (google.protobuf.Empty); // 通过智能体did删除训练文件
-  rpc GetAgentFile (GetAgentFileReq) returns (GetAgentFileResp);
-  rpc UpdateContent (UpdateContentReq) returns (google.protobuf.Empty);
-  rpc CreateContent (CreateContentReq) returns (CreateContentResp);
-  rpc EditDigest (EditDigestReq) returns (google.protobuf.Empty);
-  rpc SetMemModel (SetMemModelReq) returns (google.protobuf.Empty);
-  rpc GetMemModel (GetMemModelReq) returns (GetMemModelResp);
+  rpc TrainingAgent (TrainingAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; }       // 启动训练
+  rpc TrainingStatus (TrainingStatusReq) returns (TrainingStatusResp) { option (hi.auth) = AUTH_API_KEY; }        // 获取训练状态
+  rpc TrainingClear (TrainingClearReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; }       // 清除训练状态
+  rpc UploadFile (UploadFileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; }             // 上传训练文件
+  rpc ListAgentFiles (ListAgentFileReq) returns (ListAgentFileResp) { option (hi.auth) = AUTH_API_KEY; }           // 获取训练文件列表
+  rpc DeleteAgentFile (DeleteAgentFileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; }   // 删除训练文件
+  rpc DeleteAgentFiles (DeleteAgentFilesReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; } // 批量删除训练文件
+  rpc DeleteAgentFilesByDid (DeleteAgentFilesByDidReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; } // 通过智能体did删除训练文件
+  rpc GetAgentFile (GetAgentFileReq) returns (GetAgentFileResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc UpdateContent (UpdateContentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; }
+  rpc CreateContent (CreateContentReq) returns (CreateContentResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc EditDigest (EditDigestReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; }
+  rpc SetMemModel (SetMemModelReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; }
+  rpc GetMemModel (GetMemModelReq) returns (GetMemModelResp) { option (hi.auth) = AUTH_API_KEY; }
 }

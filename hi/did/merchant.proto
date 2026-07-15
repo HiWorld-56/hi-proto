@@ -7,6 +7,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/did/base.proto";
+import "hi/options.proto";
 
 message MerchantInfo {
   hi.Entity     master          = 1;
@@ -60,14 +61,14 @@ message MerchantUsersDeleteReq {
 }
 
 service Merchant {
-  rpc Get (google.protobuf.Empty) returns (MerchantGetResp); // Token鉴权
-  rpc Set (MerchantSetReq) returns (google.protobuf.Empty); // Token鉴权
-  rpc List (hi.DID) returns (MerchantListResp); // Token鉴权
-  rpc GetUserProfile (hi.DID) returns (GetUserProfileResp); // ExtendToken鉴权
-  rpc SetUserProfile (SetUserProfileReq) returns (google.protobuf.Empty); // ExtendToken鉴权
-  rpc GetMerchant (hi.DID) returns (MerchantGetResp); // Token鉴权
-  rpc SaveUsers (MerchantUsersSaveReq) returns (google.protobuf.Empty); // ExtendToken鉴权, 批量添加商户的用户
-  rpc DeleteUsers (MerchantUsersDeleteReq) returns (google.protobuf.Empty); // ExtendToken鉴权，批量删除商户的用户
+  rpc Get (google.protobuf.Empty) returns (MerchantGetResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc Set (MerchantSetReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc List (hi.DID) returns (MerchantListResp) { option (hi.auth) = AUTH_NONE; } // Token鉴权
+  rpc GetUserProfile (hi.DID) returns (GetUserProfileResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // ExtendToken鉴权
+  rpc SetUserProfile (SetUserProfileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // ExtendToken鉴权
+  rpc GetMerchant (hi.DID) returns (MerchantGetResp) { option (hi.auth) = AUTH_NONE; } // Token鉴权
+  rpc SaveUsers (MerchantUsersSaveReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // ExtendToken鉴权, 批量添加商户的用户
+  rpc DeleteUsers (MerchantUsersDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // ExtendToken鉴权，批量删除商户的用户
 }
 
 message MerchantNotifyReq {
@@ -81,6 +82,6 @@ message OrderEventResp {
 }
 
 service SSE {
-  rpc OrderEvents (hi.DID) returns (stream OrderEventResp); // 不鉴权
-  rpc Notify (MerchantNotifyReq) returns (google.protobuf.Empty); // 不鉴权
+  rpc OrderEvents (hi.DID) returns (stream OrderEventResp) { option (hi.auth) = AUTH_TOKEN; } // 不鉴权
+  rpc Notify (MerchantNotifyReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; } // 不鉴权
 }

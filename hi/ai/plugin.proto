@@ -9,6 +9,7 @@ import "google/protobuf/struct.proto";
 import "hi/common.proto";
 import "hi/ai/chat.proto";
 import "buf/validate/validate.proto";
+import "hi/options.proto";
 
 message DrawConfigResp {
   repeated string style           = 1;
@@ -189,19 +190,19 @@ message GetPluginResp {
 
 // apiKey鉴权
 service Plugin {
-  rpc DrawConfig (google.protobuf.Empty) returns (DrawConfigResp);
-  rpc PluginSwitch (PluginSwitchReq) returns (PluginSwitchResp);
-  rpc SearchCreate (SearchCreateReq) returns (google.protobuf.Empty);
-  rpc PythonCreate (PythonCreateReq) returns (PythonCreateResp); // 创建Python插件
-  rpc DrawCreate (DrawCreateReq) returns (DrawCreateResp);
-  rpc List (ListPluginReq) returns (ListPluginResp);
-  rpc Delete (DeletePluginReq) returns (google.protobuf.Empty);
-  rpc DeleteByDids (DeletePluginByDidsReq) returns (google.protobuf.Empty);
-  rpc Edit (EditPluginReq) returns (google.protobuf.Empty); // 编辑插件
-  rpc GetDraw (GetDrawReq) returns (GetDrawResp);
-  rpc PythonParamsSet (PythonParamsSetReq) returns (google.protobuf.Empty); // 设置Python插件参数
-  rpc GetPythonParams (GetPythonParamsReq) returns (GetPythonParamsResp);
-  rpc GetPlugin (GetPluginReq) returns (GetPluginResp);
+  rpc DrawConfig (google.protobuf.Empty) returns (DrawConfigResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc PluginSwitch (PluginSwitchReq) returns (PluginSwitchResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc SearchCreate (SearchCreateReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; }
+  rpc PythonCreate (PythonCreateReq) returns (PythonCreateResp) { option (hi.auth) = AUTH_API_KEY; } // 创建Python插件
+  rpc DrawCreate (DrawCreateReq) returns (DrawCreateResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc List (ListPluginReq) returns (ListPluginResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc Delete (DeletePluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; }
+  rpc DeleteByDids (DeletePluginByDidsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; }
+  rpc Edit (EditPluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; } // 编辑插件
+  rpc GetDraw (GetDrawReq) returns (GetDrawResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc PythonParamsSet (PythonParamsSetReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; } // 设置Python插件参数
+  rpc GetPythonParams (GetPythonParamsReq) returns (GetPythonParamsResp) { option (hi.auth) = AUTH_API_KEY; }
+  rpc GetPlugin (GetPluginReq) returns (GetPluginResp) { option (hi.auth) = AUTH_API_KEY; }
 }
 
 // 插件执行接口
@@ -238,8 +239,8 @@ message CleanupPythonProjectReq {
 }
 
 service AiPlugin {
-  rpc Search (SearchReq) returns (SearchResp);
-  rpc Python (PythonReq) returns (PythonResp);
-  rpc PythonProject (PythonProjectReq) returns (PythonResp);
-  rpc CleanupPythonProject (CleanupPythonProjectReq) returns (google.protobuf.Empty);
+  rpc Search (SearchReq) returns (SearchResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc Python (PythonReq) returns (PythonResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc PythonProject (PythonProjectReq) returns (PythonResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc CleanupPythonProject (CleanupPythonProjectReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
 }

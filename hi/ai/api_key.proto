@@ -6,6 +6,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "hi/options.proto";
 
 message ApiKeyInfo {
   string value      = 1;
@@ -40,8 +41,8 @@ message DeleteApiKeyReq {
 
 // 使用token鉴权
 service ApiKey {
-  rpc Create (google.protobuf.Empty) returns (CreateApiKeyResp);
-  rpc Edit (EditApiKeyReq) returns (EditApiKeyResp);
-  rpc List (hi.Pagination) returns (ListApiKeyResp);
-  rpc Delete (DeleteApiKeyReq) returns (google.protobuf.Empty);
+  rpc Create (google.protobuf.Empty) returns (CreateApiKeyResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc Edit (EditApiKeyReq) returns (EditApiKeyResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc List (hi.Pagination) returns (ListApiKeyResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc Delete (DeleteApiKeyReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
 }

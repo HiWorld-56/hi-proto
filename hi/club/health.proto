@@ -5,7 +5,8 @@ package hi.club;
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 import "google/protobuf/empty.proto";
+import "hi/options.proto";
 
 service Health {
-  rpc Check (google.protobuf.Empty) returns (google.protobuf.Empty); // 不鉴权
+  rpc Check (google.protobuf.Empty) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; } // 不鉴权
 }

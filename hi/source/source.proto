@@ -7,6 +7,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/source";
 import "buf/validate/validate.proto";
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "hi/options.proto";
 
 message UploadReq {
   string type    = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // image/video/audio/file/avatar/code
@@ -54,12 +55,12 @@ message DownloadStreamReq {
 }
 
 service File {
-  rpc Upload(UploadReq) returns (UploadResp); // 文件上传
-  rpc Download(DownloadReq) returns (DownloadResp); // 文件下载
-  rpc UploadStream(stream UploadStreamReq) returns (UploadResp); // 流式上传
-  rpc DownloadStream(DownloadStreamReq) returns (stream DownloadStreamResp); // 流式下载
+  rpc Upload (UploadReq) returns (UploadResp) { option (hi.auth) = AUTH_NONE; } // 文件上传
+  rpc Download (DownloadReq) returns (DownloadResp) { option (hi.auth) = AUTH_NONE; } // 文件下载
+  rpc UploadStream (stream UploadStreamReq) returns (UploadResp) { option (hi.auth) = AUTH_NONE; } // 流式上传
+  rpc DownloadStream (DownloadStreamReq) returns (stream DownloadStreamResp) { option (hi.auth) = AUTH_NONE; } // 流式下载
 }
 
 service Base {
-  rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp); // 不鉴权:查服务自身版本+环境
+  rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权:查服务自身版本+环境
 }

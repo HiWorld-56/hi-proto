@@ -6,6 +6,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "hi/options.proto";
 
 message Q3User {
   hi.Entity user    = 1;
@@ -65,9 +66,9 @@ message Q3GetInfosResp {
 }
 
 service Q3 {
-  rpc GetInfos (Q3GetInfosReq) returns (Q3GetInfosResp); //
-  rpc Create (Q3GroupCreateReq) returns (Q3GroupCreateResp); // 创建群
-  rpc Event (Q3GroupEventReq) returns (google.protobuf.Empty); // 群事件
-  rpc Ready (Q3GroupReadyReq) returns (Q3GroupReadyResp); // 群就绪
-  rpc Hosting (Q3HostingReq) returns (google.protobuf.Empty); // 设置托管
+  rpc GetInfos (Q3GetInfosReq) returns (Q3GetInfosResp) { option (hi.auth) = AUTH_TOKEN; } //
+  rpc Create (Q3GroupCreateReq) returns (Q3GroupCreateResp) { option (hi.auth) = AUTH_TOKEN; } // 创建群
+  rpc Event (Q3GroupEventReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // 群事件
+  rpc Ready (Q3GroupReadyReq) returns (Q3GroupReadyResp) { option (hi.auth) = AUTH_TOKEN; } // 群就绪
+  rpc Hosting (Q3HostingReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // 设置托管
 }

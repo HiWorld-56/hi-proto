@@ -6,19 +6,20 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 import "google/protobuf/empty.proto";
 import "hi/ai/plugin.proto";
+import "hi/options.proto";
 
 // Token鉴权
 service Plugin {
-  rpc DrawConfig (google.protobuf.Empty) returns (hi.ai.DrawConfigResp);
-  rpc PluginSwitch (hi.ai.PluginSwitchReq) returns (hi.ai.PluginSwitchResp);
-  rpc SearchCreate (hi.ai.SearchCreateReq) returns (google.protobuf.Empty);
-  rpc PythonCreate (hi.ai.PythonCreateReq) returns (hi.ai.PythonCreateResp); // 创建Python插件
-  rpc DrawCreate (hi.ai.DrawCreateReq) returns (hi.ai.DrawCreateResp);
-  rpc List (hi.ai.ListPluginReq) returns (hi.ai.ListPluginResp);
-  rpc Delete (hi.ai.DeletePluginReq) returns (google.protobuf.Empty);
-  rpc DeleteByDids (hi.ai.DeletePluginByDidsReq) returns (google.protobuf.Empty);
-  rpc Edit (hi.ai.EditPluginReq) returns (google.protobuf.Empty);
-  rpc GetDraw (hi.ai.GetDrawReq) returns (hi.ai.GetDrawResp);
-  rpc PythonParamsSet (hi.ai.PythonParamsSetReq) returns (google.protobuf.Empty); // 设置Python插件参数
-  rpc GetPythonParams (hi.ai.GetPythonParamsReq) returns (hi.ai.GetPythonParamsResp);
+  rpc DrawConfig (google.protobuf.Empty) returns (hi.ai.DrawConfigResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc PluginSwitch (hi.ai.PluginSwitchReq) returns (hi.ai.PluginSwitchResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc SearchCreate (hi.ai.SearchCreateReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
+  rpc PythonCreate (hi.ai.PythonCreateReq) returns (hi.ai.PythonCreateResp) { option (hi.auth) = AUTH_TOKEN; } // 创建Python插件
+  rpc DrawCreate (hi.ai.DrawCreateReq) returns (hi.ai.DrawCreateResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc List (hi.ai.ListPluginReq) returns (hi.ai.ListPluginResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc Delete (hi.ai.DeletePluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
+  rpc DeleteByDids (hi.ai.DeletePluginByDidsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
+  rpc Edit (hi.ai.EditPluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
+  rpc GetDraw (hi.ai.GetDrawReq) returns (hi.ai.GetDrawResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc PythonParamsSet (hi.ai.PythonParamsSetReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // 设置Python插件参数
+  rpc GetPythonParams (hi.ai.GetPythonParamsReq) returns (hi.ai.GetPythonParamsResp) { option (hi.auth) = AUTH_TOKEN; }
 }
