@@ -67,9 +67,7 @@ service Merchant {
   rpc SetUserProfile (SetUserProfileReq) returns (google.protobuf.Empty); // ExtendToken鉴权
   rpc GetMerchant (hi.DID) returns (MerchantGetResp); // Token鉴权
   rpc SaveUsers (MerchantUsersSaveReq) returns (google.protobuf.Empty); // ExtendToken鉴权, 批量添加商户的用户
-  rpc SaveUesrs (MerchantUsersSaveReq) returns (google.protobuf.Empty) { option deprecated = true; } // DEPRECATED: 拼写错误,改用 SaveUsers
   rpc DeleteUsers (MerchantUsersDeleteReq) returns (google.protobuf.Empty); // ExtendToken鉴权，批量删除商户的用户
-  rpc DeleteUesrs (MerchantUsersDeleteReq) returns (google.protobuf.Empty) { option deprecated = true; } // DEPRECATED: 拼写错误,改用 DeleteUsers
 }
 
 message MerchantNotifyReq {

@@ -106,8 +106,61 @@ require github.com/HiWorld-56/hi-proto: version "v2.0.0-dev1"
 4. **后端与客户端必须同版本同时上**(方法路径变,无法灰度共存);
    若要平滑,可**新旧方法并存一个版本**(旧的标 `deprecated`),下个大版本再删——推荐走这条,避免一刀切停服。
 
-## 七、状态
-- [ ] 四、待定项拍板
-- [ ] 是否走"新旧并存 + deprecated 过渡"(强烈建议)
-- [ ] proto 改名
-- [ ] 后端 / Rust / 前端 / 三方
+## 七、⚠️ 已纠正的两个错误前提(别再按错的干)
+
+### 1. 方法名是 **service 作用域**,不是 package 作用域 → 光秃 `List` 才对
+AIP-132 的"List+资源复数"假设 **service = 领域**(`Library.ListBooks`)。
+我们的 **service 本身就是资源**,此时补资源名 = **自我重复(stutter)**:
+- ❌ `ApiKey.ListApiKeys` / `Plugin.ListPlugins` / `User.ListUsers` / `Agent.ListAgents`
+- ✅ `ApiKey.List` / `Plugin.List` / `Agent.List`
+- ✅ `Group.ListMembers` / `User.ListFriends`(service≠资源,才需要资源名)
+
+**推论:`ApiKey.Edit` 本来就是对的**,原计划"116 处补方法名(`Edit`→`EditApiKey`)"**整体作废**。
+消息名 `EditApiKeyReq` 带资源名是因为它在**包作用域**里和几百个消息平级 ——
+**方法名与消息名"对不上"是天然且正确的,不是病灶**。
+
+(曾误改 18 个,已回退。判据:凡是"老方法是光秃 `List`、给它补了资源名"的,都是 stutter。)
+
+### 2. 不走 deprecated 并存,直接删旧
+决策:**本轮目的就是修正历史坏毛病,不为之前遗留任何东西**。
+- 字段号**可自由重排**(不必顾及老编号)
+- 废弃方法**直接删除**,不留 deprecated
+
+> **为什么这样是安全的**:字段号重排本身是**静默数据损坏**(protobuf 只认字段号,
+> `pagination`(message)和 `id`(string)wire type 相同,老客户端的 field 2 会被
+> 当 string 解成 `id`,不报错、读出乱码)。**但"删掉旧方法"堵死了它** ——
+> 老客户端调的方法已不存在 → 拿到 **UNIMPLEMENTED,响亮报错**,根本走不到那个消息。
+> 危险的是「留旧名 + 重排」,不是「删旧 + 重排」。这两条必须配套。
+
+(此前为并存加的 23 个 deprecated 方法已全部删除。)
+
+### 3. 合并前必须验"鉴权是否同级"(不只看 Resp 是否同构)
+AIP 的"一个资源一个 List + filter"**前提是鉴权一致**。实测发现多处**跨权限边界**:
+- `club.Agent.ListAgentByDids` **免鉴权**(white_list) vs `ListFavoriteAgents` **需鉴权**
+  (查"我"收藏的,必须有调用者身份)→ **不能合并**,`favorite` 不能做成 `List` 的 filter
+- `club.Merchant.List`(我的)vs `ListAll`(全部,转发管理面 `MerchantManage`)→ **不合并**
+- 语义也不能靠名字猜:`ListAllTradeReq` 里是 `{id, pagination}`,后端 `if req.Id==""`
+  才是"全量",**不是**文档最初写的"全部+分页"
+
+## 八、状态
+- [x] VERSION 1.3.1 → **1.4.0**(不进 2.0.0,Go SIV 见六)
+- [x] 批1:`User.ListFriend/ListServitor/ListRelation` → 复数(直接改名)
+- [x] 批2a:19 个纯复数化(service≠资源的那些);18 个 stutter 已回退
+- [x] 批2b:3 个错别字(`EditDegest`/`SaveUesrs`×2)+ 2 处消息词序
+- [x] 删除全部 23 个 deprecated 老方法
+- [x] 2c-#1 `club.Trade.ListTrade + ListAllTrade` → `Trade.List(did, id, pagination)`
+- [x] 2c-#2/#3 `Agent` 一族:ai 4→1 `List(dids, favorite, pagination)`;club 门面 3→1 `List`;
+      在线 2→1 `ListOnline(owner_did, pagination)`
+- [ ] **⚠️ `club.Agent.List` 合并要拆**:`ListAgentByDids` 免鉴权 vs `ListFavoriteAgents` 需鉴权,
+      白名单按方法挂、粒度不够 → 拆成 `List`(公开,dids 过滤)+ `ListFavorites`(需鉴权)
+- [ ] **⚠️ `ListOnline` 要进 white_list**(维持原 `ListAllOnlineAgent` 免鉴权,给三方查在线机器人)
+- [ ] 2c-#4 `club.Merchant.List + ListAll` → **不合并**(跨权限边界)
+- [ ] 2c 剩余:`AgentMarket.ListByClass`(club/did)、`UserExtension.ListByMerchantDid`(club/did)、
+      `did.DApp.ListByClass`、`did.Wallet.ListUsersAssets` → `ListAssets(user_dids)`、
+      `did.Merchant.List(hi.DID)` 裸入参 → 正经 Req
+- [ ] 待评估:`UserACL.List`(ACL 列表)vs `ListType`(权限类型枚举)—— 可能是两种资源,非撞名
+- [ ] 后端 / Rust / 前端 / 三方(**hi-proto 全部改定后再动**)
+
+## 九、关联单子
+权限体系问题(设计意图两层超管、后端裸奔、前端显隐当权限)见 **`.claude/authz-findings.md`**,
+本轮只记录不动手。

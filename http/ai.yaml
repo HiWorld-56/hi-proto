@@ -45,11 +45,11 @@ http:
   - selector: hi.ai.Agent.EditAgent
     post: /api/v1/agent/edit_agent
     body: "*"
-  - selector: hi.ai.Agent.ListAgent
-    post: /api/v1/agent/list_agent
+  - selector: hi.ai.Agent.List
+    post: /api/v1/agent/list
     body: "*"
-  - selector: hi.ai.Agent.ListAgentByDids
-    post: /api/v1/agent/list_agent_by_dids
+  - selector: hi.ai.Agent.ListFavorites
+    post: /api/v1/agent/list_favorite
     body: "*"
   - selector: hi.ai.Agent.DeleteAgent
     post: /api/v1/agent/delete_agent
@@ -67,12 +67,6 @@ http:
     body: "*"
   - selector: hi.ai.Agent.FavoriteAgent
     post: /api/v1/agent/favorite_agent
-    body: "*"
-  - selector: hi.ai.Agent.ListFavoriteAgents
-    post: /api/v1/agent/list_favorite_agent
-    body: "*"
-  - selector: hi.ai.Agent.FavoriteAgentListByDIDs
-    post: /api/v1/agent/favorite_agent_list_by_dids
     body: "*"
 # Plugin
   - selector: hi.ai.Plugin.DrawConfig

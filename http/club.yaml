@@ -35,8 +35,11 @@ http:
   - selector: hi.club.Agent.EditAgent
     post: /api/v1/agent/edit_agent
     body: "*"
-  - selector: hi.club.Agent.ListAgentByDids
-    post: /api/v1/agent/list_agent_by_dids
+  - selector: hi.club.Agent.List
+    post: /api/v1/agent/list
+    body: "*"
+  - selector: hi.club.Agent.ListFavorites
+    post: /api/v1/agent/list_favorite
     body: "*"
   - selector: hi.club.Agent.DeleteAgent
     post: /api/v1/agent/delete_agent
@@ -54,12 +57,6 @@ http:
     body: "*"
   - selector: hi.club.Agent.FavoriteAgent
     post: /api/v1/agent/favorite_agent
-    body: "*"
-  - selector: hi.club.Agent.ListFavoriteAgents
-    post: /api/v1/agent/list_favorite_agent
-    body: "*"
-  - selector: hi.club.Agent.FavoriteAgentListByDIDs
-    post: /api/v1/agent/favorite_agent_list_by_dids
     body: "*"
 # UserACL
   - selector: hi.club.UserACL.Add
@@ -198,14 +195,11 @@ http:
   - selector: hi.club.Training.GetMemModel
     get: /api/v1/training/get_mem_model
 # Trade
-  - selector: hi.club.Trade.ListTrade
-    post: /api/v1/trade/list_trade
+  - selector: hi.club.Trade.List
+    post: /api/v1/trade/list
     body: "*"
   - selector: hi.club.Trade.GetTrade
     get: /api/v1/trade/get_trade
-  - selector: hi.club.Trade.ListAllTrade
-    post: /api/v1/trade/list_all_trade
-    body: "*"
 # ApiKey
   - selector: hi.club.ApiKey.Create
     post: /api/v1/api_key/create

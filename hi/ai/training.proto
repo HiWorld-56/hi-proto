@@ -120,7 +120,6 @@ service Training {
   rpc TrainingClear (TrainingClearReq) returns (google.protobuf.Empty);       // 清除训练状态
   rpc UploadFile (UploadFileReq) returns (google.protobuf.Empty);             // 上传训练文件
   rpc ListAgentFiles (ListAgentFileReq) returns (ListAgentFileResp);           // 获取训练文件列表
-  rpc ListAgentFile (ListAgentFileReq) returns (ListAgentFileResp) { option deprecated = true; } // DEPRECATED: 改用 ListAgentFiles
   rpc DeleteAgentFile (DeleteAgentFileReq) returns (google.protobuf.Empty);   // 删除训练文件
   rpc DeleteAgentFiles (DeleteAgentFilesReq) returns (google.protobuf.Empty); // 批量删除训练文件
   rpc DeleteAgentFilesByDid (DeleteAgentFilesByDidReq) returns (google.protobuf.Empty); // 通过智能体did删除训练文件
@@ -128,7 +127,6 @@ service Training {
   rpc UpdateContent (UpdateContentReq) returns (google.protobuf.Empty);
   rpc CreateContent (CreateContentReq) returns (CreateContentResp);
   rpc EditDigest (EditDigestReq) returns (google.protobuf.Empty);
-  rpc EditDegest (EditDigestReq) returns (google.protobuf.Empty) { option deprecated = true; } // DEPRECATED: 拼写错误,改用 EditDigest
   rpc SetMemModel (SetMemModelReq) returns (google.protobuf.Empty);
   rpc GetMemModel (GetMemModelReq) returns (GetMemModelResp);
 }

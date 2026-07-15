@@ -110,7 +110,6 @@ service User {
   rpc GetCurrentUser (google.protobuf.Empty) returns (UserInfo); // 当前用户信息
   rpc UpdateUser (UpdateUserReq) returns (google.protobuf.Empty); // 用户信息
   rpc ListSystemMessages (ListSystemMessageReq) returns (SystemMessages); // 系统消息列表
-  rpc ListSystemMessage (ListSystemMessageReq) returns (SystemMessages) { option deprecated = true; } // DEPRECATED: 改用 ListSystemMessages
   rpc DeleteSystemMessage (DeleteSystemMessageReq) returns (google.protobuf.Empty); // 删除系统消息
   rpc DeleteAllSystemMessage (google.protobuf.Empty) returns (google.protobuf.Empty); // 删除所有系统消息
   rpc HandleSystemMessage (HandleSystemMessageReq) returns (google.protobuf.Empty); // 处理系统消息
@@ -120,10 +119,8 @@ service User {
   rpc AddFriend (AddFriendReq) returns (AddFriendResp); // 添加好友
   rpc DeleteFriend (DeleteFriendReq) returns (google.protobuf.Empty); // 删除好友
   rpc ListGroups (google.protobuf.Empty) returns (ListGroupResp); // 当前用户所在的群列表
-  rpc ListGroup (google.protobuf.Empty) returns (ListGroupResp) { option deprecated = true; } // DEPRECATED: 改用 ListGroups
   rpc GetOther (GetUserReq) returns (hi.Entity); // 根据DID获取用户基本信息
   rpc UnprocessedSysMsgCount (google.protobuf.Empty) returns (UnprocessedSysMsgCountResp);
   rpc SetRemark (SetRemarkReq) returns (google.protobuf.Empty);
   rpc ListOnlineUsers (ListOnlineUserReq) returns (ListOnlineUserResp); // 在线用户列表
-  rpc ListOnlineUser (ListOnlineUserReq) returns (ListOnlineUserResp) { option deprecated = true; } // DEPRECATED: 改用 ListOnlineUsers
 }

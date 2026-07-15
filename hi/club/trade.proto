@@ -69,22 +69,14 @@ message UpdateTransHashReq {
   string hash = 2;
 }
 
+// 交易列表的唯一入参:did/id 均为可选过滤条件(AIP-132:过滤走参数,不编码进方法名)。
 message ListTradeReq {
-  string        did        = 1;
-  hi.Pagination pagination = 2;
+  string        did        = 1; // 可选:只看该用户的交易;空=不按用户过滤
+  string        id         = 2; // 可选:只看该交易;空=不按 id 过滤
+  hi.Pagination pagination = 3;
 }
 
 message ListTradeResp {
-  int32                total = 1;
-  repeated TradeDetail list  = 2;
-}
-
-message ListAllTradeReq {
-  string        id         = 1;
-  hi.Pagination pagination = 2;
-}
-
-message ListAllTradeResp {
   int32                total = 1;
   repeated TradeDetail list  = 2;
 }
@@ -94,6 +86,5 @@ service Trade {
   rpc GetTrade (GetTradeReq) returns (GetTradeResp);
   rpc AddTrade (AddTradeReq) returns (AddTradeResp);
   rpc UpdateTransHash (UpdateTransHashReq) returns (google.protobuf.Empty);
-  rpc ListTrade (ListTradeReq) returns (ListTradeResp);
-  rpc ListAllTrade (ListAllTradeReq) returns (ListAllTradeResp);
+  rpc List (ListTradeReq) returns (ListTradeResp); // 合并原 ListTrade(按 did)+ ListAllTrade(按 id/全量),过滤走参数
 }

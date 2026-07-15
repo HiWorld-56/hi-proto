@@ -26,9 +26,15 @@ message BindStatusResp {
   hi.Entity master = 1; // None / master
 }
 
-message ListAllOnlineAgentResp {
+// 在线 agent 列表(club 本地 presence,非转发 ai)。合并原 ListOnlineAgent(按用户)+ ListAllOnlineAgent(全量)。
+message ListOnlineReq {
+  string        owner_did  = 1; // 可选:只看该用户的在线 agent;空=全部在线
+  hi.Pagination pagination = 2;
+}
+
+message ListOnlineResp {
   int32                    total = 1;
-  repeated hi.ai.AgentInfo list  = 2;
+  repeated hi.ai.AgentInfo infos = 2;
 }
 
 message GetAgentMasterReq {
@@ -39,38 +45,26 @@ message GetAgentMasterResp {
   hi.Entity master = 1;
 }
 
-message ListOnlineAgentResp {
-  repeated hi.ai.AgentInfo list = 1;
-}
-
 service Agent {
   rpc ListLlmModels (google.protobuf.Empty) returns (hi.ai.ListLLMResp);
-
-  rpc ListLLM (google.protobuf.Empty) returns (hi.ai.ListLLMResp) { option deprecated = true; } // DEPRECATED: 改用 ListLlmModels
   rpc ListEmbeddings (google.protobuf.Empty) returns (hi.ai.ListEmbeddingResp);
-  rpc ListEmbedding (google.protobuf.Empty) returns (hi.ai.ListEmbeddingResp) { option deprecated = true; } // DEPRECATED: 改用 ListEmbeddings
   rpc ListSttModels (google.protobuf.Empty) returns (hi.ai.ListSTTResp);
-  rpc ListSTT (google.protobuf.Empty) returns (hi.ai.ListSTTResp) { option deprecated = true; } // DEPRECATED: 改用 ListSttModels
   rpc ListTtsModels (google.protobuf.Empty) returns (hi.ai.ListTTSResp);
-  rpc ListTTS (google.protobuf.Empty) returns (hi.ai.ListTTSResp) { option deprecated = true; } // DEPRECATED: 改用 ListTtsModels
   rpc AgentConfig (google.protobuf.Empty) returns (hi.ai.AgentConfigResp);
   rpc CreateAgent (hi.ai.CreateAgentReq) returns (hi.ai.CreateAgentResp);
   rpc EditAgent (hi.ai.EditAgentReq) returns (google.protobuf.Empty);
-  rpc ListAgentByDids (hi.ai.ListAgentByDidsReq) returns (hi.ai.ListAgentByDidsResp);
+  rpc List (hi.ai.ListAgentReq) returns (hi.ai.ListAgentResp); // 公开(免鉴权);转发 ai.Agent.List;合并原 ListAgentByDids
+  rpc ListFavorites (hi.ai.ListFavoriteReq) returns (hi.ai.ListAgentResp); // 需鉴权;转发 ai.Agent.ListFavorites;合并原 ListFavoriteAgents + FavoriteAgentListByDIDs
   rpc DeleteAgent (hi.ai.DeleteAgentReq) returns (google.protobuf.Empty);
   rpc FindAgent (hi.ai.FindAgentReq) returns (hi.ai.FindAgentResp);
   rpc FindAgentCount (hi.ai.FindAgentCountReq) returns (hi.ai.FindAgentCountResp);
   rpc Transfer (hi.ai.TransferReq) returns (google.protobuf.Empty);
   rpc UpdatesToDefault (hi.ai.UpdatesToDefaultReq) returns (google.protobuf.Empty);
   rpc FavoriteAgent (hi.ai.FavoriteAgentReq) returns (google.protobuf.Empty);
-  rpc ListFavoriteAgents (hi.ai.ListFavoriteAgentReq) returns (hi.ai.ListFavoriteAgentResp);
-  rpc ListFavoriteAgent (hi.ai.ListFavoriteAgentReq) returns (hi.ai.ListFavoriteAgentResp) { option deprecated = true; } // DEPRECATED: 改用 ListFavoriteAgents
-  rpc FavoriteAgentListByDIDs (hi.ai.ListFavoriteAgentByDIDsReq) returns (hi.ai.ListFavoriteAgentByDIDsResp);
 
   rpc BindMaster (BindMasterReq) returns (google.protobuf.Empty); // 绑定智能体
   rpc UnbindMaster (UnbindMasterReq) returns (google.protobuf.Empty); // 解绑智能体
   rpc BindStatus (BindStatusReq) returns (BindStatusResp); // 智能体绑定状态
-  rpc ListAllOnlineAgent (hi.Pagination) returns (ListAllOnlineAgentResp); // 在线智能体列表
-  rpc ListOnlineAgent (hi.DID) returns (ListOnlineAgentResp); // 用户的在线智能体
+  rpc ListOnline (ListOnlineReq) returns (ListOnlineResp); // 在线智能体(club 本地 presence);owner_did 可选,空=全部
   rpc GetAgentMaster (GetAgentMasterReq) returns (GetAgentMasterResp); // 智能体主人
 }

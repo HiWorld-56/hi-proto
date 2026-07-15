@@ -196,7 +196,6 @@ service Chat {
   rpc ClearContext(ClearContextReq) returns (google.protobuf.Empty);
   rpc GetContext(GetContextReq) returns (GetContextResp);
   rpc ListAgentDelays (ListAgentDelayReq) returns (ListAgentDelayResp);
-  rpc ListAgentDelay (ListAgentDelayReq) returns (ListAgentDelayResp) { option deprecated = true; } // DEPRECATED: 改用 ListAgentDelays
   rpc GetAgentDelay(GetAgentDelayReq) returns (GetAgentDelayResp);
 
   rpc SimpleTextToSpeech(SimpleTextToSpeechReq) returns (SimpleTextToSpeechResp);
