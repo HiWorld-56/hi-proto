@@ -17,7 +17,6 @@ service Training {
   rpc ListAgentFiles (hi.ai.ListAgentFileReq) returns (hi.ai.ListAgentFileResp) { option (hi.auth) = AUTH_TOKEN; }              // 获取训练文件列表
   rpc DeleteAgentFile (hi.ai.DeleteAgentFileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }            // 删除训练文件
   rpc DeleteAgentFiles (hi.ai.DeleteAgentFilesReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }          // 批量删除训练文件
-  rpc DeleteAgentFilesByDid (hi.ai.DeleteAgentFilesByDidReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // 通过智能体did删除训练文件
   rpc GetAgentFile (hi.ai.GetAgentFileReq) returns (hi.ai.GetAgentFileResp) { option (hi.auth) = AUTH_TOKEN; }
   rpc UpdateContent (hi.ai.UpdateContentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
   rpc CreateContent (hi.ai.CreateContentReq) returns (hi.ai.CreateContentResp) { option (hi.auth) = AUTH_TOKEN; }

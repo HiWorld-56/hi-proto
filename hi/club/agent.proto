@@ -60,7 +60,6 @@ service Agent {
   rpc FindAgent (hi.ai.FindAgentReq) returns (hi.ai.FindAgentResp) { option (hi.auth) = AUTH_TOKEN; }
   rpc FindAgentCount (hi.ai.FindAgentCountReq) returns (hi.ai.FindAgentCountResp) { option (hi.auth) = AUTH_TOKEN; }
   rpc Transfer (hi.ai.TransferReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
-  rpc UpdatesToDefault (hi.ai.UpdatesToDefaultReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
   rpc FavoriteAgent (hi.ai.FavoriteAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
 
   rpc BindMaster (BindMasterReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // 绑定智能体

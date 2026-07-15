@@ -52,9 +52,6 @@ http:
   - selector: hi.club.Agent.Transfer
     post: /api/v1/agent/transfer
     body: "*"
-  - selector: hi.club.Agent.UpdatesToDefault
-    post: /api/v1/agent/updates_to_default
-    body: "*"
   - selector: hi.club.Agent.FavoriteAgent
     post: /api/v1/agent/favorite_agent
     body: "*"
@@ -173,9 +170,6 @@ http:
     body: "*"
   - selector: hi.club.Training.DeleteAgentFiles
     post: /api/v1/training/delete_agent_files
-    body: "*"
-  - selector: hi.club.Training.DeleteAgentFilesByDid
-    post: /api/v1/training/delete_agent_files_by_did
     body: "*"
   - selector: hi.club.Training.GetAgentFile
     post: /api/v1/training/get_agent_file
