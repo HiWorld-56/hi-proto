@@ -9,5 +9,6 @@ import "google/protobuf/empty.proto";
 import "hi/options.proto";
 
 service GatewayConfig  {
-  rpc List (google.protobuf.Empty) returns (hi.did.GatewayConfigListResp) { option (hi.auth) = AUTH_NONE; }
+  // 网关配置列表(面向登录用户)。此前误为免鉴权。
+  rpc List (google.protobuf.Empty) returns (hi.did.GatewayConfigListResp) { option (hi.auth) = AUTH_TOKEN; }
 }
