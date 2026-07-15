@@ -189,7 +189,7 @@ http:
   - selector: hi.club.Training.CreateContent
     post: /api/v1/training/create_content
     body: "*"
-  - selector: hi.club.Training.EditDegest
+  - selector: hi.club.Training.EditDigest
     post: /api/v1/training/edit_degest
     body: "*"
   - selector: hi.club.Training.SetMemModel

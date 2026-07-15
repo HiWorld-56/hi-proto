@@ -40,12 +40,12 @@ message MerchantListResp {
   repeated MerchantInfo list  = 2;
 }
 
-message UserProfileGetResp {
+message GetUserProfileResp {
   hi.Entity          base = 1;
   hi.MqttCredentials mqtt = 2;
 }
 
-message UserProfileSetReq {
+message SetUserProfileReq {
   string did    = 1;
   string name   = 2;
   string avatar = 3;
@@ -63,11 +63,13 @@ service Merchant {
   rpc Get (google.protobuf.Empty) returns (MerchantGetResp); // Token鉴权
   rpc Set (MerchantSetReq) returns (google.protobuf.Empty); // Token鉴权
   rpc List (hi.DID) returns (MerchantListResp); // Token鉴权
-  rpc GetUserProfile (hi.DID) returns (UserProfileGetResp); // ExtendToken鉴权
-  rpc SetUserProfile (UserProfileSetReq) returns (google.protobuf.Empty); // ExtendToken鉴权
+  rpc GetUserProfile (hi.DID) returns (GetUserProfileResp); // ExtendToken鉴权
+  rpc SetUserProfile (SetUserProfileReq) returns (google.protobuf.Empty); // ExtendToken鉴权
   rpc GetMerchant (hi.DID) returns (MerchantGetResp); // Token鉴权
-  rpc SaveUesrs (MerchantUsersSaveReq) returns (google.protobuf.Empty); // ExtendToken鉴权, 批量添加商户的用户
-  rpc DeleteUesrs (MerchantUsersDeleteReq) returns (google.protobuf.Empty); // ExtendToken鉴权，批量删除商户的用户
+  rpc SaveUsers (MerchantUsersSaveReq) returns (google.protobuf.Empty); // ExtendToken鉴权, 批量添加商户的用户
+  rpc SaveUesrs (MerchantUsersSaveReq) returns (google.protobuf.Empty) { option deprecated = true; } // DEPRECATED: 拼写错误,改用 SaveUsers
+  rpc DeleteUsers (MerchantUsersDeleteReq) returns (google.protobuf.Empty); // ExtendToken鉴权，批量删除商户的用户
+  rpc DeleteUesrs (MerchantUsersDeleteReq) returns (google.protobuf.Empty) { option deprecated = true; } // DEPRECATED: 拼写错误,改用 DeleteUsers
 }
 
 message MerchantNotifyReq {

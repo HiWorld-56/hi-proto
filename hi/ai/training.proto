@@ -127,7 +127,8 @@ service Training {
   rpc GetAgentFile (GetAgentFileReq) returns (GetAgentFileResp);
   rpc UpdateContent (UpdateContentReq) returns (google.protobuf.Empty);
   rpc CreateContent (CreateContentReq) returns (CreateContentResp);
-  rpc EditDegest (EditDigestReq) returns (google.protobuf.Empty);
+  rpc EditDigest (EditDigestReq) returns (google.protobuf.Empty);
+  rpc EditDegest (EditDigestReq) returns (google.protobuf.Empty) { option deprecated = true; } // DEPRECATED: 拼写错误,改用 EditDigest
   rpc SetMemModel (SetMemModelReq) returns (google.protobuf.Empty);
   rpc GetMemModel (GetMemModelReq) returns (GetMemModelResp);
 }

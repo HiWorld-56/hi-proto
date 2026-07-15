@@ -21,7 +21,8 @@ service Training {
   rpc GetAgentFile (hi.ai.GetAgentFileReq) returns (hi.ai.GetAgentFileResp);
   rpc UpdateContent (hi.ai.UpdateContentReq) returns (google.protobuf.Empty);
   rpc CreateContent (hi.ai.CreateContentReq) returns (hi.ai.CreateContentResp);
-  rpc EditDegest (hi.ai.EditDigestReq) returns (google.protobuf.Empty);
+  rpc EditDigest (hi.ai.EditDigestReq) returns (google.protobuf.Empty);
+  rpc EditDegest (hi.ai.EditDigestReq) returns (google.protobuf.Empty) { option deprecated = true; } // DEPRECATED: 拼写错误,改用 EditDigest
   rpc SetMemModel (hi.ai.SetMemModelReq) returns (google.protobuf.Empty);
   rpc GetMemModel (hi.ai.GetMemModelReq) returns (hi.ai.GetMemModelResp);
 }
