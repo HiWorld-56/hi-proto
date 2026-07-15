@@ -47,7 +47,8 @@ message UserACLEditReq {
 service UserACL {
   rpc Add (UserACLAddReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }
   rpc Delete (UserACLDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }
-  rpc List (UserACLListReq) returns (UserACLListResp) { option (hi.auth) = AUTH_SUPERADMIN; }
+  // ⚠️ 不是超管接口 —— 详见 hi/club/user_acl.proto 里 List 的说明(同一个回归)。
+  rpc List (UserACLListReq) returns (UserACLListResp) { option (hi.auth) = AUTH_TOKEN; }
   rpc ListTypes (google.protobuf.Empty) returns (UserACLListTypeResp) { option (hi.auth) = AUTH_TOKEN; }
   rpc Edit (UserACLEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }
 }

@@ -11,7 +11,14 @@ import "hi/options.proto";
 service UserACL {
   rpc Add (hi.ai.UserACLAddReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }
   rpc Delete (hi.ai.UserACLDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }
-  rpc List (hi.ai.UserACLListReq) returns (hi.ai.UserACLListResp) { option (hi.auth) = AUTH_SUPERADMIN; }
+  // ⚠️ 不是超管接口:前端 robot_memory / robot_plugin / robot_setup 三个**普通用户页面**
+  // 拿它当 getPermissions 用(查自己有哪些权限以显隐功能)。handler 里也从来没有超管校验
+  // —— 同 service 的 Add/Delete/Edit 都有,唯独 List 没有。我曾按"整个 service 都是管理面"
+  // 把它一起标成 SUPERADMIN,普通用户当场 PermissionDenied,是实打实的回归。
+  //
+  // TODO 主体其实有两个:普通用户查自己(本方法) vs 超管查全部(前端 super 页也调这个 url)。
+  //      应拆开,并让本方法强制 did = 调用者 —— 现在传谁的 did 都能查,任意用户可读他人 ACL。
+  rpc List (hi.ai.UserACLListReq) returns (hi.ai.UserACLListResp) { option (hi.auth) = AUTH_TOKEN; }
   rpc ListTypes (google.protobuf.Empty) returns (hi.ai.UserACLListTypeResp) { option (hi.auth) = AUTH_TOKEN; }
   rpc Edit (hi.ai.UserACLEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }
 }
