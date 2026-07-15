@@ -237,6 +237,30 @@ CI 加 `codegen/check_auth.py`(release.sh `[0/4]`):漏标即构建失败。
 
 **这一步顺带消灭了 15 处改名漂移**——规则长在方法上,改名/删除自动跟随,物理上不可能错位。
 
+## 1.5 AUTH_WEB3:第三种鉴权方式(**别当成"不鉴权"**)
+
+proto 注释里的 **`// Web3鉴权`** 一直都在,它**不是 `不鉴权` 的同义词**,而是独立档位:
+
+> **传输层不鉴权,鉴权在载荷里** —— 入参是 `hi.SignedData`,handler 自行验签
+> (`didapi.VerifySignature` / `VerifyOffline`)确认调用者身份。
+
+用于两类:
+1. **登录握手** —— 还没有 token,身份只能靠签名证明
+2. **回调** —— 三方业务实现契约、由 hidid/hiai **反向调用**通知标准信息。
+   调用方是 hidid,手里没有对方的用户 token,传输层无从鉴权;但数据是 web3 签名的,伪造不了。
+   club 作为 hidid 的 35 号商户实现 `LoginCallback` 即属此类;ai/media 同理。
+
+**⛔ 不要把 `AUTH_WEB3` 当漏配"加固"成 `AUTH_TOKEN`** —— 会静默打断 hidid 的登录/支付回调。
+已加 `TestSmokeWeb3Tier` 守这条:断言这些方法传空签名时返回 `Internal`(拦截器放行、
+handler 验签拒绝)而非 `Unauthenticated`(被拦截器拦下)。
+
+12 个方法标 `AUTH_WEB3`:`club.Auth.Verify`、`did.Auth.{Verify,VerifyOffline,Notify,Logout}`、
+`LoginCallback.Login`、`PayCallback.Pay`、`Pay.Notify`、`Assist.VerifySignature`、
+`did.Wallet.UpdateAddresses`、`club.Order.{GetNotPulledPcOrders,UpdatePulledPcOrders}`。
+
+> 例外:`club.Wallet.UpdateAddresses` 保持 `AUTH_TOKEN` —— 它只是把 SignedData 转发给
+> did(did 侧验签),club 这层要 token 是**额外一道纵深防御**,不是矛盾。
+
 ## 2. 修掉 4 处"实际比文档宽松"(已在 dev 实证)
 | 方法 | 原状 | 现状 |
 |---|---|---|
