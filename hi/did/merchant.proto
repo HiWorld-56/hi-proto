@@ -4,6 +4,7 @@ package hi.did;
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 
+import "buf/validate/validate.proto";
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/did/base.proto";
@@ -52,6 +53,23 @@ message SetUserProfileReq {
   string avatar = 3;
 }
 
+// 商户互授权:我(=ExtendToken 认出的商户)允许 grantee 访问我的数据。
+// ⚠️ 入参里**没有授权方 did** —— 授权方永远取自 token,故商户只能改自己的授权列表。
+message GrantReq {
+  string grantee = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}]; // 被授权方商户 did
+  string note    = 2; // 备注,给人看的
+}
+
+message GrantUnit {
+  hi.Entity grantee    = 1; // 被授权方
+  string    note       = 2;
+  int64     created_at = 3; // ms
+}
+
+message ListGrantsResp {
+  repeated GrantUnit grants = 1; // 我授权给了哪些商户
+}
+
 message MerchantUsersSaveReq {
   repeated string users = 1; // 用户did
 }
@@ -67,6 +85,11 @@ service Merchant {
   rpc GetUserProfile (hi.DID) returns (GetUserProfileResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // ExtendToken鉴权
   rpc SetUserProfile (SetUserProfileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // ExtendToken鉴权
   rpc GetMerchant (hi.DID) returns (MerchantGetResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 此前误在免鉴权表里
+  // ── 商户互授权 ──────────────────────────────────────────────
+  // 商户之间平级,跨商户读数据必须显式授权。授权方 = ExtendToken 认出的商户(不在入参里)。
+  rpc ListGrants (google.protobuf.Empty) returns (ListGrantsResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 我授权了哪些商户
+  rpc AddGrant (GrantReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 授权某商户访问我的数据
+  rpc RemoveGrant (GrantReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 取消授权
   rpc SaveUsers (MerchantUsersSaveReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // ExtendToken鉴权, 批量添加商户的用户
   rpc DeleteUsers (MerchantUsersDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // ExtendToken鉴权，批量删除商户的用户
 }
