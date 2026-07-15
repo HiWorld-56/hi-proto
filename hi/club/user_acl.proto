@@ -9,9 +9,9 @@ import "hi/ai/user_acl.proto";
 import "hi/options.proto";
 
 service UserACL {
-  rpc Add (hi.ai.UserACLAddReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
-  rpc Delete (hi.ai.UserACLDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
-  rpc List (hi.ai.UserACLListReq) returns (hi.ai.UserACLListResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc Add (hi.ai.UserACLAddReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }
+  rpc Delete (hi.ai.UserACLDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }
+  rpc List (hi.ai.UserACLListReq) returns (hi.ai.UserACLListResp) { option (hi.auth) = AUTH_SUPERADMIN; }
   rpc ListTypes (google.protobuf.Empty) returns (hi.ai.UserACLListTypeResp) { option (hi.auth) = AUTH_TOKEN; }
-  rpc Edit (hi.ai.UserACLEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
+  rpc Edit (hi.ai.UserACLEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }
 }

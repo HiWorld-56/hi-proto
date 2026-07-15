@@ -70,11 +70,17 @@ message UpdateTransHashReq {
   string hash = 2;
 }
 
-// 交易列表的唯一入参:did/id 均为可选过滤条件(AIP-132:过滤走参数,不编码进方法名)。
+// 查自己的交易。
 message ListTradeReq {
-  string        did        = 1; // 可选:只看该用户的交易;空=不按用户过滤
-  string        id         = 2; // 可选:只看该交易;空=不按 id 过滤
+  string        did        = 1;
+  string        id         = 2; // 可选:只看该交易
   hi.Pagination pagination = 3;
+}
+
+// 交易统计(内部使用)。id 为空 = 全量。
+message ListAllTradeReq {
+  string        id         = 1; // 可选:只看该交易;空=全量
+  hi.Pagination pagination = 2;
 }
 
 message ListTradeResp {
@@ -87,5 +93,10 @@ service Trade {
   rpc GetTrade (GetTradeReq) returns (GetTradeResp) { option (hi.auth) = AUTH_TOKEN; }
   rpc AddTrade (AddTradeReq) returns (AddTradeResp) { option (hi.auth) = AUTH_TOKEN; }
   rpc UpdateTransHash (UpdateTransHashReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
-  rpc List (ListTradeReq) returns (ListTradeResp) { option (hi.auth) = AUTH_TOKEN; } // 合并原 ListTrade(按 did)+ ListAllTrade(按 id/全量),过滤走参数
+  // 查自己的交易(did 必填)。普通用户可调。
+  rpc List (ListTradeReq) returns (ListTradeResp) { option (hi.auth) = AUTH_TOKEN; }
+  // 交易统计:全量/按 id 查(id 为空=全量)。**内部使用**,仅超管可调。
+  // 不与 List 合并:二者鉴权级别不同,而档位是按方法挂的 —— 合并会导致
+  // "did 留空即拿到全部人的交易",把 filter 值变成越权入口。
+  rpc ListAll (ListAllTradeReq) returns (ListTradeResp) { option (hi.auth) = AUTH_SUPERADMIN; }
 }
