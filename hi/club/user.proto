@@ -42,11 +42,12 @@ message RelationInfo {
   string    moment = 3; // 用户动态
 }
 
+// ListFriends / ListServitors 共用(同形:一串 RelationInfo)。共用类型故不带方法名。
 message RelationListResp {
   repeated RelationInfo list = 1;
 }
 
-message ListRelationResp {
+message ListRelationsResp {
   repeated RelationInfo friend   = 1; // 好友(friend 关系)
   repeated RelationInfo servitor = 2; // 仆从(master 关系,人或 bot)
 }
@@ -112,9 +113,9 @@ service User {
   rpc DeleteSystemMessage (DeleteSystemMessageReq) returns (google.protobuf.Empty); // 删除系统消息
   rpc DeleteAllSystemMessage (google.protobuf.Empty) returns (google.protobuf.Empty); // 删除所有系统消息
   rpc HandleSystemMessage (HandleSystemMessageReq) returns (google.protobuf.Empty); // 处理系统消息
-  rpc ListFriend (google.protobuf.Empty) returns (RelationListResp); // 当前用户好友(friend 关系)
-  rpc ListServitor (google.protobuf.Empty) returns (RelationListResp); // 当前用户仆从(master 关系,人或 bot)
-  rpc ListRelation (google.protobuf.Empty) returns (ListRelationResp); // 一次拿好友+仆从(同表,省初始化两次调用)
+  rpc ListFriends (google.protobuf.Empty) returns (RelationListResp); // 当前用户好友(friend 关系)
+  rpc ListServitors (google.protobuf.Empty) returns (RelationListResp); // 当前用户仆从(master 关系,人或 bot)
+  rpc ListRelations (google.protobuf.Empty) returns (ListRelationsResp); // 一次拿好友+仆从(同表,省初始化两次调用)
   rpc AddFriend (AddFriendReq) returns (AddFriendResp); // 添加好友
   rpc DeleteFriend (DeleteFriendReq) returns (google.protobuf.Empty); // 删除好友
   rpc ListGroup (google.protobuf.Empty) returns (ListGroupResp); // 当前用户所在的群列表
