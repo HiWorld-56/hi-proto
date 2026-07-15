@@ -70,6 +70,17 @@ message ListGrantsResp {
   repeated GrantUnit grants = 1; // 我授权给了哪些商户
 }
 
+message MerchantUsersListReq {
+  string        merchant   = 1; // 可选:指定商户(须先获其授权);空=自己(取 ExtendToken)
+  string        user       = 2; // 可选:按用户 did 过滤
+  hi.Pagination pagination = 3;
+}
+
+message MerchantUsersListResp {
+  int32                      total = 1;
+  repeated UserExtensionUnit units = 2;
+}
+
 message MerchantUsersSaveReq {
   repeated string users = 1; // 用户did
 }
@@ -81,7 +92,6 @@ message MerchantUsersDeleteReq {
 service Merchant {
   rpc Get (google.protobuf.Empty) returns (MerchantGetResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
   rpc Set (MerchantSetReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
-  rpc List (hi.DID) returns (MerchantListResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 商户查某用户所属商户;此前误在免鉴权表里
   rpc GetUserProfile (hi.DID) returns (GetUserProfileResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // ExtendToken鉴权
   rpc SetUserProfile (SetUserProfileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // ExtendToken鉴权
   rpc GetMerchant (hi.DID) returns (MerchantGetResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 此前误在免鉴权表里
@@ -90,6 +100,11 @@ service Merchant {
   rpc ListGrants (google.protobuf.Empty) returns (ListGrantsResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 我授权了哪些商户
   rpc AddGrant (GrantReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 授权某商户访问我的数据
   rpc RemoveGrant (GrantReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 取消授权
+  // 列商户下的用户。merchant 空=自己(取 ExtendToken);非空=指定商户(须先获该商户授权)。
+  // 合并原 UserExtension.List(商户从 token)+ ListByMerchantDid(商户从参数)——
+  // 二者查的是同一张 extend_table、同一份数据,此前因信任模型不同不能合;
+  // requireGrant 落地后,参数来的 merchant 必过授权校验,已无此顾虑。
+  rpc ListUsers (MerchantUsersListReq) returns (MerchantUsersListResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }
   rpc SaveUsers (MerchantUsersSaveReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // ExtendToken鉴权, 批量添加商户的用户
   rpc DeleteUsers (MerchantUsersDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // ExtendToken鉴权，批量删除商户的用户
 }
