@@ -10,6 +10,5 @@ import "hi/common.proto";
 import "hi/options.proto";
 
 service Base {
-  rpc ListSuperAdminUsers (google.protobuf.Empty) returns (hi.did.ListSuperAdminUsersResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
   rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权:查服务自身版本+环境
 }

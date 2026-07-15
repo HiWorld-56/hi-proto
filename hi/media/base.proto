@@ -10,6 +10,8 @@ import "hi/common.proto";
 import "hi/options.proto";
 
 service Base {
-  rpc ListSuperAdminUsers (google.protobuf.Empty) returns (hi.did.ListSuperAdminUsersResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
+  // 超管名单。himedia web 登录后拿它显隐内部菜单,故须登录可调、不能标 SUPERADMIN。
+  // 实现须穿透到 hidid(hi.did.SuperAdmin.List)—— media 不得自留名单表。
+  rpc ListSuperAdminUsers (google.protobuf.Empty) returns (hi.did.ListSuperAdminUsersResp) { option (hi.auth) = AUTH_TOKEN; }
   rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权:查服务自身版本+环境
 }

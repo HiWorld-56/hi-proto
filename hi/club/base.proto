@@ -20,7 +20,6 @@ message GetConfigResp {
 service Base {
   rpc ListCoins (google.protobuf.Empty) returns (hi.did.ListCoinsResp) { option (hi.auth) = AUTH_TOKEN; } // 不鉴权
   rpc LatestVersion (hi.did.LatestVersionReq) returns (hi.did.LatestVersionResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
-  rpc ListSuperAdminUsers (google.protobuf.Empty) returns (hi.did.ListSuperAdminUsersResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
   rpc GetConfig (GetConfigReq) returns (GetConfigResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
   rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权:查服务自身版本+环境
 }

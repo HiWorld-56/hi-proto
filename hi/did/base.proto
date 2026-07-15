@@ -37,12 +37,27 @@ message ListSuperAdminUsersResp {
 service Base {
   rpc ListCoins (google.protobuf.Empty) returns (ListCoinsResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
   rpc LatestVersion (LatestVersionReq) returns (LatestVersionResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
-  rpc ListSuperAdminUsers (google.protobuf.Empty) returns (ListSuperAdminUsersResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
+  // 超管名单。hisrv web 登录后拿它显隐"内部使用"菜单 —— 任何登录商户都要调,
+  // 故不能标 AUTH_SUPERADMIN(会变成"先是超管才能知道自己是不是超管")。
+  // 此前是 AUTH_NONE,等于把内部团队的 did 名单公开挂着。
+  rpc ListSuperAdminUsers (google.protobuf.Empty) returns (ListSuperAdminUsersResp) { option (hi.auth) = AUTH_TOKEN; }
   rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权:查服务自身版本+环境
 }
 
 service Assist {
   rpc VerifySignature (hi.SignedData) returns (hi.DID) { option (hi.auth) = AUTH_WEB3; } // Web3鉴权
+}
+
+// 超管名单的**唯一持有方**。超管是内部团队的后门(方便快速做全局操作/查询),与业务无关,
+// 人员固定就那几个。club/ai/media 一律穿透到这里问,不许自己留表 ——
+// 此前四个服务四张表,实测已漂移(did 11 / club 14 / ai 15 / media 3),
+// 且在一处撤权另一处不生效(zGzji3gw 在 did 已停用,在 club/ai 仍是超管)。
+//
+// 与 Base.ListSuperAdminUsers 的区别是**主体不同**,故分开:
+//   Base.ListSuperAdminUsers → 主体是登录用户(hisrv web),带用户 token,只为显隐菜单
+//   SuperAdmin.List          → 主体是兄弟服务,带 ExtendToken,用于它们的拦截器判档
+service SuperAdmin {
+  rpc List (google.protobuf.Empty) returns (ListSuperAdminUsersResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }
 }
 
 // ── 用户扩展的共享数据形状 ──────────────────────────────────────
