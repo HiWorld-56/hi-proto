@@ -46,9 +46,7 @@ message UserACLEditReq {
 service UserACL {
   rpc Add (UserACLAddReq) returns (google.protobuf.Empty);
   rpc Delete (UserACLDeleteReq) returns (google.protobuf.Empty);
-  rpc ListUserAcls (UserACLListReq) returns (UserACLListResp);
-  rpc List (UserACLListReq) returns (UserACLListResp) { option deprecated = true; } // DEPRECATED: 改用 ListUserAcls
-  rpc ListUserAclTypes (google.protobuf.Empty) returns (UserACLListTypeResp);
-  rpc ListType (google.protobuf.Empty) returns (UserACLListTypeResp) { option deprecated = true; } // DEPRECATED: 改用 ListUserAclTypes
+  rpc List (UserACLListReq) returns (UserACLListResp);
+  rpc ListType (google.protobuf.Empty) returns (UserACLListTypeResp);
   rpc Edit (UserACLEditReq) returns (google.protobuf.Empty);
 }

@@ -34,9 +34,7 @@ message DeleteUserReq {
 
 // Token鉴权
 service User {
-  rpc ListUsers (ListUserReq) returns (ListUserResp);
-
-  rpc List (ListUserReq) returns (ListUserResp) { option deprecated = true; } // DEPRECATED: 改用 ListUsers
+  rpc List (ListUserReq) returns (ListUserResp);
   rpc Edit (EditUserReq) returns (google.protobuf.Empty);
   rpc Delete (DeleteUserReq) returns (google.protobuf.Empty);
 }

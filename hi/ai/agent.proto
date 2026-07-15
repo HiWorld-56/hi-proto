@@ -168,8 +168,7 @@ service Agent {
   rpc AgentConfig (google.protobuf.Empty) returns (AgentConfigResp);
   rpc CreateAgent (CreateAgentReq) returns (CreateAgentResp);
   rpc EditAgent (EditAgentReq) returns (google.protobuf.Empty);
-  rpc ListAgents (hi.Pagination) returns (ListAgentResp);
-  rpc ListAgent (hi.Pagination) returns (ListAgentResp) { option deprecated = true; } // DEPRECATED: 改用 ListAgents
+  rpc ListAgent (hi.Pagination) returns (ListAgentResp);
   rpc ListAgentByDids (ListAgentByDidsReq) returns (ListAgentByDidsResp);
   rpc DeleteAgent (DeleteAgentReq) returns (google.protobuf.Empty);
   rpc FindAgent (FindAgentReq) returns (FindAgentResp);

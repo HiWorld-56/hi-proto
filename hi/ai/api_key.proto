@@ -47,7 +47,6 @@ message ListAgentReq {
 service ApiKey {
   rpc Create (google.protobuf.Empty) returns (CreateApiKeyResp);
   rpc Edit (EditApiKeyReq) returns (EditApiKeyResp);
-  rpc ListApiKeys (hi.Pagination) returns (ListApiKeyResp);
-  rpc List (hi.Pagination) returns (ListApiKeyResp) { option deprecated = true; } // DEPRECATED: 改用 ListApiKeys
+  rpc List (hi.Pagination) returns (ListApiKeyResp);
   rpc Delete (DeleteApiKeyReq) returns (google.protobuf.Empty);
 }

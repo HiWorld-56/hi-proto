@@ -19,7 +19,7 @@ http:
   - selector: hi.media.InviteCode.Edit
     post: /api/v1/invitecode/edit
     body: "*"
-  - selector: hi.media.InviteCode.ListInviteCodes
+  - selector: hi.media.InviteCode.List
     post: /api/v1/invitecode/list
     body: "*"
   - selector: hi.media.InviteCode.Delete
@@ -35,7 +35,7 @@ http:
   - selector: hi.media.Health.Check
     get: /api/v1/health/check
 # User
-  - selector: hi.media.User.ListUsers
+  - selector: hi.media.User.List
     post: /api/v1/user/list
     body: "*"
   - selector: hi.media.User.Edit

@@ -19,7 +19,7 @@ http:
   - selector: hi.ai.ApiKey.Edit
     post: /api/v1/api_key/edit
     body: "*"
-  - selector: hi.ai.ApiKey.ListApiKeys
+  - selector: hi.ai.ApiKey.List
     post: /api/v1/api_key/list
     body: "*"
   - selector: hi.ai.ApiKey.Delete
@@ -45,7 +45,7 @@ http:
   - selector: hi.ai.Agent.EditAgent
     post: /api/v1/agent/edit_agent
     body: "*"
-  - selector: hi.ai.Agent.ListAgents
+  - selector: hi.ai.Agent.ListAgent
     post: /api/v1/agent/list_agent
     body: "*"
   - selector: hi.ai.Agent.ListAgentByDids
@@ -89,7 +89,7 @@ http:
   - selector: hi.ai.Plugin.DrawCreate
     post: /api/v1/plugin/draw_create
     body: "*"
-  - selector: hi.ai.Plugin.ListPlugins
+  - selector: hi.ai.Plugin.List
     post: /api/v1/plugin/list
     body: "*"
   - selector: hi.ai.Plugin.Delete
@@ -157,10 +157,10 @@ http:
   - selector: hi.ai.UserACL.Delete
     post: /api/v1/user_acl/delete
     body: "*"
-  - selector: hi.ai.UserACL.ListUserAcls
+  - selector: hi.ai.UserACL.List
     post: /api/v1/user_acl/list
     body: "*"
-  - selector: hi.ai.UserACL.ListUserAclTypes
+  - selector: hi.ai.UserACL.ListType
     get: /api/v1/user_acl/list_type
   - selector: hi.ai.UserACL.Edit
     post: /api/v1/user_acl/edit
@@ -177,7 +177,7 @@ http:
   - selector: hi.ai.InviteCode.Edit
     post: /api/v1/invitecode/edit
     body: "*"
-  - selector: hi.ai.InviteCode.ListInviteCodes
+  - selector: hi.ai.InviteCode.List
     post: /api/v1/invitecode/list
     body: "*"
   - selector: hi.ai.InviteCode.Delete

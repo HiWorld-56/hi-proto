@@ -11,7 +11,6 @@ import "hi/did/api_key.proto";
 service ApiKey {
   rpc Create (hi.did.CreateApiKeyReq) returns (hi.did.CreateApiKeyResp);
   rpc Edit (hi.did.EditApiKeyReq) returns (hi.did.EditApiKeyResp);
-  rpc ListApiKeys (hi.did.ListApiKeyReq) returns (hi.did.ListApiKeyResp);
-  rpc List (hi.did.ListApiKeyReq) returns (hi.did.ListApiKeyResp) { option deprecated = true; } // DEPRECATED: 改用 ListApiKeys
+  rpc List (hi.did.ListApiKeyReq) returns (hi.did.ListApiKeyResp);
   rpc Delete (hi.did.DeleteApiKeyReq) returns (google.protobuf.Empty);
 }

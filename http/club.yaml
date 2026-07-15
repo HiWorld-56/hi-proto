@@ -68,10 +68,10 @@ http:
   - selector: hi.club.UserACL.Delete
     post: /api/v1/user_acl/delete
     body: "*"
-  - selector: hi.club.UserACL.ListUserAcls
+  - selector: hi.club.UserACL.List
     post: /api/v1/user_acl/list
     body: "*"
-  - selector: hi.club.UserACL.ListUserAclTypes
+  - selector: hi.club.UserACL.ListType
     get: /api/v1/user_acl/list_type
   - selector: hi.club.UserACL.Edit
     post: /api/v1/user_acl/edit
@@ -136,7 +136,7 @@ http:
   - selector: hi.club.Plugin.DrawCreate
     post: /api/v1/plugin/draw_create
     body: "*"
-  - selector: hi.club.Plugin.ListPlugins
+  - selector: hi.club.Plugin.List
     post: /api/v1/plugin/list
     body: "*"
   - selector: hi.club.Plugin.Delete
@@ -213,7 +213,7 @@ http:
   - selector: hi.club.ApiKey.Edit
     post: /api/v1/api_key/edit
     body: "*"
-  - selector: hi.club.ApiKey.ListApiKeys
+  - selector: hi.club.ApiKey.List
     post: /api/v1/api_key/list
     body: "*"
   - selector: hi.club.ApiKey.Delete

@@ -42,8 +42,7 @@ message InviteCodeVerifyReq {
 service InviteCode {
   rpc Create (google.protobuf.Empty) returns (InviteCodeCreateResp); // Token鉴权
   rpc Edit (InviteCodeEditReq) returns (google.protobuf.Empty); // Token鉴权
-  rpc ListInviteCodes (hi.Pagination) returns (InviteCodeListResp); // Token鉴权
-  rpc List (hi.Pagination) returns (InviteCodeListResp) { option deprecated = true; } // DEPRECATED: 改用 ListInviteCodes
+  rpc List (hi.Pagination) returns (InviteCodeListResp); // Token鉴权
   rpc Delete (InviteCodeDeleteReq) returns (google.protobuf.Empty); // Token鉴权
   rpc Verify (InviteCodeVerifyReq) returns (hi.AuthToken); // 不鉴权
 }
@@ -118,9 +117,7 @@ message MerchantManageEditReq {
 }
 
 service MerchantManage {
-  rpc ListMerchants (MerchantManageListReq) returns (MerchantManageListResp); // Token鉴权
-
-  rpc List (MerchantManageListReq) returns (MerchantManageListResp) { option deprecated = true; } // DEPRECATED: 改用 ListMerchants
+  rpc List (MerchantManageListReq) returns (MerchantManageListResp); // Token鉴权
   rpc Delete (hi.DID) returns (google.protobuf.Empty); // Token鉴权
   rpc Edit (MerchantManageEditReq) returns (google.protobuf.Empty); // Token鉴权
 }

@@ -8,7 +8,5 @@ import "hi/did/gateway.proto";
 import "google/protobuf/empty.proto";
 
 service GatewayConfig  {
-  rpc ListGatewayConfigs (google.protobuf.Empty) returns (hi.did.GatewayConfigListResp);
-
-  rpc List (google.protobuf.Empty) returns (hi.did.GatewayConfigListResp) { option deprecated = true; } // DEPRECATED: 改用 ListGatewayConfigs
+  rpc List (google.protobuf.Empty) returns (hi.did.GatewayConfigListResp);
 }
