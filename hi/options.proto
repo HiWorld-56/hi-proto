@@ -21,8 +21,12 @@ enum Auth {
   AUTH_TOKEN        = 2; // 用户 token(JWT):普通登录用户
   AUTH_EXTEND_TOKEN = 3; // 商户 ExtendToken:hisrv 商户身份,ctx 内含 merchant_did / extend_table
   AUTH_API_KEY      = 4; // apiKey:三方程序化调用
-  AUTH_SUPERADMIN   = 5; // 超管:在 AUTH_TOKEN 基础上再校验 caller did ∈ 超管名单
-                         // (内部全局控制/查看接口的后门;名单见 hi_chat_dids.purpose=0 & enable=1)
+  AUTH_SUPERADMIN   = 5; // 超管 = **二级验证**:先按 AUTH_TOKEN 验 token,再多一层
+                         // "当前调用用户是否超管"。内部全局控制/查看接口的后门,与业务无关。
+                         // ⚠️ 名单由**各服务自己**查,两边的表和判据并不一致:
+                         //   did :  hi_wallet.hi_wallet_dids  did=? AND enable=1   (不过滤 purpose)
+                         //   club:  hi_club.hi_chat_dids      purpose IN (0) AND enable=1
+                         // (两表是拷贝关系,该不该合并/统一判据未定 —— 见 .claude/authz-findings.md)
 
   // ⚠️ AUTH_WEB3:传输层不鉴权,**鉴权在载荷里** —— 入参是 hi.SignedData,由 handler
   // 自行验签(见 didapi.VerifySignature / VerifyOffline)确认调用者身份。

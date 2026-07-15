@@ -278,15 +278,55 @@ club 拦截器支持 `AUTH_SUPERADMIN`:普通鉴权之上再校验 `ctx did ∈ 
 **未给任何方法挂档** —— 哪些算"内部全局接口"是业务决策,挂档只需在 proto 标一行。
 候选:`club.Merchant.ListAll`、`club.Trade.List` 的全量分支。
 
-## 4. 扩展服务端口隔离(dev)
-`hi-club-trade`(9538)、`hi-ai-plugin`(9539)由 `0.0.0.0` 改绑 `172.17.0.1`(docker0)。
-外部(.64)已连不上,主服务经 `172.17.0.1` 照常。**prod 未动,需单独确认。**
+## 4. 扩展服务端口暴露 —— **有意保持 `0.0.0.0`,非待办**
+`hi-club-trade`(9538)、`hi-ai-plugin`(9539)零鉴权且全网段监听,曾一度改绑
+`172.17.0.1`(docker0)做隔离,**已按决策还原为 `0.0.0.0`**:
 
-> ⚠️ 不能绑 `127.0.0.1`:主服务在容器里,走 `172.17.0.1` 访问,绑回环会直接断掉。
+- **生产 NAT 未开放这些端口,外网访问不到** → 暴露面仅限局域网
+- 局域网是可信的,绑窄了**不利于内网调试**
+
+> 备查:若将来需要隔离,绑 `172.17.0.1`(docker0)而**不是 `127.0.0.1`** ——
+> 主服务在容器里、经 `172.17.0.1` 访问,绑回环会直接断掉 club→trade。
 
 ## 5. 顺带修掉的既有缺陷
 - did:3 处日志格式化 bug(`%!s(MISSING)`、`*string` 打成指针地址),阻塞 `go test`
 - club:删除 `hipb/`(迁 hi-proto-code 前的本地生成残留,无人 import 却拖累编译)
+
+## 5.5 ⚠️ 更正:did 侧一直有超管校验,只是叫 `IsAdmin`
+
+此前我搜 `IsSuperAdmin` / `CheckSuperAdmin` 未命中,便断言"did 侧无超管概念"——**是错的**:
+```go
+// did/internal/handler/handler.go:18
+func IsAdmin(ctx context.Context) error {
+	userDid, _ := DidFromContext(ctx)
+	record, _ := repo.NewDidsRepo().Get(userDid)   // 查管理员名单
+	if record == nil { return fmt.Errorf("您不是管理员") }
+}
+```
+
+### 两个服务各有一份**独立**的超管名单,判据还不一致
+| 服务 | 表 | 条件 |
+|---|---|---|
+| **did** | `hi_wallet.hi_wallet_dids` | `did=? AND enable=1` —— **不过滤 purpose** |
+| **club** | `hi_club.hi_chat_dids` | `purpose IN (0) AND enable=1` |
+
+两表内容看着相同(是拷贝),但 **did 的判据更宽**(任意 purpose 都算管理员,含 DApp 用途)。
+本轮各自沿用现状(不改行为),但**两份名单该不该合并、判据该不该统一,待评估**。
+
+### `IsAdmin` 只用在 2 处,其中 1 处**被注释掉了**
+```go
+gateway_config.go:21:	// err := IsAdmin(ctx)     ← List 的管理员校验被注释
+gateway_config.go:58:	err := IsAdmin(ctx)        ← Set 仍在用(本轮已收敛到拦截器 AUTH_SUPERADMIN)
+```
+这解释了 `did.GatewayConfig.List` 为何会掉进免鉴权表:**有人先注掉校验、再把方法加进白名单**。
+**原设计是"管理员才能看网关配置"(含 `api_key` 字段)。**
+
+### ⚠️ 遗留:club 把网关配置透传给了所有登录用户
+`club.GatewayConfig.List`(现 AUTH_TOKEN)→ 转发 `did.GatewayConfig.List`(现 AUTH_EXTEND_TOKEN)。
+即**任何登录用户都能看到网关配置**,而 did 的原设计是管理员才可见。
+超管校验无法下沉到 did 那层(club 只带 ExtendToken,did 拿不到用户 did),
+若要恢复原设计,应在 **club 侧**把 `GatewayConfig.List` 标 `AUTH_SUPERADMIN`。
+**需确认前端是否依赖它给普通用户展示** —— 未定,本轮维持现状。
 
 ## 6. 新发现的历史缺陷(**未修,需业务确认**)
 club 注册了 Agent / Training 服务,但**从未实现**这两个方法,一直被
