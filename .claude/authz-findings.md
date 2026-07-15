@@ -178,6 +178,100 @@ hisrv web 上没有那个列表页,代码里没有 token 置换逻辑。
 - → **倾向删除 `ListByMerchantDid`**:club 用不上,却是"拉走任意商户完整客户名单"的高危面。
   删前需确认无外部 gRPC 调用方。
 
+## 三·六、鉴权体系的全貌(实测,2026-07)
+
+### 各服务的鉴权模型**互不相同**
+| 服务 | 拦截器 | 档位 |
+|---|---|---|
+| club | `authorization.UnaryServerInterceptor` | white_list(none) / jwt / apiKey |
+| did | `middleware.UnaryServerInterceptor` | white_list(none) / **extend_token** / token |
+| ai | `middleware.UnaryServerInterceptor` | whiteUrlList(none) / **apiKeyUrlList** / token |
+| media | `auth.UnaryServerInterceptor` | — |
+| **club-trade / club-transaction / ai-plugin** | **空壳**(`return handler(ctx, req)` 直接放行) | **无** |
+| **source** | 只有 `ValidateInterceptor`(参数校验) | **无** |
+
+### ⚠️ 扩展服务"不直接对外"这个前提,网络层没有成立
+设计:扩展不直接对外,由主服务转发 + 主服务鉴权(club→club-trade 已如此实现:
+`club/internal/apiwrapper/clubtxapi` → `hi.club.Trade`;club 和 club-trade **都实现了
+Trade service**,前者是门面+鉴权,后者是真实现)。
+
+**但 dev 上端口是全网段发布的**:
+```
+hi-club-trade   0.0.0.0:9538->9538/tcp     ← 零鉴权
+hi-ai-plugin    0.0.0.0:9539->9539/tcp     ← 零鉴权
+hi-source       0.0.0.0:9530-9531->...     ← 零鉴权
+```
+**任何能路由到该机的人可直连 9538/9539/9530,绕开主服务鉴权。**
+修法不用改代码:`-p 9538:9538` → `-p 127.0.0.1:9538:9538`(主服务本就走 `172.17.0.1`)或走独立 docker network。
+
+### hi-source 的定位与上传鉴权(**已定方案**)
+现状:
+- `engine.POST("/upload", handler.Upload)` + gRPC `File.Upload/UploadStream` —— **公开、零鉴权**
+- **没有任何后端调 source**,是 **app/前端直连** → 任何人可上传任意文件
+- **下载不经过 source**:URL 直链 minio(bucket 已设开放读),`Download/DownloadStream` 是
+  nginx 时代的遗留(换 minio 后无人走)
+- minio 凭据只在 source 配置里(这点是对的)
+
+**方案:把上传封装进主服务,source 降级为扩展**
+```
+app ──(token)──▶ club/ai/did 的 Upload ──鉴权──▶ 转发 ──▶ source ──▶ minio
+下载:app ──▶ minio 直链(开放读)  ← 不变
+```
+- 与既有 `club → club-trade` 扩展模式一致
+- source 永不需要认识"用户";minio 凭据不扩散(优于 presigned URL 方案——那要求 3 个
+  主服务都持 minio 凭据)
+- 代价:文件字节穿过主服务 → 用 `UploadStream` 做流式转发,别读进内存
+- **前提:source 必须同时绑回环**,否则老的直传通道还开着,等于没修
+
+---
+
+# ✅ 已完成(2026-07-16 夜)
+
+## 1. 鉴权规则下沉到 proto,三张 map 全删
+`hi/options.proto` 定义 `enum Auth` + `extend MethodOptions`,**320 个 rpc 全量标注**。
+标注**由代码实际行为反推生成**(逐方法映射改名前老名 → 查该后端真实表),**行为等价**。
+四个后端(club/did/ai/media)拦截器改读 descriptor,`white_list.go`/`extend_token_list.go`/
+`apiKeyUrlList` **全部删除,残留清零**。未标注 = `AUTH_UNSPECIFIED` → **fail-closed**。
+
+CI 加 `codegen/check_auth.py`(release.sh `[0/4]`):漏标即构建失败。
+
+**这一步顺带消灭了 15 处改名漂移**——规则长在方法上,改名/删除自动跟随,物理上不可能错位。
+
+## 2. 修掉 4 处"实际比文档宽松"(已在 dev 实证)
+| 方法 | 原状 | 现状 |
+|---|---|---|
+| `did.MerchantManage.List` 全部商户 | **免登录** | `AUTH_EXTEND_TOKEN` |
+| `did.Wallet.GetUserAssets` 用户资产 | **免登录** | `AUTH_EXTEND_TOKEN` |
+| `did.Merchant.List` | **免登录** | `AUTH_EXTEND_TOKEN` |
+| `did.Merchant.GetMerchant` | **免登录** | `AUTH_EXTEND_TOKEN` |
+
+> 这解释了此前的困惑:club 的 `Merchant.ListAll` 之所以"零校验拿到全部商户",
+> **根因不在 club 缺超管判断,而是它转发的 did 下游根本不要求登录**。
+> 档位选 EXTEND_TOKEN 而非 TOKEN:club 调 did 只发 ExtendToken、不发 Token。
+
+## 3. 超管后门装锁(能力已就绪,**未挂档**)
+club 拦截器支持 `AUTH_SUPERADMIN`:普通鉴权之上再校验 `ctx did ∈ 超管名单`。
+**未给任何方法挂档** —— 哪些算"内部全局接口"是业务决策,挂档只需在 proto 标一行。
+候选:`club.Merchant.ListAll`、`club.Trade.List` 的全量分支。
+
+## 4. 扩展服务端口隔离(dev)
+`hi-club-trade`(9538)、`hi-ai-plugin`(9539)由 `0.0.0.0` 改绑 `172.17.0.1`(docker0)。
+外部(.64)已连不上,主服务经 `172.17.0.1` 照常。**prod 未动,需单独确认。**
+
+> ⚠️ 不能绑 `127.0.0.1`:主服务在容器里,走 `172.17.0.1` 访问,绑回环会直接断掉。
+
+## 5. 顺带修掉的既有缺陷
+- did:3 处日志格式化 bug(`%!s(MISSING)`、`*string` 打成指针地址),阻塞 `go test`
+- club:删除 `hipb/`(迁 hi-proto-code 前的本地生成残留,无人 import 却拖累编译)
+
+## 6. 新发现的历史缺陷(**未修,需业务确认**)
+club 注册了 Agent / Training 服务,但**从未实现**这两个方法,一直被
+`UnimplementedXServer` 静默兜底(线上调用即 501):
+- `hi.club.Agent.UpdatesToDefault`
+- `hi.club.Training.DeleteAgentFilesByDid`
+
+---
+
 ## 四、改造方向(待定)
 - 后端补**统一 authorization**:拦截器按方法挂权限(顶层/二层/公开),
   校验 `caller did` ∈ 根管理员名单 或 `hi_chat_user_super.type` 位掩码命中。
