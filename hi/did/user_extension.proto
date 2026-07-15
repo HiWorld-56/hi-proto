@@ -40,6 +40,10 @@ message UserExtensionUpdateReq {
   repeated UserExtensionUnit units = 1;
 }
 
+message UserExtensionDeleteReq {
+  repeated string users = 1; // 用户did列表
+}
+
 // 列某用户所属的商户。主体是**用户** —— 故归 UserExtension(用户扩展)而非 Merchant。
 message ListMerchantsReq {
   string        user_did   = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}]; // 用户 did(注意:不是商户 did)
