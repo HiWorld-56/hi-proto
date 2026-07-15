@@ -38,11 +38,6 @@ message DeleteApiKeyReq {
   string api_key = 1;
 }
 
-message ListAgentReq {
-  string        agent_did  = 1;
-  hi.Pagination pagination = 2;
-}
-
 // 使用token鉴权
 service ApiKey {
   rpc Create (google.protobuf.Empty) returns (CreateApiKeyResp);
