@@ -154,11 +154,27 @@ AIP 的"一个资源一个 List + filter"**前提是鉴权一致**。实测发�
 - [ ] **⚠️ `club.Agent.List` 合并要拆**:`ListAgentByDids` 免鉴权 vs `ListFavoriteAgents` 需鉴权,
       白名单按方法挂、粒度不够 → 拆成 `List`(公开,dids 过滤)+ `ListFavorites`(需鉴权)
 - [ ] **⚠️ `ListOnline` 要进 white_list**(维持原 `ListAllOnlineAgent` 免鉴权,给三方查在线机器人)
-- [ ] 2c-#4 `club.Merchant.List + ListAll` → **不合并**(跨权限边界)
-- [ ] 2c 剩余:`AgentMarket.ListByClass`(club/did)、`UserExtension.ListByMerchantDid`(club/did)、
-      `did.DApp.ListByClass`、`did.Wallet.ListUsersAssets` → `ListAssets(user_dids)`、
-      `did.Merchant.List(hi.DID)` 裸入参 → 正经 Req
-- [ ] 待评估:`UserACL.List`(ACL 列表)vs `ListType`(权限类型枚举)—— 可能是两种资源,非撞名
+- [x] `UserACL.ListType` → `ListTypes`(纯复数化;`UserACL.List` 本就正确不动)
+- [x] **2c 收尾** —— ⚠️ **本文档第三节那份"11 组撞名对"经逐组核实,基本全是错的**
+
+### ⛔ 教训:方法名在本库不可信,任何判断必须落到后端实现
+| 组 | 文档最初的判断(错) | 核实后的真相 |
+|---|---|---|
+| `Trade.ListTrade + ListAllTrade` | "全部+分页" | `{id,pagination}`,`if req.Id==""` 才全量 → **真能合,已合** ✓ |
+| `Agent` favorite | 可做 `List` 的 filter | `ListAgentByDids` 免鉴权 vs `ListFavoriteAgents` 需身份 → **合不了**,已拆 |
+| `AgentMarket.ListByClass` | `List(filter: class)` | 返回 `{banner, curated, ordinary}` 三分组版式 → **不是 List,不动** |
+| `did.DApp.ListByClass` | `List(filter: class)` | **入参是 Empty**,返回 `{top, popular, recommend}` 三分组版式 → **不动** |
+| `did.Wallet.ListUsersAssets` | `ListAssets(filter: user_dids)` | 入参 `{currency, pagination}`,返回按币种的**持仓排行榜**(公开不鉴权),**无 user_dids 这回事** → **不动** |
+| `Merchant.List + ListAll` | 撞名可合 | 跨权限边界(用户面 vs 管理面 `MerchantManage`)→ **不合** |
+| `UserExtension.ListByMerchantDid` | 越权重复品,该删 | **club 节点渲染的支柱**(选节点→读该节点扩展表→渲染金标);
+但 club 实际只需 `Get(merchant,user)`,`ListByMerchantDid` 无业务调用方 → 倾向删,属业务决策 |
+
+**结论:2c 真正需要合并的只有 Trade 和 Agent 两组,均已完成。** 其余"撞名对"不存在。
+
+### 留给 authz/业务轮(去留取决于权限结论,不是命名问题)
+- `UserExtension.List` / `ListByMerchantDid`(+ 是否搬去 `Merchant.ListUsers`)
+- `club.Merchant.List + ListAll`
+- `did.Merchant.List(hi.DID)` 裸入参 → 正经 Req
 - [ ] 后端 / Rust / 前端 / 三方(**hi-proto 全部改定后再动**)
 
 ## 九、关联单子

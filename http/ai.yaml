@@ -154,7 +154,7 @@ http:
   - selector: hi.ai.UserACL.List
     post: /api/v1/user_acl/list
     body: "*"
-  - selector: hi.ai.UserACL.ListType
+  - selector: hi.ai.UserACL.ListTypes
     get: /api/v1/user_acl/list_type
   - selector: hi.ai.UserACL.Edit
     post: /api/v1/user_acl/edit
