@@ -19,5 +19,5 @@ service Auth {
   rpc RefreshToken (hi.did.RefreshTokenReq) returns (hi.AuthToken) { option (hi.auth) = AUTH_NONE; } // 不鉴权
   rpc GenerateReqId (hi.did.GenerateReqIdReq) returns (hi.RequestId) { option (hi.auth) = AUTH_NONE; } // 不鉴权
   rpc GetReqStatus (hi.RequestId) returns (hi.did.ReqStatusResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
-  rpc Verify (hi.SignedData) returns (LoginResp) { option (hi.auth) = AUTH_NONE; } // Web3鉴权 / hi.did.LoginReq
+  rpc Verify (hi.SignedData) returns (LoginResp) { option (hi.auth) = AUTH_WEB3; } // Web3鉴权 / hi.did.LoginReq
 }

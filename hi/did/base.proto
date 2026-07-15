@@ -42,5 +42,5 @@ service Base {
 }
 
 service Assist {
-  rpc VerifySignature (hi.SignedData) returns (hi.DID) { option (hi.auth) = AUTH_NONE; } // Web3鉴权
+  rpc VerifySignature (hi.SignedData) returns (hi.DID) { option (hi.auth) = AUTH_WEB3; } // Web3鉴权
 }
