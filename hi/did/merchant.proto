@@ -118,18 +118,21 @@ message GetUserMqttResp {
   string password = 2;
 }
 
-// 用户绑定的商户节点(用户主体,用户 token)。裁决 #3:与 Merchant(商户主体)分开。
-service UserMerchant {
-  rpc Get (google.protobuf.Empty) returns (MerchantGetResp) { option (hi.auth) = AUTH_TOKEN; }  // 用户:查自己绑定的商户节点信息
-  rpc Set (MerchantSetReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }   // 用户:设置/更换自己绑定的商户节点
-}
-
-// 商户(主体=商户,ExtendToken)。按主体归位:所有"商户对用户扩展数据"的读写都在这;
+// 商户(主体=商户,ExtendToken)。按主体归位:商户自身配置、对用户扩展数据的读写、授权,全在这。
 // 用户不能读自己的扩展(扩展是商户的地盘)。
+//
+// (原 UserMerchant service 已删 —— 那个名字看不懂,且 Get 与本服务的 Get 逻辑完全重复
+//  [都是 FindOne(did)];Set 就是商户改自己配置,归 Merchant.Update。草民无 ExtendToken 调不到,
+//  正好修掉原 handler 里"草民查返回空"的 TODO。)
 //
 // 授权机制(裁决 #4,定稿):商户 X 操作商户 A 的数据时 —— 从 X 的 ExtendToken 解出 didx,
 //   若 didx 在 A 的授权列表里则直接操作,**不回取 A 的 ExtendToken**。
 service Merchant {
+  // ── 商户自身配置 ──
+  // Get:did 空=自己(取 ExtendToken);非空=查指定商户的节点信息(节点信息半公开,供渲染)。
+  //     合并原 UserMerchant.Get(self)+ GetMerchant(param),消除重复;并去掉 GetMerchant 的 stutter。
+  rpc Get (hi.DID) returns (MerchantGetResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }              // 查商户节点信息(空=自己)
+  rpc Update (MerchantSetReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 改自己的商户配置(原 UserMerchant.Set)
   // ── 商户管理其用户的扩展信息 ──
   // GetExUser/ListUsers:merchant 空=自己(免 grant);非空=指定商户(走 grant)。
   // GetExUser 的 resp.user 须始终有 name/avatar(取自全局 user 表),即使无扩展行 —— club 靠它显示。
@@ -140,8 +143,7 @@ service Merchant {
   rpc RemoveUsers (RemoveUsersReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 从自己名下删用户
   // ── 用户 mqtt 凭证(基础信息,商户可见)──
   rpc GetUserMqtt (GetUserMqttReq) returns (GetUserMqttResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 拿用户 mqtt 用户名/密码(供 club 管 ACL)
-  // ── 商户身份与授权 ──
-  rpc GetMerchant (hi.DID) returns (MerchantGetResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }             // 按 did 查某商户信息
+  // ── 商户互授权 ──
   rpc ListGrants (google.protobuf.Empty) returns (ListGrantsResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 我授权了哪些商户
   rpc AddGrant (GrantReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; }         // 授权某商户访问我的数据
   rpc RemoveGrant (GrantReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; }      // 取消授权
