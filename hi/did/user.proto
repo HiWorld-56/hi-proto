@@ -22,7 +22,8 @@ message UserTotalResp {
 }
 
 service User {
-  rpc Edit (hi.Entity) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }  // Token鉴权
-  rpc Query (google.protobuf.Empty) returns (hi.Entity) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
-  rpc Total (google.protobuf.Empty) returns (UserTotalResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
+  rpc Edit (hi.Entity) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }      // 用户:改自己的资料
+  rpc Query (google.protobuf.Empty) returns (hi.Entity) { option (hi.auth) = AUTH_TOKEN; }     // 用户:查自己的资料
+  rpc Total (google.protobuf.Empty) returns (UserTotalResp) { option (hi.auth) = AUTH_NONE; }  // 公开:用户总数
+  // 注:handler 里另有 List,proto 未声明 —— 死代码,应在后端删除。
 }

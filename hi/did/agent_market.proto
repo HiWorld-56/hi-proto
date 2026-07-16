@@ -4,6 +4,9 @@ package hi.did;
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 
+// ⚠️ 裁决 #9 #12:整个 AgentMarket 功能**已废弃,待整体删除**(proto + 后端 handler)。
+//    删除前需确认:club 侧的 club.AgentMarket.ListByClass 转发到这里 —— 一并处理。
+
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/did/base.proto";

@@ -62,8 +62,10 @@ message VerifyTransactionResp {
   uint32 query_count      = 6; // 该 hash 在缓存窗口内被查询次数（业务侧据此防伪）
 }
 
+// 转账/交易查询。History、TxStatus 是链上公开数据(无隐藏性,故公开)。
 service Transfer {
-  rpc History (HistoryReq) returns (HistoryResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
-  rpc TxStatus (TxStatusReq) returns (TxStatusResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
-  rpc VerifyTransaction (VerifyTransactionReq) returns (VerifyTransactionResp) { option (hi.auth) = AUTH_TOKEN; } // 不鉴权 // 两阶段：链上确认 + 业务比对
+  rpc History (HistoryReq) returns (HistoryResp) { option (hi.auth) = AUTH_NONE; }                                // 公开:某地址的转账历史(链上数据)
+  rpc TxStatus (TxStatusReq) returns (TxStatusResp) { option (hi.auth) = AUTH_NONE; }                             // 公开:查交易状态(链上数据)
+  rpc VerifyTransaction (VerifyTransactionReq) returns (VerifyTransactionResp) { option (hi.auth) = AUTH_TOKEN; } // 用户:交易校验(两阶段:链上确认 + 业务比对)
+  // 注:handler 里另有 HistoryOld,proto 未声明 —— 死代码,应在后端删除。
 }

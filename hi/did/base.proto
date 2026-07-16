@@ -34,9 +34,11 @@ message ListSuperAdminUsersResp {
   repeated string list = 1;
 }
 
+// Base —— 杂物袋:公开的版本/币种查询 + 一个需登录的超管名单查询。
+// TODO(一致性):ListCoins/LatestVersion/ServerVersion 是真公开,可挪进 Health,让 Base 归于一致。
 service Base {
-  rpc ListCoins (google.protobuf.Empty) returns (ListCoinsResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
-  rpc LatestVersion (LatestVersionReq) returns (LatestVersionResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
+  rpc ListCoins (google.protobuf.Empty) returns (ListCoinsResp) { option (hi.auth) = AUTH_NONE; }              // 公开:支持的币种列表
+  rpc LatestVersion (LatestVersionReq) returns (LatestVersionResp) { option (hi.auth) = AUTH_NONE; }           // 公开:某平台的最新版本
   // 超管名单。hisrv web 登录后拿它显隐"内部使用"菜单 —— 任何登录商户都要调,
   // 故不能标 AUTH_SUPERADMIN(会变成"先是超管才能知道自己是不是超管")。
   // 此前是 AUTH_NONE,等于把内部团队的 did 名单公开挂着。

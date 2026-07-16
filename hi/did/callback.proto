@@ -9,11 +9,14 @@ import "hi/common.proto";
 import "hi/options.proto";
 
 // 三方app/web登录回调
+// 回调契约:did 只定义,由**三方业务(club 等)实现并注册到自己的服务里**。
+// did 侧无 handler 是正常的 —— 它是被 club 实现的。web3 验签:did 反向回调时载荷带签名。
 service LoginCallback {
-  rpc Login (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_WEB3; } // LoginReq // Web3鉴权
+  rpc Login (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_WEB3; } // 验签:did 通知业务方"用户登录了"
 }
 
 // 三方app/web支付回调
+// 回调契约:同 LoginCallback,由 club 实现。
 service PayCallback {
-  rpc Pay (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_WEB3; } // PayData // Web3鉴权
+  rpc Pay (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_WEB3; } // 验签:did 通知业务方"支付结果"
 }

@@ -126,13 +126,18 @@ message GetUserByAddressResp {
   string did = 1; // 用户did
 }
 
+// 钱包:链上地址与资产。资产类查询多为链上公开数据(无隐藏性)。
 service Wallet {
-  rpc UpdateAddresses (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_WEB3; } // Web3鉴权 // UpdateAddressesReq
-  rpc UpdateAssets (UpdateAssetsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
-  rpc GetWallet (GetWalletReq) returns (GetWalletResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
-  rpc ListAddresses (ListAddressesReq) returns (ListAddressesResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
-  rpc TotalAssets (TotalAssetsReq) returns (TotalAssetsResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
-  rpc ListUsersAssets (ListUsersAssetsReq) returns (ListUsersAssetsResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
-  rpc GetUserAssets (GetUserAssetsReq) returns (GetUserAssetsResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 用户资产;此前误在免鉴权表里(任何人可查)
-  rpc GetUserByAddress (GetUserByAddressReq) returns (GetUserByAddressResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc UpdateAddresses (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_WEB3; }        // 更新用户各链地址(btc/eth/trx/sol/apt),web3 验签
+  rpc UpdateAssets (UpdateAssetsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }        // 用户:刷新自己的资产快照
+  rpc GetWallet (GetWalletReq) returns (GetWalletResp) { option (hi.auth) = AUTH_TOKEN; }                      // 用户:查某链的钱包地址
+  rpc ListAddresses (ListAddressesReq) returns (ListAddressesResp) { option (hi.auth) = AUTH_TOKEN; }          // 用户:列出全部链地址
+  rpc TotalAssets (TotalAssetsReq) returns (TotalAssetsResp) { option (hi.auth) = AUTH_NONE; }                 // 公开:总资产统计(链上数据)
+  rpc ListUsersAssets (ListUsersAssetsReq) returns (ListUsersAssetsResp) { option (hi.auth) = AUTH_NONE; }     // 公开:批量用户资产(链上数据)
+  // 裁决 #5:GetUserAssets 应改公开(链上数据无隐藏性,与 TotalAssets/ListUsersAssets 同类)。
+  //          TODO 改 AUTH_NONE。这也解决"同一份资产数据三种档位"的不一致
+  //          (club.Assets.GetUserAssets 已是公开)。
+  rpc GetUserAssets (GetUserAssetsReq) returns (GetUserAssetsResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }   // 查某用户资产。【裁决 #5:应改公开】
+  // 裁决 #8:GetUserByAddress 应删 —— hidid 用户体系里 did 是唯一标识,不需要按地址反查用户。TODO 删除。
+  rpc GetUserByAddress (GetUserByAddressReq) returns (GetUserByAddressResp) { option (hi.auth) = AUTH_TOKEN; } // 按链地址反查用户。【裁决 #8:应删,did 才是唯一标识】
 }

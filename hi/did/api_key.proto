@@ -54,10 +54,14 @@ message GetApiKeyResp {
   ApiKeyInfo info = 1;
 }
 
+// ⚠️ 裁决 #6:apikey 机制**不该在 did**。它是 hiclub 的东西 —— hiclub 给每个用户
+//    (人/软bot/硬bot)设 apikey,供外部**以该用户身份**调用 hiclub 的**受限方法子集**。
+//    与 token 的区别:apikey 能调的方法有限。
+//    TODO:整个 service 迁出 did,搬到 hiclub。当前 club 是转发到这里来用的。
 service ApiKey {
-  rpc Create (CreateApiKeyReq) returns (CreateApiKeyResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }
-  rpc Edit (EditApiKeyReq) returns (EditApiKeyResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }
-  rpc List (ListApiKeyReq) returns (ListApiKeyResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }
-  rpc Delete (DeleteApiKeyReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; }
-  rpc Get (GetApiKeyReq) returns (GetApiKeyResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }
+  rpc Create (CreateApiKeyReq) returns (CreateApiKeyResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }        // 给某用户生成 apikey
+  rpc Edit (EditApiKeyReq) returns (EditApiKeyResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }              // 改 apikey 备注
+  rpc List (ListApiKeyReq) returns (ListApiKeyResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }              // 列某用户的 apikey
+  rpc Delete (DeleteApiKeyReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; }   // 删 apikey
+  rpc Get (GetApiKeyReq) returns (GetApiKeyResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }                 // 按 apikey 反查归属用户(club 拦截器验 apikey 时调)
 }

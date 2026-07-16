@@ -14,7 +14,8 @@ message Order {
   string hash = 3;
 }
 
+// Pay —— 支付握手。与 SSE 的 web3 自动付款配套。
 service Pay {
-  rpc GenerateReq (hi.ClientInfo) returns (hi.RequestId) { option (hi.auth) = AUTH_NONE; } // 不鉴权
-  rpc Notify (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_WEB3; } // Order // Web3鉴权
+  rpc GenerateReq (hi.ClientInfo) returns (hi.RequestId) { option (hi.auth) = AUTH_NONE; }      // 公开:生成支付请求 reqId
+  rpc Notify (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_WEB3; }  // 验签:携带订单的支付通知(载荷签名)
 }
