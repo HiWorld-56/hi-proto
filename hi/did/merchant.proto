@@ -191,7 +191,14 @@ message OrderEventResp {
 //       ⑤付款结果通过用户设置的地址回传。
 // 关键:hidid 后端**只负责转发通知**,订单真伪由三方业务系统控制;拉单/回传的 url 都是用户填的,
 //       hidid-pc 直接对接三方、不经 hidid 后台 —— 排除了 hidid 后台伪造订单的可能。
+// hidid-pc 订阅端(用户主体,token):长连接接收订单事件。
 service SSE {
-  rpc OrderEvents (hi.DID) returns (stream OrderEventResp) { option (hi.auth) = AUTH_TOKEN; }      // hidid-pc 订阅订单事件流(长连接)
-  rpc Notify (MerchantNotifyReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; } // 商户触发一次付款通知,转发给对应 hidid-pc。公开=只是转发触发器,真伪由三方+用户填的 url 兜底
+  rpc OrderEvents (hi.DID) returns (stream OrderEventResp) { option (hi.auth) = AUTH_TOKEN; } // hidid-pc 订阅订单事件流(长连接)
+}
+
+// 商户触发端(公开):商户业务系统触发一次付款通知,hidid 转发给对应 hidid-pc。
+// 公开=只是转发触发器,订单真伪由三方业务系统 + 用户填的 url 兜底(裁决 #10)。
+// 从 SSE 拆出:与订阅端主体不同(商户 vs hidid-pc)、档位不同(公开 vs token)。
+service PayNotify {
+  rpc Notify (MerchantNotifyReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; } // 商户触发付款通知
 }

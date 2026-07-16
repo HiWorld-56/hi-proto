@@ -51,7 +51,7 @@ http:
     post: /api/v1/merchant_manage/edit
     body: "*"
 # Base
-  - selector: hi.did.SuperAdminView.ListSuperAdminUsers
+  - selector: hi.did.SuperAdmin.List
     get: /api/v1/base/list_superadminusers
   - selector: hi.did.Base.LatestVersion
     get: /api/v1/base/latest_version
@@ -95,17 +95,17 @@ http:
     post: /api/v1/merchant/delete_uesrs
     body: "*"
 # Wallet
-  - selector: hi.did.Wallet.ListUsersAssets
+  - selector: hi.did.Assets.ListUsersAssets
     post: /api/v1/wallet/list_user_assets
     body: "*"
-  - selector: hi.did.Wallet.GetUserAssets
+  - selector: hi.did.Assets.GetUserAssets
     post: /api/v1/wallet/get_user_assets
     body: "*"
-  - selector: hi.did.Wallet.TotalAssets
+  - selector: hi.did.Assets.TotalAssets
     post: /api/v1/wallet/total_assets
     body: "*"
 # User
-  - selector: hi.did.User.Total
+  - selector: hi.did.Base.UserTotal
     get: /api/v1/user/total
 # GatewayConfig
   - selector: hi.did.GatewayConfig.List

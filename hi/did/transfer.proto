@@ -62,10 +62,12 @@ message VerifyTransactionResp {
   uint32 query_count      = 6; // 该 hash 在缓存窗口内被查询次数（业务侧据此防伪）
 }
 
-// 转账/交易查询。History、TxStatus 是链上公开数据(无隐藏性,故公开)。
+// Transfer —— 一组**helper 方法**:都是查链上数据 / 验签,给三方(尤其没能力自己做
+// 链上查询或 web3 验签的)用。全部公开或 web3(web3 视为无鉴权),档位一致。
 service Transfer {
   rpc History (HistoryReq) returns (HistoryResp) { option (hi.auth) = AUTH_NONE; }                                // 公开:某地址的转账历史(链上数据)
   rpc TxStatus (TxStatusReq) returns (TxStatusResp) { option (hi.auth) = AUTH_NONE; }                             // 公开:查交易状态(链上数据)
-  rpc VerifyTransaction (VerifyTransactionReq) returns (VerifyTransactionResp) { option (hi.auth) = AUTH_TOKEN; } // 用户:交易校验(两阶段:链上确认 + 业务比对)
+  rpc VerifyTransaction (VerifyTransactionReq) returns (VerifyTransactionResp) { option (hi.auth) = AUTH_NONE; }  // 公开:交易校验(两阶段都只查链上数据比对,无需鉴权)
+  rpc VerifySignature (hi.SignedData) returns (hi.DID) { option (hi.auth) = AUTH_WEB3; }                          // web3:验签工具(原 Assist.VerifySignature),给不会自己验签的三方用
   // 注:handler 里另有 HistoryOld,proto 未声明 —— 死代码,应在后端删除。
 }

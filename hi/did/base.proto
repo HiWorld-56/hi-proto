@@ -34,25 +34,17 @@ message ListSuperAdminUsersResp {
   repeated string list = 1;
 }
 
-// Base —— 每个包统一的公共信息入口(版本/币种/服务自身版本),全部公开。
+message UserTotalResp {
+  int32 total = 1;
+}
+
+// Base —— 每个包统一的公共信息入口(版本/币种/服务自身版本/用户总数),全部公开。
 // 生态约定:club/ai/media 也各有 Base.ServerVersion / Base.LatestVersion,保持一致。
 service Base {
   rpc ListCoins (google.protobuf.Empty) returns (ListCoinsResp) { option (hi.auth) = AUTH_NONE; }            // 公开:支持的币种列表
   rpc LatestVersion (LatestVersionReq) returns (LatestVersionResp) { option (hi.auth) = AUTH_NONE; }         // 公开:某平台的最新版本
   rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp) { option (hi.auth) = AUTH_NONE; } // 公开:本服务 bin 版本 + 运行环境
-}
-
-// 超管名单(面向登录用户)。裁决 N3:从 Base 拎出,让 Base 归于全公开一致。
-//
-// 主体是**登录用户**:hisrv web 登录后拿它显隐"内部使用"菜单,任何登录商户都要调,
-// 故标 AUTH_TOKEN —— 不能标 AUTH_SUPERADMIN(会变成"先是超管才能知道自己是不是超管")。
-// 与 SuperAdmin.List 主体不同(那个是兄弟服务带 ExtendToken 穿透),故两个 service 并存。
-service SuperAdminView {
-  rpc ListSuperAdminUsers (google.protobuf.Empty) returns (ListSuperAdminUsersResp) { option (hi.auth) = AUTH_TOKEN; } // 用户:取超管名单(前端据此显隐菜单)
-}
-
-service Assist {
-  rpc VerifySignature (hi.SignedData) returns (hi.DID) { option (hi.auth) = AUTH_WEB3; } // Web3鉴权
+  rpc UserTotal (google.protobuf.Empty) returns (UserTotalResp) { option (hi.auth) = AUTH_NONE; }            // 公开:用户总数(原 User.Total)
 }
 
 // 超管名单的**唯一持有方**。超管是内部团队的后门(方便快速做全局操作/查询),与业务无关,
@@ -60,11 +52,12 @@ service Assist {
 // 此前四个服务四张表,实测已漂移(did 11 / club 14 / ai 15 / media 3),
 // 且在一处撤权另一处不生效(zGzji3gw 在 did 已停用,在 club/ai 仍是超管)。
 //
-// 与 Base.ListSuperAdminUsers 的区别是**主体不同**,故分开:
-//   Base.ListSuperAdminUsers → 主体是登录用户(hisrv web),带用户 token,只为显隐菜单
-//   SuperAdmin.List          → 主体是兄弟服务,带 ExtendToken,用于它们的拦截器判档
+// List 是**身份无关的读**(不管谁调返回都一样):前端登录用户拿它显隐"内部使用"菜单,
+// 兄弟服务(club/ai)穿透过来判档。两类调用方凭证不同(token / ExtendToken),
+// 故用 AUTH_TOKEN_OR_EXTEND 一个方法通吃(原 SuperAdmin.List + SuperAdminView.ListSuperAdminUsers 合并)。
+// 注意:不能标 AUTH_SUPERADMIN,否则变成"先是超管才能知道自己是不是超管"。
 service SuperAdmin {
-  rpc List (google.protobuf.Empty) returns (ListSuperAdminUsersResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }
+  rpc List (google.protobuf.Empty) returns (ListSuperAdminUsersResp) { option (hi.auth) = AUTH_TOKEN_OR_EXTEND; } // 取超管名单(前端/兄弟服务都可)
 }
 
 // (UserExtensionInfo / UserExtensionUnit 已迁至 merchant.proto —— 归位后只有 Merchant
