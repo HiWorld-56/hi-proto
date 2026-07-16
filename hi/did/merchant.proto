@@ -79,7 +79,7 @@ message ListGrantsResp {
 
 // ── 商户管理用户(扩展数据)的入参 ───────────────────────────────────
 // merchant 空=自己(取 ExtendToken);非空=指定商户(须先获该商户授权,requireGrant)。
-message GetExUserReq {
+message GetUserReq {
   string merchant = 1; // 商户 did;空=自己
   string user     = 2; // 用户 did
 }
@@ -134,9 +134,9 @@ service Merchant {
   rpc Get (hi.DID) returns (MerchantGetResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }              // 查商户节点信息(空=自己)
   rpc Update (MerchantSetReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 改自己的商户配置(原 UserMerchant.Set)
   // ── 商户管理其用户的扩展信息 ──
-  // GetExUser/ListUsers:merchant 空=自己(免 grant);非空=指定商户(走 grant)。
-  // GetExUser 的 resp.user 须始终有 name/avatar(取自全局 user 表),即使无扩展行 —— club 靠它显示。
-  rpc GetExUser (GetExUserReq) returns (UserExtensionUnit) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 拿某商户下某用户的扩展信息
+  // GetUser/ListUsers:merchant 空=自己(免 grant);非空=指定商户(走 grant)。
+  // GetUser 的 resp.user 须始终有 name/avatar(取自全局 user 表),即使无扩展行 —— club 靠它显示。
+  rpc GetUser (GetUserReq) returns (UserExtensionUnit) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 拿某商户下某用户的扩展信息
   rpc ListUsers (ListUsersReq) returns (ListUsersResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }     // 列某商户下的用户
   rpc SetUsers (SetUsersReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; }       // 批量写自己名下用户的扩展信息
   rpc AddUsers (AddUsersReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; }       // 加用户到自己名下
