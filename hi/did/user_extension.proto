@@ -8,7 +8,6 @@ import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "buf/validate/validate.proto";
 import "hi/options.proto";
-import "hi/did/base.proto";
 import "hi/did/merchant.proto";
 
 message UserExtensionSettingResp {
@@ -16,57 +15,22 @@ message UserExtensionSettingResp {
   string table = 2;
 }
 
-// 用户自己的扩展配置:extoken + 对应的扩展数据表(裁决 #7)。
+// 用户自己的扩展配置:extoken + 对应的扩展数据表(裁决 #7)。主体=用户本人(Token)。
 // resp.token = 当前 extoken;resp.table = 扩展数据标配(表名/结构)。
 service UserExtensionSettings {
   rpc Get (google.protobuf.Empty) returns (UserExtensionSettingResp) { option (hi.auth) = AUTH_TOKEN; }     // 取当前 extoken + 扩展数据标配
-  // 裁决 #7:原名 Update 词不达意 —— 它是重新生成 extoken(入参 Empty 也印证没有要更新的内容),改名 Refresh。
-  rpc Refresh (google.protobuf.Empty) returns (UserExtensionSettingResp) { option (hi.auth) = AUTH_TOKEN; } // 重新生成 extoken(旧名 Update)
+  rpc Refresh (google.protobuf.Empty) returns (UserExtensionSettingResp) { option (hi.auth) = AUTH_TOKEN; } // 重新生成 extoken(旧名 Update,词不达意)
 }
 
-message Button {
-  string bg_color = 1; // 背景色
-  string title    = 2; // 按钮文字
-  string type     = 3; // url类型: url, scheme
-  string url      = 4; //
-}
-
-message Card {
-  string title = 1; // 标题
-  string text  = 2; // 文本
-  string logo  = 3; // logo
-  Button left  = 4; // 左按钮
-  Button right = 5; // 右按钮
-}
-
-message UserExtensionUpdateReq {
-  repeated UserExtensionUnit units = 1;
-}
-
-message UserExtensionDeleteReq {
-  repeated string users = 1; // 用户did列表
-}
-
-// 列某用户所属的商户。主体是**用户** —— 故归 UserExtension(用户扩展)而非 Merchant。
+// 列某用户所属的商户。主体是**用户** —— 读作 "UserExtension.ListMerchants":
+// 列出这个用户在哪些商户下有扩展(=属于哪些商户)。不返回扩展数据本身。
 message ListMerchantsReq {
   string        user_did   = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}]; // 用户 did(注意:不是商户 did)
   hi.Pagination pagination = 2;
 }
 
-message UserExtensionGetReq {
-  string merchant = 1;
-  string user     = 2;
-}
-
-message UserExtensionGetResp {
-  UserExtensionUnit unit = 1;
-}
-
+// 归位后 UserExtension 只剩 ListMerchants —— 扩展数据的读写全归 Merchant(商户主体),
+// 用户不能读自己的扩展。这里只回答"某用户属于哪些商户"(不含扩展内容)。
 service UserExtension {
-  rpc Update (UserExtensionUpdateReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // Extend-Token鉴权
-  rpc Delete (UserExtensionDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // Extend-Token鉴权
-  rpc Get (UserExtensionGetReq) returns (UserExtensionGetResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 某商户下某用户的扩展数据(跨商户须先获授权)
-  // 列某用户所属的商户。原 Merchant.List(hi.DID) 搬来:主体是用户,归 UserExtension 才准确;
-  // 裸 hi.DID 入参也换成正经 Req —— "这是用户 did 不是商户 did"写进类型,而非靠注释。
   rpc ListMerchants (ListMerchantsReq) returns (MerchantListResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }
 }

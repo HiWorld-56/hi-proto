@@ -4,12 +4,13 @@ package hi.club;
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
-import "hi/did/user_extension.proto";
+import "hi/did/merchant.proto";
 import "hi/options.proto";
 
+// ⚠️ 待 club 阶段复核主体:此方法是**用户**(token)读某商户下某(他人)用户的扩展数据用于渲染
+//    (如金标标记)。但 did 侧已定"扩展是商户地盘、读扩展是商户主体(Merchant.GetExUser)"。
+//    club 这个 user-token 的读扩展是否合理、如何对齐,留 club 阶段处理。本轮仅跟随 did 的类型改名。
 service UserExtension {
-  // 取某商户下某用户的扩展数据(如金标标记)。club 的节点渲染只需要这一个:
-  // 用户选一个自己所在的商户节点 -> 按 (merchant, user) 取字段 -> 渲染。
-  // 跨商户读由 did 侧的 requireGrant 把关(该商户须先授权 club)。
-  rpc Get (hi.did.UserExtensionGetReq) returns (hi.did.UserExtensionGetResp) { option (hi.auth) = AUTH_TOKEN; }
+  // 取某商户下某用户的扩展数据。转发到 did 的 Merchant.GetExUser。
+  rpc Get (hi.did.GetExUserReq) returns (hi.did.UserExtensionUnit) { option (hi.auth) = AUTH_TOKEN; }
 }

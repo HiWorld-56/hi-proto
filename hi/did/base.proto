@@ -67,21 +67,6 @@ service SuperAdmin {
   rpc List (google.protobuf.Empty) returns (ListSuperAdminUsersResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }
 }
 
-// ── 用户扩展的共享数据形状 ──────────────────────────────────────
-// 放这里而非 user_extension.proto:merchant.proto 与 user_extension.proto 都要用它,
-// 若留在任一方会造成两文件循环 import(protoc 直接报错)。
-// 同属 hi.did 包,全限定名仍是 hi.did.UserExtensionUnit,引用点无需改动。
-
-message UserExtensionInfo {
-  optional string logo   = 1;
-  optional int32  level  = 2;
-  optional string card   = 3;
-  optional string extend = 4;
-  optional string note   = 5;
-}
-
-message UserExtensionUnit {
-  hi.Entity         user = 1;
-  UserExtensionInfo info = 2;
-}
+// (UserExtensionInfo / UserExtensionUnit 已迁至 merchant.proto —— 归位后只有 Merchant
+//  读写扩展,放那里最贴切,且不再有 merchant↔user_extension 的循环 import。)
 

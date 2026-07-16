@@ -61,13 +61,13 @@ http:
   - selector: hi.did.UserExtensionSettings.Get
     get: /api/v1/user_extension_settings/get
 # UserExtension
-  - selector: hi.did.UserExtension.Update
+  - selector: hi.did.Merchant.SetUsers
     post: /api/v1/user_extension/update
     body: "*"
   - selector: hi.did.Merchant.ListUsers
     post: /api/v1/user_extension/list
     body: "*"
-  - selector: hi.did.UserExtension.Delete
+  - selector: hi.did.Merchant.RemoveUsers
     post: /api/v1/user_extension/delete
     body: "*"
 # Auth
@@ -89,10 +89,10 @@ http:
   - selector: hi.did.UserExtension.ListMerchants
     post: /api/v1/merchant/list
     body: "*"
-  - selector: hi.did.Merchant.SaveUsers
+  - selector: hi.did.Merchant.AddUsers
     post: /api/v1/merchant/save_uesrs
     body: "*"
-  - selector: hi.did.Merchant.DeleteUsers
+  - selector: hi.did.Merchant.RemoveUsers
     post: /api/v1/merchant/delete_uesrs
     body: "*"
 # Wallet
