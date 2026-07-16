@@ -15,7 +15,7 @@ http:
   - selector: hi.did.InviteCode.Delete
     post: /api/v1/invitecode/delete
     body: "*"
-  - selector: hi.did.InviteCode.Verify
+  - selector: hi.did.InviteCodeVerify.Verify
     post: /api/v1/invitecode/verify
     body: "*"
 # DApp
@@ -25,19 +25,19 @@ http:
     get: /api/v1/dapp/get_rwa
   - selector: hi.did.DApp.GetTop
     get: /api/v1/dapp/list_top
-  - selector: hi.did.DApp.UpdateTop
+  - selector: hi.did.DAppAdmin.UpdateTop
     post: /api/v1/dapp/update_top
     body: "*"
-  - selector: hi.did.DApp.Create
+  - selector: hi.did.DAppAdmin.Create
     post: /api/v1/dapp/create
     body: "*"
-  - selector: hi.did.DApp.Edit
+  - selector: hi.did.DAppAdmin.Edit
     post: /api/v1/dapp/edit
     body: "*"
-  - selector: hi.did.DApp.UpdateOrder
+  - selector: hi.did.DAppAdmin.UpdateOrder
     post: /api/v1/dapp/update_order
     body: "*"
-  - selector: hi.did.DApp.Delete
+  - selector: hi.did.DAppAdmin.Delete
     post: /api/v1/dapp/delete
     body: "*"
 # MerchantManage
@@ -105,21 +105,10 @@ http:
   - selector: hi.did.Wallet.TotalAssets
     post: /api/v1/wallet/total_assets
     body: "*"
-# AgentMarket
-  - selector: hi.did.AgentMarket.List
-    post: /api/v1/agent_market/list
     body: "*"
-  - selector: hi.did.AgentMarket.Create
-    post: /api/v1/agent_market/create
     body: "*"
-  - selector: hi.did.AgentMarket.Edit
-    post: /api/v1/agent_market/edit
     body: "*"
-  - selector: hi.did.AgentMarket.Delete
-    post: /api/v1/agent_market/delete
     body: "*"
-  - selector: hi.did.AgentMarket.UpdateOrder
-    post: /api/v1/agent_market/update_order
     body: "*"
 # User
   - selector: hi.did.User.Total

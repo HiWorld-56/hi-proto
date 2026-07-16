@@ -10,12 +10,12 @@ import "hi/did/merchant.proto";
 import "hi/options.proto";
 
 // ═══════════════════════════════════════════════════════════════════════════
-// admin.proto —— hisrv 商户后台的管理面接口(InviteCode / DApp / MerchantManage)。
+// admin.proto —— hisrv 商户后台的管理面接口。
 //
-// ⚠️ 现状问题:这个文件里的方法,handler 里大多做了超管名单校验,proto 却标成 AUTH_TOKEN。
-//    即"拦截器不拦,只靠 handler 自己那道"。裁决已定档位与拆分方案,但**尚未执行**
-//    (改档位/拆 service 属破坏性改动,需对后端核实并 dev 实测)。见:
-//    record/20260716-162625-did-裁决.md
+// 已按裁决执行:超管方法标 AUTH_SUPERADMIN(原误标 TOKEN,只靠 handler 内联校验),
+// 并按主体拆 service。后端 bump 后需:①把 handler 内联超管校验收敛到拦截器
+// ②按拆分调整 RegisterXServer ③dev 实测超管方法"非超管被拒"。
+// 见 record/20260716-162625-did-裁决.md、record/20260716-164356-did-新4条裁决.md。
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ── 邀请码 ──────────────────────────────────────────────────────────────────
@@ -52,24 +52,24 @@ message InviteCodeVerifyReq {
   string did  = 3;
 }
 
-// 邀请码。前 4 个是超管管理邀请码,Verify 是待注册用户验码换 token —— 主体不同。
-//
-// TODO 裁决:① Create/Edit/List/Delete 标 AUTH_SUPERADMIN(handler 已有超管校验,现 proto 标错成 TOKEN)
-//            ② Verify 拆到独立 service(主体是"还没注册的人",与超管无关)
+// 邀请码管理:超管发/改/查/删邀请码。整个 service 都是超管面。
+// (待注册用户"验码"是另一个主体,已拆到下面 InviteCodeVerify。)
 service InviteCode {
-  rpc Create (google.protobuf.Empty) returns (InviteCodeCreateResp) { option (hi.auth) = AUTH_TOKEN; } // 生成一个新邀请码。【实为超管,proto 标错】
-  rpc Edit (InviteCodeEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }       // 改邀请码备注。【实为超管,proto 标错】
-  rpc List (hi.Pagination) returns (InviteCodeListResp) { option (hi.auth) = AUTH_TOKEN; }              // 分页列出邀请码。【实为超管,proto 标错】
-  rpc Delete (InviteCodeDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }   // 删邀请码。【实为超管,proto 标错】
-  rpc Verify (InviteCodeVerifyReq) returns (hi.AuthToken) { option (hi.auth) = AUTH_NONE; }             // 待注册用户验邀请码,通过则换回注册用的 AuthToken。公开。【待拆出独立 service】
+  rpc Create (google.protobuf.Empty) returns (InviteCodeCreateResp) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:生成一个新邀请码
+  rpc Edit (InviteCodeEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }       // 超管:改邀请码备注
+  rpc List (hi.Pagination) returns (InviteCodeListResp) { option (hi.auth) = AUTH_SUPERADMIN; }              // 超管:分页列出邀请码
+  rpc Delete (InviteCodeDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }   // 超管:删邀请码
+}
+
+// 邀请码校验:主体是**还没注册的人**,拿邀请码换 AuthToken 完成注册。
+// 从 InviteCode 拆出(主体不同:注册者 vs 超管;鉴权不同:公开 vs 超管)。
+service InviteCodeVerify {
+  rpc Verify (InviteCodeVerifyReq) returns (hi.AuthToken) { option (hi.auth) = AUTH_NONE; } // 公开:验邀请码,通过则换回注册用的 AuthToken
 }
 
 // ── DApp 目录 ───────────────────────────────────────────────────────────────
 // hidid app 首页展示的 DApp(去中心化应用)列表。
-//
-// TODO 裁决 #2:拆两个 service —— 超管维护目录(写:Create/Edit/Delete/UpdateOrder/UpdateTop)
-//              与 app 浏览目录(读:ListByClass/GetRWA/GetTop)分开。读写主体不同。
-//              写操作 handler 里本就有超管校验,proto 现标错成 TOKEN。
+// 裁决 #2:按读写主体拆两个 service —— DApp(app 浏览,读)/ DAppAdmin(超管维护,写)。
 
 message DAppInfo {
   string uuid        = 1; // uuid
@@ -110,17 +110,20 @@ message DAppDeleteReq {
   string uuid = 1;
 }
 
+// DApp 浏览(app 面):普通登录用户看首页 DApp 列表。只读。
 service DApp {
-  // ── app 面(读):普通登录用户浏览首页 DApp ──
-  rpc ListByClass (google.protobuf.Empty) returns (DAppListByClassResp) { option (hi.auth) = AUTH_TOKEN; } // 按分类取 DApp(视频/热门/推荐)
-  rpc GetRWA (google.protobuf.Empty) returns (DAppGetRWAResp) { option (hi.auth) = AUTH_TOKEN; }           // 取 RWA 类 DApp 的入口 url
-  rpc GetTop (google.protobuf.Empty) returns (DAppInfo) { option (hi.auth) = AUTH_TOKEN; }                 // 取置顶 DApp
-  // ── 超管面(写):维护 DApp 目录。handler 已有超管校验,proto 标错成 TOKEN,待拆去 DAppAdmin ──
-  rpc UpdateTop (DAppUpdateTopReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }      // 设置置顶 DApp(封面+url)。【实为超管】
-  rpc Create (DAppInfo) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }                 // 上架 DApp。【实为超管】
-  rpc Edit (DAppInfo) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }                   // 改 DApp。【实为超管】
-  rpc UpdateOrder (DAppUpdateOrderReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }  // 调整 DApp 排序。【实为超管】
-  rpc Delete (DAppDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }            // 下架 DApp。【实为超管】
+  rpc ListByClass (google.protobuf.Empty) returns (DAppListByClassResp) { option (hi.auth) = AUTH_TOKEN; } // 用户:按分类取 DApp(视频/热门/推荐)
+  rpc GetRWA (google.protobuf.Empty) returns (DAppGetRWAResp) { option (hi.auth) = AUTH_TOKEN; }           // 用户:取 RWA 类 DApp 的入口 url
+  rpc GetTop (google.protobuf.Empty) returns (DAppInfo) { option (hi.auth) = AUTH_TOKEN; }                 // 用户:取置顶 DApp
+}
+
+// DApp 维护(超管面):上架/下架/改/排序/置顶。handler 里本有超管校验,收敛到拦截器。
+service DAppAdmin {
+  rpc Create (DAppInfo) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }                // 超管:上架 DApp
+  rpc Edit (DAppInfo) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }                  // 超管:改 DApp
+  rpc Delete (DAppDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }           // 超管:下架 DApp
+  rpc UpdateOrder (DAppUpdateOrderReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:调整 DApp 排序
+  rpc UpdateTop (DAppUpdateTopReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }     // 超管:设置置顶 DApp(封面+url)
 }
 
 // ── 商户管理 ────────────────────────────────────────────────────────────────
@@ -145,12 +148,11 @@ message MerchantManageEditReq {
   string comment = 2;
 }
 
-// 商户管理(超管面)。
-//
-// ⚠️ 漏洞(裁决 #11):Delete/Edit 现标 AUTH_TOKEN 且 handler 零校验 ——
-//    **任何登录用户都能删改商户**。三个方法都要收紧为 AUTH_SUPERADMIN。
+// 商户管理(超管面)。裁决 #11:此前 Delete/Edit 标 AUTH_TOKEN 且 handler 零校验
+// (任何登录用户可删改商户,是漏洞),已全部收紧为 AUTH_SUPERADMIN。
+// ⚠️ handler 侧无内联校验,完全靠拦截器 —— 后端 bump 后必须实测"非超管调 Delete/Edit 被拒"。
 service MerchantManage {
-  rpc List (MerchantManageListReq) returns (MerchantManageListResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 分页列出所有商户。【实为超管,待改】
-  rpc Delete (hi.DID) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }                      // 删商户。【⚠️ 漏洞:任何登录用户可调,待收紧超管】
-  rpc Edit (MerchantManageEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }         // 改商户备注。【⚠️ 漏洞:同上】
+  rpc List (MerchantManageListReq) returns (MerchantManageListResp) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:分页列出所有商户
+  rpc Delete (hi.DID) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }               // 超管:删商户
+  rpc Edit (MerchantManageEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }  // 超管:改商户备注
 }
