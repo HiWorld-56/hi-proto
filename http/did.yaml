@@ -60,7 +60,6 @@ http:
     post: /api/v1/user_extension_settings/update
   - selector: hi.did.MerchantExDB.Get
     get: /api/v1/user_extension_settings/get
-# UserExtension
   - selector: hi.did.Merchant.SetUsers
     post: /api/v1/user_extension/update
     body: "*"
@@ -86,7 +85,7 @@ http:
   - selector: hi.did.Merchant.Update
     post: /api/v1/merchant/set
     body: "*"
-  - selector: hi.did.UserExtension.ListMerchants
+  - selector: hi.did.Merchant.ListMerchants
     post: /api/v1/merchant/list
     body: "*"
   - selector: hi.did.Merchant.AddUsers

@@ -107,6 +107,12 @@ message RemoveUsersReq {
   repeated string users = 1; // 用户 did:从自己名下删
 }
 
+// 列某用户所属的所有商户(某商户查:这个用户挂在哪些商户下)。不返回扩展数据本身。
+message ListMerchantsReq {
+  string        user_did   = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}]; // 用户 did(注意:不是商户 did)
+  hi.Pagination pagination = 2;
+}
+
 message GetUserMqttReq {
   string user = 1; // 用户 did
 }
@@ -138,6 +144,7 @@ service Merchant {
   // GetUser 的 resp.user 须始终有 name/avatar(取自全局 user 表),即使无扩展行 —— club 靠它显示。
   rpc GetUser (GetUserReq) returns (UserExtensionUnit) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 拿某商户下某用户的扩展信息
   rpc ListUsers (ListUsersReq) returns (ListUsersResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }     // 列某商户下的用户
+  rpc ListMerchants (ListMerchantsReq) returns (MerchantListResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 查某用户所属的所有商户(hiclub 作为商户调)
   rpc SetUsers (SetUsersReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; }       // 批量写自己名下用户的扩展信息
   rpc AddUsers (AddUsersReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; }       // 加用户到自己名下
   rpc RemoveUsers (RemoveUsersReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 从自己名下删用户
