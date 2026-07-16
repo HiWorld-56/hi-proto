@@ -149,6 +149,23 @@ service Merchant {
   rpc RemoveGrant (GrantReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; }      // 取消授权
 }
 
+// 商户的扩展库访问凭证:extoken(=ExtendToken,商户的 API 凭证)+ extend 表名。
+message MerchantExDBResp {
+  string token = 1; // ExtendToken
+  string table = 2; // 扩展数据表名
+}
+
+// 商户主人登录 hisrv 后,取/换自己的 ExtendToken —— **bootstrap 层**。
+// 原名 UserExtensionSettings 是假名(跟"用户扩展设置"无关,ctx.did 就是商户 did)。
+//
+// ⚠️ 为什么单独一个 service、且是 AUTH_TOKEN:ExtendToken 是从这里**拿到**的,
+//    所以本 service 不能要求先有 ExtendToken(拿票窗口不能查票)。主体是商户主人(登录 token),
+//    与 Merchant(服务持 ExtendToken 干活)主体不同,故不与 Merchant 合并。
+service MerchantExDB {
+  rpc Get (google.protobuf.Empty) returns (MerchantExDBResp) { option (hi.auth) = AUTH_TOKEN; }     // 取自己的 ExtendToken + 扩展表名
+  rpc Refresh (google.protobuf.Empty) returns (MerchantExDBResp) { option (hi.auth) = AUTH_TOKEN; } // 重新生成自己的 ExtendToken(旧名 Update)
+}
+
 message MerchantNotifyReq {
   string did   = 1;
   string nonce = 2;

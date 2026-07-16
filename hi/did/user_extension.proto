@@ -10,17 +10,8 @@ import "buf/validate/validate.proto";
 import "hi/options.proto";
 import "hi/did/merchant.proto";
 
-message UserExtensionSettingResp {
-  string token = 1;
-  string table = 2;
-}
-
-// 用户自己的扩展配置:extoken + 对应的扩展数据表(裁决 #7)。主体=用户本人(Token)。
-// resp.token = 当前 extoken;resp.table = 扩展数据标配(表名/结构)。
-service UserExtensionSettings {
-  rpc Get (google.protobuf.Empty) returns (UserExtensionSettingResp) { option (hi.auth) = AUTH_TOKEN; }     // 取当前 extoken + 扩展数据标配
-  rpc Refresh (google.protobuf.Empty) returns (UserExtensionSettingResp) { option (hi.auth) = AUTH_TOKEN; } // 重新生成 extoken(旧名 Update,词不达意)
-}
+// (原 UserExtensionSettings 是假名 —— 其实是"商户取/换自己的 ExtendToken",
+//  已改名 MerchantExDB 迁至 merchant.proto。)
 
 // 列某用户所属的商户。主体是**用户** —— 读作 "UserExtension.ListMerchants":
 // 列出这个用户在哪些商户下有扩展(=属于哪些商户)。不返回扩展数据本身。

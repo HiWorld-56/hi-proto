@@ -55,10 +55,10 @@ http:
     get: /api/v1/base/list_superadminusers
   - selector: hi.did.Base.LatestVersion
     get: /api/v1/base/latest_version
-# UserExtensionSettings
-  - selector: hi.did.UserExtensionSettings.Refresh
+# MerchantExDB
+  - selector: hi.did.MerchantExDB.Refresh
     post: /api/v1/user_extension_settings/update
-  - selector: hi.did.UserExtensionSettings.Get
+  - selector: hi.did.MerchantExDB.Get
     get: /api/v1/user_extension_settings/get
 # UserExtension
   - selector: hi.did.Merchant.SetUsers
