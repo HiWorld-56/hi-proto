@@ -15,7 +15,7 @@ http:
   - selector: hi.did.InviteCode.Delete
     post: /api/v1/invitecode/delete
     body: "*"
-  - selector: hi.did.InviteCodeVerify.Verify
+  - selector: hi.did.Register.Verify
     post: /api/v1/invitecode/verify
     body: "*"
 # DApp

@@ -183,22 +183,23 @@ message OrderEventResp {
   string payload = 2;
 }
 
-// SSE —— web3 自动付款机制(裁决 #10)。
-//
-// 架构:PC 端跑 hidid-pc,通过 SSE 与 hidid 后台保持长连接(hidid-pc 无公网 IP)。
-// 流程:①商户业务系统在**自己的服务上**生成订单 → ②商户调 Notify → hidid 后端把通知转发给
-//       对应的 hidid-pc → ③hidid-pc 按用户在软件里设置的地址**去拉订单** → ④付款 →
+// ── 订单通知/事件(web3 自动付款机制,裁决 #10)──────────────────────
+// 架构:PC 端跑 hidid-pc,通过 SSE 长连接(OrderEvent.Sub)与 hidid 后台保持连接(pc 无公网 IP)。
+// 流程:①商户业务系统在**自己的服务上**生成订单 → ②商户调 OrderNotify.Send → hidid 后端把通知
+//       转发给对应 hidid-pc → ③hidid-pc 按用户设置的地址**去拉订单** → ④付款 →
 //       ⑤付款结果通过用户设置的地址回传。
 // 关键:hidid 后端**只负责转发通知**,订单真伪由三方业务系统控制;拉单/回传的 url 都是用户填的,
 //       hidid-pc 直接对接三方、不经 hidid 后台 —— 排除了 hidid 后台伪造订单的可能。
-// hidid-pc 订阅端(用户主体,token):长连接接收订单事件。
-service SSE {
-  rpc OrderEvents (hi.DID) returns (stream OrderEventResp) { option (hi.auth) = AUTH_TOKEN; } // hidid-pc 订阅订单事件流(长连接)
+// 是商户特有的行为,放 merchant.proto。拆两端:主体不同(hidid-pc 订阅 vs 商户发送)、档位不同。
+
+// 订单事件订阅端(hidid-pc 订阅,token)。原 SSE.OrderEvents —— SSE 是传输术语不是主体。
+service OrderEvent {
+  rpc Sub (hi.DID) returns (stream OrderEventResp) { option (hi.auth) = AUTH_TOKEN; } // hidid-pc 订阅订单事件流(长连接)
 }
 
-// 商户触发端(公开):商户业务系统触发一次付款通知,hidid 转发给对应 hidid-pc。
+// 订单通知发送端(商户触发,公开):商户业务系统触发一次付款通知,hidid 转发给对应 hidid-pc。
 // 公开=只是转发触发器,订单真伪由三方业务系统 + 用户填的 url 兜底(裁决 #10)。
-// 从 SSE 拆出:与订阅端主体不同(商户 vs hidid-pc)、档位不同(公开 vs token)。
-service PayNotify {
-  rpc Notify (MerchantNotifyReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; } // 商户触发付款通知
+// 与订阅端主体不同(商户 vs hidid-pc)、档位不同(公开 vs token),故拆开。
+service OrderNotify {
+  rpc Send (MerchantNotifyReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; } // 商户触发付款通知
 }

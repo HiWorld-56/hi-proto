@@ -61,9 +61,10 @@ service InviteCode {
   rpc Delete (InviteCodeDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }   // 超管:删邀请码
 }
 
-// 邀请码校验:主体是**还没注册的人**,拿邀请码换 AuthToken 完成注册。
+// 注册:主体是**还没注册的人**,拿邀请码换 AuthToken 完成注册。
 // 从 InviteCode 拆出(主体不同:注册者 vs 超管;鉴权不同:公开 vs 超管)。
-service InviteCodeVerify {
+// 原名 InviteCodeVerify.Verify 是 stutter,改 Register.Verify。
+service Register {
   rpc Verify (InviteCodeVerifyReq) returns (hi.AuthToken) { option (hi.auth) = AUTH_NONE; } // 公开:验邀请码,通过则换回注册用的 AuthToken
 }
 
