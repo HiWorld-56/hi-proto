@@ -123,6 +123,16 @@ handler 里实打实做了超管名单校验,proto 却标成「用户token」。
 > `ListMerchants` 就是你说「看不懂」的那个 `Merchant.List`,已按主体归到 `UserExtension` 下。
 > ❓ 但它没有任何校验,且入参带 `user_did` —— 任何商户都能查任意用户属于哪些商户?
 
+### hi.did.Wallet.GetUserAssets (wallet.proto)
+
+| 方法 | 作用(我的理解) | 现档位 | handler 实际 | 我的建议 | 裁决 |
+|---|---|---|---|---|---|
+| `GetUserAssets` | 商户查某用户的资产 | 商户Extend | - | ❓ 见下 | |
+
+> ❓ 同一个 service 里,`TotalAssets`/`ListUsersAssets` 是**公开**的(链上数据),
+> 唯独 `GetUserAssets` 要商户身份。而 club 侧还有个 `club.Assets.GetUserAssets` 是**公开**的。
+> 同一份数据三种档位 —— 要么公开档标松了,要么这个标严了。
+
 ### hi.did.ApiKey (api_key.proto)
 
 给 bot 发 apikey,供脚本(AI function call)调用受限的接口子集。
