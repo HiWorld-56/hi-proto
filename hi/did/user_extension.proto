@@ -19,10 +19,9 @@ message UserExtensionSettingResp {
 // 用户自己的扩展配置:extoken + 对应的扩展数据表(裁决 #7)。
 // resp.token = 当前 extoken;resp.table = 扩展数据标配(表名/结构)。
 service UserExtensionSettings {
-  rpc Get (google.protobuf.Empty) returns (UserExtensionSettingResp) { option (hi.auth) = AUTH_TOKEN; }    // 取当前 extoken + 扩展数据标配
-  // ⚠️ 裁决 #7:此方法实为"刷新/重新生成"(重签 extoken 那套),不是"更新"。
-  //    入参 Empty 也印证 —— 没有要更新的内容。TODO 改名 Refresh/Regenerate。
-  rpc Update (google.protobuf.Empty) returns (UserExtensionSettingResp) { option (hi.auth) = AUTH_TOKEN; } // 【命名错误,实为"重新生成 extoken"】待改名 Refresh
+  rpc Get (google.protobuf.Empty) returns (UserExtensionSettingResp) { option (hi.auth) = AUTH_TOKEN; }     // 取当前 extoken + 扩展数据标配
+  // 裁决 #7:原名 Update 词不达意 —— 它是重新生成 extoken(入参 Empty 也印证没有要更新的内容),改名 Refresh。
+  rpc Refresh (google.protobuf.Empty) returns (UserExtensionSettingResp) { option (hi.auth) = AUTH_TOKEN; } // 重新生成 extoken(旧名 Update)
 }
 
 message Button {

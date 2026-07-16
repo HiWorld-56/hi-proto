@@ -34,16 +34,21 @@ message ListSuperAdminUsersResp {
   repeated string list = 1;
 }
 
-// Base —— 杂物袋:公开的版本/币种查询 + 一个需登录的超管名单查询。
-// TODO(一致性):ListCoins/LatestVersion/ServerVersion 是真公开,可挪进 Health,让 Base 归于一致。
+// Base —— 每个包统一的公共信息入口(版本/币种/服务自身版本),全部公开。
+// 生态约定:club/ai/media 也各有 Base.ServerVersion / Base.LatestVersion,保持一致。
 service Base {
-  rpc ListCoins (google.protobuf.Empty) returns (ListCoinsResp) { option (hi.auth) = AUTH_NONE; }              // 公开:支持的币种列表
-  rpc LatestVersion (LatestVersionReq) returns (LatestVersionResp) { option (hi.auth) = AUTH_NONE; }           // 公开:某平台的最新版本
-  // 超管名单。hisrv web 登录后拿它显隐"内部使用"菜单 —— 任何登录商户都要调,
-  // 故不能标 AUTH_SUPERADMIN(会变成"先是超管才能知道自己是不是超管")。
-  // 此前是 AUTH_NONE,等于把内部团队的 did 名单公开挂着。
-  rpc ListSuperAdminUsers (google.protobuf.Empty) returns (ListSuperAdminUsersResp) { option (hi.auth) = AUTH_TOKEN; }
-  rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权:查服务自身版本+环境
+  rpc ListCoins (google.protobuf.Empty) returns (ListCoinsResp) { option (hi.auth) = AUTH_NONE; }            // 公开:支持的币种列表
+  rpc LatestVersion (LatestVersionReq) returns (LatestVersionResp) { option (hi.auth) = AUTH_NONE; }         // 公开:某平台的最新版本
+  rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp) { option (hi.auth) = AUTH_NONE; } // 公开:本服务 bin 版本 + 运行环境
+}
+
+// 超管名单(面向登录用户)。裁决 N3:从 Base 拎出,让 Base 归于全公开一致。
+//
+// 主体是**登录用户**:hisrv web 登录后拿它显隐"内部使用"菜单,任何登录商户都要调,
+// 故标 AUTH_TOKEN —— 不能标 AUTH_SUPERADMIN(会变成"先是超管才能知道自己是不是超管")。
+// 与 SuperAdmin.List 主体不同(那个是兄弟服务带 ExtendToken 穿透),故两个 service 并存。
+service SuperAdminView {
+  rpc ListSuperAdminUsers (google.protobuf.Empty) returns (ListSuperAdminUsersResp) { option (hi.auth) = AUTH_TOKEN; } // 用户:取超管名单(前端据此显隐菜单)
 }
 
 service Assist {

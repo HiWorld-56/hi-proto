@@ -51,12 +51,12 @@ http:
     post: /api/v1/merchant_manage/edit
     body: "*"
 # Base
-  - selector: hi.did.Base.ListSuperAdminUsers
+  - selector: hi.did.SuperAdminView.ListSuperAdminUsers
     get: /api/v1/base/list_superadminusers
   - selector: hi.did.Base.LatestVersion
     get: /api/v1/base/latest_version
 # UserExtensionSettings
-  - selector: hi.did.UserExtensionSettings.Update
+  - selector: hi.did.UserExtensionSettings.Refresh
     post: /api/v1/user_extension_settings/update
   - selector: hi.did.UserExtensionSettings.Get
     get: /api/v1/user_extension_settings/get
@@ -81,9 +81,9 @@ http:
     post: /api/v1/auth/refresh_token
     body: "*"
 # Merchant
-  - selector: hi.did.Merchant.Get
+  - selector: hi.did.UserMerchant.Get
     get: /api/v1/merchant/get
-  - selector: hi.did.Merchant.Set
+  - selector: hi.did.UserMerchant.Set
     post: /api/v1/merchant/set
     body: "*"
   - selector: hi.did.UserExtension.ListMerchants

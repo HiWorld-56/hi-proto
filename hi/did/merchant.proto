@@ -89,22 +89,24 @@ message MerchantUsersDeleteReq {
   repeated string users = 1; // 用户did
 }
 
-// ⚠️ 裁决 #3:这个 service 混了两个主体 —— Get/Set 是**用户**查/设自己绑的商户节点(用户token),
-//    其余全是**商户**操作(ExtendToken)。TODO:把 Get/Set 拆去用户面 service。
+// 用户绑定的商户节点(用户主体)。裁决 #3:从 Merchant 拆出 —— 主体是"用户"(用户token),
+// 与下面 Merchant(商户主体,ExtendToken)分开。
+service UserMerchant {
+  rpc Get (google.protobuf.Empty) returns (MerchantGetResp) { option (hi.auth) = AUTH_TOKEN; }  // 用户:查自己绑定的商户节点信息
+  rpc Set (MerchantSetReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }   // 用户:设置/更换自己绑定的商户节点
+}
+
+// 商户操作(商户主体,ExtendToken)。
 //
-// ⚠️ 裁决 #13:GetUserProfile/SetUserProfile/GetMerchant 现在没有授权校验 ——
-//    club 就走 GetUserProfile 读用户档案。TODO:加互授权校验,无授权不得取他人商户的用户信息。
+// ⚠️ 裁决 #13:GetUserProfile/SetUserProfile/GetMerchant 现在缺授权校验 —— club 就走
+//    GetUserProfile 读用户档案。TODO(后端):加互授权校验,无授权不得取他人商户的用户信息。
 //
 // 授权机制(裁决 #4,定稿):商户 X 操作商户 A 的数据时 —— 从 X 的 ExtendToken 解出 didx,
 //    若 didx 在 A 的授权列表里则直接操作,**不回取 A 的 ExtendToken**。
 service Merchant {
-  // ── 用户主体(TODO 拆走)──
-  rpc Get (google.protobuf.Empty) returns (MerchantGetResp) { option (hi.auth) = AUTH_TOKEN; }  // 用户:查自己绑定的商户节点信息
-  rpc Set (MerchantSetReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }   // 用户:设置/更换自己绑定的商户节点
-  // ── 商户主体 ──
-  rpc GetUserProfile (hi.DID) returns (GetUserProfileResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }     // 商户:读某用户的档案(base + mqtt 凭证)。【⚠️ 缺授权校验】
-  rpc SetUserProfile (SetUserProfileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 商户:写某用户的档案(名字/头像)。【⚠️ 缺授权校验】
-  rpc GetMerchant (hi.DID) returns (MerchantGetResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }           // 商户:按 did 查某商户的信息。【⚠️ 缺授权校验;此前还误在免鉴权表里】
+  rpc GetUserProfile (hi.DID) returns (GetUserProfileResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }     // 商户:读某用户的档案(base + mqtt 凭证)。【⚠️ 缺授权校验,待加】
+  rpc SetUserProfile (SetUserProfileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 商户:写某用户的档案(名字/头像)。【⚠️ 缺授权校验,待加】
+  rpc GetMerchant (hi.DID) returns (MerchantGetResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }           // 商户:按 did 查某商户的信息。【⚠️ 缺授权校验,待加】
   // ── 商户互授权 ──────────────────────────────────────────────
   // 商户之间平级,跨商户读数据必须显式授权。授权方 = ExtendToken 认出的商户(不在入参里)。
   rpc ListGrants (google.protobuf.Empty) returns (ListGrantsResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 我授权了哪些商户
