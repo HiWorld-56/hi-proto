@@ -105,11 +105,6 @@ http:
   - selector: hi.did.Wallet.TotalAssets
     post: /api/v1/wallet/total_assets
     body: "*"
-    body: "*"
-    body: "*"
-    body: "*"
-    body: "*"
-    body: "*"
 # User
   - selector: hi.did.User.Total
     get: /api/v1/user/total
