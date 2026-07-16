@@ -39,10 +39,6 @@ message ReqStatusResp {
   hi.MqttCredentials mqtt = 4;
 }
 
-message LogoutReq {
-  hi.DID did = 1;
-}
-
 // Auth —— 登录/登出。握手类是公开的(此时还没 token),身份确认类是 web3 验签(载荷带签名)。
 // 公开 与 web3验签 同处一个 service 是允许的(web3 本质是数据校验,不是方法鉴权)。
 service Auth {
