@@ -32,7 +32,8 @@ message AgentConfig {
   optional float freedom = 2; // 控制模型输出的随机性，值越大越随机
   ModelSet       model   = 3;
   optional int32 qa_num  = 4; // 上下文组数
-  bool           use_mem = 5; // 启用记忆（启用训练数据）
+  optional bool  use_mem = 5; // 启用记忆（启用训练数据）。optional:Edit 局部更新——不传=不动,避免只改别的字段时把记忆误关。
+                              // 启用需 mem 权限(use-side 判);记忆开关的唯一写入口就是 Agent.Edit(原 SetSwitches 已移除)。
 }
 
 message TokenUsage {
