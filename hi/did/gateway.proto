@@ -31,7 +31,8 @@ message GatewayConfigSetReq {
 //
 // 读写拆两个 service(同 service 档位必须一致),照 DApp / DAppAdmin 的既有范式:
 //   Gateway(读,用户或商户) / GatewayAdmin(写,超管)。
-// HTTP 路径保持 /api/v1/gateway_config/*,前端无需改动。
+// HTTP 路径随之改为 /api/v1/gateway/list(读)与 /api/v1/gateway_admin/set(写)——
+// URL 与 selector 同构;前端调用地址已从旧的 gateway_config/* 变更,需同步更新。
 
 // 网关配置(客户端读)。主体=网关配置这份数据,谁登录了都要读:
 // app 用户(AUTH_USER)、hiclub 商户(AUTH_MERCHANT);超管运维页也走这个读(它是用户)。

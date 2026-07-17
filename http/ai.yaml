@@ -146,8 +146,8 @@ http:
     body: "*"
   - selector: hi.ai.Plugin.GetParams
     get: /api/v1/plugin/get_params
-  - selector: hi.ai.Plugin.SetSwitches
-    post: /api/v1/plugin/set_switches
+  - selector: hi.ai.Plugin.SetEnabled
+    post: /api/v1/plugin/set_enabled
     body: "*"
 # Training
   - selector: hi.ai.Training.Start

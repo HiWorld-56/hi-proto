@@ -29,5 +29,5 @@ service Plugin {
   rpc DeleteByDids (hi.ai.DeletePluginByDidsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }   // 按 agent 批量删
   rpc SetActiveVersion (hi.ai.SetActiveVersionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 选定供 function call 调用的版本
   rpc GetParams (hi.ai.GetParamsReq) returns (hi.ai.GetParamsResp) { option (hi.auth) = AUTH_USER; }                 // 取 function call 参数 schema(原 GetPythonParams)
-  rpc SetSwitches (hi.ai.PluginSwitchReq) returns (hi.ai.PluginSwitchResp) { option (hi.auth) = AUTH_USER; }              // 设置能力开关:记忆/插件(原 PluginSwitch)
+  rpc SetEnabled (hi.ai.SetEnabledReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }             // 脚本级开关:是否参与推理(记忆开关已移到 Agent.Edit)
 }

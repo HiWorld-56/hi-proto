@@ -36,21 +36,19 @@ message PluginItem {
   string url         = 4; // 主脚本包(zip)url:内含 main.py + requirement.txt
   string description = 5; // 脚本描述
   string version     = 6; // 版本号(用户上传时自填)
-  bool   active      = 7; // 本版本是否供 function call 调用(同 uuid 下只有一个为 true)
+  bool   active      = 7; // **版本级**开关:本版本是否供 function call 调用(同 uuid 下只有一个为 true)
   int64  created_at  = 8;
+  bool   enabled     = 9; // **脚本级**开关:本脚本是否参与推理。与 active 是两个维度:
+                          //   active=同一脚本的哪个版本上台;enabled=这个脚本要不要参与推理。
+                          //   有 plugin 权限即模块开,装配 function-call 工具时按 active AND enabled 过滤。
 }
 
-// 智能体能力开关。**现在只剩记忆(use_mem)一个总开关**:
-//   - 插件:总开关已取消(有 plugin 权限即开,脚本级由 enabled 控制);
-//   - 网搜/画图:功能已砍。
-// 记忆模块待重构(现分段方式有问题),重构前暂留 use_mem。
-message PluginSwitchReq {
-  string agent   = 1;
-  bool   use_mem = 2;
-}
-
-message PluginSwitchResp {
-  bool use_mem = 1;
+// 脚本级开关:设定某脚本是否参与推理(与 SetActiveVersion 的"版本级 active"对称)。
+// **有 plugin 权限即模块开**,单个脚本用 enabled 自行关掉;不在插件这边碰记忆开关。
+// (记忆开关 use_mem 归 AgentConfig,经 Agent.Edit 设置 —— 不开第二条写同一位的路径。)
+message SetEnabledReq {
+  string uuid    = 1; // 脚本 id
+  bool   enabled = 2; // 是否参与推理
 }
 
 // 上传/新建一个插件版本。
@@ -155,7 +153,7 @@ service Plugin {
   rpc DeleteByDids (DeletePluginByDidsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 按 agent 批量删
   rpc SetActiveVersion (SetActiveVersionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 选定供 function call 调用的版本
   rpc GetParams (GetParamsReq) returns (GetParamsResp) { option (hi.auth) = AUTH_MERCHANT; }           // 取 function call 参数 schema(原 GetPythonParams)
-  rpc SetSwitches (PluginSwitchReq) returns (PluginSwitchResp) { option (hi.auth) = AUTH_MERCHANT; }        // 设置能力开关:记忆/插件(原 PluginSwitch)
+  rpc SetEnabled (SetEnabledReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 脚本级开关:是否参与推理(与 SetActiveVersion 对称;原 SetSwitches 切的是记忆开关,已移到 Agent.Edit)
 }
 
 // ── py-docker 执行契约 ──────────────────────────────────────────────────

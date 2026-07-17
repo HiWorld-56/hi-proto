@@ -15,8 +15,13 @@ import "hi/options.proto";
 // **权限四档**(文档):
 //   normal   普通 —— 新用户默认拥有;管 自由度 / 系统提示词 / 用户提示词
 //   advanced 高级 —— 管 上下文数 / 对话模型 / 嵌入模型 / STT 模型
-//   mem      记忆 —— 能否上传资料、训练记忆(取消时清空资料与记忆)
-//   plugin   插件 —— 能否启用插件(取消时清空"增加"的数据)
+//   mem      记忆 —— 能否上传资料、训练记忆
+//   plugin   插件 —— 能否启用插件
+//
+// ⚠️ **撤权只翻位、啥都不做**(2026-07 定案):取消权限**不清任何数据**,只把权限位关掉。
+//   数据留着,使用侧(推理装配、上传校验等)**每次先判权限再决定用不用**(总开关思路),
+//   没权限自然用不上。理由:撤权若带一堆连带清理动作,漏一个就是漏洞;把判断收敛到 use-side 最稳。
+//   (后端 permission_repo Revoke 已按此改成只翻位。)
 //
 // ⚠️⚠️ **权限 ≠ 超管,别再混!**
 //   - 后端常量 `TYPE_SUPER_USER_SUPER = "super"` 其实是上面的「**高级**」档
@@ -81,11 +86,12 @@ service Permission {
 
 // 权限管理(超管)。对应设计文档的"操作许可:特定用户"。
 //
-// ⚠️ 取消权限有**副作用**(文档):取消 mem → 清空资料与记忆;取消 plugin → 清空"增加"的数据(如 search 条目);
-//    取消 advanced → 相关配置恢复默认。club 侧还另有副作用(群人数上限回落 300 并踢人),见 hi/club/permission.proto。
+// ⚠️ **取消权限只翻位、不清数据**(见文件头):撤 mem/plugin/advanced 都**只关权限位**,
+//    资料/记忆/插件数据一律保留,由 use-side 判权限门控。club 侧的"群人数上限回落 300 并踢人"
+//    是 club 自己的产品行为(见 hi/club/permission.proto),与 ai 无关。
 service PermissionManage {
   rpc Add (PermissionAddReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }       // 超管:授予(追加)
-  rpc Delete (PermissionDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:取消(伴随副作用)
+  rpc Delete (PermissionDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:取消(只翻位,不清数据)
   rpc Edit (PermissionEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }     // 超管:改备注
   rpc List (PermissionListReq) returns (PermissionListResp) { option (hi.auth) = AUTH_SUPERADMIN; }        // 超管:按类型列持有者
   rpc ListTypes (google.protobuf.Empty) returns (PermissionListTypeResp) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:列权限类型(给授权下拉用)
