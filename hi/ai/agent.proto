@@ -24,15 +24,15 @@ message ModelSet {
 }
 
 // 智能体配置。
-// 注:插件只剩 py 脚本一种(网搜/画图已砍 —— 那两类完全可以封进 py 脚本做,
-// 且局限太大,连传入用户数据都不方便),故只保留 use_plugin 一个开关。
+//
+// ⚠️ **插件没有总开关**:有 plugin 权限 = 插件模块就是开的;是否生效由每个脚本自己的 enabled 决定
+//    (原 use_plugin 已删)。故这里只剩 use_mem 一个总开关 —— 记忆模块待重构,重构前暂留。
 message AgentConfig {
-  Prompt         prompt     = 1;
-  optional float freedom    = 2; // 控制模型输出的随机性，值越大越随机
-  ModelSet       model      = 3;
-  optional int32 qa_num     = 4; // 上下文组数
-  bool           use_mem    = 5; // 启用记忆（启用训练数据）
-  bool           use_plugin = 6; // 启用插件(py 脚本)
+  Prompt         prompt  = 1;
+  optional float freedom = 2; // 控制模型输出的随机性，值越大越随机
+  ModelSet       model   = 3;
+  optional int32 qa_num  = 4; // 上下文组数
+  bool           use_mem = 5; // 启用记忆（启用训练数据）
 }
 
 message TokenUsage {
