@@ -10,17 +10,23 @@ import "hi/common.proto";
 import "hi/did/base.proto";
 import "hi/options.proto";
 
+// 商户节点信息。
+//
+// ⚠️ **绝不要把 extension_token(商户 API 凭证)加回这个结构。**
+//    原来它是字段 9,导致三条泄露路径:Merchant.Get(可传别人 did)、ListMerchants(批量返回)、
+//    MerchantManage.List —— 全靠"handler 记得别填"来保平安,而 Get 和 ListMerchants 都没记得。
+//    商户取自己的 ExtendToken 只有一条正道:**MerchantExDB.Get**(token 档,拿票窗口)。
+//    凭证只从那一个窄口子出,这里物理上带不出去。核实过:无任何消费方读取本字段。
 message MerchantInfo {
-  hi.Entity     master          = 1;
-  hi.Entity     server          = 2;
-  string        name            = 3;
-  string        logo            = 4;
-  repeated Coin public_coins    = 5; // 公共币种
-  repeated Coin custom_tokens   = 6; // 自定义币种
-  string        endpoint        = 7;
-  string        scheme          = 8;
-  string        extension_token = 9;
-  int64         created_at      = 10;
+  hi.Entity     master        = 1;
+  hi.Entity     server        = 2;
+  string        name          = 3;
+  string        logo          = 4;
+  repeated Coin public_coins  = 5; // 公共币种
+  repeated Coin custom_tokens = 6; // 自定义币种
+  string        endpoint      = 7;
+  string        scheme        = 8;
+  int64         created_at    = 10;
 }
 
 message MerchantGetResp {
@@ -135,9 +141,13 @@ message GetUserMqttResp {
 //   若 didx 在 A 的授权列表里则直接操作,**不回取 A 的 ExtendToken**。
 service Merchant {
   // ── 商户自身配置 ──
-  // Get:did 空=自己(取 ExtendToken);非空=查指定商户的节点信息(节点信息半公开,供渲染)。
-  //     合并原 UserMerchant.Get(self)+ GetMerchant(param),消除重复;并去掉 GetMerchant 的 stutter。
-  rpc Get (hi.DID) returns (MerchantGetResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; }              // 查商户节点信息(空=自己)
+  // Get:**只能查自己**,入参为空 —— 调用者身份由 ExtendToken 解出(merchant_did)。
+  //
+  // ⚠️ 历史漏洞(已修):原签名是 `Get(hi.DID)`,"did 非空=查指定商户"。但 MerchantInfo 里带
+  //    **extension_token(商户 API 凭证)** —— 于是任何持有效 ExtendToken 的商户,都能传别人的
+  //    did 把别人的凭证捞走。**越权**。别再把参数加回来:身份必须只来自 token,不能来自入参。
+  //    若确需看别的商户的公开信息(name/logo/scheme 等),走 MerchantPub(只吐安全字段)。
+  rpc Get (google.protobuf.Empty) returns (MerchantGetResp) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 查自己的商户节点信息
   rpc Update (MerchantSetReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; } // 改自己的商户配置(原 UserMerchant.Set)
   // ── 商户管理其用户的扩展信息 ──
   // GetUser/ListUsers:merchant 空=自己(免 grant);非空=指定商户(走 grant)。
