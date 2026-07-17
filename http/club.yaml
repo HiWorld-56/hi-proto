@@ -123,6 +123,9 @@ http:
   - selector: hi.club.Plugin.List
     post: /api/v1/plugin/list
     body: "*"
+  - selector: hi.club.Plugin.ListVersions
+    post: /api/v1/plugin/list_versions
+    body: "*"
   - selector: hi.club.Plugin.Delete
     post: /api/v1/plugin/delete
     body: "*"
@@ -135,8 +138,8 @@ http:
   - selector: hi.club.Plugin.SetActiveVersion
     post: /api/v1/plugin/set_active_version
     body: "*"
-  - selector: hi.club.Plugin.GetExData
-    get: /api/v1/plugin/get_ex_data
+  - selector: hi.club.Plugin.GetParams
+    get: /api/v1/plugin/get_params
 # Training
   - selector: hi.club.Training.Start
     post: /api/v1/training/start

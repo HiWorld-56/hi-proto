@@ -132,6 +132,9 @@ http:
   - selector: hi.ai.Plugin.List
     post: /api/v1/plugin/list
     body: "*"
+  - selector: hi.ai.Plugin.ListVersions
+    post: /api/v1/plugin/list_versions
+    body: "*"
   - selector: hi.ai.Plugin.Delete
     post: /api/v1/plugin/delete
     body: "*"
@@ -141,8 +144,8 @@ http:
   - selector: hi.ai.Plugin.SetActiveVersion
     post: /api/v1/plugin/set_active_version
     body: "*"
-  - selector: hi.ai.Plugin.GetExData
-    get: /api/v1/plugin/get_ex_data
+  - selector: hi.ai.Plugin.GetParams
+    get: /api/v1/plugin/get_params
   - selector: hi.ai.Plugin.SetSwitches
     post: /api/v1/plugin/set_switches
     body: "*"
