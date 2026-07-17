@@ -156,6 +156,28 @@ service Merchant {
   rpc RemoveGrant (GrantReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_EXTEND_TOKEN; }      // 取消授权
 }
 
+// ── 商户公开信息 ─────────────────────────────────────────────────────
+// 只放**能给前端看的**商户字段。目前只有 scheme。
+//
+// ⚠️ 为什么不能复用 Merchant.Get:它返回整个 MerchantInfo,里面有 **extension_token
+//    (商户的 API 凭证)**、master、endpoint 等 —— 一个都不能给 app。
+//    单开这个门面,以后要开放别的公开字段也有地方放,且物理上不可能带出敏感字段。
+message MerchantPubSchemeResp {
+  string scheme = 1; // 商户业务 app 的回调 scheme;只有 scheme,别的一概不给
+}
+
+// 商户公开信息(免鉴权)。主体=商户对外可见的那部分。
+//
+// 用途:hidid app 被三方业务 app 唤起做签名认证时,按业务侧传来的**商户 did** 查回跳 scheme;
+// 签完名靠这个 scheme 跳回业务 app。
+//
+// 免鉴权的理由:整条唤起→签名→回跳的握手本身就不带 token(走 SignedData),
+// 且 scheme 是 app 在系统里注册的公开信息,本就不是秘密。
+// **安全性由返回体的窄来保证** —— 只吐 scheme,而不是靠鉴权挡。
+service MerchantPub {
+  rpc Scheme (hi.DID) returns (MerchantPubSchemeResp) { option (hi.auth) = AUTH_NONE; } // 公开:按商户 did 查回跳 scheme
+}
+
 // 商户的扩展库访问凭证:extoken(=ExtendToken,商户的 API 凭证)+ extend 表名。
 message MerchantExDBResp {
   string token = 1; // ExtendToken

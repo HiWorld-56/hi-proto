@@ -107,6 +107,10 @@ http:
 # User
   - selector: hi.did.Base.UserTotal
     get: /api/v1/user/total
+# MerchantPub —— 商户公开信息(免鉴权,只吐 scheme)
+  - selector: hi.did.MerchantPub.Scheme
+    post: /api/v1/merchant_pub/scheme
+    body: "*"
 # Gateway(读)/ GatewayAdmin(写) —— URL 保持不变,前端无需改动
   - selector: hi.did.Gateway.List
     get: /api/v1/gateway_config/list
