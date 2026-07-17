@@ -18,105 +18,105 @@ http:
     get: /api/v1/base/latest_version
 # Agent
   - selector: hi.club.Model.ListLlms
-    get: /api/v1/agent/list_llm
+    get: /api/v1/model/list_llms
   - selector: hi.club.Model.ListEmbeddings
-    get: /api/v1/agent/list_embedding
+    get: /api/v1/model/list_embeddings
   - selector: hi.club.Model.ListStts
-    get: /api/v1/agent/list_stt
+    get: /api/v1/model/list_stts
   - selector: hi.club.Model.ListTts
-    get: /api/v1/agent/list_tts
+    get: /api/v1/model/list_tts
   - selector: hi.club.Agent.DefaultConfig
-    get: /api/v1/agent/agent_config
+    get: /api/v1/agent/default_config
   - selector: hi.club.Agent.Create
-    post: /api/v1/agent/create_agent
+    post: /api/v1/agent/create
     body: "*"
   - selector: hi.club.Agent.Edit
-    post: /api/v1/agent/edit_agent
+    post: /api/v1/agent/edit
     body: "*"
   - selector: hi.club.AgentDirectory.List
-    post: /api/v1/agent/list
+    post: /api/v1/agent_directory/list
     body: "*"
   - selector: hi.club.Agent.ListMarks
-    post: /api/v1/agent/list_favorite
+    post: /api/v1/agent/list_marks
     body: "*"
   - selector: hi.club.Agent.Delete
-    post: /api/v1/agent/delete_agent
+    post: /api/v1/agent/delete
     body: "*"
   - selector: hi.club.Agent.Get
-    get: /api/v1/agent/find_agent
+    get: /api/v1/agent/get
   - selector: hi.club.Agent.GetUsage
-    post: /api/v1/agent/find_agent_count
+    post: /api/v1/agent/get_usage
     body: "*"
   - selector: hi.club.Agent.Transfer
     post: /api/v1/agent/transfer
     body: "*"
   - selector: hi.club.Agent.Mark
-    post: /api/v1/agent/favorite_agent
+    post: /api/v1/agent/mark
     body: "*"
 # UserACL
   - selector: hi.club.PermissionManage.Add
-    post: /api/v1/user_acl/add
+    post: /api/v1/permission_manage/add
     body: "*"
   - selector: hi.club.PermissionManage.Delete
-    post: /api/v1/user_acl/delete
+    post: /api/v1/permission_manage/delete
     body: "*"
   - selector: hi.club.Permission.Get
-    post: /api/v1/user_acl/list
+    post: /api/v1/permission/get
     body: "*"
   - selector: hi.club.PermissionManage.List
     post: /api/v1/permission_manage/list
     body: "*"
   - selector: hi.club.PermissionManage.ListTypes
-    get: /api/v1/user_acl/list_type
+    get: /api/v1/permission_manage/list_types
   - selector: hi.club.PermissionManage.Edit
-    post: /api/v1/user_acl/edit
+    post: /api/v1/permission_manage/edit
     body: "*"
 # Health
 # Chat
   - selector: hi.club.Chat.NewSession
-    get: /api/v1/chat/generate_cid
+    get: /api/v1/chat/new_session
   - selector: hi.club.Chat.Send
-    post: /api/v1/chat/dialog
+    post: /api/v1/chat/send
     body: "*"
   - selector: hi.club.Chat.Stream
-    post: /api/v1/chat/dialog_stream
+    post: /api/v1/chat/stream
     body: "*"
   - selector: hi.club.Chat.ClearHistory
-    post: /api/v1/chat/clear_context
+    post: /api/v1/chat/clear_history
     body: "*"
   - selector: hi.club.Chat.GetHistory
-    post: /api/v1/chat/get_context
+    post: /api/v1/chat/get_history
     body: "*"
   - selector: hi.club.Speech.Synthesize
-    post: /api/v1/chat/simple_text_to_speech
+    post: /api/v1/speech/synthesize
     body: "*"
   - selector: hi.club.Speech.Transcribe
-    post: /api/v1/chat/simple_speech_to_text
+    post: /api/v1/speech/transcribe
     body: "*"
   - selector: hi.club.Chat.SpeechToSpeech
     post: /api/v1/chat/speech_to_speech
     body: "*"
   - selector: hi.club.Chat.SpeechToSpeechResume
-    post: /api/v1/chat/speech_to_speech2
+    post: /api/v1/chat/speech_to_speech_resume
     body: "*"
   - selector: hi.club.Chat.TextToText
     post: /api/v1/chat/text_to_text
     body: "*"
   - selector: hi.club.Chat.TextToTextResume
-    post: /api/v1/chat/text_to_text2
+    post: /api/v1/chat/text_to_text_resume
     body: "*"
   - selector: hi.club.Chat.SpeechToText
     post: /api/v1/chat/speech_to_text
     body: "*"
   - selector: hi.club.Chat.SpeechToTextResume
-    post: /api/v1/chat/speech_to_text2
+    post: /api/v1/chat/speech_to_text_resume
     body: "*"
 # Plugin
   - selector: hi.club.Plugin.Switch
-    post: /api/v1/plugin/plugin_switch
+    post: /api/v1/plugin/switch
     body: "*"
   - selector: hi.club.Plugin.Create
-    post: /api/v1/plugin/python_create
+    post: /api/v1/plugin/create
     body: "*"
   - selector: hi.club.Plugin.Get
     get: /api/v1/plugin/get
@@ -136,31 +136,31 @@ http:
     post: /api/v1/plugin/set_active_version
     body: "*"
   - selector: hi.club.Plugin.GetExData
-    get: /api/v1/plugin/get_python_params
+    get: /api/v1/plugin/get_ex_data
 # Training
   - selector: hi.club.Training.Start
-    post: /api/v1/training/training_agent
+    post: /api/v1/training/start
     body: "*"
   - selector: hi.club.Training.Status
-    post: /api/v1/training/training_status
+    post: /api/v1/training/status
     body: "*"
   - selector: hi.club.Training.Clear
-    post: /api/v1/training/training_clear
+    post: /api/v1/training/clear
     body: "*"
   - selector: hi.club.Training.UploadFile
     post: /api/v1/training/upload_file
     body: "*"
   - selector: hi.club.Training.ListFiles
-    post: /api/v1/training/list_agent_file
+    post: /api/v1/training/list_files
     body: "*"
   - selector: hi.club.Training.DeleteFile
-    post: /api/v1/training/delete_agent_file
+    post: /api/v1/training/delete_file
     body: "*"
   - selector: hi.club.Training.DeleteFiles
-    post: /api/v1/training/delete_agent_files
+    post: /api/v1/training/delete_files
     body: "*"
   - selector: hi.club.Training.GetFile
-    post: /api/v1/training/get_agent_file
+    post: /api/v1/training/get_file
     body: "*"
   - selector: hi.club.Training.UpdateContent
     post: /api/v1/training/update_content
@@ -169,7 +169,7 @@ http:
     post: /api/v1/training/create_content
     body: "*"
   - selector: hi.club.Training.EditDigest
-    post: /api/v1/training/edit_degest
+    post: /api/v1/training/edit_digest
     body: "*"
   - selector: hi.club.Training.SetMemModel
     post: /api/v1/training/set_mem_model

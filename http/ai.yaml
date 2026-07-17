@@ -221,13 +221,13 @@ http:
     body: "*"
 # InviteCode(管理;注册见上面 Register)
   - selector: hi.ai.InviteCode.Create
-    post: /api/v1/invitecode/create
+    post: /api/v1/invite_code/create
   - selector: hi.ai.InviteCode.Edit
-    post: /api/v1/invitecode/edit
+    post: /api/v1/invite_code/edit
     body: "*"
   - selector: hi.ai.InviteCode.List
-    post: /api/v1/invitecode/list
+    post: /api/v1/invite_code/list
     body: "*"
   - selector: hi.ai.InviteCode.Delete
-    post: /api/v1/invitecode/delete
+    post: /api/v1/invite_code/delete
     body: "*"

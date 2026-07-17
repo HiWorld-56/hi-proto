@@ -5,40 +5,40 @@ http:
   rules:
 # InviteCode
   - selector: hi.did.InviteCode.Create
-    post: /api/v1/invitecode/create
+    post: /api/v1/invite_code/create
   - selector: hi.did.InviteCode.Edit
-    post: /api/v1/invitecode/edit
+    post: /api/v1/invite_code/edit
     body: "*"
   - selector: hi.did.InviteCode.List
-    post: /api/v1/invitecode/list
+    post: /api/v1/invite_code/list
     body: "*"
   - selector: hi.did.InviteCode.Delete
-    post: /api/v1/invitecode/delete
+    post: /api/v1/invite_code/delete
     body: "*"
   - selector: hi.did.Register.Verify
-    post: /api/v1/invitecode/verify
+    post: /api/v1/register/verify
     body: "*"
 # DApp
   - selector: hi.did.DApp.ListByClass
-    get: /api/v1/dapp/list_by_class
+    get: /api/v1/d_app/list_by_class
   - selector: hi.did.DApp.GetRWA
-    get: /api/v1/dapp/get_rwa
+    get: /api/v1/d_app/get_rwa
   - selector: hi.did.DApp.GetTop
-    get: /api/v1/dapp/list_top
+    get: /api/v1/d_app/get_top
   - selector: hi.did.DAppAdmin.UpdateTop
-    post: /api/v1/dapp/update_top
+    post: /api/v1/d_app_admin/update_top
     body: "*"
   - selector: hi.did.DAppAdmin.Create
-    post: /api/v1/dapp/create
+    post: /api/v1/d_app_admin/create
     body: "*"
   - selector: hi.did.DAppAdmin.Edit
-    post: /api/v1/dapp/edit
+    post: /api/v1/d_app_admin/edit
     body: "*"
   - selector: hi.did.DAppAdmin.UpdateOrder
-    post: /api/v1/dapp/update_order
+    post: /api/v1/d_app_admin/update_order
     body: "*"
   - selector: hi.did.DAppAdmin.Delete
-    post: /api/v1/dapp/delete
+    post: /api/v1/d_app_admin/delete
     body: "*"
 # MerchantManage
   - selector: hi.did.MerchantManage.List
@@ -52,22 +52,22 @@ http:
     body: "*"
 # Base
   - selector: hi.did.SuperAdmin.List
-    get: /api/v1/base/list_superadminusers
+    get: /api/v1/super_admin/list
   - selector: hi.did.Base.LatestVersion
     get: /api/v1/base/latest_version
 # MerchantExDB
   - selector: hi.did.MerchantExDB.Refresh
-    post: /api/v1/user_extension_settings/update
+    post: /api/v1/merchant_ex_db/refresh
   - selector: hi.did.MerchantExDB.Get
-    get: /api/v1/user_extension_settings/get
+    get: /api/v1/merchant_ex_db/get
   - selector: hi.did.Merchant.SetUsers
-    post: /api/v1/user_extension/update
+    post: /api/v1/merchant/set_users
     body: "*"
   - selector: hi.did.Merchant.ListUsers
-    post: /api/v1/user_extension/list
+    post: /api/v1/merchant/list_users
     body: "*"
   - selector: hi.did.Merchant.RemoveUsers
-    post: /api/v1/user_extension/delete
+    post: /api/v1/merchant/remove_users
     body: "*"
 # Auth
   - selector: hi.did.Auth.GenerateReqId
@@ -83,37 +83,34 @@ http:
   - selector: hi.did.Merchant.Get
     get: /api/v1/merchant/get
   - selector: hi.did.Merchant.Update
-    post: /api/v1/merchant/set
+    post: /api/v1/merchant/update
     body: "*"
   - selector: hi.did.Merchant.ListMerchants
-    post: /api/v1/merchant/list
+    post: /api/v1/merchant/list_merchants
     body: "*"
   - selector: hi.did.Merchant.AddUsers
-    post: /api/v1/merchant/save_uesrs
-    body: "*"
-  - selector: hi.did.Merchant.RemoveUsers
-    post: /api/v1/merchant/delete_uesrs
+    post: /api/v1/merchant/add_users
     body: "*"
 # Wallet
   - selector: hi.did.Assets.ListUsersAssets
-    post: /api/v1/wallet/list_user_assets
+    post: /api/v1/assets/list_users_assets
     body: "*"
   - selector: hi.did.Assets.GetUserAssets
-    post: /api/v1/wallet/get_user_assets
+    post: /api/v1/assets/get_user_assets
     body: "*"
   - selector: hi.did.Assets.TotalAssets
-    post: /api/v1/wallet/total_assets
+    post: /api/v1/assets/total_assets
     body: "*"
 # User
   - selector: hi.did.Base.UserTotal
-    get: /api/v1/user/total
+    get: /api/v1/base/user_total
 # MerchantPub —— 商户公开信息(免鉴权,只吐 scheme)
   - selector: hi.did.MerchantPub.Scheme
     post: /api/v1/merchant_pub/scheme
     body: "*"
 # Gateway(读)/ GatewayAdmin(写) —— URL 保持不变,前端无需改动
   - selector: hi.did.Gateway.List
-    get: /api/v1/gateway_config/list
+    get: /api/v1/gateway/list
   - selector: hi.did.GatewayAdmin.Set
-    post: /api/v1/gateway_config/set
+    post: /api/v1/gateway_admin/set
     body: "*"

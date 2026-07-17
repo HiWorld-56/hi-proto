@@ -118,6 +118,45 @@ for y in sorted(glob.glob('http/*.yaml')):
                     if seen[k] > 1:
                         bad.append(f'{y}:{i}: 同一 selector 块出现重复的 {k}(删路由时漏删?)')
 
+# ── URL 必须与 selector 同构:/api/v1/<service_snake>/<method_snake> ────────
+# 规则依据:**档位不同 = 不同 service = 不同资源**(我们本就按"谁能访问"拆 service)。
+# 让 URL 面与鉴权面同构的好处:**URL 自己就把档位说出来了** ——
+#   /gateway_admin/set 一眼是超管口子,/gateway/list 一眼是客户端读;
+#   若共用前缀(/gateway_config/set vs /gateway_config/list)长得一样,谁标错档位从 URL 上看不出来。
+# 历史教训:曾出现 Merchant.RemoveUsers 挂两条 URL、以及 save_uesrs/delete_uesrs 拼写错误上线。
+# **不设缩写特例**:机械蛇形化 DApp → d_app,而 prost 生成的模块名恰恰就是
+# d_app_client / d_app_admin_client —— 与工具链一致才是真一致,
+# 自定义特例只会造出第二套规则。
+
+
+def snake(n):
+    s = re.sub(r'(?<=[a-z0-9])(?=[A-Z])', '_', n)
+    s = re.sub(r'(?<=[A-Z])(?=[A-Z][a-z])', '_', s)
+    return s.lower()
+
+
+for y in sorted(glob.glob('http/*.yaml')):
+    if os.path.basename(y) == 'merged.yaml':
+        continue
+    lines = open(y, encoding='utf-8').read().split('\n')
+    seen = set()
+    for i, l in enumerate(lines):
+        m = re.match(r'\s*-\s*selector:\s*hi\.(\w+)\.(\w+)\.(\w+)\s*$', l)
+        if not m:
+            continue
+        pkg, svc, meth = m.groups()
+        sel = f'hi.{pkg}.{svc}.{meth}'
+        if sel in seen:
+            bad.append(f'{y}:{i+1}: {sel} **挂了多条 URL** —— 同一方法只能有一个入口')
+        seen.add(sel)
+        if i + 1 < len(lines):
+            vm = re.match(r'\s*(get|post|put|delete):\s*(\S+)', lines[i + 1])
+            if vm:
+                want = f'/api/v1/{snake(svc)}/{snake(meth)}'
+                if vm.group(2) != want:
+                    bad.append(f'{y}:{i+2}: {sel} 的 URL 与 selector 不同构 —— '
+                               f'实为 {vm.group(2)},应为 {want}')
+
 print(f'[check_auth] 共 {http_total} 条 http 路由')
 
 if bad:
