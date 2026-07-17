@@ -35,7 +35,6 @@ message Packet {
       group-invite          收到入群邀请（自动 accept）              / hi.club.Member
       group-invite-reject   我邀请他人入群已被对方拒绝（无需响应）
       group-kick            我已被踢出群聊                          / hi.club.MemberExit
-      q3-sync               Q3 数据同步
       hwbot-bind            hwbot 绑定完成
       hwbot-unbind          hwbot 解绑完成
       hwbot-update          hwbot 资料更新                        / hi.Entity

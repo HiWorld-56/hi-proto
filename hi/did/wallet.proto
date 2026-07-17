@@ -121,15 +121,15 @@ message UpdateAssetsReq { // Token ----> Real.DID
 // 用户自己的钱包(用户主体,token)。UpdateAddresses 需签名证明地址归属,故 web3 —— 已拆去 Assets。
 service Wallet {
   rpc UpdateAssets (UpdateAssetsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 用户:刷新自己的资产快照
-  rpc GetWallet (GetWalletReq) returns (GetWalletResp) { option (hi.auth) = AUTH_USER; }               // 用户:查某链的钱包地址
+  rpc Get (GetWalletReq) returns (GetWalletResp) { option (hi.auth) = AUTH_USER; }               // 用户:查某链的钱包地址(原 GetWallet 去 stutter)
   rpc ListAddresses (ListAddressesReq) returns (ListAddressesResp) { option (hi.auth) = AUTH_USER; }   // 用户:列出全部链地址
 }
 
 // 资产/地址(公开 + web3,web3 视为无鉴权,档位一致)。资产查询是链上公开数据;
 // UpdateAddresses 用签名自证地址归属(不依赖登录 token),故归此。
 service Assets {
-  rpc TotalAssets (TotalAssetsReq) returns (TotalAssetsResp) { option (hi.auth) = AUTH_NONE; }             // 公开:总资产统计(链上数据)
-  rpc ListUsersAssets (ListUsersAssetsReq) returns (ListUsersAssetsResp) { option (hi.auth) = AUTH_NONE; } // 公开:批量用户资产(链上数据)
-  rpc GetUserAssets (GetUserAssetsReq) returns (GetUserAssetsResp) { option (hi.auth) = AUTH_NONE; }       // 公开:某用户资产(链上数据)
+  rpc Total (TotalAssetsReq) returns (TotalAssetsResp) { option (hi.auth) = AUTH_NONE; } // 公开:总资产统计(链上数据;原 TotalAssets 去 stutter)
+  rpc List (ListUsersAssetsReq) returns (ListUsersAssetsResp) { option (hi.auth) = AUTH_NONE; } // 公开:批量用户资产(链上数据;原 ListUsersAssets)
+  rpc Get (GetUserAssetsReq) returns (GetUserAssetsResp) { option (hi.auth) = AUTH_NONE; } // 公开:某用户资产(链上数据;原 GetUserAssets)
   rpc UpdateAddresses (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_WEB3; }    // web3:更新用户各链地址(btc/eth/trx/sol/apt),签名自证
 }

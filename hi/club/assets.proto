@@ -8,5 +8,5 @@ import "hi/did/wallet.proto";
 import "hi/options.proto";
 
 service Assets {
-  rpc GetUserAssets (hi.did.GetUserAssetsReq) returns (hi.did.GetUserAssetsResp) { option (hi.auth) = AUTH_NONE; }
+  rpc Get (hi.did.GetUserAssetsReq) returns (hi.did.GetUserAssetsResp) { option (hi.auth) = AUTH_NONE; } // 公开:某用户资产(门面转发 did.Assets.Get;原 GetUserAssets 去 stutter)
 }

@@ -89,9 +89,9 @@ message ListTradeResp {
 }
 
 service Trade {
-  rpc GetTradeFee (GetTradeFeeReq) returns (GetTradeFeeResp) { option (hi.auth) = AUTH_USER; }
-  rpc GetTrade (GetTradeReq) returns (GetTradeResp) { option (hi.auth) = AUTH_USER; }
-  rpc AddTrade (AddTradeReq) returns (AddTradeResp) { option (hi.auth) = AUTH_USER; }
+  rpc GetFee (GetTradeFeeReq) returns (GetTradeFeeResp) { option (hi.auth) = AUTH_USER; } // 原 GetTradeFee
+  rpc Get (GetTradeReq) returns (GetTradeResp) { option (hi.auth) = AUTH_USER; } // 原 GetTrade
+  rpc Add (AddTradeReq) returns (AddTradeResp) { option (hi.auth) = AUTH_USER; } // 原 AddTrade
   rpc UpdateTransHash (UpdateTransHashReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
   // 查自己的交易(did 必填)。
   rpc List (ListTradeReq) returns (ListTradeResp) { option (hi.auth) = AUTH_USER; }

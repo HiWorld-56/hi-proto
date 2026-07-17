@@ -8,5 +8,5 @@ import "hi/did/price.proto";
 import "hi/options.proto";
 
 service Price {
-  rpc GetPrice (hi.did.GetPriceReq) returns (hi.did.GetPriceResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
+  rpc Get (hi.did.GetPriceReq) returns (hi.did.GetPriceResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权(原 GetPrice 去 stutter)
 }

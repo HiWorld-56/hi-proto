@@ -108,8 +108,8 @@ message ListOnlineUserResp {
 }
 
 service User {
-  rpc GetCurrentUser (google.protobuf.Empty) returns (UserInfo) { option (hi.auth) = AUTH_USER; } // 当前用户信息
-  rpc UpdateUser (UpdateUserReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 用户信息
+  rpc GetCurrent (google.protobuf.Empty) returns (UserInfo) { option (hi.auth) = AUTH_USER; } // 当前用户信息(原 GetCurrentUser 去 stutter)
+  rpc Update (UpdateUserReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 更新用户信息(原 UpdateUser 去 stutter)
   rpc ListSystemMessages (ListSystemMessageReq) returns (SystemMessages) { option (hi.auth) = AUTH_USER; } // 系统消息列表
   rpc DeleteSystemMessage (DeleteSystemMessageReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 删除系统消息
   rpc DeleteAllSystemMessage (google.protobuf.Empty) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 删除所有系统消息
@@ -123,5 +123,5 @@ service User {
   rpc GetOther (GetUserReq) returns (hi.Entity) { option (hi.auth) = AUTH_USER; } // 根据DID获取用户基本信息
   rpc UnprocessedSysMsgCount (google.protobuf.Empty) returns (UnprocessedSysMsgCountResp) { option (hi.auth) = AUTH_USER; }
   rpc SetRemark (SetRemarkReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
-  rpc ListOnlineUsers (ListOnlineUserReq) returns (ListOnlineUserResp) { option (hi.auth) = AUTH_USER; } // 在线用户列表
+  rpc ListOnline (ListOnlineUserReq) returns (ListOnlineUserResp) { option (hi.auth) = AUTH_USER; } // 在线用户列表(原 ListOnlineUsers 去 stutter)
 }

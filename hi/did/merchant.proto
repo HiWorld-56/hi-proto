@@ -162,7 +162,7 @@ service Merchant {
   rpc ListUsers(ListUsersReq) returns (ListUsersResp) {
     option (hi.auth) = AUTH_MERCHANT;
   } // 列某商户下的用户
-  rpc ListMerchants(ListMerchantsReq) returns (MerchantListResp) {
+  rpc List(ListMerchantsReq) returns (MerchantListResp) {
     option (hi.auth) = AUTH_MERCHANT;
   } // 查某用户所属的所有商户(hiclub 作为商户调)
   rpc SetUsers(SetUsersReq) returns (google.protobuf.Empty) {
