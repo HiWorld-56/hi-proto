@@ -118,6 +118,9 @@ message GetExDataResp {
 
 // 插件管理(主体=插件)。商户档:**hiai 自己的 web 与三方商户后台都会调**,
 // 故 token 与 apikey 都要收,两者解出同一个商户 did。
+// ⚠️ 方法名别用 `Switch` —— **switch 是 Dart 的保留字**,dart 生成器会吐出
+//    `ResponseFuture<...> switch(...)` 直接语法错误,整个 CI 生成挂掉。
+//    (Go/Rust 都没事,所以只测 go 生成发现不了。)
 service Plugin {
   rpc Create (CreateReq) returns (CreateResp) { option (hi.auth) = AUTH_MERCHANT; }                    // 上传插件版本(存在则覆盖)
   rpc Edit (EditPluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 改插件
@@ -127,7 +130,7 @@ service Plugin {
   rpc DeleteByDids (DeletePluginByDidsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 按 agent 批量删
   rpc SetActiveVersion (SetActiveVersionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 选定供 function call 调用的版本
   rpc GetExData (GetExDataReq) returns (GetExDataResp) { option (hi.auth) = AUTH_MERCHANT; }           // 取预置数据(原 GetPythonParams)
-  rpc Switch (PluginSwitchReq) returns (PluginSwitchResp) { option (hi.auth) = AUTH_MERCHANT; }        // 开关记忆/插件(原 PluginSwitch,去 stutter)
+  rpc SetSwitches (PluginSwitchReq) returns (PluginSwitchResp) { option (hi.auth) = AUTH_MERCHANT; }        // 设置能力开关:记忆/插件(原 PluginSwitch)
 }
 
 // ── py-docker 执行契约 ──────────────────────────────────────────────────

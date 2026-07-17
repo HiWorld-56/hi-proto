@@ -143,8 +143,8 @@ http:
     body: "*"
   - selector: hi.ai.Plugin.GetExData
     get: /api/v1/plugin/get_ex_data
-  - selector: hi.ai.Plugin.Switch
-    post: /api/v1/plugin/switch
+  - selector: hi.ai.Plugin.SetSwitches
+    post: /api/v1/plugin/set_switches
     body: "*"
 # Training
   - selector: hi.ai.Training.Start

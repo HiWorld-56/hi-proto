@@ -112,8 +112,8 @@ http:
     post: /api/v1/chat/speech_to_text_resume
     body: "*"
 # Plugin
-  - selector: hi.club.Plugin.Switch
-    post: /api/v1/plugin/switch
+  - selector: hi.club.Plugin.SetSwitches
+    post: /api/v1/plugin/set_switches
     body: "*"
   - selector: hi.club.Plugin.Create
     post: /api/v1/plugin/create

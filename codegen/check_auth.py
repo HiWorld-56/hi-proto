@@ -74,6 +74,47 @@ for f in sorted(glob.glob('hi/**/*.proto', recursive=True)):
                 f'{f}:{ln}: service {svc} **混档** —— 同 service 档位必须一致,'
                 f'不一致说明主体归类错了,该拆 service(见 DApp/DAppAdmin 范式)。当前:{detail}')
 
+# ── 方法名不得撞目标语言的**保留字** ────────────────────────────────────────
+# 真踩过:Plugin.PluginSwitch 去 stutter 改成 Plugin.Switch,而 **switch 是 Dart 保留字** ——
+# dart 生成器吐出 `ResponseFuture<...> switch(...)`,语法错误,**整个 CI 生成挂掉**。
+# 而 Go/Rust 里 Switch 完全合法,所以只测 go 生成根本发现不了。
+#
+# ⚠️ 只列**真保留字**(不能做标识符的)。get/set/在 Dart 里是"内置标识符",可以做方法名
+#    (Merchant.Get / Group.Get 一直都在,别误伤)。
+DART_RESERVED = {
+    'assert', 'break', 'case', 'catch', 'class', 'const', 'continue', 'default', 'do', 'else',
+    'enum', 'extends', 'false', 'final', 'finally', 'for', 'if', 'in', 'is', 'new', 'null',
+    'rethrow', 'return', 'super', 'switch', 'this', 'throw', 'true', 'try', 'var', 'void',
+    'while', 'with',
+}
+GO_RESERVED = {
+    'break', 'case', 'chan', 'const', 'continue', 'default', 'defer', 'else', 'fallthrough',
+    'for', 'func', 'go', 'goto', 'if', 'import', 'interface', 'map', 'package', 'range',
+    'return', 'select', 'struct', 'switch', 'type', 'var',
+}
+RUST_RESERVED = {
+    'as', 'break', 'const', 'continue', 'crate', 'else', 'enum', 'extern', 'false', 'fn', 'for',
+    'if', 'impl', 'in', 'let', 'loop', 'match', 'mod', 'move', 'mut', 'pub', 'ref', 'return',
+    'self', 'static', 'struct', 'super', 'trait', 'true', 'type', 'unsafe', 'use', 'where', 'while',
+}
+
+for f in sorted(glob.glob('hi/**/*.proto', recursive=True)):
+    src = open(f, encoding='utf-8').read()
+    for sm in re.finditer(r'^service\s+(\w+)\s*\{(.*?)^\}', src, re.S | re.M):
+        for rm in re.finditer(r'rpc\s+(\w+)\s*\(', sm.group(2)):
+            meth = rm.group(1)
+            low = meth[0].lower() + meth[1:]  # 生成器多用 lowerCamel
+            hit = []
+            if low in DART_RESERVED:
+                hit.append('Dart')
+            if low in GO_RESERVED:
+                hit.append('Go')
+            if low in RUST_RESERVED:
+                hit.append('Rust')
+            if hit:
+                bad.append(f'{f}: {sm.group(1)}.{meth} 撞 {"/".join(hit)} 保留字 —— '
+                           f'生成的代码会语法错误(CI 生成会挂),换个名')
+
 print(f'[check_auth] 共 {total} 个 rpc')
 
 # ── http/*.yaml 的选择器必须指向真实存在的方法 ──────────────────────────
