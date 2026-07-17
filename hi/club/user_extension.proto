@@ -12,5 +12,5 @@ import "hi/options.proto";
 //    club 这个 user-token 的读扩展是否合理、如何对齐,留 club 阶段处理。本轮仅跟随 did 的类型改名。
 service UserExtension {
   // 取某商户下某用户的扩展数据。转发到 did 的 Merchant.GetUser。
-  rpc Get (hi.did.GetUserReq) returns (hi.did.UserExtensionUnit) { option (hi.auth) = AUTH_TOKEN; }
+  rpc Get (hi.did.GetUserReq) returns (hi.did.UserExtensionUnit) { option (hi.auth) = AUTH_USER; }
 }

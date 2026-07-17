@@ -9,11 +9,18 @@ import "hi/common.proto";
 import "hi/did/admin.proto";
 import "hi/options.proto";
 
-// 邀请码
+// 邀请码管理(超管)。原先 Create/Edit/List/Delete 在 handler 里自己查超管、proto 却标 TOKEN,
+// 且和公开的 Verify 混在同一个 service —— 混档。现在:管理归超管、注册拆去 Register。
+// 超管名单穿透 hidid `SuperAdmin.List`(ai 不得自建超管表)。
 service InviteCode {
-  rpc Create (google.protobuf.Empty) returns (hi.did.InviteCodeCreateResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
-  rpc Edit (hi.did.InviteCodeEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
-  rpc List (hi.Pagination) returns (hi.did.InviteCodeListResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
-  rpc Delete (hi.did.InviteCodeDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
-  rpc Verify (hi.did.InviteCodeVerifyReq) returns (hi.AuthToken) { option (hi.auth) = AUTH_NONE; } // 不鉴权
+  rpc Create (google.protobuf.Empty) returns (hi.did.InviteCodeCreateResp) { option (hi.auth) = AUTH_SUPERADMIN; }  // 超管:生成邀请码
+  rpc Edit (hi.did.InviteCodeEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }       // 超管:改备注
+  rpc List (hi.Pagination) returns (hi.did.InviteCodeListResp) { option (hi.auth) = AUTH_SUPERADMIN; }              // 超管:列邀请码
+  rpc Delete (hi.did.InviteCodeDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }   // 超管:删邀请码
+}
+
+// 注册(公开)。验邀请码(72h 内有效)→ 用户不存在则建 → 标记邀请码已用 → 签发 token。
+// 从 InviteCode 拆出:主体不同(注册者 vs 超管),档位不同。与 hi.did.Register.Verify 同形对齐。
+service Register {
+  rpc Verify (hi.did.InviteCodeVerifyReq) returns (hi.AuthToken) { option (hi.auth) = AUTH_NONE; } // 公开:验邀请码,通过则签发 token
 }

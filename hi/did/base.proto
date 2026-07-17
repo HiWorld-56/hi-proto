@@ -54,10 +54,14 @@ service Base {
 //
 // List 是**身份无关的读**(不管谁调返回都一样):前端登录用户拿它显隐"内部使用"菜单,
 // 兄弟服务(club/ai)穿透过来判档。两类调用方凭证不同(token / ExtendToken),
-// 故用 AUTH_TOKEN_OR_EXTEND 一个方法通吃(原 SuperAdmin.List + SuperAdminView.ListSuperAdminUsers 合并)。
+// 故一个方法通吃:同时标 AUTH_USER + AUTH_MERCHANT(任一通过即放行)。
+// (原 SuperAdmin.List + SuperAdminView.ListSuperAdminUsers 合并)
 // 注意:不能标 AUTH_SUPERADMIN,否则变成"先是超管才能知道自己是不是超管"。
 service SuperAdmin {
-  rpc List (google.protobuf.Empty) returns (ListSuperAdminUsersResp) { option (hi.auth) = AUTH_TOKEN_OR_EXTEND; } // 取超管名单(前端/兄弟服务都可)
+  rpc List (google.protobuf.Empty) returns (ListSuperAdminUsersResp) {
+    option (hi.auth) = AUTH_USER;
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 取超管名单(前端/兄弟服务都可)
 }
 
 // (UserExtensionInfo / UserExtensionUnit 已迁至 merchant.proto —— 归位后只有 Merchant

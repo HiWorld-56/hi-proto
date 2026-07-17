@@ -120,9 +120,9 @@ message UpdateAssetsReq { // Token ----> Real.DID
 
 // 用户自己的钱包(用户主体,token)。UpdateAddresses 需签名证明地址归属,故 web3 —— 已拆去 Assets。
 service Wallet {
-  rpc UpdateAssets (UpdateAssetsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // 用户:刷新自己的资产快照
-  rpc GetWallet (GetWalletReq) returns (GetWalletResp) { option (hi.auth) = AUTH_TOKEN; }               // 用户:查某链的钱包地址
-  rpc ListAddresses (ListAddressesReq) returns (ListAddressesResp) { option (hi.auth) = AUTH_TOKEN; }   // 用户:列出全部链地址
+  rpc UpdateAssets (UpdateAssetsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 用户:刷新自己的资产快照
+  rpc GetWallet (GetWalletReq) returns (GetWalletResp) { option (hi.auth) = AUTH_USER; }               // 用户:查某链的钱包地址
+  rpc ListAddresses (ListAddressesReq) returns (ListAddressesResp) { option (hi.auth) = AUTH_USER; }   // 用户:列出全部链地址
 }
 
 // 资产/地址(公开 + web3,web3 视为无鉴权,档位一致)。资产查询是链上公开数据;

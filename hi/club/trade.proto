@@ -89,14 +89,20 @@ message ListTradeResp {
 }
 
 service Trade {
-  rpc GetTradeFee (GetTradeFeeReq) returns (GetTradeFeeResp) { option (hi.auth) = AUTH_TOKEN; }
-  rpc GetTrade (GetTradeReq) returns (GetTradeResp) { option (hi.auth) = AUTH_TOKEN; }
-  rpc AddTrade (AddTradeReq) returns (AddTradeResp) { option (hi.auth) = AUTH_TOKEN; }
-  rpc UpdateTransHash (UpdateTransHashReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
-  // 查自己的交易(did 必填)。普通用户可调。
-  rpc List (ListTradeReq) returns (ListTradeResp) { option (hi.auth) = AUTH_TOKEN; }
-  // 交易统计:全量/按 id 查(id 为空=全量)。**内部使用**,仅超管可调。
-  // 不与 List 合并:二者鉴权级别不同,而档位是按方法挂的 —— 合并会导致
-  // "did 留空即拿到全部人的交易",把 filter 值变成越权入口。
-  rpc ListAll (ListAllTradeReq) returns (ListTradeResp) { option (hi.auth) = AUTH_SUPERADMIN; }
+  rpc GetTradeFee (GetTradeFeeReq) returns (GetTradeFeeResp) { option (hi.auth) = AUTH_USER; }
+  rpc GetTrade (GetTradeReq) returns (GetTradeResp) { option (hi.auth) = AUTH_USER; }
+  rpc AddTrade (AddTradeReq) returns (AddTradeResp) { option (hi.auth) = AUTH_USER; }
+  rpc UpdateTransHash (UpdateTransHashReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
+  // 查自己的交易(did 必填)。
+  rpc List (ListTradeReq) returns (ListTradeResp) { option (hi.auth) = AUTH_USER; }
+}
+
+// 交易管理(超管)。原 `Trade.ListAll` —— 超管方法蹲在用户面 service 里(混档),
+// 照 did 的 DApp/DAppAdmin、Merchant/MerchantManage 范式拆出来;拆出后改回 `List`。
+//
+// ⚠️ **绝不可与 Trade.List 合并**(前人已在此写下警告,照抄保留):
+//    二者鉴权主体不同,而档位是按方法挂的 —— 合并会导致"did 留空即拿到全部人的交易",
+//    **把 filter 值变成越权入口**。拆成两个 service 后,这个坑物理上不存在了。
+service TradeManage {
+  rpc List (ListAllTradeReq) returns (ListTradeResp) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:交易统计(全量/按 id;id 空=全量)
 }

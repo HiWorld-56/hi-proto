@@ -66,9 +66,9 @@ message Q3GetInfosResp {
 }
 
 service Q3 {
-  rpc GetInfos (Q3GetInfosReq) returns (Q3GetInfosResp) { option (hi.auth) = AUTH_TOKEN; } //
-  rpc Create (Q3GroupCreateReq) returns (Q3GroupCreateResp) { option (hi.auth) = AUTH_TOKEN; } // 创建群
-  rpc Event (Q3GroupEventReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // 群事件
-  rpc Ready (Q3GroupReadyReq) returns (Q3GroupReadyResp) { option (hi.auth) = AUTH_TOKEN; } // 群就绪
-  rpc Hosting (Q3HostingReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // 设置托管
+  rpc GetInfos (Q3GetInfosReq) returns (Q3GetInfosResp) { option (hi.auth) = AUTH_USER; } //
+  rpc Create (Q3GroupCreateReq) returns (Q3GroupCreateResp) { option (hi.auth) = AUTH_USER; } // 创建群
+  rpc Event (Q3GroupEventReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 群事件
+  rpc Ready (Q3GroupReadyReq) returns (Q3GroupReadyResp) { option (hi.auth) = AUTH_USER; } // 群就绪
+  rpc Hosting (Q3HostingReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 设置托管
 }

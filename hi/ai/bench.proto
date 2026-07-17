@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package hi.ai;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
+
+import "hi/common.proto";
+import "hi/options.proto";
+
+// 一次测时明细(bot_sts_count 的一行):各段耗时。
+message AgentDelayUnit {
+  string agent         = 1;
+  string uuid          = 2;
+  string type          = 3;
+  int32  llm           = 4;
+  int32  llm2          = 5;
+  int32  stt           = 6;
+  int32  tts           = 7;
+  int32  function_call = 8;
+  int64  test_time     = 9;
+}
+
+message ListAgentDelayReq {
+  string        agent      = 1; // 可选:按 agent 过滤
+  string        type       = 2; // 可选:按类型过滤
+  hi.Pagination pagination = 3;
+}
+
+message ListAgentDelayResp {
+  int32                   total = 1;
+  repeated AgentDelayUnit units = 2;
+}
+
+// 智能体延迟基准(主体=测时数据)。从 Chat 拆出 —— 这是监控统计,不是对话。
+//
+// 原 `Chat.ListAgentDelays` 与 `Chat.GetAgentDelay` **近乎重复**:都查 bot_sts_count、
+// 同参(type/agent/分页)、返回同形 {total, []AgentDelayUnit} 明细行,唯一差别是前者多校验
+// 一次 bot 存在。二者都不是"列 agent",故合并为一个 List。
+//
+// 商户档:hiai web 与商户后台服务都会调。
+service AgentBench {
+  rpc List (ListAgentDelayReq) returns (ListAgentDelayResp) { option (hi.auth) = AUTH_MERCHANT; } // 列各段耗时明细(LLM/STT/TTS/FunctionCall)
+}

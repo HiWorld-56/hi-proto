@@ -9,6 +9,14 @@ import "hi/common.proto";
 import "hi/ai/agent.proto";
 import "hi/options.proto";
 
+// ── 说明:本文件里的智能体方法多数是 hi.ai 的门面 ──────────────────────────
+// club **自己没有 AI 功能**,这些方法就是击穿到 hi.ai 拿结果;club 是 hi.ai 的一个商户,
+// 用自己的 apikey 调 hiai。**入参/返回直接复用 hi.ai 的类型,是有意为之**:
+//   - 防止两边定义不同步(各自复制一份必然漂移);
+//   - 少一堆重复定义。
+// 所以 **hi.ai 的类型/方法一改,这里必须跟着改** —— 这是继承关系,不是耦合。
+// club 自有的部分(绑主人、在线状态)不走 ai,用 club 自己的类型。
+
 message BindMasterReq {
   string master = 1;
   string agent  = 2;
@@ -25,6 +33,16 @@ message BindStatusReq {
 
 message BindStatusResp {
   hi.Entity master = 1; // None / master
+}
+
+// 转让机器人 = **换 master**。club 侧不存在"机器人创建者"的概念。
+//
+// ⚠️ 不再转发 ai.Agent.Transfer —— 那个已从 ai 删除(它自称"转 apikey+bot",实际只改 creator,
+//    还会把目标非超级用户的 bot 模型顺手降级)。这个概念本就该在 club 实现,故用 club 自己的类型。
+// 它与 BindMaster/UnbindMaster 是同一件事(换绑主人),故同处 Agent。
+message TransferReq {
+  string agent = 1; // 要转让的机器人 did
+  string to    = 2; // 新 master 的用户 did
 }
 
 // 在线 agent 列表(club 本地 presence,非转发 ai)。合并原 ListOnlineAgent(按用户)+ ListAllOnlineAgent(全量)。
@@ -46,25 +64,29 @@ message GetAgentMasterResp {
   hi.Entity master = 1;
 }
 
+// 智能体(主体=智能体)。**用户 token 档**,全档一致。
+// 免鉴权的那几个(列表/在线/查主人)已拆去 AgentDirectory。
 service Agent {
-  rpc ListLlmModels (google.protobuf.Empty) returns (hi.ai.ListLLMResp) { option (hi.auth) = AUTH_TOKEN; }
-  rpc ListEmbeddings (google.protobuf.Empty) returns (hi.ai.ListEmbeddingResp) { option (hi.auth) = AUTH_TOKEN; }
-  rpc ListSttModels (google.protobuf.Empty) returns (hi.ai.ListSTTResp) { option (hi.auth) = AUTH_TOKEN; }
-  rpc ListTtsModels (google.protobuf.Empty) returns (hi.ai.ListTTSResp) { option (hi.auth) = AUTH_TOKEN; }
-  rpc AgentConfig (google.protobuf.Empty) returns (hi.ai.AgentConfigResp) { option (hi.auth) = AUTH_TOKEN; }
-  rpc CreateAgent (hi.ai.CreateAgentReq) returns (hi.ai.CreateAgentResp) { option (hi.auth) = AUTH_TOKEN; }
-  rpc EditAgent (hi.ai.EditAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
-  rpc List (hi.ai.ListAgentReq) returns (hi.ai.ListAgentResp) { option (hi.auth) = AUTH_NONE; } // 公开(免鉴权);转发 ai.Agent.List;合并原 ListAgentByDids
-  rpc ListFavorites (hi.ai.ListFavoriteReq) returns (hi.ai.ListAgentResp) { option (hi.auth) = AUTH_TOKEN; } // 需鉴权;转发 ai.Agent.ListFavorites;合并原 ListFavoriteAgents + FavoriteAgentListByDIDs
-  rpc DeleteAgent (hi.ai.DeleteAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
-  rpc FindAgent (hi.ai.FindAgentReq) returns (hi.ai.FindAgentResp) { option (hi.auth) = AUTH_TOKEN; }
-  rpc FindAgentCount (hi.ai.FindAgentCountReq) returns (hi.ai.FindAgentCountResp) { option (hi.auth) = AUTH_TOKEN; }
-  rpc Transfer (hi.ai.TransferReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
-  rpc FavoriteAgent (hi.ai.FavoriteAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
+  // ── hi.ai 门面(跟 ai 定稿改名)──
+  rpc Create (hi.ai.CreateAgentReq) returns (hi.ai.CreateAgentResp) { option (hi.auth) = AUTH_USER; }  // 原 CreateAgent
+  rpc Edit (hi.ai.EditAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }      // 原 EditAgent
+  rpc Delete (hi.ai.DeleteAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }  // 原 DeleteAgent
+  rpc Get (hi.ai.GetAgentReq) returns (hi.ai.GetAgentResp) { option (hi.auth) = AUTH_USER; }           // 原 FindAgent
+  rpc GetUsage (hi.ai.AgentUsageReq) returns (hi.ai.AgentUsageResp) { option (hi.auth) = AUTH_USER; }  // 原 FindAgentCount(消息数+token,不是"count")
+  rpc Mark (hi.ai.MarkAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }      // 原 FavoriteAgent:打标记(显示靠前),不是收藏
+  rpc ListMarks (hi.ai.ListMarksReq) returns (hi.ai.ListAgentResp) { option (hi.auth) = AUTH_USER; }   // 原 ListFavorites
+  rpc DefaultConfig (google.protobuf.Empty) returns (hi.ai.DefaultConfigResp) { option (hi.auth) = AUTH_USER; } // 原 AgentConfig:全局默认配置
+  // ── club 自有:换绑主人 ──
+  rpc BindMaster (BindMasterReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }     // 绑定主人
+  rpc UnbindMaster (UnbindMasterReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 解绑主人
+  rpc BindStatus (BindStatusReq) returns (BindStatusResp) { option (hi.auth) = AUTH_USER; }            // 绑定状态
+  rpc Transfer (TransferReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }         // 转让机器人=换 master(club 自实现)
+}
 
-  rpc BindMaster (BindMasterReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // 绑定智能体
-  rpc UnbindMaster (UnbindMasterReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // 解绑智能体
-  rpc BindStatus (BindStatusReq) returns (BindStatusResp) { option (hi.auth) = AUTH_TOKEN; } // 智能体绑定状态
-  rpc ListOnline (ListOnlineReq) returns (ListOnlineResp) { option (hi.auth) = AUTH_NONE; } // 在线智能体(club 本地 presence);owner_did 可选,空=全部
-  rpc GetAgentMaster (GetAgentMasterReq) returns (GetAgentMasterResp) { option (hi.auth) = AUTH_NONE; } // 智能体主人
+// 智能体目录(公开)。从 Agent 拆出 —— 原来这三个免鉴权方法混在 token 档的 Agent 里(混档)。
+// 供三方看板/未登录页面列机器人、查在线与主人。
+service AgentDirectory {
+  rpc List (hi.ai.ListAgentReq) returns (hi.ai.ListAgentResp) { option (hi.auth) = AUTH_NONE; }         // 公开:列机器人(转发 ai.Agent.List;club 用自己的 apikey 调 ai)
+  rpc ListOnline (ListOnlineReq) returns (ListOnlineResp) { option (hi.auth) = AUTH_NONE; }             // 公开:在线机器人(club 本地 presence);owner_did 空=全部
+  rpc GetAgentMaster (GetAgentMasterReq) returns (GetAgentMasterResp) { option (hi.auth) = AUTH_NONE; } // 公开:查机器人主人
 }

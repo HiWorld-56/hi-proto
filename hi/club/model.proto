@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
+
+import "google/protobuf/empty.proto";
+import "hi/ai/model.proto";
+import "hi/options.proto";
+
+// 模型目录(主体=模型)。**hi.ai.Model 的门面**,类型直接复用 hi.ai(有意为之,见 agent.proto 顶部说明)。
+// 从 club.Agent 拆出 —— 跟 ai 一致:查"有哪些模型可用"与 agent CRUD 不是一个主体。
+service Model {
+  rpc ListLlms (google.protobuf.Empty) returns (hi.ai.ListLLMResp) { option (hi.auth) = AUTH_USER; }             // 原 Agent.ListLlmModels
+  rpc ListEmbeddings (google.protobuf.Empty) returns (hi.ai.ListEmbeddingResp) { option (hi.auth) = AUTH_USER; } // 原 Agent.ListEmbeddings
+  rpc ListStts (google.protobuf.Empty) returns (hi.ai.ListSTTResp) { option (hi.auth) = AUTH_USER; }             // 原 Agent.ListSttModels
+  rpc ListTts (google.protobuf.Empty) returns (hi.ai.ListTTSResp) { option (hi.auth) = AUTH_USER; }              // 原 Agent.ListTtsModels
+}

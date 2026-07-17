@@ -1,0 +1,114 @@
+syntax = "proto3";
+
+package hi.ai;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
+
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+import "hi/options.proto";
+
+// ── 权限(原 UserACL)────────────────────────────────────────────────────────
+// 命名依据设计文档《HiAI.权限控制》:文档通篇叫**权限**、返回字段叫 permissions[]、
+// 前端叫 getPermissions —— 故用 Permission,不自创 Privilege/ACL。
+//
+// **权限四档**(文档):
+//   normal   普通 —— 新用户默认拥有;管 自由度 / 系统提示词 / 用户提示词
+//   advanced 高级 —— 管 上下文数 / 对话模型 / 嵌入模型 / STT 模型
+//   mem      记忆 —— 能否上传资料、训练记忆(取消时清空资料与记忆)
+//   plugin   插件 —— 能否启用插件(取消时清空"增加"的数据)
+//
+// ⚠️⚠️ **权限 ≠ 超管,别再混!**
+//   - 后端常量 `TYPE_SUPER_USER_SUPER = "super"` 其实是上面的「**高级**」档
+//     (它只管"能不能用高级模型":`if !check && llmModel != "gpt-4.1-nano" → 报错`),
+//     **跟管理员权限毫无关系**,纯属撞名。值应正名为 `advanced`。
+//   - 后端常量 `TYPE_SUPER_USER_NORMAL = "all"` 其实是「**普通**」档。
+//     因新用户默认拥有,"列普通用户"=="列全部用户",这才是它查 UserRepo 的原因 —— 逻辑自洽,是名字在骗人。
+//     值应正名为 `normal`。
+//   - 真·超管(谁能授权限)是文档里的"**操作许可:特定用户**",名单穿透 hidid。
+//
+// ⚠️ 前人血泪(club/user_acl.proto 原注释),**别再犯**:
+//   原 `UserACL.List` 是 AUTH_TOKEN,前端 robot_memory/robot_plugin/robot_setup 三个
+//   **普通用户页面**拿它当 getPermissions 用。有人曾按"整个 service 都是管理面"把它标成
+//   SUPERADMIN → **普通用户当场 PermissionDenied,是实打实的回归**。
+//   故本文件按**主体**拆成两个 service:查(商户/用户)与 管(超管)。
+
+message PermissionGetReq {
+  string did = 1; // 要查谁的权限
+}
+
+message PermissionInfo {
+  string          did         = 1;
+  repeated string permissions = 2; // 该 did 持有的权限:normal / advanced / mem / plugin
+  string          note        = 3;
+}
+
+message PermissionAddReq {
+  string did  = 1;
+  string type = 2; // 权限类型(见 PermissionManage.ListTypes)
+}
+
+message PermissionDeleteReq {
+  string did  = 1;
+  string type = 2;
+}
+
+message PermissionEditReq {
+  string did  = 1;
+  string note = 2; // 备注,给人看的
+}
+
+message PermissionListReq {
+  string        did        = 1; // 可选:按 did 过滤
+  string        type       = 2; // 按权限类型过滤
+  hi.Pagination pagination = 3;
+}
+
+message PermissionListResp {
+  int32                   total = 1;
+  repeated PermissionInfo infos = 2;
+}
+
+message PermissionListTypeResp {
+  repeated string types = 1; // normal / advanced / mem / plugin
+}
+
+// 权限查询(商户档)。club 作为 ai 的商户,替自己的用户查"有哪些权限"以显隐前端功能。
+// **这是普通用户页面的 getPermissions 链路,绝不能标超管**(见文件头血泪)。
+service Permission {
+  rpc Get (PermissionGetReq) returns (PermissionInfo) { option (hi.auth) = AUTH_MERCHANT; } // 查某 did 有哪些权限
+}
+
+// 权限管理(超管)。对应设计文档的"操作许可:特定用户"。
+//
+// ⚠️ 取消权限有**副作用**(文档):取消 mem → 清空资料与记忆;取消 plugin → 清空"增加"的数据(如 search 条目);
+//    取消 advanced → 相关配置恢复默认。club 侧还另有副作用(群人数上限回落 300 并踢人),见 hi/club/permission.proto。
+service PermissionManage {
+  rpc Add (PermissionAddReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }       // 超管:授予(追加)
+  rpc Delete (PermissionDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:取消(伴随副作用)
+  rpc Edit (PermissionEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }     // 超管:改备注
+  rpc List (PermissionListReq) returns (PermissionListResp) { option (hi.auth) = AUTH_SUPERADMIN; }        // 超管:按类型列持有者
+  rpc ListTypes (google.protobuf.Empty) returns (PermissionListTypeResp) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:列权限类型(给授权下拉用)
+}
+
+// ── 商户目录 ─────────────────────────────────────────────────────────────
+message MerchantListReq {
+  string        did        = 1; // 可选:按 did 过滤
+  hi.Pagination pagination = 2;
+}
+
+message MerchantListResp {
+  message Unit {
+    hi.Entity base       = 1;
+    int64     created_at = 2;
+  }
+  int32         total = 1;
+  repeated Unit infos = 2;
+}
+
+// 商户目录(超管)。承接原 `UserACL.List(type="all")` —— 那查的是**注册用户/商户名录**,
+// 与"授权限"是两件事,混在一个方法里靠 type 分流,读的人看不懂,故拆出来。
+// 与 hi.did.MerchantManage.List 同形对齐(hiai 里没有普通用户,只有商户)。
+service Merchant {
+  rpc List (MerchantListReq) returns (MerchantListResp) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:列注册商户
+}

@@ -9,6 +9,7 @@ import "hi/did/base.proto";
 import "hi/common.proto";
 import "hi/options.proto";
 
+// ⚠️ 临时接口的载荷 —— 见下方 TempConfig。
 message GetConfigReq {
   string name = 1;
 }
@@ -17,9 +18,30 @@ message GetConfigResp {
   string value = 1;
 }
 
+// 基础数据(公开)。全档一致 —— 与 did 的 Base 对齐。
+//
+// ListCoins 原标 AUTH_TOKEN 但注释写着"不鉴权",而 did 的 Base.ListCoins 本就是公开的
+// —— 注释与档位对不上,按 did 统一为公开。
 service Base {
-  rpc ListCoins (google.protobuf.Empty) returns (hi.did.ListCoinsResp) { option (hi.auth) = AUTH_TOKEN; } // 不鉴权
-  rpc LatestVersion (hi.did.LatestVersionReq) returns (hi.did.LatestVersionResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
-  rpc GetConfig (GetConfigReq) returns (GetConfigResp) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
-  rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权:查服务自身版本+环境
+  rpc ListCoins (google.protobuf.Empty) returns (hi.did.ListCoinsResp) { option (hi.auth) = AUTH_NONE; }              // 公开:币种列表
+  rpc LatestVersion (hi.did.LatestVersionReq) returns (hi.did.LatestVersionResp) { option (hi.auth) = AUTH_NONE; }    // 公开:最新版本
+  rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp) { option (hi.auth) = AUTH_NONE; }          // 公开:服务自身版本+环境
+}
+
+// ⚠️ **临时接口 —— 用完即删。**
+//
+// 它是个通用的 `name → value` 字符串查询(表 hi_club.hi_config),**后端完全不消费**,
+// name 全由前端传、handler 只做透传。dev 上**只有一条数据**:
+//     webview → http://47.96.113.121/hiworldtest
+// 指向一个**临时业务**,直接 webview 封装的。
+//
+// **单独成 service 就是为了将来一行删掉,不牵动 Base。** 别往里加长期设施。
+//
+// 档位:内容无私密性,token 或公开都行 —— 取 AUTH_USER 维持现状(零行为变更,不平白扩大暴露面)。
+//
+// ⚠️ 后端遗留:model 里 `Name string \`gorm:"column:did"\`` 映射到**不存在的 did 列**。
+//    gorm 生成 SELECT * 故不报错、Value 正常填充(**已实测,接口是好的**),但 Name 永远是空
+//    —— 无人读,是颗埋着的雷。修:column:did → column:name。
+service TempConfig {
+  rpc Get (GetConfigReq) returns (GetConfigResp) { option (hi.auth) = AUTH_USER; } // 原 Base.GetConfig
 }

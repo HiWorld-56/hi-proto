@@ -30,14 +30,17 @@ message GatewayConfigSetReq {
 //    后端应从自己的配置文件引入。
 //
 // 读写拆两个 service(同 service 档位必须一致),照 DApp / DAppAdmin 的既有范式:
-//   Gateway(读,token 或 ExtendToken) / GatewayAdmin(写,超管)。
+//   Gateway(读,用户或商户) / GatewayAdmin(写,超管)。
 // HTTP 路径保持 /api/v1/gateway_config/*,前端无需改动。
 
 // 网关配置(客户端读)。主体=网关配置这份数据,谁登录了都要读:
-// app 用户带 token、hiclub 商户带 ExtendToken;超管运维页也走这个读(它有 token)。
-// 本方法不依赖"我是谁",故可用 AUTH_TOKEN_OR_EXTEND。
+// app 用户(AUTH_USER)、hiclub 商户(AUTH_MERCHANT);超管运维页也走这个读(它是用户)。
+// 本方法**不依赖"我是谁"**,故两个主体都收 —— 标两行,任一通过即放行。
 service Gateway {
-  rpc List (google.protobuf.Empty) returns (GatewayConfigListResp) { option (hi.auth) = AUTH_TOKEN_OR_EXTEND; } // 列出网关配置(含 api_key,前端连节点用)
+  rpc List (google.protobuf.Empty) returns (GatewayConfigListResp) {
+    option (hi.auth) = AUTH_USER;
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 列出网关配置(含 api_key,前端连节点用)
 }
 
 // 网关配置维护(超管写)。纯内部运维:改区块链节点 url + api_key。

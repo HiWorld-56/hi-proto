@@ -14,23 +14,25 @@ message Prompt {
   string user   = 2;
 }
 
-message Model {
+// 一个 agent 选用的一组模型。原名 Model —— 与模型目录 service Model 同包重名,
+// 且它本就不是"一个模型"而是一套选择,故改名 ModelSet。
+message ModelSet {
   string llm       = 1;
   string stt       = 2;
   string tts       = 3;
   string embedding = 4;
 }
 
-// 智能体配置
+// 智能体配置。
+// 注:插件只剩 py 脚本一种(网搜/画图已砍 —— 那两类完全可以封进 py 脚本做,
+// 且局限太大,连传入用户数据都不方便),故只保留 use_plugin 一个开关。
 message AgentConfig {
-  Prompt         prompt            = 1;
-  optional float freedom           = 2; // 控制模型输出的随机性，值越大越随机
-  Model          model             = 3;
-  optional int32 qa_num            = 4; // 上下文组数
-  bool           use_mem           = 11; // 启用记忆（启用训练数据）
-  bool           use_plugin_search = 12; // 启用搜索插件
-  bool           use_plugin_python = 13; // 启用python插件
-  bool           use_plugin_draw   = 14; // 启用画图插件
+  Prompt         prompt     = 1;
+  optional float freedom    = 2; // 控制模型输出的随机性，值越大越随机
+  ModelSet       model      = 3;
+  optional int32 qa_num     = 4; // 上下文组数
+  bool           use_mem    = 5; // 启用记忆（启用训练数据）
+  bool           use_plugin = 6; // 启用插件(py 脚本)
 }
 
 message TokenUsage {
@@ -46,28 +48,11 @@ message AgentInfo {
   string      note       = 4;
   TokenUsage  token      = 5;
   int64       created_at = 6;
-  bool        favorited  = 7;
+  bool        marked     = 7; // 是否被打了标记(带标记的显示靠前);原 favorited
 }
 
-message AgentConfigResp {
-  AgentConfig config = 1;
-}
-
-message ListLLMResp {
-  repeated string models = 1;
-}
-
-message ListEmbeddingResp {
-  repeated string models = 1;
-}
-
-message ListSTTResp {
-  repeated string models = 1;
-  repeated string langs  = 2;
-}
-
-message ListTTSResp {
-  repeated string models = 1;
+message DefaultConfigResp {
+  AgentConfig config = 1; // 全局默认配置(建 agent 用的模板,与具体 agent 无关)
 }
 
 message CreateAgentReq {
@@ -87,21 +72,19 @@ message EditAgentReq {
 }
 
 message ListAgentResp {
-  int32               total = 1;
-  repeated AgentInfo  infos = 2;
+  int32              total = 1;
+  repeated AgentInfo infos = 2;
 }
 
-// Agent 列表入参(公开,免鉴权):合并原 ListAgent(全量)+ ListAgentByDids。
+// Agent 列表入参:dids 空=列调用者自己的;非空=按 did 列。
 message ListAgentReq {
-  repeated string dids       = 1; // 可选:只看这些 did;空=不按 did 过滤
+  repeated string dids       = 1; // 可选:只看这些 did;空=列自己的
   hi.Pagination   pagination = 2;
 }
 
-// 收藏列表入参(需鉴权:查的是**调用者**收藏的,必须有身份)。
-// 合并原 ListFavoriteAgents + FavoriteAgentListByDIDs。
-// 注:favorite 不能做成 ListAgentReq 的 filter —— List 免鉴权、拿不到调用者身份。
-message ListFavoriteReq {
-  repeated string dids       = 1; // 可选:在我的收藏里再按 did 过滤
+// 标记列表入参:查的是**调用者**打过标记的,必须有身份。
+message ListMarksReq {
+  repeated string dids       = 1; // 可选:在我的标记里再按 did 过滤
   hi.Pagination   pagination = 2;
 }
 
@@ -109,53 +92,48 @@ message DeleteAgentReq {
   string did = 1;
 }
 
-message FindAgentReq {
+message GetAgentReq {
   string did = 1;
 }
 
-message FindAgentResp {
+message GetAgentResp {
   AgentInfo info = 1;
 }
 
-message FindAgentCountReq {
+message AgentUsageReq {
   string did = 1;
 }
 
-message FindAgentCountResp {
+// 机器人用量。原 FindAgentCountResp —— 它不是"count",而是消息数 + token 三件套。
+message AgentUsageResp {
   int32      message_count = 1;
   TokenUsage token         = 2;
 }
 
-message TransferReq {
-  string agent = 1;
-  string to    = 2;
-}
-
-message UpdatesToDefaultReq {
+message ResetToDefaultReq {
   repeated string dids = 1;
 }
 
-message FavoriteAgentReq {
+// 给机器人打/取消标记。**不是收藏** —— 带标记的机器人在显示时靠前。
+message MarkAgentReq {
   string did = 1;
-  string opt = 2;
+  string opt = 2; // 打标记 / 取消
 }
 
-
-// apiKey鉴权
+// 智能体(主体=智能体)。商户档:hiai web(token)与商户后台服务(apikey)都会调,
+// 两者解出同一个商户 did。
+//
+// (原 Transfer 已删 —— 它自称"转让 apikey+bot"但只改了 creator,还会顺带把目标非超级用户的
+//  bot 模型降级;"把软件机器人转给其他用户"这个概念应在 hiclub 侧实现。)
 service Agent {
-  rpc ListLlmModels (google.protobuf.Empty) returns (ListLLMResp) { option (hi.auth) = AUTH_API_KEY; }
-  rpc ListEmbeddings (google.protobuf.Empty) returns (ListEmbeddingResp) { option (hi.auth) = AUTH_API_KEY; }
-  rpc ListSttModels (google.protobuf.Empty) returns (ListSTTResp) { option (hi.auth) = AUTH_API_KEY; }
-  rpc ListTtsModels (google.protobuf.Empty) returns (ListTTSResp) { option (hi.auth) = AUTH_API_KEY; }
-  rpc AgentConfig (google.protobuf.Empty) returns (AgentConfigResp) { option (hi.auth) = AUTH_API_KEY; }
-  rpc CreateAgent (CreateAgentReq) returns (CreateAgentResp) { option (hi.auth) = AUTH_API_KEY; }
-  rpc EditAgent (EditAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; }
-  rpc List (ListAgentReq) returns (ListAgentResp) { option (hi.auth) = AUTH_API_KEY; } // 公开;合并原 ListAgent + ListAgentByDids
-  rpc ListFavorites (ListFavoriteReq) returns (ListAgentResp) { option (hi.auth) = AUTH_TOKEN; } // 需鉴权;合并原 ListFavoriteAgents + FavoriteAgentListByDIDs
-  rpc DeleteAgent (DeleteAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; }
-  rpc FindAgent (FindAgentReq) returns (FindAgentResp) { option (hi.auth) = AUTH_API_KEY; }
-  rpc FindAgentCount (FindAgentCountReq) returns (FindAgentCountResp) { option (hi.auth) = AUTH_API_KEY; }
-  rpc Transfer (TransferReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; }
-  rpc UpdatesToDefault (UpdatesToDefaultReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; }
-  rpc FavoriteAgent (FavoriteAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; }
+  rpc Create (CreateAgentReq) returns (CreateAgentResp) { option (hi.auth) = AUTH_MERCHANT; }        // 建智能体
+  rpc Edit (EditAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }      // 改智能体
+  rpc Delete (DeleteAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }  // 删智能体(连带删文件+训练数据)
+  rpc Get (GetAgentReq) returns (GetAgentResp) { option (hi.auth) = AUTH_MERCHANT; }                 // 查单个智能体
+  rpc List (ListAgentReq) returns (ListAgentResp) { option (hi.auth) = AUTH_MERCHANT; }              // 列智能体
+  rpc Mark (MarkAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }      // 打/取消标记(显示靠前)
+  rpc ListMarks (ListMarksReq) returns (ListAgentResp) { option (hi.auth) = AUTH_MERCHANT; }         // 列我打过标记的
+  rpc GetUsage (AgentUsageReq) returns (AgentUsageResp) { option (hi.auth) = AUTH_MERCHANT; }        // 机器人用量(消息数+token)
+  rpc DefaultConfig (google.protobuf.Empty) returns (DefaultConfigResp) { option (hi.auth) = AUTH_MERCHANT; } // 取全局默认配置
+  rpc ResetToDefault (ResetToDefaultReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 批量重置为默认配置
 }

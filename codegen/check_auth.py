@@ -1,16 +1,41 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""CI 校验:每个 rpc 必须显式标注 hi.auth,且不得为 AUTH_UNSPECIFIED。
+"""CI 校验:鉴权标注 + http 路由。
 
 背景:鉴权规则曾以方法路径字符串散落在各后端的 Go map 里,与 proto 无强制关联 ——
 改名即静默漂移(实测 15 处)、删方法留悬空条目、漏配则 fail-open 落进宽松档。
 现规则长在方法上(hi/options.proto 的 Auth 枚举),后端拦截器读 descriptor 判断。
-本脚本保证:proto 侧不会出现漏标 —— 漏标即构建失败,而非上线后静默拒绝/放行。
+
+鉴权模型(2026-07-17 起):**按主体命名 + 可组合**。
+  option (hi.auth) 是 **repeated** —— 多行 = 任一通过(OR);空 = fail-closed。
+  故本脚本必须按 **rpc 块**(而非单行)解析。
+
+本脚本保证:
+  1. 每个 rpc 都显式标注,且不用 AUTH_UNSPECIFIED(漏标即构建失败,而非上线后静默拒绝/放行);
+  2. **同一 service 内档位集合一致** —— 不一致 = 主体归类错了,该拆 service
+     (范式:DApp/DAppAdmin、Gateway/GatewayAdmin、Merchant/MerchantManage);
+  3. http 路由不悬空、无重复 key。
 """
 import re, sys, glob, os
 
 os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 bad, total = [], 0
+
+# 允许共存的档位组合:公开 + web3。
+# web3 的"鉴权"在载荷里(hi.SignedData,handler 自验签),不是方法级鉴权,
+# 故它与 AUTH_NONE 同处一个 service 不算混档(如 Auth/Pay/Transfer/Assets)。
+ALLOWED_MIX = {frozenset({('AUTH_NONE',), ('AUTH_WEB3',)})}
+
+# 按 rpc 块解析:从 `rpc Name(` 到与之配对的 `}` 或 `;`
+RPC_BLOCK = re.compile(
+    r'rpc\s+(?P<name>\w+)\s*\([^)]*\)\s*returns\s*\([^)]*\)\s*(?:\{(?P<opts>.*?)\}|;)',
+    re.S)
+
+
+def line_of(src, pos):
+    return src.count('\n', 0, pos) + 1
+
+
 for f in sorted(glob.glob('hi/**/*.proto', recursive=True)):
     if f.endswith('options.proto'):
         continue
@@ -19,20 +44,35 @@ for f in sorted(glob.glob('hi/**/*.proto', recursive=True)):
         continue
     if 'import "hi/options.proto";' not in src:
         bad.append(f'{f}: 定义了 service 却未 import hi/options.proto')
-    svc = None
-    for i, line in enumerate(src.split('\n'), 1):
-        m = re.match(r'\s*service\s+(\w+)', line)
-        if m:
-            svc = m.group(1)
-            continue
-        m = re.match(r'\s*rpc\s+(\w+)\s*\(', line)
-        if not m:
-            continue
-        total += 1
-        if 'option (hi.auth)' not in line:
-            bad.append(f'{f}:{i}: {svc}.{m.group(1)} 未标注 hi.auth')
-        elif 'AUTH_UNSPECIFIED' in line:
-            bad.append(f'{f}:{i}: {svc}.{m.group(1)} 标了 AUTH_UNSPECIFIED(仅作漏标哨兵,不可主动使用)')
+
+    for sm in re.finditer(r'^service\s+(\w+)\s*\{(.*?)^\}', src, re.S | re.M):
+        svc, body = sm.group(1), sm.group(2)
+        base = sm.start(2)
+        sets = []
+        for rm in RPC_BLOCK.finditer(body):
+            total += 1
+            name = rm.group('name')
+            ln = line_of(src, base + rm.start())
+            opts = rm.group('opts') or ''
+            auths = re.findall(r'option\s*\(hi\.auth\)\s*=\s*(AUTH_[A-Z0-9_]+)\s*;', opts)
+            if not auths:
+                bad.append(f'{f}:{ln}: {svc}.{name} 未标注 hi.auth(空 = fail-closed,必须显式标)')
+                continue
+            if 'AUTH_UNSPECIFIED' in auths:
+                bad.append(f'{f}:{ln}: {svc}.{name} 标了 AUTH_UNSPECIFIED(仅占位,不可主动使用)')
+            dup = [a for a in set(auths) if auths.count(a) > 1]
+            if dup:
+                bad.append(f'{f}:{ln}: {svc}.{name} 重复标注 {dup}')
+            sets.append((name, ln, tuple(sorted(set(auths)))))
+
+        # 同 service 档位集合必须一致
+        uniq = {a for _, _, a in sets}
+        if len(uniq) > 1 and frozenset(uniq) not in ALLOWED_MIX:
+            detail = '; '.join(f'{n}={"+".join(a)}' for n, _, a in sets)
+            ln = sets[0][1] if sets else line_of(src, sm.start())
+            bad.append(
+                f'{f}:{ln}: service {svc} **混档** —— 同 service 档位必须一致,'
+                f'不一致说明主体归类错了,该拆 service(见 DApp/DAppAdmin 范式)。当前:{detail}')
 
 print(f'[check_auth] 共 {total} 个 rpc')
 
@@ -47,7 +87,7 @@ for f in glob.glob('hi/**/*.proto', recursive=True):
     pm = re.search(r'^package\s+([\w.]+);', t, re.M)
     if not pm:
         continue
-    for sm in re.finditer(r'service\s+(\w+)\s*\{(.*?)\n\}', t, re.S):
+    for sm in re.finditer(r'^service\s+(\w+)\s*\{(.*?)^\}', t, re.S | re.M):
         for rm in re.finditer(r'rpc\s+(\w+)\s*\(', sm.group(2)):
             real.add(f'{pm.group(1)}.{sm.group(1)}.{rm.group(1)}')
 
@@ -59,18 +99,18 @@ for y in sorted(glob.glob('http/*.yaml')):
     for m in re.finditer(r'-\s*selector:\s*([\w.]+)', t):
         http_total += 1
         if m.group(1) not in real:
-            bad.append(f'{y}: http 路由指向不存在的方法 {m.group(1)}(删 rpc 时忘了删路由?)')
+            bad.append(f'{y}: http 路由指向不存在的方法 {m.group(1)}(删/改 rpc 时忘了改路由?)')
+
 # 每个 selector 块里 method(get/post/..)和 body 最多各一个 —— 删路由块时容易删掉 selector
 # 却漏删后续行,留下孤儿 body/method,buf 会以"mapping key already defined"报错(且淹在插件 kill 里)。
 for y in sorted(glob.glob('http/*.yaml')):
     if os.path.basename(y) == 'merged.yaml':
         continue
     seen = {}
-    sel = None
     for i, line in enumerate(open(y, encoding='utf-8'), 1):
         st = line.strip()
         if st.startswith('- selector:'):
-            sel = st; seen = {}
+            seen = {}
         else:
             for k in ('body:', 'get:', 'post:', 'put:', 'delete:'):
                 if st.startswith(k):
@@ -85,4 +125,4 @@ if bad:
     for b in bad:
         print('   ', b)
     sys.exit(1)
-print('[check_auth] ✓ 鉴权标注 + http 路由 均已校验')
+print('[check_auth] ✓ 鉴权标注(含同 service 档位一致)+ http 路由 均已校验')

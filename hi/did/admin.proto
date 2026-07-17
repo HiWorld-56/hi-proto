@@ -113,9 +113,9 @@ message DAppDeleteReq {
 
 // DApp 浏览(app 面):普通登录用户看首页 DApp 列表。只读。
 service DApp {
-  rpc ListByClass (google.protobuf.Empty) returns (DAppListByClassResp) { option (hi.auth) = AUTH_TOKEN; } // 用户:按分类取 DApp(视频/热门/推荐)
-  rpc GetRWA (google.protobuf.Empty) returns (DAppGetRWAResp) { option (hi.auth) = AUTH_TOKEN; }           // 用户:取 RWA 类 DApp 的入口 url
-  rpc GetTop (google.protobuf.Empty) returns (DAppInfo) { option (hi.auth) = AUTH_TOKEN; }                 // 用户:取置顶 DApp
+  rpc ListByClass (google.protobuf.Empty) returns (DAppListByClassResp) { option (hi.auth) = AUTH_USER; } // 用户:按分类取 DApp(视频/热门/推荐)
+  rpc GetRWA (google.protobuf.Empty) returns (DAppGetRWAResp) { option (hi.auth) = AUTH_USER; }           // 用户:取 RWA 类 DApp 的入口 url
+  rpc GetTop (google.protobuf.Empty) returns (DAppInfo) { option (hi.auth) = AUTH_USER; }                 // 用户:取置顶 DApp
 }
 
 // DApp 维护(超管面):上架/下架/改/排序/置顶。handler 里本有超管校验,收敛到拦截器。
@@ -149,7 +149,7 @@ message MerchantManageEditReq {
   string comment = 2;
 }
 
-// 商户管理(超管面)。裁决 #11:此前 Delete/Edit 标 AUTH_TOKEN 且 handler 零校验
+// 商户管理(超管面)。裁决 #11:此前 Delete/Edit 标 AUTH_USER 且 handler 零校验
 // (任何登录用户可删改商户,是漏洞),已全部收紧为 AUTH_SUPERADMIN。
 // ⚠️ handler 侧无内联校验,完全靠拦截器 —— 后端 bump 后必须实测"非超管调 Delete/Edit 被拒"。
 service MerchantManage {

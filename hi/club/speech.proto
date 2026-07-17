@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
+
+import "hi/ai/speech.proto";
+import "hi/options.proto";
+
+// 语音转换(主体=语音)。**hi.ai.Speech 的门面**,纯透传 → 类型直接复用 hi.ai(有意为之)。
+//
+// 从 club.Chat 拆出,跟 ai 一致:这是纯格式转换,不涉及 agent/会话/工具。
+// 顺带解掉命名撞车 —— 原 `Chat.SimpleSpeechToText`(真 STT)与 `Chat.SpeechToText`
+// (其实是多模态对话)只靠 "Simple" 前缀区分,读的人分不清。
+service Speech {
+  rpc Transcribe (hi.ai.TranscribeReq) returns (hi.ai.TranscribeResp) { option (hi.auth) = AUTH_USER; } // 语音转文字(原 Chat.SimpleSpeechToText)
+  rpc Synthesize (hi.ai.SynthesizeReq) returns (hi.ai.SynthesizeResp) { option (hi.auth) = AUTH_USER; } // 文字转语音(原 Chat.SimpleTextToSpeech)
+}

@@ -39,10 +39,17 @@ message DeleteApiKeyReq {
   string api_key = 1;
 }
 
-// 使用token鉴权
+// 商户的 apikey 管理(主体=apikey)。商户档。
+//
+// 商户在 hiai web 后台(token)签发 apikey 给自己的后台服务用;但**商户后台调用时没有登录态**,
+// 直接带 apikey 鉴权 —— 那种情况就用 apikey 反查商户 did(与 token 反查 did 对称)。
+// 故 token 与 apikey 都要收。
+//
+// ⚠️ 后端接线必修:Edit/Delete 现在按 req.api_key 直接操作、**不校验归属** → 任何登录者
+//    可改/删他人 apikey。须校验 apikey.did == 当前商户 did。
 service ApiKey {
-  rpc Create (google.protobuf.Empty) returns (CreateApiKeyResp) { option (hi.auth) = AUTH_TOKEN; }
-  rpc Edit (EditApiKeyReq) returns (EditApiKeyResp) { option (hi.auth) = AUTH_TOKEN; }
-  rpc List (hi.Pagination) returns (ListApiKeyResp) { option (hi.auth) = AUTH_TOKEN; }
-  rpc Delete (DeleteApiKeyReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
+  rpc Create (google.protobuf.Empty) returns (CreateApiKeyResp) { option (hi.auth) = AUTH_MERCHANT; }      // 签发 apikey
+  rpc Edit (EditApiKeyReq) returns (EditApiKeyResp) { option (hi.auth) = AUTH_MERCHANT; }                  // 改备注
+  rpc List (hi.Pagination) returns (ListApiKeyResp) { option (hi.auth) = AUTH_MERCHANT; }                  // 列自己的 apikey
+  rpc Delete (DeleteApiKeyReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 删 apikey
 }

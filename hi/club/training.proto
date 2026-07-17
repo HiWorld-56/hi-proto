@@ -8,19 +8,26 @@ import "google/protobuf/empty.proto";
 import "hi/ai/training.proto";
 import "hi/options.proto";
 
-// Token鉴权
+// 训练/记忆(主体=训练)。**hi.ai.Training 的门面**,纯透传 → 类型直接复用 hi.ai(有意为之)。
+//
+// 去 stutter(跟 ai 定稿):TrainingAgent/TrainingStatus/TrainingClear → Start/Status/Clear;
+// 文件类方法的 "Agent" 是入参不是主体 → ListAgentFiles → ListFiles 等。
 service Training {
-  rpc TrainingAgent (hi.ai.TrainingAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }                // 启动训练
-  rpc TrainingStatus (hi.ai.TrainingStatusReq) returns (hi.ai.TrainingStatusResp) { option (hi.auth) = AUTH_TOKEN; }           // 获取训练状态
-  rpc TrainingClear (hi.ai.TrainingClearReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }                // 清除训练状态
-  rpc UploadFile (hi.ai.UploadFileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }                      // 上传训练文件
-  rpc ListAgentFiles (hi.ai.ListAgentFileReq) returns (hi.ai.ListAgentFileResp) { option (hi.auth) = AUTH_TOKEN; }              // 获取训练文件列表
-  rpc DeleteAgentFile (hi.ai.DeleteAgentFileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }            // 删除训练文件
-  rpc DeleteAgentFiles (hi.ai.DeleteAgentFilesReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }          // 批量删除训练文件
-  rpc GetAgentFile (hi.ai.GetAgentFileReq) returns (hi.ai.GetAgentFileResp) { option (hi.auth) = AUTH_TOKEN; }
-  rpc UpdateContent (hi.ai.UpdateContentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
-  rpc CreateContent (hi.ai.CreateContentReq) returns (hi.ai.CreateContentResp) { option (hi.auth) = AUTH_TOKEN; }
-  rpc EditDigest (hi.ai.EditDigestReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
-  rpc SetMemModel (hi.ai.SetMemModelReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
-  rpc GetMemModel (hi.ai.GetMemModelReq) returns (hi.ai.GetMemModelResp) { option (hi.auth) = AUTH_TOKEN; }
+  // ── 训练任务 ──
+  rpc Start (hi.ai.StartReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                   // 启动训练(原 TrainingAgent)
+  rpc Status (hi.ai.StatusReq) returns (hi.ai.StatusResp) { option (hi.auth) = AUTH_USER; }                      // 训练状态(原 TrainingStatus)
+  rpc Clear (hi.ai.ClearReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                   // 清除记忆/训练(原 TrainingClear)
+  // ── 训练文件 ──
+  rpc UploadFile (hi.ai.UploadFileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }         // 上传训练文件
+  rpc ListFiles (hi.ai.ListFilesReq) returns (hi.ai.ListFilesResp) { option (hi.auth) = AUTH_USER; }             // 列训练文件(原 ListAgentFiles)
+  rpc GetFile (hi.ai.GetFileReq) returns (hi.ai.GetFileResp) { option (hi.auth) = AUTH_USER; }                   // 取单个训练文件(原 GetAgentFile)
+  rpc DeleteFile (hi.ai.DeleteFileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }         // 删单个(原 DeleteAgentFile)
+  rpc DeleteFiles (hi.ai.DeleteFilesReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }       // 批量删(原 DeleteAgentFiles)
+  // ── 文本记忆条目 ──
+  rpc CreateContent (hi.ai.CreateContentReq) returns (hi.ai.CreateContentResp) { option (hi.auth) = AUTH_USER; } // 建文本记忆
+  rpc UpdateContent (hi.ai.UpdateContentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }   // 改文本记忆
+  rpc EditDigest (hi.ai.EditDigestReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }         // 改摘要
+  // ── 记忆模型 ──
+  rpc SetMemModel (hi.ai.SetMemModelReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }       // 设记忆模型
+  rpc GetMemModel (hi.ai.GetMemModelReq) returns (hi.ai.GetMemModelResp) { option (hi.auth) = AUTH_USER; }       // 取记忆模型
 }

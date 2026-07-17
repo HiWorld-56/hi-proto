@@ -154,5 +154,5 @@ message PublishReq {
 }
 
 service Publisher {
-  rpc Publish (PublishReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; } // Token鉴权
+  rpc Publish (PublishReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // Token鉴权
 }

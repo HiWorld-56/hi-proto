@@ -4,7 +4,6 @@ package hi.ai;
 
 import "google/protobuf/empty.proto";
 import "google/protobuf/struct.proto";
-import "hi/common.proto";
 import "hi/options.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
@@ -14,15 +13,11 @@ message Content {
   string content = 2;
 }
 
-message SimpleReq {
-  repeated Content conts = 1;
+message NewSessionResp {
+  string cid = 1; // 新会话 id;原 GenerateCidResp
 }
 
-message GenerateCidResp {
-  string cid = 1;
-}
-
-message DialogReq {
+message SendReq {
   string           did                  = 1;
   string           cid                  = 2;
   repeated Content conts                = 3;
@@ -33,21 +28,21 @@ message DialogReq {
   bool             return_context       = 8;
 }
 
-message DialogResp {
+message SendResp {
   string reply = 1;
 }
 
-message DialogStreamResp {
+message StreamResp {
   int32  code    = 1;
   string type    = 2;
   string message = 3;
 }
 
-message ClearContextReq {
+message ClearHistoryReq {
   string cid = 1;
 }
 
-message GetContextReq {
+message GetHistoryReq {
   string cid   = 1;
   string agent = 2;
 }
@@ -57,30 +52,13 @@ message QA {
   repeated Content q = 2; // User
 }
 
-message GetContextResp {
+message GetHistoryResp {
   repeated QA list = 1;
 }
 
-message SimpleTextToSpeechReq {
-  string text  = 1;
-  string model = 2;
-  string style = 3;
-}
-
-message SimpleTextToSpeechResp {
-  string url = 1;
-}
-
-message SimpleSpeechToTextReq {
-  string url   = 1;
-  string model = 2;
-  string lang  = 3;
-}
-
-message SimpleSpeechToTextResp {
-  string text = 1;
-}
-
+// ── 多模态对话入参 ────────────────────────────────────────────────────
+// 命名读作「<输入模态>To<输出模态>」,描述的是一轮 agent 对话的模态组合(带工具调用),
+// **不是字面的格式转换** —— 真 STT/TTS 在 Speech service(Transcribe/Synthesize)。
 message SpeechToSpeechReq {
   string              did         = 1;
   string              cid         = 2;
@@ -102,11 +80,22 @@ message TextToTextReq {
   optional string     state       = 7;
 }
 
+message SpeechToTextReq {
+  string              did         = 1;
+  string              cid         = 2;
+  repeated Content    conts       = 3;
+  repeated ToolSupply tools       = 4;
+  optional string     tool_choice = 5;
+  optional string     custom      = 6;
+  optional string     state       = 7;
+}
+
 message ToolCallResult {
   string           id    = 1;
   repeated Content conts = 2;
 }
 
+// 工具结果续跑入参(Resume 系列):客户端执行完工具后把结果交回来,接着跑。
 message ToolCallResultsReq {
   string                  id   = 1;
   repeated ToolCallResult list = 2;
@@ -144,68 +133,22 @@ message ChatResp {
   repeated ToolCall tools  = 3;
 }
 
-message ListAgentDelayReq {
-  string        agent      = 1;
-  string        type       = 2;
-  hi.Pagination pagination = 3;
-}
-
-message AgentDelayUnit {
-  string agent         = 1;
-  string uuid          = 2;
-  string type          = 3;
-  int32  llm           = 4;
-  int32  llm2          = 5;
-  int32  stt           = 6;
-  int32  tts           = 7;
-  int32  function_call = 8;
-  int64  test_time     = 9;
-}
-
-message ListAgentDelayResp {
-  int32                   total = 1;
-  repeated AgentDelayUnit units = 2;
-}
-
-message GetAgentDelayReq {
-  string        agent      = 1;
-  string        type       = 2;
-  hi.Pagination pagination = 3;
-}
-
-message GetAgentDelayResp {
-  int32                   total = 1;
-  repeated AgentDelayUnit units = 2;
-}
-
-message SpeechToTextReq {
-  string              did         = 1;
-  string              cid         = 2;
-  repeated Content    conts       = 3;
-  repeated ToolSupply tools       = 4;
-  optional string     tool_choice = 5;
-  optional string     custom      = 6;
-  optional string     state       = 7;
-}
-
-// apiKey鉴权
+// 对话(主体=会话)。商户档:hiai web(token)与商户后台服务(apikey)都会调。
+//
+// (原 Simple 已删 —— 那是给前端**无身份**直连 llm 推理的便捷方法,有安全隐患。)
+// 真 STT/TTS 已拆去 Speech;延迟统计已拆去 AgentBench。
 service Chat {
-  rpc Simple (SimpleReq) returns (DialogResp) { option (hi.auth) = AUTH_API_KEY; }
-  rpc GenerateCid (google.protobuf.Empty) returns (GenerateCidResp) { option (hi.auth) = AUTH_API_KEY; }
-  rpc Dialog (DialogReq) returns (DialogResp) { option (hi.auth) = AUTH_API_KEY; }
-  rpc DialogStream (DialogReq) returns (stream DialogStreamResp) { option (hi.auth) = AUTH_TOKEN; }
-  rpc ClearContext (ClearContextReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_API_KEY; }
-  rpc GetContext (GetContextReq) returns (GetContextResp) { option (hi.auth) = AUTH_API_KEY; }
-  rpc ListAgentDelays (ListAgentDelayReq) returns (ListAgentDelayResp) { option (hi.auth) = AUTH_TOKEN; }
-  rpc GetAgentDelay (GetAgentDelayReq) returns (GetAgentDelayResp) { option (hi.auth) = AUTH_TOKEN; }
-
-  rpc SimpleTextToSpeech (SimpleTextToSpeechReq) returns (SimpleTextToSpeechResp) { option (hi.auth) = AUTH_API_KEY; }
-  rpc SimpleSpeechToText (SimpleSpeechToTextReq) returns (SimpleSpeechToTextResp) { option (hi.auth) = AUTH_API_KEY; }
-
-  rpc SpeechToSpeech (SpeechToSpeechReq) returns (ChatResp) { option (hi.auth) = AUTH_API_KEY; }
-  rpc SpeechToSpeech2 (ToolCallResultsReq) returns (ChatResp) { option (hi.auth) = AUTH_API_KEY; }
-  rpc TextToText (TextToTextReq) returns (ChatResp) { option (hi.auth) = AUTH_API_KEY; }
-  rpc TextToText2 (ToolCallResultsReq) returns (ChatResp) { option (hi.auth) = AUTH_API_KEY; }
-  rpc SpeechToText (SpeechToTextReq) returns (ChatResp) { option (hi.auth) = AUTH_API_KEY; }
-  rpc SpeechToText2 (ToolCallResultsReq) returns (ChatResp) { option (hi.auth) = AUTH_API_KEY; }
+  // ── 会话管理 ──
+  rpc NewSession (google.protobuf.Empty) returns (NewSessionResp) { option (hi.auth) = AUTH_MERCHANT; } // 建会话(原 GenerateCid)
+  rpc Send (SendReq) returns (SendResp) { option (hi.auth) = AUTH_MERCHANT; }                           // 一轮对话(原 Dialog)
+  rpc Stream (SendReq) returns (stream StreamResp) { option (hi.auth) = AUTH_MERCHANT; }                // 流式一轮(原 DialogStream)
+  rpc GetHistory (GetHistoryReq) returns (GetHistoryResp) { option (hi.auth) = AUTH_MERCHANT; }         // 取会话上下文(原 GetContext)
+  rpc ClearHistory (ClearHistoryReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 清上下文(原 ClearContext)
+  // ── 多模态对话(带工具调用);Resume = 交回工具结果续跑(原 xxx2)──
+  rpc TextToText (TextToTextReq) returns (ChatResp) { option (hi.auth) = AUTH_MERCHANT; }                     // 文入文出
+  rpc TextToTextResume (ToolCallResultsReq) returns (ChatResp) { option (hi.auth) = AUTH_MERCHANT; }          // 文入文出:工具结果续跑
+  rpc SpeechToText (SpeechToTextReq) returns (ChatResp) { option (hi.auth) = AUTH_MERCHANT; }                 // 语音入、文本出
+  rpc SpeechToTextResume (ToolCallResultsReq) returns (ChatResp) { option (hi.auth) = AUTH_MERCHANT; }        // 语音入文本出:工具结果续跑
+  rpc SpeechToSpeech (SpeechToSpeechReq) returns (ChatResp) { option (hi.auth) = AUTH_MERCHANT; }             // 语音入语音出
+  rpc SpeechToSpeechResume (ToolCallResultsReq) returns (ChatResp) { option (hi.auth) = AUTH_MERCHANT; }      // 语音入语音出:工具结果续跑
 }

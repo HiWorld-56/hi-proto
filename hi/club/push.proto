@@ -19,6 +19,6 @@ message PushUnregisterReq {
 
 // Token鉴权
 service PushManager {
-  rpc Register (PushRegisterReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
-  rpc Unregister (PushUnregisterReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
+  rpc Register (PushRegisterReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
+  rpc Unregister (PushUnregisterReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
 }

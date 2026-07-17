@@ -7,10 +7,14 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
 import "google/protobuf/empty.proto";
 import "hi/options.proto";
 
+// hiai 服务级全局配置。
+// 字段正名:原 proxy_url / enable / endpoint 三个名字逻辑混乱 —— enable 其实指"代理开不开",
+// endpoint 其实是 OpenAI 端点。且 OpenAI 端点也该有开关(关掉即用官方端点)。
 message SettingInfo {
-  string proxy_url = 1;
-  bool   enable    = 2;
-  string endpoint  = 3;
+  string proxy_endpoint         = 1; // 代理地址(原 proxy_url)
+  bool   proxy_enable           = 2; // 代理是否生效(原 enable)
+  string openai_endpoint        = 3; // 自定义 OpenAI 端点(原 endpoint)
+  bool   openai_endpoint_enable = 4; // 端点开关;关 = 用 OpenAI 官方端点
 }
 
 message SettingEditReq {
@@ -21,8 +25,12 @@ message SettingGetResp {
   SettingInfo info = 1;
 }
 
-// Token鉴权
+// hiai 服务级全局配置(主体=服务自身设置)。**超管档**。
+//
+// 代理与 OpenAI 端点都是 **hiai 服务内部自用**的:整个服务对外连 OpenAI 就一套,
+// 不是每个商户各配一份(原实现读的也确实是全局、忽略 ctx did),故归超管而非商户档。
+// 超管名单穿透 hidid `SuperAdmin.List`。
 service Setting {
-  rpc Edit (SettingEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_TOKEN; }
-  rpc Get (google.protobuf.Empty) returns (SettingGetResp) { option (hi.auth) = AUTH_TOKEN; }
+  rpc Get (google.protobuf.Empty) returns (SettingGetResp) { option (hi.auth) = AUTH_SUPERADMIN; }  // 超管:读全局配置
+  rpc Edit (SettingEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:改全局配置(原实现是空壳,须真落地)
 }
