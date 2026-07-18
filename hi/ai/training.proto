@@ -9,8 +9,8 @@ import "hi/common.proto";
 import "hi/options.proto";
 
 message StartReq {
-  repeated int32 ids   = 1; // 训练文件id列表
-  string         agent = 2; // 智能体did
+  repeated string uuids = 1; // 训练文件 uuid 列表(禁用数据表自增 id 跨端流转)
+  string          agent = 2; // 智能体did
 }
 
 message StatusReq {
@@ -35,7 +35,7 @@ message UploadFileReq {
 }
 
 message TrainingFile {
-  int32  id            = 1;  // 训练文件id
+  string uuid          = 1;  // 训练文件稳定标识(uuid;不暴露数据表自增 id)
   string content       = 2;  // content（文件内容） / path / url
   string agent         = 3;  // 智能体did
   string title         = 4;  // 文件名
@@ -60,8 +60,8 @@ message ListFilesResp {
 }
 
 message DeleteFilesReq {
-  string         agent = 1; // 智能体did
-  repeated int32 ids   = 2; // 训练文件id列表
+  string          agent = 1; // 智能体did
+  repeated string uuids = 2; // 训练文件 uuid 列表
 }
 
 message DeleteFilesByAgentsReq {
@@ -69,7 +69,8 @@ message DeleteFilesByAgentsReq {
 }
 
 message GetFileReq {
-  int32 id = 1; // 训练文件id
+  string uuid  = 1; // 训练文件 uuid
+  string agent = 2; // 智能体did(供 club/ai 两级归属校验;club 按 agent 查本方用户是否拥有该 bot)
 }
 
 message GetFileResp {
@@ -78,7 +79,7 @@ message GetFileResp {
 
 message UpdateContentReq {
   string agent   = 1;
-  int32  id      = 2;
+  string uuid    = 2; // 训练文件 uuid
   string content = 3;
 }
 
@@ -92,7 +93,7 @@ message CreateContentResp {
 }
 
 message EditDigestReq {
-  int32  id     = 1;
+  string uuid   = 1; // 训练文件 uuid
   string agent  = 2;
   string digest = 3;
 }
