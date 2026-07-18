@@ -16,12 +16,14 @@ message DID {
   string id = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
-// 实体类型:人 / 硬件机器人(agent,有 DID、具身)/ 软件机器人(assistant)。
+// 实体类型:身份门面 Entity 的种类。含"人型"(user/agent/assistant)与"会话型"(group/single)。
 enum EntityType {
   ENTITY_UNSPECIFIED = 0; // 空/未知
   ENTITY_USER        = 1; // 人
   ENTITY_AGENT       = 2; // 硬件机器人(有身份、具身)
   ENTITY_ASSISTANT   = 3; // 软件机器人
+  ENTITY_GROUP       = 4; // 群聊会话
+  ENTITY_SINGLE      = 5; // 单聊会话
 }
 
 message Entity {
