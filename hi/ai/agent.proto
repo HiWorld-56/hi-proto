@@ -80,22 +80,22 @@ message ListAgentResp {
 
 // Agent 列表入参:dids 空=列调用者自己的;非空=按 did 列。
 message ListAgentReq {
-  repeated string dids       = 1; // 可选:只看这些 did;空=列自己的
+  repeated string agents       = 1; // 可选:只看这些 did;空=列自己的
   hi.Pagination   pagination = 2;
 }
 
 // 标记列表入参:查的是**调用者**打过标记的,必须有身份。
 message ListMarksReq {
-  repeated string dids       = 1; // 可选:在我的标记里再按 did 过滤
+  repeated string agents       = 1; // 可选:在我的标记里再按 did 过滤
   hi.Pagination   pagination = 2;
 }
 
 message DeleteAgentReq {
-  string did = 1;
+  string agent = 1;
 }
 
 message GetAgentReq {
-  string did = 1;
+  string agent = 1;
 }
 
 message GetAgentResp {
@@ -103,7 +103,7 @@ message GetAgentResp {
 }
 
 message AgentUsageReq {
-  string did = 1;
+  string agent = 1;
 }
 
 // 机器人用量。原 FindAgentCountResp —— 它不是"count",而是消息数 + token 三件套。
@@ -113,12 +113,12 @@ message AgentUsageResp {
 }
 
 message ResetToDefaultReq {
-  repeated string dids = 1;
+  repeated string agents = 1;
 }
 
 // 给机器人打/取消标记。**不是收藏** —— 带标记的机器人在显示时靠前。
 message MarkAgentReq {
-  string did    = 1;
+  string agent    = 1;
   bool   marked = 2; // true=打标记(显示靠前),false=取消(与 AgentInfo.marked 对称)
 }
 
