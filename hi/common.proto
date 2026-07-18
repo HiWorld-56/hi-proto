@@ -16,19 +16,20 @@ message DID {
   string id = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
-// 实体类型:身份门面 Entity 的种类。含"人型"(user/agent/assistant)与"会话型"(group/single)。
-enum EntityType {
-  ENTITY_UNSPECIFIED = 0; // 空/未知
-  ENTITY_USER        = 1; // 人
-  ENTITY_AGENT       = 2; // 硬件机器人(有身份、具身)
-  ENTITY_ASSISTANT   = 3; // 软件机器人
-  ENTITY_GROUP       = 4; // 群聊会话
-  ENTITY_SINGLE      = 5; // 单聊会话
-}
-
+/*
+  Entity 是"可寻址节点"的公开门面(did/code + 名字 + 头像 + 类型)。
+  type: 实体类型(字符串,便于扩展 —— 新增类型只需在此登记一行)
+     人型(好友列表)
+       user       人
+       agent      硬件机器人(有 DID、具身、行为同用户)
+       assistant  软件机器人(对话由后端接管,无私钥、不在 mqtt 上)
+     会话型(会话列表)
+       group      群聊
+       single     单聊
+*/
 message Entity {
   option (hi.audience) = VIS_PUBLIC; // 身份门面:名字/头像等,全公开
-  EntityType type = 1 [(hi.visibility) = VIS_PUBLIC];
+  string type = 1 [(hi.visibility) = VIS_PUBLIC];
   string did    = 2 [(hi.visibility) = VIS_PUBLIC];
   string name   = 3 [(hi.visibility) = VIS_PUBLIC];
   string avatar = 4 [(hi.visibility) = VIS_PUBLIC];
