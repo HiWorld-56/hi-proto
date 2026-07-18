@@ -200,6 +200,10 @@ message MerchantPubSchemeResp {
   string scheme = 1; // 商户业务 app 的回调 scheme;只有 scheme,别的一概不给
 }
 
+message MerchantPubServerResp {
+  hi.Entity server = 1; // 收款/付款 server(默认 = master);涉及转账时按 master did 取此作目标/源头
+}
+
 // 商户公开信息(免鉴权)。主体=商户对外可见的那部分。
 //
 // 用途:hidid app 被三方业务 app 唤起做签名认证时,按业务侧传来的**商户 did** 查回跳 scheme;
@@ -212,6 +216,9 @@ service MerchantPub {
   rpc Scheme(hi.DID) returns (MerchantPubSchemeResp) {
     option (hi.auth) = AUTH_NONE;
   } // 公开:按商户 did 查回跳 scheme
+  rpc Server(hi.DID) returns (MerchantPubServerResp) {
+    option (hi.auth) = AUTH_NONE;
+  } // 公开:按 master did 查 server did(转账目标/源头;默认 = master)
 }
 
 // 商户的扩展库访问凭证:extoken(=ExtendToken,商户的 API 凭证)+ extend 表名。

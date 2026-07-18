@@ -108,6 +108,9 @@ http:
   - selector: hi.did.MerchantPub.Scheme
     post: /api/v1/merchant_pub/scheme
     body: "*"
+  - selector: hi.did.MerchantPub.Server
+    post: /api/v1/merchant_pub/server
+    body: "*"
 # Gateway(读)/ GatewayAdmin(写) —— URL 保持不变,前端无需改动
   - selector: hi.did.Gateway.List
     get: /api/v1/gateway/list
