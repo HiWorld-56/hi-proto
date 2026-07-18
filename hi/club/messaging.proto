@@ -36,9 +36,9 @@ message Packet {
       group-invite          收到入群邀请（自动 accept）              / hi.club.Member
       group-invite-reject   我邀请他人入群已被对方拒绝（无需响应）
       group-kick            我已被踢出群聊                          / hi.club.MemberExit
-      hwbot-bind            hwbot 绑定完成
-      hwbot-unbind          hwbot 解绑完成
-      hwbot-update          hwbot 资料更新                        / hi.Entity
+      agent-bind            agent(硬件机器人)绑定完成
+      agent-unbind          agent(硬件机器人)解绑完成
+      agent-update          agent(硬件机器人)资料更新              / hi.Entity
       plugin-load           插件/脚本加载完成                      / hi.ai.PluginItem
 
    ex_type: 附加类型
