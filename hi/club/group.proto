@@ -88,9 +88,9 @@ message RemoveGroupReq {
 }
 
 message SetRoleReq {
-  string          group = 1;
-  repeated string users = 2;
-  string          role  = 3;
+  string          group   = 1;
+  repeated string members = 2; // 与 Invite/Remove 的 members 一致(原 users)
+  string          role    = 3;
 }
 
 message GetRoleReq {
@@ -120,5 +120,5 @@ service Group {
   rpc ListMessages (ListGroupMessageReq) returns (ListGroupMessageResp) { option (hi.auth) = AUTH_USER; } // 群消息列表
   rpc SetRole (SetRoleReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 设置/取消群管理员
   rpc GetRole (GetRoleReq) returns (GetRoleResp) { option (hi.auth) = AUTH_USER; } // 获取群成员角色
-  rpc Mute (MuteGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 设置/取消群管理员
+  rpc Mute (MuteGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 设置/取消免打扰
 }

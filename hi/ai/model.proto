@@ -7,29 +7,23 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
 import "google/protobuf/empty.proto";
 import "hi/options.proto";
 
-message ListLLMResp {
+// 通用模型列表(LLM/Embedding/TTS 共用 —— 都只是一串模型名)。
+message ModelListResp {
   repeated string models = 1;
 }
 
-message ListEmbeddingResp {
-  repeated string models = 1;
-}
-
+// STT 单独:除模型名还带支持语言。
 message ListSTTResp {
   repeated string models = 1;
   repeated string langs  = 2;
-}
-
-message ListTTSResp {
-  repeated string models = 1;
 }
 
 // 模型目录(主体=模型)。从 Agent 拆出 —— 这些方法查的是"有哪些模型可用",
 // 与具体 agent 无关(按调用者商户取该类型模型集),和 agent CRUD 不是一个主体。
 // 商户档:hiai web 与商户后台服务都会调。
 service Model {
-  rpc ListLlms (google.protobuf.Empty) returns (ListLLMResp) { option (hi.auth) = AUTH_MERCHANT; }             // 列 LLM 模型
-  rpc ListEmbeddings (google.protobuf.Empty) returns (ListEmbeddingResp) { option (hi.auth) = AUTH_MERCHANT; } // 列 Embedding 模型
+  rpc ListLlms (google.protobuf.Empty) returns (ModelListResp) { option (hi.auth) = AUTH_MERCHANT; }           // 列 LLM 模型
+  rpc ListEmbeddings (google.protobuf.Empty) returns (ModelListResp) { option (hi.auth) = AUTH_MERCHANT; }     // 列 Embedding 模型
   rpc ListStts (google.protobuf.Empty) returns (ListSTTResp) { option (hi.auth) = AUTH_MERCHANT; }             // 列 STT 模型 + 语言
-  rpc ListTts (google.protobuf.Empty) returns (ListTTSResp) { option (hi.auth) = AUTH_MERCHANT; }              // 列 TTS 模型
+  rpc ListTts (google.protobuf.Empty) returns (ModelListResp) { option (hi.auth) = AUTH_MERCHANT; }            // 列 TTS 模型
 }

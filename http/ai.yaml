@@ -62,8 +62,8 @@ http:
   - selector: hi.ai.Agent.GetUsage
     post: /api/v1/agent/get_usage
     body: "*"
-  - selector: hi.ai.Agent.DefaultConfig
-    get: /api/v1/agent/default_config
+  - selector: hi.ai.Agent.GetDefaultConfig
+    get: /api/v1/agent/get_default_config
   - selector: hi.ai.Agent.ResetToDefault
     post: /api/v1/agent/reset_to_default
     body: "*"
@@ -79,11 +79,11 @@ http:
 # Chat
   - selector: hi.ai.Chat.NewSession
     get: /api/v1/chat/new_session
-  - selector: hi.ai.Chat.Send
-    post: /api/v1/chat/send
+  - selector: hi.ai.Chat.Complete
+    post: /api/v1/chat/complete
     body: "*"
-  - selector: hi.ai.Chat.Stream
-    post: /api/v1/chat/stream
+  - selector: hi.ai.Chat.CompleteStream
+    post: /api/v1/chat/complete_stream
     body: "*"
   - selector: hi.ai.Chat.GetHistory
     post: /api/v1/chat/get_history
@@ -91,23 +91,11 @@ http:
   - selector: hi.ai.Chat.ClearHistory
     post: /api/v1/chat/clear_history
     body: "*"
-  - selector: hi.ai.Chat.TextToText
-    post: /api/v1/chat/text_to_text
+  - selector: hi.ai.Chat.Converse
+    post: /api/v1/chat/converse
     body: "*"
-  - selector: hi.ai.Chat.TextToTextResume
-    post: /api/v1/chat/text_to_text_resume
-    body: "*"
-  - selector: hi.ai.Chat.SpeechToText
-    post: /api/v1/chat/speech_to_text
-    body: "*"
-  - selector: hi.ai.Chat.SpeechToTextResume
-    post: /api/v1/chat/speech_to_text_resume
-    body: "*"
-  - selector: hi.ai.Chat.SpeechToSpeech
-    post: /api/v1/chat/speech_to_speech
-    body: "*"
-  - selector: hi.ai.Chat.SpeechToSpeechResume
-    post: /api/v1/chat/speech_to_speech_resume
+  - selector: hi.ai.Chat.Resume
+    post: /api/v1/chat/resume
     body: "*"
 # Speech(真 STT/TTS,从 Chat 拆出)
   - selector: hi.ai.Speech.Transcribe
@@ -138,8 +126,8 @@ http:
   - selector: hi.ai.Plugin.Delete
     post: /api/v1/plugin/delete
     body: "*"
-  - selector: hi.ai.Plugin.DeleteByDids
-    post: /api/v1/plugin/delete_by_dids
+  - selector: hi.ai.Plugin.DeleteByAgents
+    post: /api/v1/plugin/delete_by_agents
     body: "*"
   - selector: hi.ai.Plugin.SetActiveVersion
     post: /api/v1/plugin/set_active_version
@@ -168,9 +156,6 @@ http:
   - selector: hi.ai.Training.GetFile
     post: /api/v1/training/get_file
     body: "*"
-  - selector: hi.ai.Training.DeleteFile
-    post: /api/v1/training/delete_file
-    body: "*"
   - selector: hi.ai.Training.DeleteFiles
     post: /api/v1/training/delete_files
     body: "*"
@@ -186,11 +171,6 @@ http:
   - selector: hi.ai.Training.EditDigest
     post: /api/v1/training/edit_digest
     body: "*"
-  - selector: hi.ai.Training.SetMemModel
-    post: /api/v1/training/set_mem_model
-    body: "*"
-  - selector: hi.ai.Training.GetMemModel
-    get: /api/v1/training/get_mem_model
 
 # ── 超管档(名单穿透 hidid)──
 # Permission(原 UserACL)—— 查(商户档)
@@ -210,8 +190,6 @@ http:
   - selector: hi.ai.PermissionManage.List
     post: /api/v1/permission_manage/list
     body: "*"
-  - selector: hi.ai.PermissionManage.ListTypes
-    get: /api/v1/permission_manage/list_types
 # Merchant(商户目录,承接原 UserACL.List(type=NORMAL))
   - selector: hi.ai.Merchant.List
     post: /api/v1/merchant/list

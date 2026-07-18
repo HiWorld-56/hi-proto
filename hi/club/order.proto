@@ -20,11 +20,10 @@ message PcOrder {
   string to_did     = 3;
   string amount     = 4;
   string type       = 5;
-  string created_at = 6;
-  string updated_at = 7;
-  string deleted_at = 8;
-  string did        = 9;
-  string status     = 10;
+  int64  created_at = 6;
+  int64  updated_at = 7;
+  string did        = 8;
+  string status     = 9;
 }
 
 message GetNotPulledPcOrdersResp {
@@ -44,7 +43,8 @@ message UpdatePulledPcOrderData {
   repeated UpdatePulledPcOrder orders = 2;
 }
 
+// hidid-pc 拉未处理订单 / 回传处理结果(web3 自证)。裁决#10 的 club 侧。
 service Order {
-  rpc GetNotPulledPcOrders (hi.SignedData) returns (GetNotPulledPcOrdersResp) { option (hi.auth) = AUTH_WEB3; }
-  rpc UpdatePulledPcOrders (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_WEB3; }
+  rpc ListNotPulled (hi.SignedData) returns (GetNotPulledPcOrdersResp) { option (hi.auth) = AUTH_WEB3; } // 原 GetNotPulledPcOrders
+  rpc UpdatePulled (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_WEB3; }      // 原 UpdatePulledPcOrders
 }

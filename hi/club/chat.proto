@@ -13,18 +13,16 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 // club 的 `Content`(messaging.proto)是**富消息**:oneof{Chat|Transaction|Trade};
 // ai 的 `Content` 只是 {type, content} 一个带类型的字符串。二者是真实差异,不是重复定义,
 // 故带 Content 的入参用 club 自己的类型(后端负责转换成 ai 的);
-// 纯透传的返回(ChatResp/SendResp/…)继续直接复用 hi.ai 的类型,防止两边漂移。
-// 真 STT/TTS 已随 ai 拆去 Speech(见 club/speech.proto)。
+// 纯透传的返回(ChatResp/CompleteResp/…)继续直接复用 hi.ai 的类型,防止两边漂移。
+// 两条对话路与 ai 对齐:①Complete/CompleteStream 服务端整流程执行;②Converse/Resume 客户端 tool-callback 两阶段。
 
-message SendReq {
-  string           did                  = 1;
-  string           cid                  = 2;
-  repeated Content conts                = 3;
-  string           state                = 4;
-  string           custom               = 5;
-  bool             return_plugin_use    = 6;
-  bool             return_training_data = 7;
-  bool             return_context       = 8;
+// 服务端整流程执行入参(工具在服务端跑)。
+message CompleteReq {
+  string           agent  = 1;
+  string           cid    = 2;
+  repeated Content conts  = 3;
+  string           state  = 4;
+  string           custom = 5;
 }
 
 message QA {
@@ -36,35 +34,16 @@ message GetHistoryResp {
   repeated QA list = 1;
 }
 
-message SpeechToSpeechReq {
-  string                    did         = 1;
+// 客户端 tool-callback 两阶段对话入参(合并原 TextToText/SpeechToText/SpeechToSpeech;模态由 conts+style 决定)。
+message ChatReq {
+  string                    agent       = 1;
   string                    cid         = 2;
   repeated Content          conts       = 3;
   repeated hi.ai.ToolSupply tools       = 4;
   optional string           tool_choice = 5;
   optional string           custom      = 6;
   optional string           state       = 7;
-  optional string           style       = 8;
-}
-
-message TextToTextReq {
-  string                    did         = 1;
-  string                    cid         = 2;
-  repeated Content          conts       = 3;
-  repeated hi.ai.ToolSupply tools       = 4;
-  optional string           tool_choice = 5;
-  optional string           custom      = 6;
-  optional string           state       = 7;
-}
-
-message SpeechToTextReq {
-  string                    did         = 1;
-  string                    cid         = 2;
-  repeated Content          conts       = 3;
-  repeated hi.ai.ToolSupply tools       = 4;
-  optional string           tool_choice = 5;
-  optional string           custom      = 6;
-  optional string           state       = 7;
+  optional string           style       = 8; // 语音出音色等;纯文本留空
 }
 
 message ToolCallResult {
@@ -72,27 +51,22 @@ message ToolCallResult {
   repeated Content conts = 2;
 }
 
-// 工具结果续跑入参(Resume 系列):客户端执行完工具后把结果交回来,接着跑。
+// 工具结果续跑入参(Resume):客户端执行完工具后把结果交回来,接着跑。
 message ToolCallResultsReq {
   string                  id   = 1;
   repeated ToolCallResult list = 2;
 }
 
 // 对话(主体=会话)。用户 token 档,全档一致。hi.ai.Chat 的门面。
-//
-// (原 Simple 已删 —— ai 侧同步删掉了:那是给前端**无身份**直连 llm 推理的便捷方法,有安全隐患。)
 service Chat {
   // ── 会话管理 ──
   rpc NewSession (google.protobuf.Empty) returns (hi.ai.NewSessionResp) { option (hi.auth) = AUTH_USER; }      // 原 GenerateCid
-  rpc Send (SendReq) returns (hi.ai.SendResp) { option (hi.auth) = AUTH_USER; }                                // 原 Dialog
-  rpc Stream (SendReq) returns (stream hi.ai.StreamResp) { option (hi.auth) = AUTH_USER; }                     // 原 DialogStream
   rpc GetHistory (hi.ai.GetHistoryReq) returns (GetHistoryResp) { option (hi.auth) = AUTH_USER; }              // 原 GetContext
   rpc ClearHistory (hi.ai.ClearHistoryReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }   // 原 ClearContext
-  // ── 多模态对话(带工具调用);Resume = 交回工具结果续跑(原 xxx2)──
-  rpc TextToText (TextToTextReq) returns (hi.ai.ChatResp) { option (hi.auth) = AUTH_USER; }                    // 文入文出
-  rpc TextToTextResume (ToolCallResultsReq) returns (hi.ai.ChatResp) { option (hi.auth) = AUTH_USER; }         // 原 TextToText2
-  rpc SpeechToText (SpeechToTextReq) returns (hi.ai.ChatResp) { option (hi.auth) = AUTH_USER; }                // 语音入、文本出
-  rpc SpeechToTextResume (ToolCallResultsReq) returns (hi.ai.ChatResp) { option (hi.auth) = AUTH_USER; }       // 原 SpeechToText2
-  rpc SpeechToSpeech (SpeechToSpeechReq) returns (hi.ai.ChatResp) { option (hi.auth) = AUTH_USER; }            // 语音入语音出
-  rpc SpeechToSpeechResume (ToolCallResultsReq) returns (hi.ai.ChatResp) { option (hi.auth) = AUTH_USER; }     // 原 SpeechToSpeech2
+  // ── 服务端整流程执行(工具在服务端跑)──
+  rpc Complete (CompleteReq) returns (hi.ai.CompleteResp) { option (hi.auth) = AUTH_USER; }                    // 一次性(原 Send)
+  rpc CompleteStream (CompleteReq) returns (stream hi.ai.CompleteStreamResp) { option (hi.auth) = AUTH_USER; } // 流式(原 Stream)
+  // ── 客户端 tool-callback 两阶段 ──
+  rpc Converse (ChatReq) returns (hi.ai.ChatResp) { option (hi.auth) = AUTH_USER; }                            // 一轮对话(合原 TextToText/SpeechToText/SpeechToSpeech)
+  rpc Resume (ToolCallResultsReq) returns (hi.ai.ChatResp) { option (hi.auth) = AUTH_USER; }                   // 交回工具结果续跑(合原三个 *Resume)
 }

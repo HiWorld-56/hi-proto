@@ -72,9 +72,8 @@ message UpdateTransHashReq {
 
 // 查自己的交易。
 message ListTradeReq {
-  string        did        = 1;
-  string        id         = 2; // 可选:只看该交易
-  hi.Pagination pagination = 3;
+  string        id         = 1; // 可选:只看该交易。查询主体(用户)从 token 取,不接受 did 入参(越权)
+  hi.Pagination pagination = 2;
 }
 
 // 交易统计(内部使用)。id 为空 = 全量。

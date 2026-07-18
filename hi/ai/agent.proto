@@ -21,6 +21,7 @@ message ModelSet {
   string stt       = 2;
   string tts       = 3;
   string embedding = 4;
+  string mem_model = 5; // 记忆模型:与其它模型配置同处,经 Agent.Edit 设置(原 Training.SetMemModel/GetMemModel 已删,别再开第二条写路径)
 }
 
 // 智能体配置。
@@ -117,8 +118,8 @@ message ResetToDefaultReq {
 
 // 给机器人打/取消标记。**不是收藏** —— 带标记的机器人在显示时靠前。
 message MarkAgentReq {
-  string did = 1;
-  string opt = 2; // 打标记 / 取消
+  string did    = 1;
+  bool   marked = 2; // true=打标记(显示靠前),false=取消(与 AgentInfo.marked 对称)
 }
 
 // 智能体(主体=智能体)。商户档:hiai web(token)与商户后台服务(apikey)都会调,
@@ -135,6 +136,6 @@ service Agent {
   rpc Mark (MarkAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }      // 打/取消标记(显示靠前)
   rpc ListMarks (ListMarksReq) returns (ListAgentResp) { option (hi.auth) = AUTH_MERCHANT; }         // 列我打过标记的
   rpc GetUsage (AgentUsageReq) returns (AgentUsageResp) { option (hi.auth) = AUTH_MERCHANT; }        // 机器人用量(消息数+token)
-  rpc DefaultConfig (google.protobuf.Empty) returns (DefaultConfigResp) { option (hi.auth) = AUTH_MERCHANT; } // 取全局默认配置
+  rpc GetDefaultConfig (google.protobuf.Empty) returns (DefaultConfigResp) { option (hi.auth) = AUTH_MERCHANT; } // 取全局默认配置(原 DefaultConfig,补动词)
   rpc ResetToDefault (ResetToDefaultReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 批量重置为默认配置
 }

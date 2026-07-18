@@ -17,22 +17,22 @@ message NewSessionResp {
   string cid = 1; // 新会话 id;原 GenerateCidResp
 }
 
-message SendReq {
-  string           did                  = 1;
-  string           cid                  = 2;
-  repeated Content conts                = 3;
-  string           state                = 4;
-  string           custom               = 5;
-  bool             return_plugin_use    = 6;
-  bool             return_training_data = 7;
-  bool             return_context       = 8;
+// ── 服务端整流程执行(Complete 家族)────────────────────────────────────────
+// 服务端把一轮对话**整个跑完**(function call 也在服务端执行),客户端不参与工具调用,直接拿最终答复。
+// Complete = 一次性;CompleteStream = 流式。与下面 Converse/Resume(客户端 tool-callback 两阶段)是两条路。
+message CompleteReq {
+  string           agent  = 1;
+  string           cid    = 2;
+  repeated Content conts  = 3;
+  string           state  = 4;
+  string           custom = 5;
 }
 
-message SendResp {
+message CompleteResp {
   string reply = 1;
 }
 
-message StreamResp {
+message CompleteStreamResp {
   int32  code    = 1;
   string type    = 2;
   string message = 3;
@@ -43,8 +43,7 @@ message ClearHistoryReq {
 }
 
 message GetHistoryReq {
-  string cid   = 1;
-  string agent = 2;
+  string cid = 1; // cid 已唯一定位会话,不再带 agent
 }
 
 message QA {
@@ -56,38 +55,19 @@ message GetHistoryResp {
   repeated QA list = 1;
 }
 
-// ── 多模态对话入参 ────────────────────────────────────────────────────
-// 命名读作「<输入模态>To<输出模态>」,描述的是一轮 agent 对话的模态组合(带工具调用),
-// **不是字面的格式转换** —— 真 STT/TTS 在 Speech service(Transcribe/Synthesize)。
-message SpeechToSpeechReq {
-  string              did         = 1;
+// ── 客户端 tool-callback 两阶段对话入参(Converse/Resume)────────────────────
+// 一轮对话:Converse 返回最终答复,或返回**待客户端执行的工具**(final=false);客户端执行后调 Resume 交回结果续跑。
+// 模态(文/语音、输出音色)由 conts + style 决定 —— 合并原 TextToText/SpeechToText/SpeechToSpeech 三个按模态复制的方法。
+// 命名读作模态转换但**不是字面格式转换**;真 STT/TTS 在 Speech service(Transcribe/Synthesize)。
+message ChatReq {
+  string              agent       = 1;
   string              cid         = 2;
   repeated Content    conts       = 3;
   repeated ToolSupply tools       = 4;
   optional string     tool_choice = 5;
   optional string     custom      = 6;
   optional string     state       = 7;
-  optional string     style       = 8;
-}
-
-message TextToTextReq {
-  string              did         = 1;
-  string              cid         = 2;
-  repeated Content    conts       = 3;
-  repeated ToolSupply tools       = 4;
-  optional string     tool_choice = 5;
-  optional string     custom      = 6;
-  optional string     state       = 7;
-}
-
-message SpeechToTextReq {
-  string              did         = 1;
-  string              cid         = 2;
-  repeated Content    conts       = 3;
-  repeated ToolSupply tools       = 4;
-  optional string     tool_choice = 5;
-  optional string     custom      = 6;
-  optional string     state       = 7;
+  optional string     style       = 8; // 语音出的音色等;纯文本场景留空
 }
 
 message ToolCallResult {
@@ -95,7 +75,7 @@ message ToolCallResult {
   repeated Content conts = 2;
 }
 
-// 工具结果续跑入参(Resume 系列):客户端执行完工具后把结果交回来,接着跑。
+// 工具结果续跑入参(Resume):客户端执行完工具后把结果交回来,接着跑。续跑的模态由原始调用的 id 决定。
 message ToolCallResultsReq {
   string                  id   = 1;
   repeated ToolCallResult list = 2;
@@ -121,12 +101,8 @@ message ToolCall {
   Function function = 3;
 }
 
-// final == true
-//   result = text / url
-//   tools = null
-// final == false
-//   result = tool_id
-//   tools = tools
+// final == true  → result = text/url, tools = null
+// final == false → result = tool_id,  tools = 待客户端执行的工具
 message ChatResp {
   bool              final  = 1;
   string            result = 2;
@@ -134,21 +110,18 @@ message ChatResp {
 }
 
 // 对话(主体=会话)。商户档:hiai web(token)与商户后台服务(apikey)都会调。
-//
-// (原 Simple 已删 —— 那是给前端**无身份**直连 llm 推理的便捷方法,有安全隐患。)
-// 真 STT/TTS 已拆去 Speech;延迟统计已拆去 AgentBench。
+// 两条对话路:①Complete/CompleteStream —— 服务端整流程执行(工具在服务端跑);
+//            ②Converse/Resume —— 客户端 tool-callback 两阶段(工具由客户端执行)。
+// (原 Simple 已删;真 STT/TTS 已拆去 Speech;延迟统计已拆去 AgentBench。)
 service Chat {
   // ── 会话管理 ──
-  rpc NewSession (google.protobuf.Empty) returns (NewSessionResp) { option (hi.auth) = AUTH_MERCHANT; } // 建会话(原 GenerateCid)
-  rpc Send (SendReq) returns (SendResp) { option (hi.auth) = AUTH_MERCHANT; }                           // 一轮对话(原 Dialog)
-  rpc Stream (SendReq) returns (stream StreamResp) { option (hi.auth) = AUTH_MERCHANT; }                // 流式一轮(原 DialogStream)
-  rpc GetHistory (GetHistoryReq) returns (GetHistoryResp) { option (hi.auth) = AUTH_MERCHANT; }         // 取会话上下文(原 GetContext)
+  rpc NewSession (google.protobuf.Empty) returns (NewSessionResp) { option (hi.auth) = AUTH_MERCHANT; }   // 建会话(原 GenerateCid)
+  rpc GetHistory (GetHistoryReq) returns (GetHistoryResp) { option (hi.auth) = AUTH_MERCHANT; }            // 取会话上下文(原 GetContext)
   rpc ClearHistory (ClearHistoryReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 清上下文(原 ClearContext)
-  // ── 多模态对话(带工具调用);Resume = 交回工具结果续跑(原 xxx2)──
-  rpc TextToText (TextToTextReq) returns (ChatResp) { option (hi.auth) = AUTH_MERCHANT; }                     // 文入文出
-  rpc TextToTextResume (ToolCallResultsReq) returns (ChatResp) { option (hi.auth) = AUTH_MERCHANT; }          // 文入文出:工具结果续跑
-  rpc SpeechToText (SpeechToTextReq) returns (ChatResp) { option (hi.auth) = AUTH_MERCHANT; }                 // 语音入、文本出
-  rpc SpeechToTextResume (ToolCallResultsReq) returns (ChatResp) { option (hi.auth) = AUTH_MERCHANT; }        // 语音入文本出:工具结果续跑
-  rpc SpeechToSpeech (SpeechToSpeechReq) returns (ChatResp) { option (hi.auth) = AUTH_MERCHANT; }             // 语音入语音出
-  rpc SpeechToSpeechResume (ToolCallResultsReq) returns (ChatResp) { option (hi.auth) = AUTH_MERCHANT; }      // 语音入语音出:工具结果续跑
+  // ── 服务端整流程执行(工具在服务端跑)──
+  rpc Complete (CompleteReq) returns (CompleteResp) { option (hi.auth) = AUTH_MERCHANT; }                  // 一次性(原 Send)
+  rpc CompleteStream (CompleteReq) returns (stream CompleteStreamResp) { option (hi.auth) = AUTH_MERCHANT; } // 流式(原 Stream)
+  // ── 客户端 tool-callback 两阶段 ──
+  rpc Converse (ChatReq) returns (ChatResp) { option (hi.auth) = AUTH_MERCHANT; }                          // 一轮对话(合原 TextToText/SpeechToText/SpeechToSpeech)
+  rpc Resume (ToolCallResultsReq) returns (ChatResp) { option (hi.auth) = AUTH_MERCHANT; }                 // 交回工具结果续跑(合原三个 *Resume)
 }

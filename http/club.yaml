@@ -25,8 +25,8 @@ http:
     get: /api/v1/model/list_stts
   - selector: hi.club.Model.ListTts
     get: /api/v1/model/list_tts
-  - selector: hi.club.Agent.DefaultConfig
-    get: /api/v1/agent/default_config
+  - selector: hi.club.Agent.GetDefaultConfig
+    get: /api/v1/agent/get_default_config
   - selector: hi.club.Agent.Create
     post: /api/v1/agent/create
     body: "*"
@@ -72,8 +72,6 @@ http:
   - selector: hi.club.PermissionManage.List
     post: /api/v1/permission_manage/list
     body: "*"
-  - selector: hi.club.PermissionManage.ListTypes
-    get: /api/v1/permission_manage/list_types
   - selector: hi.club.PermissionManage.Edit
     post: /api/v1/permission_manage/edit
     body: "*"
@@ -81,11 +79,11 @@ http:
 # Chat
   - selector: hi.club.Chat.NewSession
     get: /api/v1/chat/new_session
-  - selector: hi.club.Chat.Send
-    post: /api/v1/chat/send
+  - selector: hi.club.Chat.Complete
+    post: /api/v1/chat/complete
     body: "*"
-  - selector: hi.club.Chat.Stream
-    post: /api/v1/chat/stream
+  - selector: hi.club.Chat.CompleteStream
+    post: /api/v1/chat/complete_stream
     body: "*"
   - selector: hi.club.Chat.ClearHistory
     post: /api/v1/chat/clear_history
@@ -99,23 +97,11 @@ http:
   - selector: hi.club.Speech.Transcribe
     post: /api/v1/speech/transcribe
     body: "*"
-  - selector: hi.club.Chat.SpeechToSpeech
-    post: /api/v1/chat/speech_to_speech
+  - selector: hi.club.Chat.Converse
+    post: /api/v1/chat/converse
     body: "*"
-  - selector: hi.club.Chat.SpeechToSpeechResume
-    post: /api/v1/chat/speech_to_speech_resume
-    body: "*"
-  - selector: hi.club.Chat.TextToText
-    post: /api/v1/chat/text_to_text
-    body: "*"
-  - selector: hi.club.Chat.TextToTextResume
-    post: /api/v1/chat/text_to_text_resume
-    body: "*"
-  - selector: hi.club.Chat.SpeechToText
-    post: /api/v1/chat/speech_to_text
-    body: "*"
-  - selector: hi.club.Chat.SpeechToTextResume
-    post: /api/v1/chat/speech_to_text_resume
+  - selector: hi.club.Chat.Resume
+    post: /api/v1/chat/resume
     body: "*"
 # Plugin
   - selector: hi.club.Plugin.SetEnabled
@@ -135,8 +121,8 @@ http:
   - selector: hi.club.Plugin.Delete
     post: /api/v1/plugin/delete
     body: "*"
-  - selector: hi.club.Plugin.DeleteByDids
-    post: /api/v1/plugin/delete_by_dids
+  - selector: hi.club.Plugin.DeleteByAgents
+    post: /api/v1/plugin/delete_by_agents
     body: "*"
   - selector: hi.club.Plugin.Edit
     post: /api/v1/plugin/edit
@@ -162,9 +148,6 @@ http:
   - selector: hi.club.Training.ListFiles
     post: /api/v1/training/list_files
     body: "*"
-  - selector: hi.club.Training.DeleteFile
-    post: /api/v1/training/delete_file
-    body: "*"
   - selector: hi.club.Training.DeleteFiles
     post: /api/v1/training/delete_files
     body: "*"
@@ -180,11 +163,6 @@ http:
   - selector: hi.club.Training.EditDigest
     post: /api/v1/training/edit_digest
     body: "*"
-  - selector: hi.club.Training.SetMemModel
-    post: /api/v1/training/set_mem_model
-    body: "*"
-  - selector: hi.club.Training.GetMemModel
-    get: /api/v1/training/get_mem_model
 # Trade
   - selector: hi.club.Trade.List
     post: /api/v1/trade/list

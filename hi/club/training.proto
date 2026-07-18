@@ -21,13 +21,10 @@ service Training {
   rpc UploadFile (hi.ai.UploadFileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }         // 上传训练文件
   rpc ListFiles (hi.ai.ListFilesReq) returns (hi.ai.ListFilesResp) { option (hi.auth) = AUTH_USER; }             // 列训练文件(原 ListAgentFiles)
   rpc GetFile (hi.ai.GetFileReq) returns (hi.ai.GetFileResp) { option (hi.auth) = AUTH_USER; }                   // 取单个训练文件(原 GetAgentFile)
-  rpc DeleteFile (hi.ai.DeleteFileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }         // 删单个(原 DeleteAgentFile)
-  rpc DeleteFiles (hi.ai.DeleteFilesReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }       // 批量删(原 DeleteAgentFiles)
+  rpc DeleteFiles (hi.ai.DeleteFilesReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }       // 批量删(带 agent 归属;原单删 DeleteFile 越权已删)
   // ── 文本记忆条目 ──
   rpc CreateContent (hi.ai.CreateContentReq) returns (hi.ai.CreateContentResp) { option (hi.auth) = AUTH_USER; } // 建文本记忆
   rpc UpdateContent (hi.ai.UpdateContentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }   // 改文本记忆
   rpc EditDigest (hi.ai.EditDigestReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }         // 改摘要
-  // ── 记忆模型 ──
-  rpc SetMemModel (hi.ai.SetMemModelReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }       // 设记忆模型
-  rpc GetMemModel (hi.ai.GetMemModelReq) returns (hi.ai.GetMemModelResp) { option (hi.auth) = AUTH_USER; }       // 取记忆模型
 }
+// 记忆模型 mem_model 已并入 ai.AgentConfig.ModelSet,经 Agent.Edit 设置(原 SetMemModel/GetMemModel 已删)。

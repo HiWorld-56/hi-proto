@@ -33,14 +33,14 @@ message MerchantGetResp {
   MerchantInfo info = 1;
 }
 
+// 商户改自己的配置。商户身份来自 ExtendToken —— 不接受 server 入参(冗余/越权);
+// comment 是超管备注(见 MerchantManage.Edit),商户自服务不该能写。
 message MerchantSetReq {
-  string server = 1;
-  string name = 2;
-  string logo = 3;
-  repeated string coins = 4;
-  string endpoint = 5;
-  string scheme = 6;
-  string comment = 7;
+  string          name     = 1;
+  string          logo     = 2;
+  repeated string coins    = 3;
+  string          endpoint = 4;
+  string          scheme   = 5;
 }
 
 message MerchantListResp {

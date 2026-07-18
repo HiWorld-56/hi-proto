@@ -12,7 +12,7 @@ message ApiKeyInfo {
   string value      = 1;
   string did        = 2;
   int32  rate_limit = 3;
-  int32  is_active  = 4;
+  bool   is_active  = 4;
   string note       = 5;
   int64  created_at = 6;
 }
@@ -30,7 +30,7 @@ message EditApiKeyResp {
   ApiKeyInfo info = 1;
 }
 
-message ListApiKeyResp {
+message ListApiKeysResp {
   int32               total = 1;
   repeated ApiKeyInfo infos = 2;
 }
@@ -50,6 +50,6 @@ message DeleteApiKeyReq {
 service ApiKey {
   rpc Create (google.protobuf.Empty) returns (CreateApiKeyResp) { option (hi.auth) = AUTH_MERCHANT; }      // 签发 apikey
   rpc Edit (EditApiKeyReq) returns (EditApiKeyResp) { option (hi.auth) = AUTH_MERCHANT; }                  // 改备注
-  rpc List (hi.Pagination) returns (ListApiKeyResp) { option (hi.auth) = AUTH_MERCHANT; }                  // 列自己的 apikey
+  rpc List (hi.Pagination) returns (ListApiKeysResp) { option (hi.auth) = AUTH_MERCHANT; }                 // 列自己的 apikey
   rpc Delete (DeleteApiKeyReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 删 apikey
 }

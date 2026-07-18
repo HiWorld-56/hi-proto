@@ -45,5 +45,4 @@ service PermissionManage {
   rpc Delete (hi.ai.PermissionDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:取消(伴随踢群等副作用)
   rpc Edit (hi.ai.PermissionEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }     // 超管:改备注
   rpc List (hi.ai.PermissionListReq) returns (hi.ai.PermissionListResp) { option (hi.auth) = AUTH_SUPERADMIN; }  // 超管:按类型列持有者
-  rpc ListTypes (google.protobuf.Empty) returns (hi.ai.PermissionListTypeResp) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:列权限类型
 }

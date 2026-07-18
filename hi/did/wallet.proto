@@ -28,8 +28,7 @@ message UpdateAddressesReq {
 }
 
 message GetWalletReq {
-  string did   = 1;
-  string chain = 2;
+  string chain = 1; // did 从 token 取(自服务,不接受任意 did 入参)
 }
 
 message GetWalletResp {
@@ -98,24 +97,14 @@ message GetUserAssetsResp {
   string        exchange = 2; // 汇率：USD->CNY
 }
 
-message UpdateAssetsReq { // Token ----> Real.DID
-  string did        = 1;
-  string btc        = 2;
-  string eth        = 31;
-  string usdt_erc20 = 32;
-  string trx        = 41;
-  string usdt_trc20 = 42;
-  string whds_trc20 = 43;
-  string bt_trc20   = 44;
-  string sol        = 51;
-  string usdt_sol   = 52;
-  string bt_sol     = 53;
-  string panda_sol  = 54;
-  string apt        = 61;
-  string whds_apt   = 62;
-  string hwhd_apt   = 63;
-  string slkj_apt   = 64;
-  string wsm_apt    = 65;
+// 刷新自己的资产快照。did 从 token 取(不接受任意 did 入参 —— 原 did 入参可覆写他人资产,越权)。
+// 币种数据驱动:repeated {coin, amount},加币种不必改 proto(原来每加一种就得手工加字段+分段跳号)。
+message UpdateAssetsReq {
+  message Asset {
+    string coin   = 1; // 币种标识:btc/eth/usdt_erc20/trx/usdt_trc20/sol/apt/...
+    string amount = 2;
+  }
+  repeated Asset assets = 1;
 }
 
 // 用户自己的钱包(用户主体,token)。UpdateAddresses 需签名证明地址归属,故 web3 —— 已拆去 Assets。
