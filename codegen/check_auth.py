@@ -334,7 +334,7 @@ for f in files:
     if not pm:
         continue
     pkg = pm.group(1)
-    for rm in re.finditer(r'rpc\s+\w+\s*\([^)]*\)\s*returns\s*\(\s*([\w.]+)\s*\)', src):
+    for rm in re.finditer(r'rpc\s+\w+\s*\([^)]*\)\s*returns\s*\(\s*(?:stream\s+)?([\w.]+)\s*\)', src):
         rt = rm.group(1)
         fqn = _resolve(rt, f'{pkg}.x')
         if fqn:
@@ -375,9 +375,21 @@ for fqn in sorted(reach):
         vlevel = VIS_LEVEL.get(vis)
         if vlevel is None:
             bad.append(f'{msg["file"]}: {fqn}.{fname} 的 visibility={vis} 非法')
-        elif vlevel > alevel:
+            continue
+        # 方向一:字段不得比所在消息更私(SELF 字段落进更宽容器 = 泄漏)。
+        if vlevel > alevel:
             bad.append(f'{msg["file"]}: 🔒 {fqn}.{fname} 可见性 {vis} 比消息受众 {aud} 更私 —— '
                        f'私有字段不许放进更宽受众的消息(该字段应移到 audience 更窄的 view 类型)')
+        # 方向二:消息类型字段不得比**它所引用消息的 audience** 更宽 —— 否则把更私的数据
+        #   标成更公开的受众,静默泄漏(如引用 SELF 消息却把字段标 PARTICIPANT)。
+        child = _resolve(ftype, fqn)
+        caud = messages.get(child, {}).get('audience') if child else None
+        if caud is not None:
+            clevel = VIS_LEVEL.get(caud)
+            if clevel is not None and vlevel < clevel:
+                bad.append(f'{msg["file"]}: 🔓 {fqn}.{fname} 可见性 {vis} 比所引用消息 {child} '
+                           f'的受众 {caud} 更宽 —— 会把更私的数据标成更公开的受众而泄漏'
+                           f'(字段可见性应 >= 被引用消息的 audience)')
 
 print(f'[check_auth] 可见性:方法返回可达数据消息 {len(reach)} 个,'
       f'已标 audience {len(reach) - len(vis_missing_audience)} 个,待回填 {len(vis_missing_audience)} 个'

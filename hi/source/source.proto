@@ -44,10 +44,11 @@ message UploadMeta {
 }
 
 message DownloadStreamResp {
-  bytes chunk  = 1; // 文件内容分片
-  int64 sent   = 2; // 已发送字节数（累计）, 单位：字节
-  int64 total  = 3; // 文件总大小, 单位：字节
-  int64 offset = 4; // 当前块在文件中的起始字节位置
+  option (hi.audience) = VIS_PUBLIC; // File.DownloadStream 免鉴权 AUTH_NONE,公开资源(同 DownloadResp)
+  bytes chunk  = 1 [(hi.visibility) = VIS_PUBLIC]; // 文件内容分片
+  int64 sent   = 2 [(hi.visibility) = VIS_PUBLIC]; // 已发送字节数（累计）, 单位：字节
+  int64 total  = 3 [(hi.visibility) = VIS_PUBLIC]; // 文件总大小, 单位：字节
+  int64 offset = 4 [(hi.visibility) = VIS_PUBLIC]; // 当前块在文件中的起始字节位置
 }
 
 message DownloadStreamReq {

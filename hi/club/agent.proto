@@ -54,8 +54,11 @@ message ListOnlineReq {
 
 message ListOnlineResp {
   option (hi.audience) = VIS_PUBLIC; // 在线机器人目录(AgentDirectory.ListOnline 免鉴权 AUTH_NONE)
-  int32                    total = 1 [(hi.visibility) = VIS_PUBLIC];
-  repeated hi.ai.AgentInfo infos = 2 [(hi.visibility) = VIS_PUBLIC];
+  // ⚠️ 只吐机器人**公开身份**(Entity:name/avatar/did),不复用 hi.ai.AgentInfo ——
+  //    后者含 AgentConfig(prompt/模型/记忆)是 owner 私密配置(VIS_SELF),放进公开目录=泄漏。
+  //    此前误用 AgentInfo,由可见性 lint 反向校验查出并收窄为 Entity。
+  int32              total = 1 [(hi.visibility) = VIS_PUBLIC];
+  repeated hi.Entity infos = 2 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message GetAgentMasterReq {

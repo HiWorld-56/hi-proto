@@ -260,8 +260,9 @@ message MerchantNotifyReq {
 }
 
 message OrderEventResp {
-  string event = 1;
-  string payload = 2;
+  option (hi.audience) = VIS_SELF; // hidid-pc 订阅**自己**的订单事件流(OrderEvent.Sub AUTH_USER)
+  string event   = 1 [(hi.visibility) = VIS_SELF];
+  string payload = 2 [(hi.visibility) = VIS_SELF];
 }
 
 // ── 订单通知/事件(web3 自动付款机制,裁决 #10)──────────────────────
