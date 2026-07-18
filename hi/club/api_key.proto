@@ -13,11 +13,13 @@ import "hi/options.proto";
 // 与 token 的区别:apikey 能调的方法有限。用户 token 档 —— 用户管理自己(及自己名下 bot)的 apikey。
 // (apikey→归属用户 的反查由 club 拦截器直接读库,不再走 RPC;原 did.ApiKey.Get 已随迁移删除。)
 
+// apikey 是用户机密(value 可鉴权),只发给归属用户本人。
 message ApiKeyInfo {
-  string user       = 1; // 归属用户 did(人/软bot/硬bot)
-  string value      = 2;
-  string note       = 3;
-  int64  created_at = 4;
+  option (hi.audience) = VIS_SELF;
+  string user       = 1 [(hi.visibility) = VIS_SELF]; // 归属用户 did(人/软bot/硬bot)
+  string value      = 2 [(hi.visibility) = VIS_SELF];
+  string note       = 3 [(hi.visibility) = VIS_SELF];
+  int64  created_at = 4 [(hi.visibility) = VIS_SELF];
 }
 
 message CreateApiKeyReq {
@@ -25,7 +27,8 @@ message CreateApiKeyReq {
 }
 
 message CreateApiKeyResp {
-  ApiKeyInfo info = 1;
+  option (hi.audience) = VIS_SELF;
+  ApiKeyInfo info = 1 [(hi.visibility) = VIS_SELF];
 }
 
 message EditApiKeyReq {
@@ -34,7 +37,8 @@ message EditApiKeyReq {
 }
 
 message EditApiKeyResp {
-  ApiKeyInfo info = 1;
+  option (hi.audience) = VIS_SELF;
+  ApiKeyInfo info = 1 [(hi.visibility) = VIS_SELF];
 }
 
 message ListApiKeysReq {
@@ -43,8 +47,9 @@ message ListApiKeysReq {
 }
 
 message ListApiKeysResp {
-  int32               total = 1;
-  repeated ApiKeyInfo infos = 2;
+  option (hi.audience) = VIS_SELF;
+  int32               total = 1 [(hi.visibility) = VIS_SELF];
+  repeated ApiKeyInfo infos = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message DeleteApiKeyReq {

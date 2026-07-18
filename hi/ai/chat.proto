@@ -8,13 +8,16 @@ import "hi/options.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
 
+// ── AI 对话全链路都是私有:会话/上下文/回复只发给发起对话的本人 ──────────────
 message Content {
-  string type    = 1;
-  string content = 2;
+  option (hi.audience) = VIS_SELF;
+  string type    = 1 [(hi.visibility) = VIS_SELF];
+  string content = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message NewSessionResp {
-  string cid = 1; // 新会话 id;原 GenerateCidResp
+  option (hi.audience) = VIS_SELF;
+  string cid = 1 [(hi.visibility) = VIS_SELF]; // 新会话 id;原 GenerateCidResp
 }
 
 // ── 服务端整流程执行(Complete 家族)────────────────────────────────────────
@@ -29,13 +32,15 @@ message CompleteReq {
 }
 
 message CompleteResp {
-  string reply = 1;
+  option (hi.audience) = VIS_SELF;
+  string reply = 1 [(hi.visibility) = VIS_SELF];
 }
 
 message CompleteStreamResp {
-  int32  code    = 1;
-  string type    = 2;
-  string message = 3;
+  option (hi.audience) = VIS_SELF;
+  int32  code    = 1 [(hi.visibility) = VIS_SELF];
+  string type    = 2 [(hi.visibility) = VIS_SELF];
+  string message = 3 [(hi.visibility) = VIS_SELF];
 }
 
 message ClearHistoryReq {
@@ -47,12 +52,14 @@ message GetHistoryReq {
 }
 
 message QA {
-  string           a = 1; // assistant
-  repeated Content q = 2; // User
+  option (hi.audience) = VIS_SELF;
+  string           a = 1 [(hi.visibility) = VIS_SELF]; // assistant
+  repeated Content q = 2 [(hi.visibility) = VIS_SELF]; // User
 }
 
 message GetHistoryResp {
-  repeated QA list = 1;
+  option (hi.audience) = VIS_SELF;
+  repeated QA list = 1 [(hi.visibility) = VIS_SELF];
 }
 
 // ── 客户端 tool-callback 两阶段对话入参(Converse/Resume)────────────────────
@@ -92,21 +99,24 @@ message ToolSupply {
 }
 
 message ToolCall {
+  option (hi.audience) = VIS_SELF; // 本轮对话里待客户端执行的工具,只发给本人
   message Function {
-    string name      = 1;
-    string arguments = 2;
+    option (hi.audience) = VIS_SELF;
+    string name      = 1 [(hi.visibility) = VIS_SELF];
+    string arguments = 2 [(hi.visibility) = VIS_SELF];
   }
-  string   id       = 1;
-  string   type     = 2;
-  Function function = 3;
+  string   id       = 1 [(hi.visibility) = VIS_SELF];
+  string   type     = 2 [(hi.visibility) = VIS_SELF];
+  Function function = 3 [(hi.visibility) = VIS_SELF];
 }
 
 // final == true  → result = text/url, tools = null
 // final == false → result = tool_id,  tools = 待客户端执行的工具
 message ChatResp {
-  bool              final  = 1;
-  string            result = 2;
-  repeated ToolCall tools  = 3;
+  option (hi.audience) = VIS_SELF;
+  bool              final  = 1 [(hi.visibility) = VIS_SELF];
+  string            result = 2 [(hi.visibility) = VIS_SELF];
+  repeated ToolCall tools  = 3 [(hi.visibility) = VIS_SELF];
 }
 
 // 对话(主体=会话)。商户档:hiai web(token)与商户后台服务(apikey)都会调。

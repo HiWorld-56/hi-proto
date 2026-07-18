@@ -52,10 +52,12 @@ message PermissionGetReq {
   string did = 1; // 要查谁的权限
 }
 
+// 某 did 持有的权限清单,只发给主体本人(经商户代查)或超管后门。
 message PermissionInfo {
-  string              did         = 1;
-  repeated PermissionType permissions = 2; // 该 did 持有的权限
-  string              note        = 3;
+  option (hi.audience) = VIS_SELF;
+  string              did         = 1 [(hi.visibility) = VIS_SELF];
+  repeated PermissionType permissions = 2 [(hi.visibility) = VIS_SELF]; // 该 did 持有的权限
+  string              note        = 3 [(hi.visibility) = VIS_SELF];
 }
 
 message PermissionAddReq {
@@ -80,8 +82,9 @@ message PermissionListReq {
 }
 
 message PermissionListResp {
-  int32                   total = 1;
-  repeated PermissionInfo infos = 2;
+  option (hi.audience) = VIS_SELF; // 超管后门列持有者(每项 PermissionInfo 本身即 SELF)
+  int32                   total = 1 [(hi.visibility) = VIS_SELF];
+  repeated PermissionInfo infos = 2 [(hi.visibility) = VIS_SELF];
 }
 
 // 权限查询(商户档)。club 作为 ai 的商户,替自己的用户查"有哪些权限"以显隐前端功能。

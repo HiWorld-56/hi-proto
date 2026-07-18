@@ -37,10 +37,12 @@ message AgentConfig {
                               // 启用需 mem 权限(use-side 判);记忆开关的唯一写入口就是 Agent.Edit(原 SetSwitches 已移除)。
 }
 
+// 用量/计费数据,只发给资源主人本人。
 message TokenUsage {
-  int32 output = 1; // 模型生成输出时消耗的token数。
-  int32 input  = 2; // 模型输入时消耗的token数
-  int32 mem    = 3; // 训练消耗的token数
+  option (hi.audience) = VIS_SELF;
+  int32 output = 1 [(hi.visibility) = VIS_SELF]; // 模型生成输出时消耗的token数。
+  int32 input  = 2 [(hi.visibility) = VIS_SELF]; // 模型输入时消耗的token数
+  int32 mem    = 3 [(hi.visibility) = VIS_SELF]; // 训练消耗的token数
 }
 
 message AgentInfo {
@@ -108,8 +110,9 @@ message AgentUsageReq {
 
 // 机器人用量。原 FindAgentCountResp —— 它不是"count",而是消息数 + token 三件套。
 message AgentUsageResp {
-  int32      message_count = 1;
-  TokenUsage token         = 2;
+  option (hi.audience) = VIS_SELF;
+  int32      message_count = 1 [(hi.visibility) = VIS_SELF];
+  TokenUsage token         = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message ResetToDefaultReq {

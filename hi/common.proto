@@ -25,14 +25,16 @@ message Entity {
 }
 
 message MqttCredentials {
-  string id = 1;
-  string username = 2;
-  string password = 3;
+  option (hi.audience) = VIS_SELF; // 连接凭证(含 password),只发给本人
+  string id       = 1 [(hi.visibility) = VIS_SELF];
+  string username = 2 [(hi.visibility) = VIS_SELF];
+  string password = 3 [(hi.visibility) = VIS_SELF];
 }
 
 message AuthToken {
-  string token = 1;
-  string refresh_token = 2;
+  option (hi.audience) = VIS_SELF; // 会话/刷新令牌,只发给本人
+  string token         = 1 [(hi.visibility) = VIS_SELF];
+  string refresh_token = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message Nonce {

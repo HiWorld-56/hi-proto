@@ -8,17 +8,20 @@ import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/options.proto";
 
+// apikey 是商户机密(value 可鉴权),只发给持有它的商户本人。
 message ApiKeyInfo {
-  string value      = 1;
-  string did        = 2;
-  int32  rate_limit = 3;
-  bool   is_active  = 4;
-  string note       = 5;
-  int64  created_at = 6;
+  option (hi.audience) = VIS_SELF;
+  string value      = 1 [(hi.visibility) = VIS_SELF];
+  string did        = 2 [(hi.visibility) = VIS_SELF];
+  int32  rate_limit = 3 [(hi.visibility) = VIS_SELF];
+  bool   is_active  = 4 [(hi.visibility) = VIS_SELF];
+  string note       = 5 [(hi.visibility) = VIS_SELF];
+  int64  created_at = 6 [(hi.visibility) = VIS_SELF];
 }
 
 message CreateApiKeyResp {
-  ApiKeyInfo info = 1;
+  option (hi.audience) = VIS_SELF;
+  ApiKeyInfo info = 1 [(hi.visibility) = VIS_SELF];
 }
 
 message EditApiKeyReq {
@@ -27,12 +30,14 @@ message EditApiKeyReq {
 }
 
 message EditApiKeyResp {
-  ApiKeyInfo info = 1;
+  option (hi.audience) = VIS_SELF;
+  ApiKeyInfo info = 1 [(hi.visibility) = VIS_SELF];
 }
 
 message ListApiKeysResp {
-  int32               total = 1;
-  repeated ApiKeyInfo infos = 2;
+  option (hi.audience) = VIS_SELF;
+  int32               total = 1 [(hi.visibility) = VIS_SELF];
+  repeated ApiKeyInfo infos = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message DeleteApiKeyReq {
