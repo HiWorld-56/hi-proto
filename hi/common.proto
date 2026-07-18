@@ -4,10 +4,8 @@ package hi;
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi";
 
-// Auth: None / Token / Extend-Token
-
 message SignedData {
-  bytes  data      = 1;
+  bytes data = 1;
   string signature = 2;
 }
 
@@ -16,21 +14,21 @@ message DID {
 }
 
 message Entity {
-  string type   = 1;
-  string did    = 2;
-  string name   = 3;
+  string type = 1;
+  string did = 2;
+  string name = 3;
   string avatar = 4;
-  int64  update = 5;
+  int64 update = 5;
 }
 
 message MqttCredentials {
-  string id       = 1;
+  string id = 1;
   string username = 2;
   string password = 3;
 }
 
 message AuthToken {
-  string token         = 1;
+  string token = 1;
   string refresh_token = 2;
 }
 
@@ -57,12 +55,12 @@ message ClientInfo {
 }
 
 message Pagination {
-  int32 page  = 1;
+  int32 page = 1;
   int32 limit = 2;
 }
 
 // 服务自身版本/环境(所有 Base 服务共用;各服务实现返回自己的 bin 版本与探测到的环境)。
 message ServerVersionResp {
   string version = 1; // bin 版本(git tag 注入)
-  string env     = 2; // 运行环境:dev/prod(echo 探测得出)
+  string env = 2; // 运行环境:dev/prod(echo 探测得出)
 }
