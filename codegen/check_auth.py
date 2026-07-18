@@ -200,6 +200,189 @@ for y in sorted(glob.glob('http/*.yaml')):
 
 print(f'[check_auth] 共 {http_total} 条 http 路由')
 
+# ══ 数据可见性(hi.visibility / hi.audience)机器强制 ═══════════════════════════
+# auth 管"谁能调方法";这里管"返回数据里哪些字段能给这个受众看"。规则:
+#   · 每个"方法返回值可达"的数据消息必须标 option (hi.audience);
+#   · 该消息里每个字段必须标 [(hi.visibility)];
+#   · level(field.visibility) <= level(message.audience)(受众由宽到窄 PUBLIC<PARTICIPANT<SELF)
+#     —— SELF 字段落进更宽受众的消息 = 挂(结构性防泄漏,不靠运行时抹值)。
+# 适用范围:仅方法返回值可达的数据消息(req 入参、纯内部消息不纳入)。
+VIS_LEVEL = {'VIS_PUBLIC': 1, 'VIS_PARTICIPANT': 2, 'VIS_SELF': 3}
+SCALARS = {'double', 'float', 'int32', 'int64', 'uint32', 'uint64', 'sint32', 'sint64',
+           'fixed32', 'fixed64', 'sfixed32', 'sfixed64', 'bool', 'string', 'bytes'}
+# 报告模式开关:VIS_ENFORCE=1 时对"可达消息缺 audience/字段缺 visibility"也硬挂;
+# 否则仅对**已标 audience 的消息**硬校验(层级/字段完整),缺 audience 的只列报告(便于分批回填)。
+VIS_ENFORCE = os.environ.get('VIS_ENFORCE') == '1'
+
+messages = {}       # fqn -> {'audience', 'fields':[(fname,ftype_fqn_or_None,has_vis,vis,line)], 'file'}
+_msg_short = {}     # 'pkg.Short' -> fqn(用于类型解析)
+
+
+def _match_brace(s, open_pos):
+    """给定 '{' 的位置,返回配对 '}' 的位置。"""
+    depth = 0
+    for i in range(open_pos, len(s)):
+        if s[i] == '{':
+            depth += 1
+        elif s[i] == '}':
+            depth -= 1
+            if depth == 0:
+                return i
+    return len(s) - 1
+
+
+def _parse_fields(body, pkg, prefix, fqn, f, src_off, full_src):
+    """解析一个 message body 里的直接字段(含 oneof 内),并递归嵌套 message。"""
+    flds = []
+    # 先挖掉嵌套 message/enum/oneof 的**子块**,单独递归;剩下的按字段行解析。
+    i = 0
+    stripped = []  # (text, base_offset) 片段:非子块的普通正文
+    while i < len(body):
+        m = re.compile(r'\b(message|enum|oneof)\s+(\w+)\s*\{').search(body, i)
+        if not m:
+            stripped.append((body[i:], i))
+            break
+        stripped.append((body[i:m.start()], i))
+        ob = m.end() - 1
+        cb = _match_brace(body, ob)
+        kind, nm = m.group(1), m.group(2)
+        inner = body[ob + 1:cb]
+        if kind == 'message':
+            child_fqn = f'{fqn}.{nm}'
+            _register_message(inner, pkg, child_fqn, f, src_off + ob + 1, full_src)
+        elif kind == 'oneof':
+            # oneof 内的字段属于本 message,继续当普通字段解析
+            stripped.append((inner, src_off + ob + 1 - src_off))  # 近似 offset,仅用于行号兜底
+        i = cb + 1
+
+    for text, _off in stripped:
+        for fm in re.finditer(
+                r'^[ \t]*(?:(?:repeated|optional)\s+)?'
+                r'(map<\s*[\w.]+\s*,\s*[\w.]+\s*>|[\w.]+)\s+(\w+)\s*=\s*\d+\s*(\[[^\]]*\])?\s*;',
+                text, re.M):
+            ftype, fname, opts = fm.group(1), fm.group(2), fm.group(3) or ''
+            if ftype.startswith('map<'):
+                ftype = ftype.split(',')[1].strip(' >')  # 取 value 类型
+            vism = re.search(r'\(hi\.visibility\)\s*=\s*(VIS_[A-Z_]+)', opts)
+            has_vis = vism is not None
+            vis = vism.group(1) if vism else None
+            # 记录字段(类型 fqn 解析推迟到全部注册完)
+            flds.append([fname, ftype, has_vis, vis, 0])
+    return flds
+
+
+def _register_message(body, pkg, fqn, f, src_off, full_src):
+    am = re.search(r'option\s*\(hi\.audience\)\s*=\s*(VIS_[A-Z_]+)\s*;', body)
+    audience = am.group(1) if am else None
+    flds = _parse_fields(body, pkg, '', fqn, f, src_off, full_src)
+    messages[fqn] = {'audience': audience, 'fields': flds, 'file': f}
+    _msg_short[f'{pkg}.{fqn.split(".")[-1]}'] = fqn
+
+
+# 1) 注册所有 message
+files = sorted(glob.glob('hi/**/*.proto', recursive=True))
+for f in files:
+    if f.endswith('options.proto'):
+        continue
+    src = open(f, encoding='utf-8').read()
+    pm = re.search(r'^package\s+([\w.]+);', src, re.M)
+    if not pm:
+        continue
+    pkg = pm.group(1)
+    i = 0
+    while True:
+        m = re.compile(r'^message\s+(\w+)\s*\{', re.M).search(src, i)
+        if not m:
+            break
+        ob = m.end() - 1
+        cb = _match_brace(src, ob)
+        _register_message(src[ob + 1:cb], pkg, f'{pkg}.{m.group(1)}', f, ob + 1, src)
+        i = cb + 1
+
+
+def _resolve(ftype, cur_fqn):
+    """字段类型 -> message fqn(若是消息);否则 None(标量/枚举/well-known)。"""
+    if ftype in SCALARS:
+        return None
+    if ftype.startswith('google.protobuf.'):
+        return None
+    if ftype in messages:
+        return ftype
+    # 带包名限定,如 hi.Entity / hi.ai.ToolSupply
+    if '.' in ftype and ftype in messages:
+        return ftype
+    # 同包短名
+    pkg = '.'.join(cur_fqn.split('.')[:-1])
+    # cur_fqn 形如 hi.club.GroupMemberView;包名是 hi.club(可能多段)
+    for cand in (ftype, f'{pkg}.{ftype}'):
+        if cand in messages:
+            return cand
+    # 嵌套类型 A.B
+    if f'{cur_fqn}.{ftype}' in messages:
+        return f'{cur_fqn}.{ftype}'
+    return _msg_short.get(f'{pkg}.{ftype}')
+
+
+# 2) 方法返回值 -> 起点消息
+returns = set()
+for f in files:
+    src = open(f, encoding='utf-8').read()
+    pm = re.search(r'^package\s+([\w.]+);', src, re.M)
+    if not pm:
+        continue
+    pkg = pm.group(1)
+    for rm in re.finditer(r'rpc\s+\w+\s*\([^)]*\)\s*returns\s*\(\s*([\w.]+)\s*\)', src):
+        rt = rm.group(1)
+        fqn = _resolve(rt, f'{pkg}.x')
+        if fqn:
+            returns.add(fqn)
+
+# 3) 可达闭包(顺着消息类型字段走)
+reach, stack = set(), list(returns)
+while stack:
+    fqn = stack.pop()
+    if fqn in reach or fqn not in messages:
+        continue
+    reach.add(fqn)
+    for fld in messages[fqn]['fields']:
+        child = _resolve(fld[1], fqn)
+        if child and child not in reach:
+            stack.append(child)
+
+# 4) 校验
+vis_missing_audience = []
+for fqn in sorted(reach):
+    msg = messages[fqn]
+    aud = msg['audience']
+    if aud is None:
+        vis_missing_audience.append(fqn)
+        if VIS_ENFORCE:
+            bad.append(f'{msg["file"]}: 消息 {fqn} 可被方法返回,却未标 option (hi.audience)')
+        continue
+    alevel = VIS_LEVEL.get(aud)
+    if alevel is None:
+        bad.append(f'{msg["file"]}: 消息 {fqn} 的 audience={aud} 非法(用 VIS_PUBLIC/PARTICIPANT/SELF)')
+        continue
+    # 消息一旦标了 audience = opt-in 进本体系 → 其字段必须全标且层级合规(硬锁,不受 VIS_ENFORCE 门控)。
+    for fname, ftype, has_vis, vis, _ln in msg['fields']:
+        if not has_vis:
+            bad.append(f'{msg["file"]}: {fqn}.{fname} 未标 [(hi.visibility)]'
+                       f'（消息已标 audience 即锁定,每个字段必须声明受众）')
+            continue
+        vlevel = VIS_LEVEL.get(vis)
+        if vlevel is None:
+            bad.append(f'{msg["file"]}: {fqn}.{fname} 的 visibility={vis} 非法')
+        elif vlevel > alevel:
+            bad.append(f'{msg["file"]}: 🔒 {fqn}.{fname} 可见性 {vis} 比消息受众 {aud} 更私 —— '
+                       f'私有字段不许放进更宽受众的消息(该字段应移到 audience 更窄的 view 类型)')
+
+print(f'[check_auth] 可见性:方法返回可达数据消息 {len(reach)} 个,'
+      f'已标 audience {len(reach) - len(vis_missing_audience)} 个,待回填 {len(vis_missing_audience)} 个'
+      + ('' if VIS_ENFORCE else '(报告模式,设 VIS_ENFORCE=1 硬挂)'))
+if vis_missing_audience and not VIS_ENFORCE:
+    for fqn in vis_missing_audience:
+        print(f'    [待回填 audience] {fqn}')
+
 if bad:
     print(f'[check_auth] ❌ {len(bad)} 处问题:')
     for b in bad:

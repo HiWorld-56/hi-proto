@@ -4,6 +4,8 @@ package hi;
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi";
 
+import "hi/options.proto";
+
 message SignedData {
   bytes data = 1;
   string signature = 2;
@@ -14,11 +16,12 @@ message DID {
 }
 
 message Entity {
-  string type = 1;
-  string did = 2;
-  string name = 3;
-  string avatar = 4;
-  int64 update = 5;
+  option (hi.audience) = VIS_PUBLIC; // 身份门面:名字/头像等,全公开
+  string type   = 1 [(hi.visibility) = VIS_PUBLIC];
+  string did    = 2 [(hi.visibility) = VIS_PUBLIC];
+  string name   = 3 [(hi.visibility) = VIS_PUBLIC];
+  string avatar = 4 [(hi.visibility) = VIS_PUBLIC];
+  int64  update = 5 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message MqttCredentials {

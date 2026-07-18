@@ -18,33 +18,39 @@ import "hi/options.proto";
 // 群公共信息(所有成员一致)。群类型(单聊/群)在 base.type;public/private 见 private 字段。
 // base.update 供前端判断缓存新鲜度。
 message GroupBase {
-  hi.Entity base       = 1;
-  string    background = 2;
-  bool      private    = 3; // true=私密群(只能被邀请加入);false=公开群(可凭群 code 直接申请加入)
+  option (hi.audience) = VIS_PUBLIC; // 群公共信息,所有成员一致
+  hi.Entity base       = 1 [(hi.visibility) = VIS_PUBLIC];
+  string    background = 2 [(hi.visibility) = VIS_PUBLIC];
+  bool      private    = 3 [(hi.visibility) = VIS_PUBLIC]; // true=私密群(只能被邀请加入);false=公开群
 }
 
 // 成员相关属性(**对外可见**:成员列表里人人可见谁是什么角色、谁被禁言)。
 message GroupMemberAttr {
-  string role  = 1; // owner / admin / member
-  bool   muted = 2; // 是否被禁言(群主/管理员设;去写权限留读权限)
+  option (hi.audience) = VIS_PARTICIPANT; // 成员可见
+  string role  = 1 [(hi.visibility) = VIS_PARTICIPANT]; // owner / admin / member
+  bool   muted = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 是否被禁言(群主/管理员设;去写留读)
+  // ⚠️ dnd 不许加到这里:它是 VIS_SELF,而本消息 audience=VIS_PARTICIPANT,加了 check_auth 直接挂。dnd 放 GroupMemberView。
 }
 
 message GroupMember {
-  hi.Entity       base = 1;
-  GroupMemberAttr attr = 2;
+  option (hi.audience) = VIS_PARTICIPANT; // 成员列表项,成员可见
+  hi.Entity       base = 1 [(hi.visibility) = VIS_PUBLIC];
+  GroupMemberAttr attr = 2 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 message GroupInfo {
-  GroupBase            base = 1;
-  repeated GroupMember list = 2;
+  option (hi.audience) = VIS_PARTICIPANT; // 成员列表,成员可见
+  GroupBase            base = 1 [(hi.visibility) = VIS_PUBLIC];
+  repeated GroupMember list = 2 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 // 某成员(调用者本人)视角的群信息 = 群公共 + 我的成员属性 + 我的免打扰(私有)。
 // 群信息页一次拉全,前端直接展示。
 message GroupMemberView {
-  GroupBase       base = 1;
-  GroupMemberAttr attr = 2; // 我的 role/muted
-  bool            dnd  = 3; // **仅本人可见**的免打扰(私有,故不在 GroupMemberAttr 内)
+  option (hi.audience) = VIS_SELF; // 只当"我的视角"返回给本人
+  GroupBase       base = 1 [(hi.visibility) = VIS_PUBLIC];
+  GroupMemberAttr attr = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 我的 role/muted
+  bool            dnd  = 3 [(hi.visibility) = VIS_SELF]; // **仅本人可见**的免打扰(SELF,故 audience 必须是 SELF)
 }
 
 message GetGroupReq {

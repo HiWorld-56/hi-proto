@@ -70,3 +70,41 @@ extend google.protobuf.MethodOptions {
   // 不要为"某某或某某"发明新的枚举值 —— 那正是本 enum 曾经的病(见上方设计要点二/三)。
   repeated Auth auth = 50001;
 }
+
+// ── 数据可见性:字段级"给谁看",与 auth(方法级"谁能调")正交 ────────────────
+//
+// 问题:auth 管"谁能调这个方法",但**一条返回数据里哪些字段能给这个受众看**没有约束 ——
+//   全靠人自觉,数据一多同事就会把私有字段(如群免打扰 dnd)随手塞进公开结构,静默泄漏。
+//
+// 做法:**把"谁能看"编进结构本身,并机器强制**(check_auth.py,与 auth 同一套):
+//   · 每个字段标 `(hi.visibility)`(这字段的内在受众);
+//   · 每个"会被方法返回"的数据消息标 `option (hi.audience)`(整条发给谁);
+//   · lint 规则:**字段可见性不得比所在消息的受众更私** —— 即
+//        level(field.visibility) <= level(message.audience)
+//     (受众由宽到窄:PUBLIC=1 < PARTICIPANT=2 < SELF=3)。
+//     于是"把 SELF 字段放进 PUBLIC/PARTICIPANT 消息" = **CI 直接挂**,想错都难。
+//
+// ⚠️ 这是**结构性**约束(私有字段就该单独放进 self-view 类型,别人拿到的类型里根本没这个字段),
+//    不是运行时抹值(那要处处记得抹、零值还有歧义、lint 也校验不了)。
+//    典型:dnd 只能在 GroupMemberView(audience=SELF),不许进 GroupMemberAttr(成员列表 audience=PARTICIPANT)。
+//
+// 边界:本注解管③"字段外发给谁"。②"方法把 self-view 只发给本人"(行级/归属)仍在 handler。
+//   适用范围:**方法返回值可达的数据消息**(req 入参、纯内部消息不标)。
+enum Visibility {
+  VIS_UNSPECIFIED = 0; // 占位:漏标即挂,别主动用
+  VIS_PUBLIC      = 1; // 公开:任何人(Entity.name/avatar、群公共信息、机器人目录…)
+  VIS_PARTICIPANT = 2; // 关系内成员:群成员/关系对端可见(群成员 role/muted…)
+  VIS_SELF        = 3; // 仅主体本人:只有数据主体自己可见(dnd、verify_policy、我的 permissions/apikey 列表…)
+}
+
+extend google.protobuf.FieldOptions {
+  // 该字段的内在受众。**返回值可达消息里的每个字段都必须标。**
+  // 消息类型字段:标它所引用消息的 audience(不得更宽)。
+  optional Visibility visibility = 50002;
+}
+
+extend google.protobuf.MessageOptions {
+  // 这条数据整体发给谁。**每个"会被方法返回"的数据消息都必须标。**
+  // 约束:消息内每个字段的 visibility 不得比本 audience 更私(见 Visibility 说明)。
+  optional Visibility audience = 50003;
+}
