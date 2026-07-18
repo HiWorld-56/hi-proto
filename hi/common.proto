@@ -21,8 +21,9 @@ message DID {
   type: 实体类型(字符串,便于扩展 —— 新增类型只需在此登记一行)
      人型(好友列表)
        user       人
-       agent      硬件机器人(有 DID、具身、行为同用户)
+       robot      硬件机器人(有 DID、具身、行为同用户)
        assistant  软件机器人(对话由后端接管,无私钥、不在 mqtt 上)
+       注:硬件机器人用 robot 而非 agent —— agent 已是 ai 的 AI 机器人子系统统称(hi.ai.Agent),避免撞词。
      会话型(会话列表)
        group      群聊
        single     单聊
