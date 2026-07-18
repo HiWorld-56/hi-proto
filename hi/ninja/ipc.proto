@@ -93,7 +93,7 @@ message BrainToFace {
     hi.Entity             event_bot         = 8;  // 机器人自身资料变更
     MasterEvent           event_master      = 9;  // 所有者绑定状态变化
     hi.club.GroupInfo     event_members     = 10; // 群成员列表（全量）
-    hi.ai.PluginItem      event_plugin      = 11; // 插件加载完成
+    hi.ai.PluginView      event_plugin      = 11; // 插件加载完成
     hi.did.Transaction    event_transaction = 12; // 收到转账
 
     // 媒体：uuid="" 时路由到 dialog_voice，否则按 uuid 路由到对应 IM dialog

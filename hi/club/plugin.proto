@@ -20,7 +20,8 @@ import "hi/options.proto";
 //   2. apikey **挂机器人名下、不挂用户**,以便机器人换持有者后脚本照常跑。
 //   3. **删 apikey 前必须查是否被插件引用,被引用则拒删**(创建插件时已把它注入进去了)。
 service Plugin {
-  rpc Create (hi.ai.CreatePluginReq) returns (hi.ai.CreatePluginResp) { option (hi.auth) = AUTH_USER; }              // 上传插件版本(原 PythonCreate;存在则覆盖)
+  rpc Create (hi.ai.CreatePluginReq) returns (hi.ai.CreatePluginResp) { option (hi.auth) = AUTH_USER; }              // 上传脚本版本 + 建 owner annex(club 自动取 bot 第一个 apikey 塞进 annex)
+  rpc CreateAnnex (hi.ai.CreateAnnexReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }           // 把已有 body 绑到某 bot(插件市场分享用;club 取该 bot apikey)
   rpc Edit (hi.ai.EditPluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                   // 改插件
   rpc Get (hi.ai.GetPluginReq) returns (hi.ai.GetPluginResp) { option (hi.auth) = AUTH_USER; }                       // 查单个插件版本
   rpc List (hi.ai.ListPluginReq) returns (hi.ai.ListPluginResp) { option (hi.auth) = AUTH_USER; }                    // 一级页:列脚本(每 uuid 一行,返回激活版本)
@@ -28,6 +29,5 @@ service Plugin {
   rpc Delete (hi.ai.DeletePluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }               // 删某个版本
   rpc DeleteByAgents (hi.ai.DeletePluginByAgentsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 按 agent 批量删(原 DeleteByDids)
   rpc SetActiveVersion (hi.ai.SetActiveVersionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 选定供 function call 调用的版本
-  rpc GetParams (hi.ai.GetParamsReq) returns (hi.ai.GetParamsResp) { option (hi.auth) = AUTH_USER; }                 // 取 function call 参数 schema(原 GetPythonParams)
   rpc SetEnabled (hi.ai.SetEnabledReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }             // 脚本级开关:是否参与推理(记忆开关已移到 Agent.Edit)
 }

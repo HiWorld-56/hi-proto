@@ -110,6 +110,9 @@ http:
   - selector: hi.club.Plugin.Create
     post: /api/v1/plugin/create
     body: "*"
+  - selector: hi.club.Plugin.CreateAnnex
+    post: /api/v1/plugin/create_annex
+    body: "*"
   - selector: hi.club.Plugin.Get
     get: /api/v1/plugin/get
   - selector: hi.club.Plugin.List
@@ -130,8 +133,6 @@ http:
   - selector: hi.club.Plugin.SetActiveVersion
     post: /api/v1/plugin/set_active_version
     body: "*"
-  - selector: hi.club.Plugin.GetParams
-    get: /api/v1/plugin/get_params
 # Training
   - selector: hi.club.Training.Start
     post: /api/v1/training/start
