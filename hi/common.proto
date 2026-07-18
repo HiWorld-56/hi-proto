@@ -16,9 +16,17 @@ message DID {
   string id = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
+// 实体类型:人 / 硬件机器人(agent,有 DID、具身)/ 软件机器人(assistant)。
+enum EntityType {
+  ENTITY_UNSPECIFIED = 0; // 空/未知
+  ENTITY_USER        = 1; // 人
+  ENTITY_AGENT       = 2; // 硬件机器人(有身份、具身)
+  ENTITY_ASSISTANT   = 3; // 软件机器人
+}
+
 message Entity {
   option (hi.audience) = VIS_PUBLIC; // 身份门面:名字/头像等,全公开
-  string type   = 1 [(hi.visibility) = VIS_PUBLIC];
+  EntityType type = 1 [(hi.visibility) = VIS_PUBLIC];
   string did    = 2 [(hi.visibility) = VIS_PUBLIC];
   string name   = 3 [(hi.visibility) = VIS_PUBLIC];
   string avatar = 4 [(hi.visibility) = VIS_PUBLIC];
