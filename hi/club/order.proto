@@ -17,7 +17,8 @@ message PcOrderData {
 // 我的订单(hidid-pc 为订单主体拉取)→ SELF。
 message PcOrder {
   option (hi.audience) = VIS_SELF;
-  string id         = 1 [(hi.visibility) = VIS_SELF];
+  reserved 1;         // 原 id:填的是 hi_trade_sub_order 库自增主键,违反"自增id禁止跨端流转"铁律;
+  reserved "id";      //   且下游回传只认 order_id(SubOrderId,uuid),id 从无消费方 → 删除。
   string order_id   = 2 [(hi.visibility) = VIS_SELF];
   string to_did     = 3 [(hi.visibility) = VIS_SELF];
   string amount     = 4 [(hi.visibility) = VIS_SELF];
