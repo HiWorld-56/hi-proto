@@ -12,7 +12,8 @@ message SignedData {
 }
 
 message DID {
-  string id = 1;
+  option (hi.audience) = VIS_PUBLIC; // did 是公开身份标识
+  string id = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message Entity {
@@ -42,7 +43,8 @@ message Nonce {
 }
 
 message RequestId {
-  string id = 1;
+  option (hi.audience) = VIS_PUBLIC; // 请求 id,无隐私
+  string id = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message State {
@@ -66,6 +68,7 @@ message Pagination {
 
 // 服务自身版本/环境(所有 Base 服务共用;各服务实现返回自己的 bin 版本与探测到的环境)。
 message ServerVersionResp {
-  string version = 1; // bin 版本(git tag 注入)
-  string env = 2; // 运行环境:dev/prod(echo 探测得出)
+  option (hi.audience) = VIS_PUBLIC; // 服务版本+环境,Base.ServerVersion 全 AUTH_NONE 公开
+  string version = 1 [(hi.visibility) = VIS_PUBLIC]; // bin 版本(git tag 注入)
+  string env = 2 [(hi.visibility) = VIS_PUBLIC]; // 运行环境:dev/prod(echo 探测得出)
 }

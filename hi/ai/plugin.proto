@@ -30,15 +30,16 @@ import "hi/options.proto";
 // 一个脚本版本。**身份是两层:`uuid`(脚本)+ `version`(版本)**。
 // 同一个脚本的多个版本**共享同一个 uuid**,靠 version 区分,只有一个 active。
 message PluginItem {
-  string uuid        = 1; // **脚本 id**:跨版本稳定 —— 同脚本的所有版本共用它
-  string agent       = 2; // 智能体did
-  string name        = 3; // 脚本名字
-  string url         = 4; // 主脚本包(zip)url:内含 main.py + requirement.txt
-  string description = 5; // 脚本描述
-  string version     = 6; // 版本号(用户上传时自填)
-  bool   active      = 7; // **版本级**开关:本版本是否供 function call 调用(同 uuid 下只有一个为 true)
-  int64  created_at  = 8;
-  bool   enabled     = 9; // **脚本级**开关:本脚本是否参与推理。与 active 是两个维度:
+  option (hi.audience) = VIS_SELF; // 插件挂机器人下、按归属管控(uuid 越权已修)→ owner 私产
+  string uuid        = 1 [(hi.visibility) = VIS_SELF]; // **脚本 id**:跨版本稳定 —— 同脚本的所有版本共用它
+  string agent       = 2 [(hi.visibility) = VIS_SELF]; // 智能体did
+  string name        = 3 [(hi.visibility) = VIS_SELF]; // 脚本名字
+  string url         = 4 [(hi.visibility) = VIS_SELF]; // 主脚本包(zip)url:内含 main.py + requirement.txt
+  string description = 5 [(hi.visibility) = VIS_SELF]; // 脚本描述
+  string version     = 6 [(hi.visibility) = VIS_SELF]; // 版本号(用户上传时自填)
+  bool   active      = 7 [(hi.visibility) = VIS_SELF]; // **版本级**开关:本版本是否供 function call 调用(同 uuid 下只有一个为 true)
+  int64  created_at  = 8 [(hi.visibility) = VIS_SELF];
+  bool   enabled     = 9 [(hi.visibility) = VIS_SELF]; // **脚本级**开关:本脚本是否参与推理。与 active 是两个维度:
                           //   active=同一脚本的哪个版本上台;enabled=这个脚本要不要参与推理。
                           //   有 plugin 权限即模块开,装配 function-call 工具时按 active AND enabled 过滤。
 }
@@ -67,7 +68,8 @@ message CreatePluginReq {
 }
 
 message CreatePluginResp {
-  string uuid = 1; // 插件id
+  option (hi.audience) = VIS_SELF; // 我的插件 id
+  string uuid = 1 [(hi.visibility) = VIS_SELF]; // 插件id
 }
 
 // 一级页:列某 agent 的脚本(每个 uuid 一行,返回其**激活版本**)。
@@ -84,8 +86,9 @@ message ListVersionsReq {
 }
 
 message ListPluginResp {
-  int32               total = 1;
-  repeated PluginItem list  = 2;
+  option (hi.audience) = VIS_SELF; // 列 owner 自己机器人的插件 → SELF
+  int32               total = 1 [(hi.visibility) = VIS_SELF];
+  repeated PluginItem list  = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message DeletePluginReq {
@@ -118,7 +121,8 @@ message GetPluginReq {
 }
 
 message GetPluginResp {
-  PluginItem item = 1;
+  option (hi.audience) = VIS_SELF; // PluginItem(SELF)
+  PluginItem item = 1 [(hi.visibility) = VIS_SELF];
 }
 
 // ⚠️ **参数文件 ≠ ExData,别再合并**(我曾把 GetPythonParams 改名成 GetExData,是错的):
@@ -132,7 +136,8 @@ message GetParamsReq {
 }
 
 message GetParamsResp {
-  google.protobuf.Struct params = 1; // function call 的参数 schema
+  option (hi.audience) = VIS_SELF; // 我的插件的参数 schema
+  google.protobuf.Struct params = 1 [(hi.visibility) = VIS_SELF]; // function call 的参数 schema
 }
 
 // 插件管理(主体=插件)。商户档:**hiai 自己的 web 与三方商户后台都会调**,
@@ -171,7 +176,8 @@ message RunReq {
 }
 
 message RunResp {
-  repeated Content conts = 1;
+  option (hi.audience) = VIS_SELF; // 引用 chat.Content(SELF)→ 脚本执行结果随之 SELF
+  repeated Content conts = 1 [(hi.visibility) = VIS_SELF];
 }
 
 message CleanupReq {

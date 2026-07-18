@@ -22,9 +22,10 @@ message LoginReq {
 }
 
 message LoginResp {
-  hi.Entity user = 1;
-  hi.AuthToken token = 2;
-  hi.MqttCredentials mqtt = 3;
+  option (hi.audience) = VIS_SELF;
+  hi.Entity user = 1 [(hi.visibility) = VIS_PUBLIC];
+  hi.AuthToken token = 2 [(hi.visibility) = VIS_SELF];
+  hi.MqttCredentials mqtt = 3 [(hi.visibility) = VIS_SELF];
 }
 
 message GenerateReqIdReq {
@@ -33,10 +34,11 @@ message GenerateReqIdReq {
 }
 
 message ReqStatusResp {
-  hi.Entity base = 1;
-  string status = 2;
-  hi.AuthToken token = 3;
-  hi.MqttCredentials mqtt = 4;
+  option (hi.audience) = VIS_SELF;
+  hi.Entity base = 1 [(hi.visibility) = VIS_PUBLIC];
+  string status = 2 [(hi.visibility) = VIS_SELF];
+  hi.AuthToken token = 3 [(hi.visibility) = VIS_SELF];
+  hi.MqttCredentials mqtt = 4 [(hi.visibility) = VIS_SELF];
 }
 
 // web3 载荷 schema(不是 rpc 参数):Auth.Logout 把 SignedData.Data 反序列化进它。

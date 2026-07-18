@@ -9,10 +9,11 @@ import "hi/options.proto";
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 message LoginResp {
-  hi.Entity base = 1;
-  hi.AuthToken token = 2;
-  hi.MqttCredentials mqtt = 3;
-  hi.Entity master = 4;
+  option (hi.audience) = VIS_SELF; // 登录返回:令牌/凭证,仅本人
+  hi.Entity          base   = 1 [(hi.visibility) = VIS_PUBLIC]; // 用户名片(Entity=PUBLIC)
+  hi.AuthToken       token  = 2 [(hi.visibility) = VIS_SELF];   // 登录令牌(凭证)
+  hi.MqttCredentials mqtt   = 3 [(hi.visibility) = VIS_SELF];   // MQTT 凭证
+  hi.Entity          master = 4 [(hi.visibility) = VIS_PUBLIC]; // 主人名片(Entity=PUBLIC)
 }
 
 service Auth {

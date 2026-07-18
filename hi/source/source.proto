@@ -16,8 +16,9 @@ message UploadReq {
 }
 
 message UploadResp {
-  string          url       = 1;
-  optional string thumb_url = 2;
+  option (hi.audience) = VIS_PUBLIC; // File.Upload 为 AUTH_NONE(免鉴权),返回的是公开可访问资源 url
+  string          url       = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional string thumb_url = 2 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message DownloadReq {
@@ -25,7 +26,8 @@ message DownloadReq {
 }
 
 message DownloadResp {
-  bytes content = 1;
+  option (hi.audience) = VIS_PUBLIC; // File.Download 为 AUTH_NONE(免鉴权),按 url 取公开资源内容
+  bytes content = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message UploadStreamReq {

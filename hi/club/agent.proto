@@ -32,7 +32,8 @@ message BindStatusReq {
 }
 
 message BindStatusResp {
-  hi.Entity master = 1; // None / master
+  option (hi.audience) = VIS_PUBLIC; // 仅含 master 名片,与公开 AgentDirectory.GetAgentMaster 同数据
+  hi.Entity master = 1 [(hi.visibility) = VIS_PUBLIC]; // None / master(Entity=PUBLIC)
 }
 
 // 转让机器人 = **换 master**。club 侧不存在"机器人创建者"的概念。
@@ -52,8 +53,9 @@ message ListOnlineReq {
 }
 
 message ListOnlineResp {
-  int32                    total = 1;
-  repeated hi.ai.AgentInfo infos = 2;
+  option (hi.audience) = VIS_PUBLIC; // 在线机器人目录(AgentDirectory.ListOnline 免鉴权 AUTH_NONE)
+  int32                    total = 1 [(hi.visibility) = VIS_PUBLIC];
+  repeated hi.ai.AgentInfo infos = 2 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message GetAgentMasterReq {
@@ -61,7 +63,8 @@ message GetAgentMasterReq {
 }
 
 message GetAgentMasterResp {
-  hi.Entity master = 1;
+  option (hi.audience) = VIS_PUBLIC; // 查机器人主人(AgentDirectory.GetAgentMaster 免鉴权 AUTH_NONE)
+  hi.Entity master = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
 // 智能体(主体=智能体)。**用户 token 档**,全档一致。

@@ -8,13 +8,15 @@ import "google/protobuf/empty.proto";
 import "hi/options.proto";
 
 message GatewayConfigUnit {
-  string name    = 1; //aptos/bitcoin/ethereum/solana/tatum/tron-grpc/tron-http
-  string url     = 2;
-  string api_key = 3;
+  option (hi.audience) = VIS_PUBLIC;
+  string name    = 1 [(hi.visibility) = VIS_PUBLIC]; //aptos/bitcoin/ethereum/solana/tatum/tron-grpc/tron-http
+  string url     = 2 [(hi.visibility) = VIS_PUBLIC];
+  string api_key = 3 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message GatewayConfigListResp {
-  repeated GatewayConfigUnit list = 1;
+  option (hi.audience) = VIS_PUBLIC;
+  repeated GatewayConfigUnit list = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message GatewayConfigSetReq {

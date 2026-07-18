@@ -9,12 +9,13 @@ import "hi/did/base.proto";
 import "hi/options.proto";
 
 message Transaction {
-  string    hash   = 1;
-  string    amount = 2;
-  Coin      coin   = 3;
-  hi.Entity from   = 4;
-  hi.Entity to     = 5;
-  string    remark = 6;
+  option (hi.audience) = VIS_PUBLIC;
+  string    hash   = 1 [(hi.visibility) = VIS_PUBLIC];
+  string    amount = 2 [(hi.visibility) = VIS_PUBLIC];
+  Coin      coin   = 3 [(hi.visibility) = VIS_PUBLIC];
+  hi.Entity from   = 4 [(hi.visibility) = VIS_PUBLIC];
+  hi.Entity to     = 5 [(hi.visibility) = VIS_PUBLIC];
+  string    remark = 6 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message HistoryReq {
@@ -25,14 +26,16 @@ message HistoryReq {
 }
 
 message HistoryResp {
+  option (hi.audience) = VIS_PUBLIC;
   message Unit {
-    Transaction trans     = 1;
-    string      direction = 2; // in（转入）/ out（转出）/ self（自转）
-    string      status    = 3; // pending / confirming / success / failed / notfound
-    int64       timestamp = 4;
+    option (hi.audience) = VIS_PUBLIC;
+    Transaction trans     = 1 [(hi.visibility) = VIS_PUBLIC];
+    string      direction = 2 [(hi.visibility) = VIS_PUBLIC]; // in（转入）/ out（转出）/ self（自转）
+    string      status    = 3 [(hi.visibility) = VIS_PUBLIC]; // pending / confirming / success / failed / notfound
+    int64       timestamp = 4 [(hi.visibility) = VIS_PUBLIC];
   }
-  repeated Unit list        = 1;
-  string        next_cursor = 2; // 下一页游标
+  repeated Unit list        = 1 [(hi.visibility) = VIS_PUBLIC];
+  string        next_cursor = 2 [(hi.visibility) = VIS_PUBLIC]; // 下一页游标
 }
 
 message TxStatusReq {
@@ -41,8 +44,9 @@ message TxStatusReq {
 }
 
 message TxStatusResp {
-  string state    = 1; // pending / confirming / success / failed / notfound
-  uint32 progress = 2; // 进度，0-100
+  option (hi.audience) = VIS_PUBLIC;
+  string state    = 1 [(hi.visibility) = VIS_PUBLIC]; // pending / confirming / success / failed / notfound
+  uint32 progress = 2 [(hi.visibility) = VIS_PUBLIC]; // 进度，0-100
 }
 
 message VerifyTransactionReq {
@@ -54,12 +58,13 @@ message VerifyTransactionReq {
 }
 
 message VerifyTransactionResp {
-  string state            = 1; // pending / confirming / success / failed / notfound
-  bool   passed           = 2; // 业务校验是否通过（仅 state=success 有意义）
-  string reason           = 3; // 未过原因：AMOUNT_ERR / FROM_ERR / TO_ERR / CONTRACTADDRESS_ERR
-  int64  confirmed_blocks = 4; // 链上确认数
-  int64  timestamp        = 5; // 交易时间（ms）；调用方据此自行做时限校验（业务层解耦）
-  uint32 query_count      = 6; // 该 hash 在缓存窗口内被查询次数（业务侧据此防伪）
+  option (hi.audience) = VIS_PUBLIC;
+  string state            = 1 [(hi.visibility) = VIS_PUBLIC]; // pending / confirming / success / failed / notfound
+  bool   passed           = 2 [(hi.visibility) = VIS_PUBLIC]; // 业务校验是否通过（仅 state=success 有意义）
+  string reason           = 3 [(hi.visibility) = VIS_PUBLIC]; // 未过原因：AMOUNT_ERR / FROM_ERR / TO_ERR / CONTRACTADDRESS_ERR
+  int64  confirmed_blocks = 4 [(hi.visibility) = VIS_PUBLIC]; // 链上确认数
+  int64  timestamp        = 5 [(hi.visibility) = VIS_PUBLIC]; // 交易时间（ms）；调用方据此自行做时限校验（业务层解耦）
+  uint32 query_count      = 6 [(hi.visibility) = VIS_PUBLIC]; // 该 hash 在缓存窗口内被查询次数（业务侧据此防伪）
 }
 
 // Transfer —— 一组**helper 方法**:都是查链上数据 / 验签,给三方(尤其没能力自己做

@@ -11,10 +11,11 @@ import "hi/club/group.proto";
 import "hi/options.proto";
 
 message UserInfo {
-  hi.Entity       base          = 1;
-  repeated string permissions   = 2;
-  string          verify_policy = 3; // 添加好友校验方式
-  string          moment        = 4; // 用户动态
+  option (hi.audience) = VIS_SELF; // 本人视图:含 permissions/verify_policy 私有字段,故 SELF
+  hi.Entity       base          = 1 [(hi.visibility) = VIS_PUBLIC];      // 名片 name/avatar
+  repeated string permissions   = 2 [(hi.visibility) = VIS_SELF];        // 我的权限列表(SELF)
+  string          verify_policy = 3 [(hi.visibility) = VIS_SELF];        // 加好友校验方式(私有,SELF)
+  string          moment        = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 用户动态(关系可见)
 }
 
 message ListSystemMessageReq {
@@ -23,9 +24,10 @@ message ListSystemMessageReq {
 }
 
 message SystemMessages {
-  bool            has_new = 1;
-  int32           total   = 2;
-  repeated Notice list    = 3;
+  option (hi.audience) = VIS_SELF; // 我的系统消息
+  bool            has_new = 1 [(hi.visibility) = VIS_SELF];
+  int32           total   = 2 [(hi.visibility) = VIS_SELF];
+  repeated Notice list    = 3 [(hi.visibility) = VIS_PARTICIPANT]; // Notice(messaging)为通知型,关系/群级
 }
 
 message DeleteSystemMessageReq {
@@ -38,15 +40,17 @@ message HandleSystemMessageReq {
 }
 
 message RelationInfo {
-  hi.Entity base   = 1;
-  string    remark = 2; // 备注名
-  string    moment = 3; // 用户动态
+  option (hi.audience) = VIS_SELF; // 我的关系视图:含仅本人可见的 remark,故 SELF(见 report)
+  hi.Entity base   = 1 [(hi.visibility) = VIS_PUBLIC];      // 名片
+  string    remark = 2 [(hi.visibility) = VIS_SELF];        // 备注名(仅设置者本人可见)
+  string    moment = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 用户动态(关系可见)
 }
 
 // 一次拿好友+仆从(同表,一次调用拿全);已删按关系拆开的 ListFriends/ListServitors(重叠)。
 message ListRelationsResp {
-  repeated RelationInfo friend   = 1; // 好友(friend 关系)
-  repeated RelationInfo servitor = 2; // 仆从(master 关系,人或 bot)
+  option (hi.audience) = VIS_SELF; // 我的好友+仆从列表(RelationInfo=SELF,含私有备注)
+  repeated RelationInfo friend   = 1 [(hi.visibility) = VIS_SELF]; // 好友(friend 关系)
+  repeated RelationInfo servitor = 2 [(hi.visibility) = VIS_SELF]; // 仆从(master 关系,人或 bot)
 }
 
 message AddFriendReq {
@@ -62,7 +66,8 @@ enum FriendRequestStatus {
 }
 
 message AddFriendResp {
-  FriendRequestStatus status = 1;
+  option (hi.audience) = VIS_PARTICIPANT; // 好友申请结果(关系状态)
+  FriendRequestStatus status = 1 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 message DeleteFriendReq {
@@ -70,7 +75,8 @@ message DeleteFriendReq {
 }
 
 message ListGroupResp {
-  repeated GroupBase list = 1; // 群基本信息(含 dnd/muted 等),不再只回 Entity
+  option (hi.audience) = VIS_SELF; // "我加入了哪些群"是跨群的本人成员身份聚合,仅本人可枚举
+  repeated GroupBase list = 1 [(hi.visibility) = VIS_PUBLIC]; // 每个 GroupBase 本身公开(GroupBase=PUBLIC)
 }
 
 message GetUserReq {
@@ -78,7 +84,8 @@ message GetUserReq {
 }
 
 message UnprocessedSysMsgCountResp {
-  int32 count = 1;
+  option (hi.audience) = VIS_SELF; // 我的未读数
+  int32 count = 1 [(hi.visibility) = VIS_SELF];
 }
 
 message UpdateUserReq {
@@ -100,7 +107,8 @@ message ListOnlineUserReq {
 }
 
 message ListOnlineUserResp {
-  repeated hi.Entity list = 1; // 在线的用户列表
+  option (hi.audience) = VIS_PUBLIC; // 在线用户目录(公开,Entity 名片)
+  repeated hi.Entity list = 1 [(hi.visibility) = VIS_PUBLIC]; // 在线的用户列表(Entity=PUBLIC)
 }
 
 service User {

@@ -10,51 +10,64 @@ import "hi/did/base.proto";
 import "hi/did/transfer.proto";
 import "hi/options.proto";
 
+// 被 TradeBase 引用 → 必须 <=PARTICIPANT(交易卡随 TradeBase 入群消息)。
 message TradeUnit {
-  hi.did.Coin coin   = 1;
-  hi.Entity   user   = 2;
-  string      sum    = 3;
-  string      amount = 4;
-  string      fee    = 5;
+  option (hi.audience) = VIS_PARTICIPANT;
+  hi.did.Coin coin   = 1 [(hi.visibility) = VIS_PUBLIC];      // Coin=公开
+  hi.Entity   user   = 2 [(hi.visibility) = VIS_PUBLIC];      // Entity=公开门面
+  string      sum    = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  string      amount = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  string      fee    = 5 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
+// 交易基础卡:被 Content.trade 引用,可分享进群消息 → PARTICIPANT。
 message TradeBase {
-  TradeUnit from      = 1;
-  TradeUnit to        = 2;
-  string    id        = 3;
-  int64     timestamp = 4;
+  option (hi.audience) = VIS_PARTICIPANT;
+  TradeUnit from      = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  TradeUnit to        = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  string    id        = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  int64     timestamp = 4 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 message GetTradeFeeReq {
   string coin = 1;
 }
 
+// 手续费表:按币种查费率,非用户私有 → 公开。
 message GetTradeFeeResp {
-  string fee = 1;
+  option (hi.audience) = VIS_PUBLIC;
+  string fee = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message GetTradeReq {
   string order = 1;
 }
 
+// 只在 my-trades 壳(TradeDetail)里出现,不被 TradeBase 引用 → 可 SELF。
 message TradeTrans {
-  string                 id        = 1;
-  hi.did.Transaction     trans     = 2;
-  string                 status    = 3;
-  int64                  timestamp = 4;
+  option (hi.audience) = VIS_SELF;
+  string                 id        = 1 [(hi.visibility) = VIS_SELF];
+  hi.did.Transaction     trans     = 2 [(hi.visibility) = VIS_PUBLIC]; // Transaction=公开
+  string                 status    = 3 [(hi.visibility) = VIS_SELF];
+  int64                  timestamp = 4 [(hi.visibility) = VIS_SELF];
 }
 
+// 我的交易详情:仅被 SELF 壳(GetTradeResp/AddTradeResp/ListTradeResp)引用 → SELF。
+// 里面放 PARTICIPANT 的 TradeUnit 合法(2<=3)。
 message TradeDetail {
-  string                  order     = 1;
-  string                  status    = 2;
-  TradeUnit               from      = 3;
-  TradeUnit               to        = 4;
-  map<string, TradeTrans> list      = 5;
-  int64                   timestamp = 8;
+  option (hi.audience) = VIS_SELF;
+  string                  order     = 1 [(hi.visibility) = VIS_SELF];
+  string                  status    = 2 [(hi.visibility) = VIS_SELF];
+  TradeUnit               from      = 3 [(hi.visibility) = VIS_PARTICIPANT]; // TradeUnit=PARTICIPANT
+  TradeUnit               to        = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  map<string, TradeTrans> list      = 5 [(hi.visibility) = VIS_SELF];        // TradeTrans=SELF
+  int64                   timestamp = 8 [(hi.visibility) = VIS_SELF];
 }
 
+// 我的交易详情壳。
 message GetTradeResp {
-  TradeDetail detail = 1;
+  option (hi.audience) = VIS_SELF;
+  TradeDetail detail = 1 [(hi.visibility) = VIS_SELF];
 }
 
 message AddTradeReq {
@@ -62,7 +75,8 @@ message AddTradeReq {
 }
 
 message AddTradeResp {
-  TradeDetail detail = 1;
+  option (hi.audience) = VIS_SELF;
+  TradeDetail detail = 1 [(hi.visibility) = VIS_SELF];
 }
 
 message UpdateTransHashReq {
@@ -82,9 +96,11 @@ message ListAllTradeReq {
   hi.Pagination pagination = 2;
 }
 
+// 我的交易列表壳:SELF 壳收窄整体私密性,元素放 SELF 的 TradeDetail。
 message ListTradeResp {
-  int32                total = 1;
-  repeated TradeDetail list  = 2;
+  option (hi.audience) = VIS_SELF;
+  int32                total = 1 [(hi.visibility) = VIS_SELF];
+  repeated TradeDetail list  = 2 [(hi.visibility) = VIS_SELF];
 }
 
 service Trade {

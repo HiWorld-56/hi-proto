@@ -11,10 +11,11 @@ import "hi/options.proto";
 // 字段正名:原 proxy_url / enable / endpoint 三个名字逻辑混乱 —— enable 其实指"代理开不开",
 // endpoint 其实是 OpenAI 端点。且 OpenAI 端点也该有开关(关掉即用官方端点)。
 message SettingInfo {
-  string proxy_endpoint         = 1; // 代理地址(原 proxy_url)
-  bool   proxy_enable           = 2; // 代理是否生效(原 enable)
-  string openai_endpoint        = 3; // 自定义 OpenAI 端点(原 endpoint)
-  bool   openai_endpoint_enable = 4; // 端点开关;关 = 用 OpenAI 官方端点
+  option (hi.audience) = VIS_SELF; // hiai 服务级内部配置,超管后门可见 → 最窄 SELF
+  string proxy_endpoint         = 1 [(hi.visibility) = VIS_SELF]; // 代理地址(原 proxy_url)
+  bool   proxy_enable           = 2 [(hi.visibility) = VIS_SELF]; // 代理是否生效(原 enable)
+  string openai_endpoint        = 3 [(hi.visibility) = VIS_SELF]; // 自定义 OpenAI 端点(原 endpoint)
+  bool   openai_endpoint_enable = 4 [(hi.visibility) = VIS_SELF]; // 端点开关;关 = 用 OpenAI 官方端点
 }
 
 message SettingEditReq {
@@ -22,7 +23,8 @@ message SettingEditReq {
 }
 
 message SettingGetResp {
-  SettingInfo info = 1;
+  option (hi.audience) = VIS_SELF; // SettingInfo(SELF)
+  SettingInfo info = 1 [(hi.visibility) = VIS_SELF];
 }
 
 // hiai 服务级全局配置(主体=服务自身设置)。**超管档**。

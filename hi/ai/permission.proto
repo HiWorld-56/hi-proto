@@ -112,12 +112,14 @@ message MerchantListReq {
 }
 
 message MerchantListResp {
+  option (hi.audience) = VIS_PARTICIPANT; // 注册商户目录 → 商户生态内 PARTICIPANT
   message Unit {
-    hi.Entity base       = 1;
-    int64     created_at = 2;
+    option (hi.audience) = VIS_PARTICIPANT;
+    hi.Entity base       = 1 [(hi.visibility) = VIS_PUBLIC]; // hi.Entity 恒 PUBLIC
+    int64     created_at = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 取本消息档
   }
-  int32         total = 1;
-  repeated Unit infos = 2;
+  int32         total = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  repeated Unit infos = 2 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 // 商户目录(超管)。承接原 `UserACL.List(type="all")` —— 那查的是**注册用户/商户名录**,

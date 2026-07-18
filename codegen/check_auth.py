@@ -210,9 +210,12 @@ print(f'[check_auth] 共 {http_total} 条 http 路由')
 VIS_LEVEL = {'VIS_PUBLIC': 1, 'VIS_PARTICIPANT': 2, 'VIS_SELF': 3}
 SCALARS = {'double', 'float', 'int32', 'int64', 'uint32', 'uint64', 'sint32', 'sint64',
            'fixed32', 'fixed64', 'sfixed32', 'sfixed64', 'bool', 'string', 'bytes'}
-# 报告模式开关:VIS_ENFORCE=1 时对"可达消息缺 audience/字段缺 visibility"也硬挂;
-# 否则仅对**已标 audience 的消息**硬校验(层级/字段完整),缺 audience 的只列报告(便于分批回填)。
-VIS_ENFORCE = os.environ.get('VIS_ENFORCE') == '1'
+# 可见性强制开关:**默认硬强制**(2026-07-18 全仓 141/141 回填完成后翻开)——
+#   任何"方法返回可达"的数据消息缺 audience、或其字段缺 visibility,CI 直接挂。
+#   这才是"同事没法做错":新增/改返回消息必须声明给谁看,漏标即 fail-closed。
+# 逃生口:VIS_ENFORCE=0 退回报告模式(仅对已标 audience 的消息硬校验层级/完整,缺 audience 的只列报告)——
+#   仅供将来大重构临时批量回填时用,别常开。
+VIS_ENFORCE = os.environ.get('VIS_ENFORCE') != '0'
 
 messages = {}       # fqn -> {'audience', 'fields':[(fname,ftype_fqn_or_None,has_vis,vis,line)], 'file'}
 _msg_short = {}     # 'pkg.Short' -> fqn(用于类型解析)

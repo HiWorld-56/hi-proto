@@ -26,12 +26,14 @@ message CompleteReq {
 }
 
 message QA {
-  repeated Content q = 1; // User
-  string           a = 2; // assistant
+  option (hi.audience) = VIS_SELF; // 我与机器人的私有对话
+  repeated Content q = 1 [(hi.visibility) = VIS_PARTICIPANT]; // User(club Content=PARTICIPANT)
+  string           a = 2 [(hi.visibility) = VIS_SELF];        // assistant
 }
 
 message GetHistoryResp {
-  repeated QA list = 1;
+  option (hi.audience) = VIS_SELF; // 我的历史对话
+  repeated QA list = 1 [(hi.visibility) = VIS_SELF]; // QA=SELF
 }
 
 // 客户端 tool-callback 两阶段对话入参(合并原 TextToText/SpeechToText/SpeechToSpeech;模态由 conts+style 决定)。

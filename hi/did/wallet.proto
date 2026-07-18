@@ -32,11 +32,13 @@ message GetWalletReq {
 }
 
 message GetWalletResp {
+  option (hi.audience) = VIS_SELF;
   message Unit {
-    string chain   = 1;
-    string address = 2;
+    option (hi.audience) = VIS_SELF;
+    string chain   = 1 [(hi.visibility) = VIS_SELF];
+    string address = 2 [(hi.visibility) = VIS_SELF];
   }
-  repeated Unit list = 1;
+  repeated Unit list = 1 [(hi.visibility) = VIS_SELF];
 }
 
 message ListAddressesReq {
@@ -48,12 +50,14 @@ message ListAddressesReq {
 }
 
 message ListAddressesResp {
+  option (hi.audience) = VIS_SELF;
   message Unit {
-    string did     = 1;
-    string chain   = 2;
-    string address = 3;
+    option (hi.audience) = VIS_SELF;
+    string did     = 1 [(hi.visibility) = VIS_SELF];
+    string chain   = 2 [(hi.visibility) = VIS_SELF];
+    string address = 3 [(hi.visibility) = VIS_SELF];
   }
-  repeated Unit list = 1;
+  repeated Unit list = 1 [(hi.visibility) = VIS_SELF];
 }
 
 message TotalAssetsReq {
@@ -61,7 +65,8 @@ message TotalAssetsReq {
 }
 
 message TotalAssetsResp {
-  string n = 1;
+  option (hi.audience) = VIS_PUBLIC;
+  string n = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message ListUsersAssetsReq {
@@ -70,13 +75,15 @@ message ListUsersAssetsReq {
 }
 
 message ListUsersAssetsResp {
+  option (hi.audience) = VIS_PUBLIC;
   message Unit {
-    string did    = 1;
-    string avatar = 2;
-    string n      = 3;
+    option (hi.audience) = VIS_PUBLIC;
+    string did    = 1 [(hi.visibility) = VIS_PUBLIC];
+    string avatar = 2 [(hi.visibility) = VIS_PUBLIC];
+    string n      = 3 [(hi.visibility) = VIS_PUBLIC];
   }
-  int32         total = 1;
-  repeated Unit list  = 2;
+  int32         total = 1 [(hi.visibility) = VIS_PUBLIC];
+  repeated Unit list  = 2 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message GetUserAssetsReq {
@@ -87,14 +94,16 @@ message GetUserAssetsReq {
 // 美元金额 = amount*price
 // 人民币金额 = amount*price*exchange
 message GetUserAssetsResp {
+  option (hi.audience) = VIS_PUBLIC;
   message Unit {
-    Coin   coin    = 1;
-    string address = 2;
-    string amount  = 3; // 金额
-    string price   = 4; // 币价，单位USDT
+    option (hi.audience) = VIS_PUBLIC;
+    Coin   coin    = 1 [(hi.visibility) = VIS_PUBLIC];
+    string address = 2 [(hi.visibility) = VIS_PUBLIC];
+    string amount  = 3 [(hi.visibility) = VIS_PUBLIC]; // 金额
+    string price   = 4 [(hi.visibility) = VIS_PUBLIC]; // 币价，单位USDT
   }
-  repeated Unit unit     = 1;
-  string        exchange = 2; // 汇率：USD->CNY
+  repeated Unit unit     = 1 [(hi.visibility) = VIS_PUBLIC];
+  string        exchange = 2 [(hi.visibility) = VIS_PUBLIC]; // 汇率：USD->CNY
 }
 
 // 刷新自己的资产快照。did 从 token 取(不接受任意 did 入参 —— 原 did 入参可覆写他人资产,越权)。

@@ -22,8 +22,9 @@ import "hi/options.proto";
 // 商户靠邀请码注册进 hisrv(草民只用 hidid app,登不了 hisrv web)。
 
 message InviteCodeCreateResp {
-  string code      = 1;
-  bool   is_active = 2;
+  option (hi.audience) = VIS_SELF;
+  string code      = 1 [(hi.visibility) = VIS_SELF];
+  bool   is_active = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message InviteCodeEditReq {
@@ -32,14 +33,16 @@ message InviteCodeEditReq {
 }
 
 message InviteCodeListResp {
+  option (hi.audience) = VIS_SELF;
   message Unit {
-    string code       = 1;
-    bool   is_active  = 2;
-    string note       = 3;
-    int64  created_at = 4;
+    option (hi.audience) = VIS_SELF;
+    string code       = 1 [(hi.visibility) = VIS_SELF];
+    bool   is_active  = 2 [(hi.visibility) = VIS_SELF];
+    string note       = 3 [(hi.visibility) = VIS_SELF];
+    int64  created_at = 4 [(hi.visibility) = VIS_SELF];
   }
-  int32         total = 1;
-  repeated Unit infos = 2;
+  int32         total = 1 [(hi.visibility) = VIS_SELF];
+  repeated Unit infos = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message InviteCodeDeleteReq {
@@ -73,25 +76,28 @@ service Register {
 // 裁决 #2:按读写主体拆两个 service —— DApp(app 浏览,读)/ DAppAdmin(超管维护,写)。
 
 message DAppInfo {
-  string uuid        = 1; // uuid
-  string class       = 2; // 分类
-  string logo        = 3; // 应用图片
-  string title       = 4; // 应用标题
-  string description = 5; // 应用描述
-  string url         = 6; // 应用链接
-  bool   nav         = 7; // 是否在导航栏展示
-  bool   external    = 8; // 是否内置浏览器打开
-  bool   promotion   = 9; // 是否推广
+  option (hi.audience) = VIS_PUBLIC;
+  string uuid        = 1 [(hi.visibility) = VIS_PUBLIC]; // uuid
+  string class       = 2 [(hi.visibility) = VIS_PUBLIC]; // 分类
+  string logo        = 3 [(hi.visibility) = VIS_PUBLIC]; // 应用图片
+  string title       = 4 [(hi.visibility) = VIS_PUBLIC]; // 应用标题
+  string description = 5 [(hi.visibility) = VIS_PUBLIC]; // 应用描述
+  string url         = 6 [(hi.visibility) = VIS_PUBLIC]; // 应用链接
+  bool   nav         = 7 [(hi.visibility) = VIS_PUBLIC]; // 是否在导航栏展示
+  bool   external    = 8 [(hi.visibility) = VIS_PUBLIC]; // 是否内置浏览器打开
+  bool   promotion   = 9 [(hi.visibility) = VIS_PUBLIC]; // 是否推广
 }
 
 message DAppListByClassResp {
-  repeated DAppInfo top       = 1; // 视频类 Dapp
-  repeated DAppInfo popular   = 2; // 热门 Dapp
-  repeated DAppInfo recommend = 3; // 推荐 Dapp
+  option (hi.audience) = VIS_PUBLIC;
+  repeated DAppInfo top       = 1 [(hi.visibility) = VIS_PUBLIC]; // 视频类 Dapp
+  repeated DAppInfo popular   = 2 [(hi.visibility) = VIS_PUBLIC]; // 热门 Dapp
+  repeated DAppInfo recommend = 3 [(hi.visibility) = VIS_PUBLIC]; // 推荐 Dapp
 }
 
 message DAppGetRWAResp {
-  string url = 1;
+  option (hi.audience) = VIS_PUBLIC;
+  string url = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message DAppUpdateTopReq {
@@ -136,12 +142,14 @@ message MerchantManageListReq {
 }
 
 message MerchantManageListResp {
+  option (hi.audience) = VIS_SELF;
   message Unit {
-    MerchantInfo base    = 1;
-    string       comment = 2;
+    option (hi.audience) = VIS_SELF;
+    MerchantInfo base    = 1 [(hi.visibility) = VIS_PARTICIPANT];
+    string       comment = 2 [(hi.visibility) = VIS_SELF];
   }
-  int32         total = 1;
-  repeated Unit list  = 2;
+  int32         total = 1 [(hi.visibility) = VIS_SELF];
+  repeated Unit list  = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message MerchantManageEditReq {

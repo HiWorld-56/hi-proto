@@ -12,9 +12,10 @@ import "hi/options.proto";
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 message Packet {
+  option (hi.audience) = VIS_PARTICIPANT; // 群消息域:群里人人可见
   oneof kind {
-    Notice notice = 1;
-    Message message = 2;
+    Notice notice = 1 [(hi.visibility) = VIS_PARTICIPANT];
+    Message message = 2 [(hi.visibility) = VIS_PARTICIPANT];
   }
 }
 
@@ -52,19 +53,21 @@ message Packet {
       ...
 */
 message Notice {
-  string uuid = 1;
-  string type = 2;
-  hi.Entity from = 3;
-  int64 timestamp = 4;
-  int64 expiration = 5;
-  string status = 6;
-  google.protobuf.Any extra = 7;
-  string ex_type = 8;
+  option (hi.audience) = VIS_PARTICIPANT; // 群/单聊通知,收信域内可见
+  string uuid = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  string type = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity from = 3 [(hi.visibility) = VIS_PUBLIC]; // Entity=公开门面
+  int64 timestamp = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  int64 expiration = 5 [(hi.visibility) = VIS_PARTICIPANT];
+  string status = 6 [(hi.visibility) = VIS_PARTICIPANT];
+  google.protobuf.Any extra = 7 [(hi.visibility) = VIS_PARTICIPANT];
+  string ex_type = 8 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 message Prompt {
-  string custom = 1;
-  string state = 2;
+  option (hi.audience) = VIS_PARTICIPANT;
+  string custom = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  string state = 2 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 /*
@@ -104,15 +107,16 @@ message Prompt {
    type == chat 时: 发送者显示为 from
 */
 message Message {
-  string uuid = 1;
-  string type = 2;
-  hi.Entity from = 3;
-  repeated Content conts = 4;
-  int64 timestamp = 5;
-  google.protobuf.Any extra = 6;
-  string ex_type = 7;
-  hi.Entity ghost = 8;
-  Prompt prompt = 9;
+  option (hi.audience) = VIS_PARTICIPANT; // 群消息,群成员可见
+  string uuid = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  string type = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity from = 3 [(hi.visibility) = VIS_PUBLIC]; // Entity=公开门面
+  repeated Content conts = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  int64 timestamp = 5 [(hi.visibility) = VIS_PARTICIPANT];
+  google.protobuf.Any extra = 6 [(hi.visibility) = VIS_PARTICIPANT];
+  string ex_type = 7 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity ghost = 8 [(hi.visibility) = VIS_PUBLIC]; // Entity=公开门面
+  Prompt prompt = 9 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 message Mention {
@@ -132,18 +136,20 @@ message MemberExit {
 }
 
 message Content {
+  option (hi.audience) = VIS_PARTICIPANT; // 消息内容体,群成员可见
   message Chat {
-    string content = 1;
-    optional string name = 2;
-    optional uint32 size = 3;
-    optional uint32 duration = 4;
+    option (hi.audience) = VIS_PARTICIPANT;
+    string content = 1 [(hi.visibility) = VIS_PARTICIPANT];
+    optional string name = 2 [(hi.visibility) = VIS_PARTICIPANT];
+    optional uint32 size = 3 [(hi.visibility) = VIS_PARTICIPANT];
+    optional uint32 duration = 4 [(hi.visibility) = VIS_PARTICIPANT];
   }
 
-  string type = 1;
+  string type = 1 [(hi.visibility) = VIS_PARTICIPANT];
   oneof kind {
-    Chat chat = 2;
-    hi.did.Transaction trans = 3;
-    TradeBase trade = 4;
+    Chat chat = 2 [(hi.visibility) = VIS_PARTICIPANT];
+    hi.did.Transaction trans = 3 [(hi.visibility) = VIS_PUBLIC]; // Transaction=公开
+    TradeBase trade = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 交易卡可入群,基础卡=PARTICIPANT
   }
 }
 

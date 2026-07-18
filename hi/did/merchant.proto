@@ -18,19 +18,21 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 //    商户取自己的 ExtendToken 只有一条正道:**MerchantExDB.Get**(token 档,拿票窗口)。
 //    凭证只从那一个窄口子出,这里物理上带不出去。核实过:无任何消费方读取本字段。
 message MerchantInfo {
-  hi.Entity master = 1;
-  hi.Entity server = 2;
-  string name = 3;
-  string logo = 4;
-  repeated Coin public_coins = 5; // 公共币种
-  repeated Coin custom_tokens = 6; // 自定义币种
-  string endpoint = 7;
-  string scheme = 8;
-  int64 created_at = 10;
+  option (hi.audience) = VIS_PARTICIPANT;
+  hi.Entity master = 1 [(hi.visibility) = VIS_PUBLIC];
+  hi.Entity server = 2 [(hi.visibility) = VIS_PUBLIC];
+  string name = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  string logo = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  repeated Coin public_coins = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 公共币种
+  repeated Coin custom_tokens = 6 [(hi.visibility) = VIS_PARTICIPANT]; // 自定义币种
+  string endpoint = 7 [(hi.visibility) = VIS_PARTICIPANT];
+  string scheme = 8 [(hi.visibility) = VIS_PARTICIPANT];
+  int64 created_at = 10 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 message MerchantGetResp {
-  MerchantInfo info = 1;
+  option (hi.audience) = VIS_PARTICIPANT;
+  MerchantInfo info = 1 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 // 商户改自己的配置。商户身份来自 ExtendToken —— 不接受 server 入参(冗余/越权);
@@ -44,8 +46,9 @@ message MerchantSetReq {
 }
 
 message MerchantListResp {
-  int32 total = 1;
-  repeated MerchantInfo list = 2;
+  option (hi.audience) = VIS_PARTICIPANT;
+  int32 total = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  repeated MerchantInfo list = 2 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 // ── 用户扩展的数据形状 ───────────────────────────────────────────────
@@ -53,16 +56,18 @@ message MerchantListResp {
 // 从 base.proto 迁来:归位后只有 Merchant(商户主体)读写扩展,放这里最贴切,
 // 且 merchant.proto 不 import user_extension.proto,不会成环。
 message UserExtensionInfo {
-  optional string logo = 1;
-  optional int32 level = 2;
-  optional string card = 3;
-  optional string extend = 4;
-  optional string note = 5;
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string logo = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int32 level = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string card = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string extend = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string note = 5 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 message UserExtensionUnit {
-  hi.Entity user = 1; // 用户实体(name/avatar);handler 须始终填,即使无扩展行
-  UserExtensionInfo info = 2; // 扩展信息(该商户维护)
+  option (hi.audience) = VIS_PARTICIPANT;
+  hi.Entity user = 1 [(hi.visibility) = VIS_PUBLIC]; // 用户实体(name/avatar);handler 须始终填,即使无扩展行
+  UserExtensionInfo info = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 扩展信息(该商户维护)
 }
 
 // ── 商户互授权 ───────────────────────────────────────────────────────
@@ -74,13 +79,15 @@ message GrantReq {
 }
 
 message GrantUnit {
-  hi.Entity grantee = 1; // 被授权方
-  string note = 2;
-  int64 created_at = 3; // ms
+  option (hi.audience) = VIS_SELF;
+  hi.Entity grantee = 1 [(hi.visibility) = VIS_PUBLIC]; // 被授权方
+  string note = 2 [(hi.visibility) = VIS_SELF];
+  int64 created_at = 3 [(hi.visibility) = VIS_SELF]; // ms
 }
 
 message ListGrantsResp {
-  repeated GrantUnit grants = 1; // 我授权给了哪些商户
+  option (hi.audience) = VIS_SELF;
+  repeated GrantUnit grants = 1 [(hi.visibility) = VIS_SELF]; // 我授权给了哪些商户
 }
 
 // ── 商户管理用户(扩展数据)的入参 ───────────────────────────────────
@@ -97,8 +104,9 @@ message ListUsersReq {
 }
 
 message ListUsersResp {
-  int32 total = 1;
-  repeated UserExtensionUnit units = 2;
+  option (hi.audience) = VIS_PARTICIPANT;
+  int32 total = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  repeated UserExtensionUnit units = 2 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 message SetUsersReq {
@@ -126,8 +134,9 @@ message GetUserMqttReq {
 // mqtt 凭证。**无 client_id** —— client_id 各服务自管(did/club 同时登 mqtt 时不互踢);
 // username/password 设计上穿透(为将来动态密码留口)。商户可见 OK(邀请码注册可追责)。
 message GetUserMqttResp {
-  string username = 1;
-  string password = 2;
+  option (hi.audience) = VIS_PARTICIPANT;
+  string username = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  string password = 2 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 // 商户(主体=商户,ExtendToken)。按主体归位:商户自身配置、对用户扩展数据的读写、授权,全在这。
@@ -197,11 +206,13 @@ service Merchant {
 //    (商户的 API 凭证)**、master、endpoint 等 —— 一个都不能给 app。
 //    单开这个门面,以后要开放别的公开字段也有地方放,且物理上不可能带出敏感字段。
 message MerchantPubSchemeResp {
-  string scheme = 1; // 商户业务 app 的回调 scheme;只有 scheme,别的一概不给
+  option (hi.audience) = VIS_PUBLIC;
+  string scheme = 1 [(hi.visibility) = VIS_PUBLIC]; // 商户业务 app 的回调 scheme;只有 scheme,别的一概不给
 }
 
 message MerchantPubServerResp {
-  hi.Entity server = 1; // 收款/付款 server(默认 = master);涉及转账时按 master did 取此作目标/源头
+  option (hi.audience) = VIS_PUBLIC;
+  hi.Entity server = 1 [(hi.visibility) = VIS_PUBLIC]; // 收款/付款 server(默认 = master);涉及转账时按 master did 取此作目标/源头
 }
 
 // 商户公开信息(免鉴权)。主体=商户对外可见的那部分。
@@ -223,8 +234,9 @@ service MerchantPub {
 
 // 商户的扩展库访问凭证:extoken(=ExtendToken,商户的 API 凭证)+ extend 表名。
 message MerchantExDBResp {
-  string token = 1; // ExtendToken
-  string table = 2; // 扩展数据表名
+  option (hi.audience) = VIS_SELF;
+  string token = 1 [(hi.visibility) = VIS_SELF]; // ExtendToken
+  string table = 2 [(hi.visibility) = VIS_SELF]; // 扩展数据表名
 }
 
 // 商户主人登录 hisrv 后,取/换自己的 ExtendToken —— **bootstrap 层**。

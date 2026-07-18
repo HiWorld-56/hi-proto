@@ -9,13 +9,15 @@ import "hi/options.proto";
 
 // 通用模型列表(LLM/Embedding/TTS 共用 —— 都只是一串模型名)。
 message ModelListResp {
-  repeated string models = 1;
+  option (hi.audience) = VIS_PUBLIC; // 可用模型目录 → 公开
+  repeated string models = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
 // STT 单独:除模型名还带支持语言。
 message ListSTTResp {
-  repeated string models = 1;
-  repeated string langs  = 2;
+  option (hi.audience) = VIS_PUBLIC; // STT 模型 + 语言目录 → 公开
+  repeated string models = 1 [(hi.visibility) = VIS_PUBLIC];
+  repeated string langs  = 2 [(hi.visibility) = VIS_PUBLIC];
 }
 
 // 模型目录(主体=模型)。从 Agent 拆出 —— 这些方法查的是"有哪些模型可用",

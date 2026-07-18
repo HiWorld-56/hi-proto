@@ -10,18 +10,20 @@ import "hi/options.proto";
 
 /////////////////////////////// 智能体 ///////////////////////////////
 message Prompt {
-  string system = 1;
-  string user   = 2;
+  option (hi.audience) = VIS_SELF; // 系统/用户提示词=机器人私有配置,只给 owner 本人
+  string system = 1 [(hi.visibility) = VIS_SELF];
+  string user   = 2 [(hi.visibility) = VIS_SELF];
 }
 
 // 一个 agent 选用的一组模型。原名 Model —— 与模型目录 service Model 同包重名,
 // 且它本就不是"一个模型"而是一套选择,故改名 ModelSet。
 message ModelSet {
-  string llm       = 1;
-  string stt       = 2;
-  string tts       = 3;
-  string embedding = 4;
-  string mem_model = 5; // 记忆模型:与其它模型配置同处,经 Agent.Edit 设置(原 Training.SetMemModel/GetMemModel 已删,别再开第二条写路径)
+  option (hi.audience) = VIS_SELF; // 本 agent 选用的模型=私有配置(模型「目录」在 model.proto 才是 PUBLIC)
+  string llm       = 1 [(hi.visibility) = VIS_SELF];
+  string stt       = 2 [(hi.visibility) = VIS_SELF];
+  string tts       = 3 [(hi.visibility) = VIS_SELF];
+  string embedding = 4 [(hi.visibility) = VIS_SELF];
+  string mem_model = 5 [(hi.visibility) = VIS_SELF]; // 记忆模型:与其它模型配置同处,经 Agent.Edit 设置(原 Training.SetMemModel/GetMemModel 已删,别再开第二条写路径)
 }
 
 // 智能体配置。
@@ -29,11 +31,12 @@ message ModelSet {
 // ⚠️ **插件没有总开关**:有 plugin 权限 = 插件模块就是开的;是否生效由每个脚本自己的 enabled 决定
 //    (原 use_plugin 已删)。故这里只剩 use_mem 一个总开关 —— 记忆模块待重构,重构前暂留。
 message AgentConfig {
-  Prompt         prompt  = 1;
-  optional float freedom = 2; // 控制模型输出的随机性，值越大越随机
-  ModelSet       model   = 3;
-  optional int32 qa_num  = 4; // 上下文组数
-  optional bool  use_mem = 5; // 启用记忆（启用训练数据）。optional:Edit 局部更新——不传=不动,避免只改别的字段时把记忆误关。
+  option (hi.audience) = VIS_SELF; // 机器人配置(提示词/模型/记忆开关)=owner 私产
+  Prompt         prompt  = 1 [(hi.visibility) = VIS_SELF];
+  optional float freedom = 2 [(hi.visibility) = VIS_SELF]; // 控制模型输出的随机性，值越大越随机
+  ModelSet       model   = 3 [(hi.visibility) = VIS_SELF];
+  optional int32 qa_num  = 4 [(hi.visibility) = VIS_SELF]; // 上下文组数
+  optional bool  use_mem = 5 [(hi.visibility) = VIS_SELF]; // 启用记忆（启用训练数据）。optional:Edit 局部更新——不传=不动,避免只改别的字段时把记忆误关。
                               // 启用需 mem 权限(use-side 判);记忆开关的唯一写入口就是 Agent.Edit(原 SetSwitches 已移除)。
 }
 
@@ -46,17 +49,19 @@ message TokenUsage {
 }
 
 message AgentInfo {
-  hi.Entity   base       = 1;
-  AgentConfig config     = 2;
-  string      creator    = 3;
-  string      note       = 4;
-  TokenUsage  token      = 5;
-  int64       created_at = 6;
-  bool        marked     = 7; // 是否被打了标记(带标记的显示靠前);原 favorited
+  option (hi.audience) = VIS_SELF; // 含 config/token 私产 → 整条只发给 owner 本人
+  hi.Entity   base       = 1 [(hi.visibility) = VIS_PUBLIC]; // hi.Entity 恒 PUBLIC
+  AgentConfig config     = 2 [(hi.visibility) = VIS_SELF];
+  string      creator    = 3 [(hi.visibility) = VIS_SELF]; // 归属 did
+  string      note       = 4 [(hi.visibility) = VIS_SELF];
+  TokenUsage  token      = 5 [(hi.visibility) = VIS_SELF];
+  int64       created_at = 6 [(hi.visibility) = VIS_SELF];
+  bool        marked     = 7 [(hi.visibility) = VIS_SELF]; // 是否被打了标记(带标记的显示靠前);原 favorited
 }
 
 message DefaultConfigResp {
-  AgentConfig config = 1; // 全局默认配置(建 agent 用的模板,与具体 agent 无关)
+  option (hi.audience) = VIS_SELF; // 复用 AgentConfig(SELF)→整条随之 SELF
+  AgentConfig config = 1 [(hi.visibility) = VIS_SELF]; // 全局默认配置(建 agent 用的模板,与具体 agent 无关)
 }
 
 message CreateAgentReq {
@@ -64,9 +69,10 @@ message CreateAgentReq {
 }
 
 message CreateAgentResp {
-  hi.Entity   base    = 1;
-  AgentConfig config  = 2;
-  hi.Entity   creator = 3;
+  option (hi.audience) = VIS_SELF; // 含 AgentConfig 私产 → SELF
+  hi.Entity   base    = 1 [(hi.visibility) = VIS_PUBLIC]; // hi.Entity 恒 PUBLIC
+  AgentConfig config  = 2 [(hi.visibility) = VIS_SELF];
+  hi.Entity   creator = 3 [(hi.visibility) = VIS_PUBLIC]; // hi.Entity 恒 PUBLIC
 }
 
 message EditAgentReq {
@@ -76,8 +82,9 @@ message EditAgentReq {
 }
 
 message ListAgentResp {
-  int32              total = 1;
-  repeated AgentInfo infos = 2;
+  option (hi.audience) = VIS_SELF; // 列 owner 自己的机器人(含 config)→ SELF
+  int32              total = 1 [(hi.visibility) = VIS_SELF];
+  repeated AgentInfo infos = 2 [(hi.visibility) = VIS_SELF];
 }
 
 // Agent 列表入参:dids 空=列调用者自己的;非空=按 did 列。
@@ -101,7 +108,8 @@ message GetAgentReq {
 }
 
 message GetAgentResp {
-  AgentInfo info = 1;
+  option (hi.audience) = VIS_SELF; // AgentInfo(SELF)
+  AgentInfo info = 1 [(hi.visibility) = VIS_SELF];
 }
 
 message AgentUsageReq {

@@ -9,15 +9,17 @@ import "hi/options.proto";
 
 // 一次测时明细(bot_sts_count 的一行):各段耗时。
 message AgentDelayUnit {
-  string agent         = 1;
-  string uuid          = 2;
-  string type          = 3;
-  int32  llm           = 4;
-  int32  llm2          = 5;
-  int32  stt           = 6;
-  int32  tts           = 7;
-  int32  function_call = 8;
-  int64  test_time     = 9;
+  option (hi.audience) = VIS_SELF; // 商户自家 agent 的各段耗时(AUTH_MERCHANT,只有 owner 看自己的);
+                                   // 与 AgentUsageResp(同 owner 运营指标)一致取 SELF —— 无 participant 对端会看别人机器人的延迟
+  string agent         = 1 [(hi.visibility) = VIS_SELF];
+  string uuid          = 2 [(hi.visibility) = VIS_SELF];
+  string type          = 3 [(hi.visibility) = VIS_SELF];
+  int32  llm           = 4 [(hi.visibility) = VIS_SELF];
+  int32  llm2          = 5 [(hi.visibility) = VIS_SELF];
+  int32  stt           = 6 [(hi.visibility) = VIS_SELF];
+  int32  tts           = 7 [(hi.visibility) = VIS_SELF];
+  int32  function_call = 8 [(hi.visibility) = VIS_SELF];
+  int64  test_time     = 9 [(hi.visibility) = VIS_SELF];
 }
 
 message ListAgentDelayReq {
@@ -27,8 +29,9 @@ message ListAgentDelayReq {
 }
 
 message ListAgentDelayResp {
-  int32                   total = 1;
-  repeated AgentDelayUnit units = 2;
+  option (hi.audience) = VIS_SELF; // 我的机器人延迟统计列表
+  int32                   total = 1 [(hi.visibility) = VIS_SELF];
+  repeated AgentDelayUnit units = 2 [(hi.visibility) = VIS_SELF];
 }
 
 // 智能体延迟基准(主体=测时数据)。从 Chat 拆出 —— 这是监控统计,不是对话。

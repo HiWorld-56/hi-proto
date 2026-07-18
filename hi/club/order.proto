@@ -14,20 +14,23 @@ message PcOrderData {
   string nonce = 2;
 }
 
+// 我的订单(hidid-pc 为订单主体拉取)→ SELF。
 message PcOrder {
-  string id         = 1;
-  string order_id   = 2;
-  string to_did     = 3;
-  string amount     = 4;
-  string type       = 5;
-  int64  created_at = 6;
-  int64  updated_at = 7;
-  string did        = 8;
-  string status     = 9;
+  option (hi.audience) = VIS_SELF;
+  string id         = 1 [(hi.visibility) = VIS_SELF];
+  string order_id   = 2 [(hi.visibility) = VIS_SELF];
+  string to_did     = 3 [(hi.visibility) = VIS_SELF];
+  string amount     = 4 [(hi.visibility) = VIS_SELF];
+  string type       = 5 [(hi.visibility) = VIS_SELF];
+  int64  created_at = 6 [(hi.visibility) = VIS_SELF];
+  int64  updated_at = 7 [(hi.visibility) = VIS_SELF];
+  string did        = 8 [(hi.visibility) = VIS_SELF];
+  string status     = 9 [(hi.visibility) = VIS_SELF];
 }
 
 message GetNotPulledPcOrdersResp {
-  repeated PcOrder orders = 1;
+  option (hi.audience) = VIS_SELF;
+  repeated PcOrder orders = 1 [(hi.visibility) = VIS_SELF];
 }
 
 message UpdatePulledPcOrder {

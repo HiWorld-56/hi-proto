@@ -12,12 +12,14 @@ message GetPriceReq {
 }
 
 message GetPriceResp {
+  option (hi.audience) = VIS_PUBLIC;
   message Unit {
-    string price = 1;
-    Coin   coin  = 2;
+    option (hi.audience) = VIS_PUBLIC;
+    string price = 1 [(hi.visibility) = VIS_PUBLIC];
+    Coin   coin  = 2 [(hi.visibility) = VIS_PUBLIC];
   }
-  repeated Unit list     = 1;
-  string        exchange = 2;
+  repeated Unit list     = 1 [(hi.visibility) = VIS_PUBLIC];
+  string        exchange = 2 [(hi.visibility) = VIS_PUBLIC];
 }
 
 service Price {

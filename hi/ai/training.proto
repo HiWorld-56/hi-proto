@@ -18,10 +18,11 @@ message StatusReq {
 }
 
 message StatusResp {
-  string status      = 1; // 训练状态,success-训练成功,failed-训练失败
-  int32  mem_count   = 2;
-  int32  slice_count = 3;
-  string message     = 4; // 训练状态描述
+  option (hi.audience) = VIS_SELF; // 机器人训练状态=owner 私有
+  string status      = 1 [(hi.visibility) = VIS_SELF]; // 训练状态,success-训练成功,failed-训练失败
+  int32  mem_count   = 2 [(hi.visibility) = VIS_SELF];
+  int32  slice_count = 3 [(hi.visibility) = VIS_SELF];
+  string message     = 4 [(hi.visibility) = VIS_SELF]; // 训练状态描述
 }
 
 message ClearReq {
@@ -35,17 +36,18 @@ message UploadFileReq {
 }
 
 message TrainingFile {
-  string uuid          = 1;  // 训练文件稳定标识(uuid;不暴露数据表自增 id)
-  string content       = 2;  // content（文件内容） / path / url
-  string agent         = 3;  // 智能体did
-  string title         = 4;  // 文件名
-  int32  size          = 5;  // 文件大小
-  string type          = 6;  // 文件类型
-  bool   is_use        = 7;  // 是否已经训练
-  string digest        = 8;  // 文件摘要
-  int64  training_time = 9;  // 训练时间
-  int64  created_at    = 10; // 创建时间
-  int64  updated_at    = 11; // 更新时间
+  option (hi.audience) = VIS_SELF; // 训练文件是机器人私产、有归属校验 → SELF
+  string uuid          = 1  [(hi.visibility) = VIS_SELF]; // 训练文件稳定标识(uuid;不暴露数据表自增 id)
+  string content       = 2  [(hi.visibility) = VIS_SELF]; // content（文件内容） / path / url
+  string agent         = 3  [(hi.visibility) = VIS_SELF]; // 智能体did
+  string title         = 4  [(hi.visibility) = VIS_SELF]; // 文件名
+  int32  size          = 5  [(hi.visibility) = VIS_SELF]; // 文件大小
+  string type          = 6  [(hi.visibility) = VIS_SELF]; // 文件类型
+  bool   is_use        = 7  [(hi.visibility) = VIS_SELF]; // 是否已经训练
+  string digest        = 8  [(hi.visibility) = VIS_SELF]; // 文件摘要
+  int64  training_time = 9  [(hi.visibility) = VIS_SELF]; // 训练时间
+  int64  created_at    = 10 [(hi.visibility) = VIS_SELF]; // 创建时间
+  int64  updated_at    = 11 [(hi.visibility) = VIS_SELF]; // 更新时间
 }
 
 message ListFilesReq {
@@ -55,8 +57,9 @@ message ListFilesReq {
 }
 
 message ListFilesResp {
-  int32                     total = 1;
-  repeated TrainingFile list  = 2;
+  option (hi.audience) = VIS_SELF; // TrainingFile(SELF)
+  int32                 total = 1 [(hi.visibility) = VIS_SELF];
+  repeated TrainingFile list  = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message DeleteFilesReq {
@@ -74,7 +77,8 @@ message GetFileReq {
 }
 
 message GetFileResp {
-  TrainingFile file = 1;
+  option (hi.audience) = VIS_SELF; // TrainingFile(SELF)
+  TrainingFile file = 1 [(hi.visibility) = VIS_SELF];
 }
 
 message UpdateContentReq {
@@ -89,7 +93,8 @@ message CreateContentReq {
 }
 
 message CreateContentResp {
-  TrainingFile file = 1;
+  option (hi.audience) = VIS_SELF; // TrainingFile(SELF)
+  TrainingFile file = 1 [(hi.visibility) = VIS_SELF];
 }
 
 message EditDigestReq {

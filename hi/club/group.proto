@@ -74,7 +74,8 @@ message ListGroupMessageReq {
 }
 
 message ListGroupMessageResp {
-  repeated Packet list = 1;
+  option (hi.audience) = VIS_PARTICIPANT; // 群消息列表,成员可见
+  repeated Packet list = 1 [(hi.visibility) = VIS_PARTICIPANT]; // Packet=PARTICIPANT
 }
 
 message ListGroupMemberReq {
@@ -87,7 +88,8 @@ message GetGroupMemberTotalReq {
 }
 
 message GetGroupMemberTotalResp {
-  int32 total = 1;
+  option (hi.audience) = VIS_PARTICIPANT; // 群成员数,成员可见
+  int32 total = 1 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 message InviteGroupReq {
@@ -119,7 +121,8 @@ message GetRoleReq {
 }
 
 message GetRoleResp {
-  string role = 1;
+  option (hi.audience) = VIS_PARTICIPANT; // 我在群里的角色,成员级
+  string role = 1 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 // 免打扰(调用者自己):新消息不震动手机。用户自设,非管理操作。

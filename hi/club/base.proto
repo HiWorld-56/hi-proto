@@ -15,7 +15,8 @@ message GetConfigReq {
 }
 
 message GetConfigResp {
-  string value = 1;
+  option (hi.audience) = VIS_PUBLIC; // 临时透传配置(dev 仅一条 webview URL),内容无私密性
+  string value = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
 // 基础数据(公开)。全档一致 —— 与 did 的 Base 对齐。

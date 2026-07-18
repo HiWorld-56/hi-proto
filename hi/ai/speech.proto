@@ -13,7 +13,8 @@ message SynthesizeReq {
 }
 
 message SynthesizeResp {
-  string url = 1; // 合成音频 url
+  option (hi.audience) = VIS_SELF; // 我的音频合成结果 → SELF
+  string url = 1 [(hi.visibility) = VIS_SELF]; // 合成音频 url
 }
 
 message TranscribeReq {
@@ -23,7 +24,8 @@ message TranscribeReq {
 }
 
 message TranscribeResp {
-  string text = 1;
+  option (hi.audience) = VIS_SELF; // 我的语音转写结果 → SELF
+  string text = 1 [(hi.visibility) = VIS_SELF];
 }
 
 // 语音转换(主体=语音)。**纯格式转换,不涉及 agent / 会话 / 工具**。
