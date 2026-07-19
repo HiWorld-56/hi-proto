@@ -35,8 +35,8 @@ enum Emotion {
 
 // 机器人初始化：自身身份 + 当前所有者
 // master 缺省表示尚未绑定所有者
-message BotInit {
-  hi.Entity bot    = 1;
+message RobotInit {
+  hi.Entity robot    = 1;
   hi.Entity master = 2;
 }
 
@@ -77,7 +77,7 @@ message AudioPlay {
 message BrainToFace {
   oneof cmd {
     // 初始化
-    BotInit               init_bot         = 1;  // face 上线时推送，携带机器人和所有者身份
+    RobotInit               init_robot         = 1;  // face 上线时推送，携带机器人和所有者身份
 
     // 交互状态
     StateToggle           show_listen      = 2;  // 语音监听开始/结束
@@ -90,7 +90,7 @@ message BrainToFace {
     google.protobuf.Empty show_qr_code     = 7;  // 展示机器人 DID 二维码
 
     // 状态事件
-    hi.Entity             event_bot         = 8;  // 机器人自身资料变更
+    hi.Entity             event_robot         = 8;  // 机器人自身资料变更
     MasterEvent           event_master      = 9;  // 所有者绑定状态变化
     hi.club.GroupInfo     event_members     = 10; // 群成员列表（全量）
     hi.ai.PluginView      event_plugin      = 11; // 插件加载完成
