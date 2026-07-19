@@ -39,7 +39,7 @@ message Packet {
       robot-bind            robot(硬件机器人)绑定完成
       robot-unbind          robot(硬件机器人)解绑完成
       robot-update          robot(硬件机器人)资料更新              / hi.Entity
-      plugin-load           插件/脚本加载完成                      / hi.ai.PluginItem
+      plugin-load           插件/脚本加载完成                      / hi.ai.PluginView
 
    ex_type: 附加类型
       扩充主类型，避免主类型产生过多分支。
