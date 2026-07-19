@@ -18,25 +18,32 @@ echo "[hi-proto] $(git -C "$HIPROTO" rev-parse --short HEAD)"
 
 # 鉴权标注校验:每个 rpc 必须显式标注 hi.auth。规则长在方法上,后端拦截器读 descriptor;
 # 漏标即 fail-closed(线上会被拒绝),故在生成前就拦下,而不是等上线才发现。
-echo "[0/4] 校验 hi.auth 标注"
+echo "[0/5] 校验 hi.auth 标注"
 python3 "$HIPROTO/codegen/check_auth.py"
 
-echo "[1/4] 合并 HTTP 配置"
+echo "[1/5] 合并 HTTP 配置"
 ( cd "$HIPROTO" && make merge >/dev/null )
 
-echo "[2/4] go-http → $CODE"
+echo "[2/5] go-http → $CODE"
 ( cd "$HIPROTO"; unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy
   rm -rf "$CODE/go/hi" "$CODE/go/google" "$CODE/go/buf"; buf generate --template codegen/go_http_code.yaml )
 
-echo "[3/4] rust → $CODE/rust/src/gen"
+echo "[3/5] rust → $CODE/rust/src/gen"
 ( cd "$HIPROTO/codegen/rust-gen"
   export HTTPS_PROXY=$PROXY HTTP_PROXY=$PROXY          # cargo 走梯子;rust-gen 内部会为 buf 剥离代理
   cargo run --quiet -- "$HIPROTO" "$CODE/rust/src/gen" )
 
-echo "[4/4] dart → $CODE/dart/lib"
+echo "[4/5] dart → $CODE/dart/lib"
 ( cd "$HIPROTO"; unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy
   rm -rf "$CODE/dart/lib/hi" "$CODE/dart/lib/google" "$CODE/dart/lib/buf"
   buf generate --template codegen/dart_code.yaml )
+
+echo "[5/5] lua descriptor → $CODE/lua/hi.pb"
+# lua-protobuf(pb.load)吃 FileDescriptorSet。Lua 工程(如 hinj-face)pin hi-proto-code 版本、
+# 加载此 hi.pb,不再各自本地 protoc 生成。含全部 hi.* 与 imports,单文件全量。
+( cd "$HIPROTO"; unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy
+  mkdir -p "$CODE/lua"
+  buf build --as-file-descriptor-set -o "$CODE/lua/hi.pb" )
 
 cd "$CODE"
 git checkout -q dev
