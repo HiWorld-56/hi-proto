@@ -38,8 +38,8 @@ message BindStatusResp {
 
 // 转让机器人 = **换 master**。club 侧不存在"机器人创建者"的概念。
 //
-// ⚠️ 不再转发 ai.Agent.Transfer —— 那个已从 ai 删除(它自称"转 apikey+bot",实际只改 creator,
-//    还会把目标非超级用户的 bot 模型顺手降级)。这个概念本就该在 club 实现,故用 club 自己的类型。
+// ⚠️ 不再转发 ai.Agent.Transfer —— 那个已从 ai 删除(它自称"转 apikey+agent",实际只改 creator,
+//    还会把目标非超级用户的 agent 模型顺手降级)。这个概念本就该在 club 实现,故用 club 自己的类型。
 // 它与 BindMaster/UnbindMaster 是同一件事(换绑主人),故同处 Agent。
 message TransferReq {
   string agent = 1; // 要转让的机器人 did

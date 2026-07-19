@@ -73,7 +73,7 @@ message DeleteFilesByAgentsReq {
 
 message GetFileReq {
   string uuid  = 1; // 训练文件 uuid
-  string agent = 2; // 智能体did(供 club/ai 两级归属校验;club 按 agent 查本方用户是否拥有该 bot)
+  string agent = 2; // 智能体did(供 club/ai 两级归属校验;club 按 agent 查本方用户是否拥有该 agent)
 }
 
 message GetFileResp {

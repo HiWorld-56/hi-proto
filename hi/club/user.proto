@@ -50,7 +50,7 @@ message RelationInfo {
 message ListRelationsResp {
   option (hi.audience) = VIS_SELF; // 我的好友+仆从列表(RelationInfo=SELF,含私有备注)
   repeated RelationInfo friend   = 1 [(hi.visibility) = VIS_SELF]; // 好友(friend 关系)
-  repeated RelationInfo servitor = 2 [(hi.visibility) = VIS_SELF]; // 仆从(master 关系,人或 bot)
+  repeated RelationInfo servitor = 2 [(hi.visibility) = VIS_SELF]; // 仆从(master 关系,人或 agent)
 }
 
 message AddFriendReq {

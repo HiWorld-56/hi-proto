@@ -7,7 +7,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
 import "hi/common.proto";
 import "hi/options.proto";
 
-// 一次测时明细(bot_sts_count 的一行):各段耗时。
+// 一次测时明细(agent_sts_count 的一行):各段耗时。
 message AgentDelayUnit {
   option (hi.audience) = VIS_SELF; // 商户自家 agent 的各段耗时(AUTH_MERCHANT,只有 owner 看自己的);
                                    // 与 AgentUsageResp(同 owner 运营指标)一致取 SELF —— 无 participant 对端会看别人机器人的延迟
@@ -36,9 +36,9 @@ message ListAgentDelayResp {
 
 // 智能体延迟基准(主体=测时数据)。从 Chat 拆出 —— 这是监控统计,不是对话。
 //
-// 原 `Chat.ListAgentDelays` 与 `Chat.GetAgentDelay` **近乎重复**:都查 bot_sts_count、
+// 原 `Chat.ListAgentDelays` 与 `Chat.GetAgentDelay` **近乎重复**:都查 agent_sts_count、
 // 同参(type/agent/分页)、返回同形 {total, []AgentDelayUnit} 明细行,唯一差别是前者多校验
-// 一次 bot 存在。二者都不是"列 agent",故合并为一个 List。
+// 一次 agent 存在。二者都不是"列 agent",故合并为一个 List。
 //
 // 商户档:hiai web 与商户后台服务都会调。
 service AgentBench {

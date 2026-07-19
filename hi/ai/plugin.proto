@@ -14,9 +14,9 @@ import "hi/options.proto";
 // ── 插件模型(body / annex 分层,2026-07 重构)───────────────────────────────
 // 插件 = plugin_body(本体,可多机器人共享)+ plugin_annex(附件,每机器人各异)。
 //   · plugin_body{uuid, version, script(zip), description=function-call格式} —— 按 (uuid,version)
-//     不可变;同 uuid 多版本共存,某 bot 只激活一个。**可被多个机器人引用**(为插件市场铺路)。
+//     不可变;同 uuid 多版本共存,某 agent 只激活一个。**可被多个机器人引用**(为插件市场铺路)。
 //   · plugin_annex{api_key, data} —— 某机器人对某 body 的附件:
-//       api_key = 机器人的 club 原生 apikey(上传时 club 自动取该 bot 第一个;鉴权范围 ≤ token),
+//       api_key = 机器人的 club 原生 apikey(上传时 club 自动取该 agent 第一个;鉴权范围 ≤ token),
 //                 脚本用它调 hiclub 的受限方法子集;
 //       data    = 用户填的运行时扩展数据。
 //     运行期把 **plugin_annex 作为一个字典型全局变量 `plugin_annex` 注入 py 执行环境**。
@@ -37,23 +37,23 @@ message PluginBody {
 
 // plugin_annex:某机器人对某 body 的附件。运行期以字典全局变量注入执行环境。
 message PluginAnnex {
-  string                 api_key = 1; // bot 的 club-apikey(club 上传时自动取第一个)
+  string                 api_key = 1; // agent 的 club-apikey(club 上传时自动取第一个)
   google.protobuf.Struct data    = 2; // 用户填的运行时扩展数据
 }
 
-// 某 bot 视角的一个插件:body + 该 bot 的绑定状态(List/Get 返回;api_key 敏感不随列表回)。
+// 某 agent 视角的一个插件:body + 该 agent 的绑定状态(List/Get 返回;api_key 敏感不随列表回)。
 message PluginView {
   option (hi.audience) = VIS_SELF; // 插件挂机器人下,owner 私产
   PluginBody body    = 1 [(hi.visibility) = VIS_SELF];
-  bool       active  = 2 [(hi.visibility) = VIS_SELF]; // body.version 是否为该 bot 的激活版本(List 返回激活版本时恒 true)
-  bool       enabled = 3 [(hi.visibility) = VIS_SELF]; // 该 bot 是否启用此插件参与推理
+  bool       active  = 2 [(hi.visibility) = VIS_SELF]; // body.version 是否为该 agent 的激活版本(List 返回激活版本时恒 true)
+  bool       enabled = 3 [(hi.visibility) = VIS_SELF]; // 该 agent 是否启用此插件参与推理
 }
 
 // 上传一个脚本版本 + 建 owner 自己的 annex。`body.uuid` 空=新脚本(后台生成),非空=给已有脚本加版本。
 // 后台按 (uuid, version):存在则覆盖 body,否则新建。annex 建/更新按 (agent, uuid)。
-// annex.api_key 由 club 自动取该 bot 第一个 club-apikey 填入(ai 只存);data 用户填。
+// annex.api_key 由 club 自动取该 agent 第一个 club-apikey 填入(ai 只存);data 用户填。
 message CreatePluginReq {
-  string      agent = 1; // 智能体 did(owner bot)
+  string      agent = 1; // 智能体 did(owner agent)
   PluginBody  body  = 2; // uuid 空=新脚本;url/version/name/description 由用户/前端提供
   PluginAnnex annex = 3; // api_key 由 club 填、data 用户填
 }
@@ -63,33 +63,33 @@ message CreatePluginResp {
   string uuid = 1 [(hi.visibility) = VIS_SELF]; // 插件 id
 }
 
-// 把一个**已有 body** 绑定到某 bot(生成一条 annex)。插件市场"分享/授权"通过后由 club 调;
+// 把一个**已有 body** 绑定到某 agent(生成一条 annex)。插件市场"分享/授权"通过后由 club 调;
 // owner 首次上传走 Create(自带 annex),本方法用于**同 body 多机器人引用**。
 message CreateAnnexReq {
-  string      agent   = 1; // 目标 bot did
+  string      agent   = 1; // 目标 agent did
   string      uuid    = 2; // 要绑定的 body uuid
-  string      version = 3; // 激活哪个版本(该 bot 的 active)
-  PluginAnnex annex   = 4; // 该 bot 的 api_key(club 取)+ data
+  string      version = 3; // 激活哪个版本(该 agent 的 active)
+  PluginAnnex annex   = 4; // 该 agent 的 api_key(club 取)+ data
 }
 
-// 改插件:body 的可变元数据(name/description)+ 该 bot 的 annex。url/version 不可改(改脚本=加版本)。
+// 改插件:body 的可变元数据(name/description)+ 该 agent 的 annex。url/version 不可改(改脚本=加版本)。
 message EditPluginReq {
-  string      agent       = 1; // bot did
+  string      agent       = 1; // agent did
   string      uuid        = 2; // 脚本 id
   string      name        = 3; // 改名(空=不改)
   string      description = 4; // 改描述/function-call spec(空=不改)
-  PluginAnnex annex       = 5; // 改该 bot 的 api_key/data
+  PluginAnnex annex       = 5; // 改该 agent 的 api_key/data
 }
 
 message SetEnabledReq {
-  string agent   = 1; // bot did
+  string agent   = 1; // agent did
   string uuid    = 2; // 脚本 id
-  bool   enabled = 3; // 该 bot 是否参与推理
+  bool   enabled = 3; // 该 agent 是否参与推理
 }
 
-// 选定该 bot 用哪个版本供 function call 调用(同脚本多版本共存,该 bot 只激活一个)。
+// 选定该 agent 用哪个版本供 function call 调用(同脚本多版本共存,该 agent 只激活一个)。
 message SetActiveVersionReq {
-  string agent   = 1; // bot did
+  string agent   = 1; // agent did
   string uuid    = 2; // 脚本 id
   string version = 3; // 要激活的版本
 }
@@ -100,7 +100,7 @@ message ListPluginReq {
 }
 
 message ListVersionsReq {
-  string        agent      = 1; // bot did
+  string        agent      = 1; // agent did
   string        uuid       = 2; // 脚本 id
   hi.Pagination pagination = 3;
 }
@@ -112,9 +112,9 @@ message ListPluginResp {
 }
 
 message GetPluginReq {
-  string agent   = 1; // bot did
+  string agent   = 1; // agent did
   string uuid    = 2; // 脚本 id
-  string version = 3; // 留空=该 bot 的激活版本
+  string version = 3; // 留空=该 agent 的激活版本
 }
 
 message GetPluginResp {
@@ -123,9 +123,9 @@ message GetPluginResp {
 }
 
 message DeletePluginReq {
-  string agent   = 1; // bot did
+  string agent   = 1; // agent did
   string uuid    = 2; // 脚本 id
-  string version = 3; // 留空=解绑该 bot 的整个脚本(所有版本 annex);非空=删该版本
+  string version = 3; // 留空=解绑该 agent 的整个脚本(所有版本 annex);非空=删该版本
 }
 
 message DeletePluginByAgentsReq {
@@ -136,15 +136,15 @@ message DeletePluginByAgentsReq {
 // ⚠️ 方法名别用 `Switch`(Dart 保留字,dart 生成器会语法错)。
 service Plugin {
   rpc Create (CreatePluginReq) returns (CreatePluginResp) { option (hi.auth) = AUTH_MERCHANT; }        // 上传脚本版本 + 建 owner annex
-  rpc CreateAnnex (CreateAnnexReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 把已有 body 绑到某 bot(市场分享用)
-  rpc Edit (EditPluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 改 body 元数据 + 该 bot annex
-  rpc Get (GetPluginReq) returns (GetPluginResp) { option (hi.auth) = AUTH_MERCHANT; }                 // 查某 bot 的某版本(空=激活版本)
-  rpc List (ListPluginReq) returns (ListPluginResp) { option (hi.auth) = AUTH_MERCHANT; }              // 一级页:列某 bot 的脚本(每 uuid 一行,激活版本)
+  rpc CreateAnnex (CreateAnnexReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 把已有 body 绑到某 agent(市场分享用)
+  rpc Edit (EditPluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 改 body 元数据 + 该 agent annex
+  rpc Get (GetPluginReq) returns (GetPluginResp) { option (hi.auth) = AUTH_MERCHANT; }                 // 查某 agent 的某版本(空=激活版本)
+  rpc List (ListPluginReq) returns (ListPluginResp) { option (hi.auth) = AUTH_MERCHANT; }              // 一级页:列某 agent 的脚本(每 uuid 一行,激活版本)
   rpc ListVersions (ListVersionsReq) returns (ListPluginResp) { option (hi.auth) = AUTH_MERCHANT; }    // 二级页:列某脚本所有版本
   rpc Delete (DeletePluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }   // 解绑/删版本(version 空=解绑整个脚本)
   rpc DeleteByAgents (DeletePluginByAgentsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 按 agent 批量删
-  rpc SetActiveVersion (SetActiveVersionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 选该 bot 的激活版本
-  rpc SetEnabled (SetEnabledReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 该 bot 脚本级开关
+  rpc SetActiveVersion (SetActiveVersionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 选该 agent 的激活版本
+  rpc SetEnabled (SetEnabledReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 该 agent 脚本级开关
 }
 
 // ── py-docker 执行契约 ──────────────────────────────────────────────────
