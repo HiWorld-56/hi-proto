@@ -24,15 +24,25 @@ import "hi/options.proto";
 //
 // 只保留 py 脚本一种(原 search/draw 已砍)。依赖由工程内 requirement.txt 显式声明。
 
-// plugin_body:插件本体。身份两层 uuid(脚本,跨版本稳定)+ version;(uuid,version) 不可变。
+// plugin_body:插件本体。
+//
+// **uuid = <主id>_<次id>,它就是"插件 id" —— 系统内一个 uuid 就是一个独立插件。**
+// 同一个主id 下的多个 uuid = 同一脚本的多个版本;一级列表按主id 聚合,二级页列出各 uuid。
+// ⚠️ **次id 与 version 无关**:次id 是后台生成的身份,version 是用户贴的标签。
+//    正因如此,用户删掉某版本再用同一个版本号重建,拿到的是**新的 uuid**,
+//    老的引用指向的仍是那个已删除的插件,不会被悄悄换掉内容。
+//
+// ⚠️ **发布后整行冻结** —— name/logo/summary 也不例外。
+//    定版的东西如果能改,版本就失去意义了;要改就发新版本。
 message PluginBody {
-  option (hi.audience) = VIS_SELF; // 经 PluginView 返回给 owner;url(脚本)是私产。市场公开视图(name/desc)另定,不含 url
-  string uuid          = 1 [(hi.visibility) = VIS_SELF]; // 脚本 id:同脚本所有版本共用
-  string version       = 2 [(hi.visibility) = VIS_SELF]; // 版本号(用户上传自填)
-  string url           = 3 [(hi.visibility) = VIS_SELF]; // 主脚本包 zip url(内含 main.py + requirement.txt)
-  string name          = 4 [(hi.visibility) = VIS_SELF]; // 脚本名字
-  string function_name = 5 [(hi.visibility) = VIS_SELF]; // Python_<uuid>:给 LLM 的工具名,跨版本稳定
-  string description   = 6 [(hi.visibility) = VIS_SELF]; // function-call spec:name/作用/parameters schema 合一(网页配置后生成)
+  option (hi.audience) = VIS_SELF; // 经 PluginView 返回给持有者;url(脚本)是私产
+  string uuid        = 1 [(hi.visibility) = VIS_SELF]; // 插件 id = <主id>_<次id>,后台生成
+  string name        = 2 [(hi.visibility) = VIS_SELF]; // 脚本名(给人看)
+  string logo        = 3 [(hi.visibility) = VIS_SELF]; // 图标 url
+  string summary     = 4 [(hi.visibility) = VIS_SELF]; // 详情资源 url:介绍页或一张美工图,由用户自定
+  string version     = 5 [(hi.visibility) = VIS_SELF]; // 三级版本号如 1.23.66,用户自填;仅作标签,**不参与身份**
+  string url         = 6 [(hi.visibility) = VIS_SELF]; // 主脚本包 zip url(内含 main.py + requirement.txt)
+  string description = 7 [(hi.visibility) = VIS_SELF]; // 完整 function-call spec(作用 + parameters schema)
 }
 
 // plugin_annex:某机器人对某 body 的附件。运行期以字典全局变量注入执行环境。
@@ -53,9 +63,10 @@ message PluginView {
 // 后台按 (uuid, version):存在则覆盖 body,否则新建。annex 建/更新按 (agent, uuid)。
 // annex.api_key 由 club 自动取该 agent 第一个 club-apikey 填入(ai 只存);data 用户填。
 message CreatePluginReq {
-  string      agent = 1; // 智能体 did(owner agent)
-  PluginBody  body  = 2; // uuid 空=新脚本;url/version/name/description 由用户/前端提供
-  PluginAnnex annex = 3; // api_key 由 club 填、data 用户填
+  string      agent = 1; // 装到哪个 agent
+  string      root  = 2; // 主id:**空=全新脚本**(后台生成 主id+次id);非空=给该脚本**加新版本**(只生成次id)
+  PluginBody  body  = 3; // uuid 由后台生成并回填,调用方不要传;其余字段由用户/前端提供
+  PluginAnnex annex = 4; // api_key 由 club 自动填、data 用户填
 }
 
 message CreatePluginResp {
@@ -72,13 +83,11 @@ message CreateAnnexReq {
   PluginAnnex annex   = 4; // 该 agent 的 api_key(club 取)+ data
 }
 
-// 改插件:body 的可变元数据(name/description)+ 该 agent 的 annex。url/version 不可改(改脚本=加版本)。
+// 改绑定关系。**body 一个字段都不能改** —— 发布即冻结,要改就发新版本。这里只动该 agent 的 annex。
 message EditPluginReq {
-  string      agent       = 1; // agent did
-  string      uuid        = 2; // 脚本 id
-  string      name        = 3; // 改名(空=不改)
-  string      description = 4; // 改描述/function-call spec(空=不改)
-  PluginAnnex annex       = 5; // 改该 agent 的 api_key/data
+  string      agent = 1; // agent did
+  string      uuid  = 2; // 插件 id
+  PluginAnnex annex = 3; // 改该 agent 的 api_key/data
 }
 
 message SetEnabledReq {
@@ -87,18 +96,17 @@ message SetEnabledReq {
   bool   enabled = 3; // 该 agent 是否参与推理
 }
 
-// 选定该 agent 用哪个版本供 function call 调用(同脚本多版本共存,该 agent 只激活一个)。
-message SetActiveVersionReq {
-  string agent   = 1; // agent did
-  string uuid    = 2; // 脚本 id
-  string version = 3; // 要激活的版本
+// 选定该 agent 激活哪个版本。uuid 本身即版本身份,不需要再传版本号。
+// 同一主id 下只能激活一个;不同机器人可各自激活不同版本。
+message SetActiveReq {
+  string agent = 1; // agent did
+  string uuid  = 2; // 要激活的插件 id
 }
 
 // 下载脚本包。私有 bucket 匿名取不到,故由服务端带凭据取回字节。
 message DownloadScriptReq {
-  string agent   = 1; // agent did(校验脚本归属)
-  string uuid    = 2; // 脚本 id
-  string version = 3; // 留空=该 agent 的激活版本
+  string agent = 1; // agent did(校验持有关系)
+  string uuid  = 2; // 插件 id
 }
 
 message DownloadScriptResp {
@@ -114,7 +122,7 @@ message ListPluginReq {
 
 message ListVersionsReq {
   string        agent      = 1; // agent did
-  string        uuid       = 2; // 脚本 id
+  string        root       = 2; // 主id:列该脚本的所有版本
   hi.Pagination pagination = 3;
 }
 
@@ -125,9 +133,8 @@ message ListPluginResp {
 }
 
 message GetPluginReq {
-  string agent   = 1; // agent did
-  string uuid    = 2; // 脚本 id
-  string version = 3; // 留空=该 agent 的激活版本
+  string agent = 1; // agent did
+  string uuid  = 2; // 插件 id
 }
 
 message GetPluginResp {
@@ -135,10 +142,13 @@ message GetPluginResp {
   PluginView view = 1 [(hi.visibility) = VIS_SELF];
 }
 
+// 删除。二选一:uuid=删这一个版本(**连同脚本文件一并删**);root=删该脚本全部版本。
+// ⚠️ 允许**强删正被引用的插件** —— 引用方的 annex 不清理,指向随即失效;
+//    调用时该 tool 返错给 LLM,但**不打断整体推理流程**。删前把 ref_count 摆给用户看。
 message DeletePluginReq {
-  string agent   = 1; // agent did
-  string uuid    = 2; // 脚本 id
-  string version = 3; // 留空=解绑该 agent 的整个脚本(所有版本 annex);非空=删该版本
+  string agent = 1; // agent did
+  string uuid  = 2; // 删单个版本
+  string root  = 3; // 主id:删该脚本全部版本(与 uuid 二选一)
 }
 
 message DeletePluginByAgentsReq {
@@ -153,16 +163,16 @@ service Plugin {
   // 拿到 url 也直接下不了,必须经 Download 走服务端凭据。
   // 上传与建插件解耦:先 UploadScript 拿 url,再把 url 放进 CreatePluginReq。
   rpc UploadScript (stream hi.UploadStreamReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_MERCHANT; } // 传脚本 zip(分片)
-  rpc DownloadScript (DownloadScriptReq) returns (DownloadScriptResp) { option (hi.auth) = AUTH_MERCHANT; }  // 下自己的脚本 zip(私有桶经服务端取)
+  rpc DownloadScript (DownloadScriptReq) returns (DownloadScriptResp) { option (hi.auth) = AUTH_MERCHANT; }  // 下脚本 zip;**仅 ORIGINAL 放行**,引用方不给源码
   rpc Create (CreatePluginReq) returns (CreatePluginResp) { option (hi.auth) = AUTH_MERCHANT; }        // 上传脚本版本 + 建 owner annex
   rpc CreateAnnex (CreateAnnexReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 把已有 body 绑到某 agent(市场分享用)
-  rpc Edit (EditPluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 改 body 元数据 + 该 agent annex
-  rpc Get (GetPluginReq) returns (GetPluginResp) { option (hi.auth) = AUTH_MERCHANT; }                 // 查某 agent 的某版本(空=激活版本)
+  rpc Edit (EditPluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 只改 annex(body 冻结)
+  rpc Get (GetPluginReq) returns (GetPluginResp) { option (hi.auth) = AUTH_MERCHANT; }                 // 查某插件
   rpc List (ListPluginReq) returns (ListPluginResp) { option (hi.auth) = AUTH_MERCHANT; }              // 一级页:列某 agent 的脚本(每 uuid 一行,激活版本)
-  rpc ListVersions (ListVersionsReq) returns (ListPluginResp) { option (hi.auth) = AUTH_MERCHANT; }    // 二级页:列某脚本所有版本
-  rpc Delete (DeletePluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }   // 解绑/删版本(version 空=解绑整个脚本)
+  rpc ListVersions (ListVersionsReq) returns (ListPluginResp) { option (hi.auth) = AUTH_MERCHANT; }    // 二级页:按主id 列该脚本所有版本
+  rpc Delete (DeletePluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }   // 删版本或整个脚本(连同脚本文件)
   rpc DeleteByAgents (DeletePluginByAgentsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 按 agent 批量删
-  rpc SetActiveVersion (SetActiveVersionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 选该 agent 的激活版本
+  rpc SetActive (SetActiveReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 选该 agent 的激活版本
   rpc SetEnabled (SetEnabledReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 该 agent 脚本级开关
 }
 

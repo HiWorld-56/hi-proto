@@ -130,8 +130,8 @@ http:
   - selector: hi.club.Plugin.Edit
     post: /api/v1/plugin/edit
     body: "*"
-  - selector: hi.club.Plugin.SetActiveVersion
-    post: /api/v1/plugin/set_active_version
+  - selector: hi.club.Plugin.SetActive
+    post: /api/v1/plugin/set_active
     body: "*"
 # Training
   - selector: hi.club.Training.Start
