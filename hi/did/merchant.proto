@@ -170,6 +170,10 @@ service Merchant {
   rpc Update(MerchantSetReq) returns (google.protobuf.Empty) {
     option (hi.auth) = AUTH_MERCHANT;
   } // 改自己的商户配置(原 UserMerchant.Set)
+  // 传商户 logo → hidid bucket 的 logo/。只回 url;写进配置仍走 Update。
+  rpc UploadLogo(hi.UploadReq) returns (hi.UploadResp) {
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 商户:传自己的 logo
   // ── 商户管理其用户的扩展信息 ──
   // GetUser/ListUsers:merchant 空=自己(免 grant);非空=指定商户(走 grant)。
   // GetUser 的 resp.user 须始终有 name/avatar(取自全局 user 表),即使无扩展行 —— club 靠它显示。

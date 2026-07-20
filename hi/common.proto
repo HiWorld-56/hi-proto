@@ -5,6 +5,7 @@ package hi;
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi";
 
 import "hi/options.proto";
+import "buf/validate/validate.proto";
 
 message SignedData {
   bytes data = 1;
@@ -83,4 +84,33 @@ message ServerVersionResp {
   option (hi.audience) = VIS_PUBLIC; // 服务版本+环境,Base.ServerVersion 全 AUTH_NONE 公开
   string version = 1 [(hi.visibility) = VIS_PUBLIC]; // bin 版本(git tag 注入)
   string env = 2 [(hi.visibility) = VIS_PUBLIC]; // 运行环境:dev/prod(echo 探测得出)
+}
+
+// ── 上传(各模块转发 hi-source 用)──────────────────────────────────────
+// 上传链路:客户端 → **业务模块**(在此鉴权)→ 内部转发 hi-source → 落对应 bucket。
+// hi-source 的上传端口只对内网开放,客户端不再直连。各模块用常量定义自己的 bucket/目录:
+//   hidid  → hidid/avatar、hidid/logo        hiclub → hiclub/avatar、hiclub/background
+//   hiai   → hiai/plugin/<uuid>              聊天/AI 媒体 → temp/<YYYY_MM>(14 天过期)
+message UploadReq {
+  string name    = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 原始文件名,仅用于取扩展名(存储侧会随机改名)
+  bytes  content = 2 [(buf.validate.field).bytes.min_len = 1];
+}
+
+// 分片上传:首包 meta,后续 chunk(大媒体/脚本包用)。
+message UploadStreamReq {
+  oneof data {
+    UploadMeta meta  = 1;
+    bytes      chunk = 2;
+  }
+}
+
+message UploadMeta {
+  string name = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  int64  size = 2 [(buf.validate.field).int64 = { gt: 0 }];
+}
+
+message UploadResp {
+  option (hi.audience) = VIS_PUBLIC; // 回的是可直接 GET 的 url(私有 bucket 除外,需经各模块的 Download)
+  string          url       = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional string thumb_url = 2 [(hi.visibility) = VIS_PUBLIC];
 }

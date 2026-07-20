@@ -94,6 +94,19 @@ message SetActiveVersionReq {
   string version = 3; // 要激活的版本
 }
 
+// 下载脚本包。私有 bucket 匿名取不到,故由服务端带凭据取回字节。
+message DownloadScriptReq {
+  string agent   = 1; // agent did(校验脚本归属)
+  string uuid    = 2; // 脚本 id
+  string version = 3; // 留空=该 agent 的激活版本
+}
+
+message DownloadScriptResp {
+  option (hi.audience) = VIS_SELF; // 脚本内容是 owner 私产
+  bytes  content = 1 [(hi.visibility) = VIS_SELF];
+  string name    = 2 [(hi.visibility) = VIS_SELF]; // 建议的文件名
+}
+
 message ListPluginReq {
   string        agent      = 1;
   hi.Pagination pagination = 2;
@@ -135,6 +148,12 @@ message DeletePluginByAgentsReq {
 // 插件管理(主体=插件)。商户档:hiai web 与三方商户后台(club)都会调。
 // ⚠️ 方法名别用 `Switch`(Dart 保留字,dart 生成器会语法错)。
 service Plugin {
+  // ── 脚本包存取(hiai bucket,**私有**)──────────────────────────────
+  // 脚本是 owner 私产、且是插件市场里的可交易资产,故 bucket 不开匿名读:
+  // 拿到 url 也直接下不了,必须经 Download 走服务端凭据。
+  // 上传与建插件解耦:先 UploadScript 拿 url,再把 url 放进 CreatePluginReq。
+  rpc UploadScript (stream hi.UploadStreamReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_MERCHANT; } // 传脚本 zip(分片)
+  rpc DownloadScript (DownloadScriptReq) returns (DownloadScriptResp) { option (hi.auth) = AUTH_MERCHANT; }  // 下自己的脚本 zip(私有桶经服务端取)
   rpc Create (CreatePluginReq) returns (CreatePluginResp) { option (hi.auth) = AUTH_MERCHANT; }        // 上传脚本版本 + 建 owner annex
   rpc CreateAnnex (CreateAnnexReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 把已有 body 绑到某 agent(市场分享用)
   rpc Edit (EditPluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 改 body 元数据 + 该 agent annex

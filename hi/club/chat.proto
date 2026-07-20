@@ -6,6 +6,7 @@ import "google/protobuf/empty.proto";
 import "hi/ai/chat.proto";
 import "hi/club/messaging.proto";
 import "hi/options.proto";
+import "hi/common.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
@@ -61,6 +62,11 @@ message ToolCallResultsReq {
 
 // 对话(主体=会话)。用户 token 档,全档一致。hi.ai.Chat 的门面。
 service Chat {
+  // 传聊天媒体(图/语音/视频/文件)→ **temp bucket,14 天后自动过期**。
+  // 媒体是临时资产:redis 消息历史也只留 14 天,两者对齐;客户端收到即缓存到本地,
+  // 故过期不影响本地历史回看。**头像/群头像不要走这里** —— 那是永固资产,各有归属 bucket。
+  rpc UploadMedia (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }                    // 传聊天媒体(小文件)
+  rpc UploadMediaStream (stream hi.UploadStreamReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; } // 传聊天媒体(大文件分片)
   // ── 会话管理 ──
   rpc NewSession (google.protobuf.Empty) returns (hi.ai.NewSessionResp) { option (hi.auth) = AUTH_USER; }      // 原 GenerateCid
   rpc GetHistory (hi.ai.GetHistoryReq) returns (GetHistoryResp) { option (hi.auth) = AUTH_USER; }              // 原 GetContext
