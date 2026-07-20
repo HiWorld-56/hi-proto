@@ -21,6 +21,12 @@ echo "[hi-proto] $(git -C "$HIPROTO" rev-parse --short HEAD)"
 echo "[0/5] 校验 hi.auth 标注"
 python3 "$HIPROTO/codegen/check_auth.py"
 
+# 实现覆盖:proto 声明的 rpc 后端有没有对应 handler。
+# Go 的 Unimplemented<Svc>Server 会兜底,所以「proto 改了名、handler 没跟」编译期一声不吭,
+# 服务注册着、方法接不上,运行时静默返 Unimplemented(真踩过三次)。
+# **只报不拦** —— 正常工作流是先改 proto 再跟后端,硬失败会卡死每次改名的第一次推送。
+python3 "$HIPROTO/codegen/check_impl.py" /home/lo/wip --warn || true
+
 echo "[1/5] 合并 HTTP 配置"
 ( cd "$HIPROTO" && make merge >/dev/null )
 
