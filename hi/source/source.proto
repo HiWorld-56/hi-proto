@@ -52,14 +52,19 @@ message PutReq {
   string name      = 3 [(buf.validate.field).string.pattern="^\\S+$"]; // 原始文件名,仅用于取扩展名(hi-source 会随机改名)
   bytes  content   = 4 [(buf.validate.field).bytes.min_len = 1];
   bool   thumbnail = 5; // 是否同时生成缩略图(仅图片有效;原先靠 type==image 隐式触发,现改显式)
-  bool   keep_name = 6; // true=**原样用 name 作对象名,不随机改名**
+  NameMode name_mode = 6; // 对象命名方式,默认随机
 }
 
-// ⚠️ keep_name 的用途与红线:
-//   用途:需要**确定性覆盖**的场景 —— 典型是日志(log/<App>/<did>.log,同一设备反复覆盖同一对象)。
-//         若随机改名,每次上传都新增一个对象,日志会堆成千上万份。
-//   红线:**绝不能用于用户上传的内容 + 公开 bucket**。公开 bucket 的安全性正是靠
-//         "32 位随机名不可猜 + LIST 403 不可枚举"撑起来的;名字一旦可预测,等于门户洞开。
+// 对象命名方式。
+//
+// ⚠️ **红线**:公开 bucket 的用户内容一律用 NAME_RANDOM。那些 bucket 的安全性正是靠
+//    「32 位随机名不可猜 + LIST 403 不可枚举」撑起来的 —— 名字一旦可预测,等于门户洞开。
+//    非随机模式只给**私有 bucket 的运维类文件**(日志等)用。
+enum NameMode {
+  NAME_RANDOM    = 0; // <32位随机>_<原名>。默认,用户内容必须用它
+  NAME_TIMESTAMP = 1; // <原名主干>_<UTC纳秒时间戳><扩展名>。名字可读、天然有序,每次新对象 —— 日志用
+  NAME_KEEP      = 2; // 原样用 name。**同一对象反复覆盖,只留最新一份**,会丢历史,慎用
+}
 
 message PutResp {
   option (hi.audience) = VIS_PUBLIC;
