@@ -124,8 +124,20 @@ message UploadUserAvatarReq {
   bytes  content = 3 [(buf.validate.field).bytes.min_len = 1];
 }
 
+// 批量写用户的资料与扩展。
+//
+// ⚠️ **入参不复用 UserExtensionUnit** —— 那是**返回类型**(GetUser/ListUsers 用),
+//    里面的 hi.Entity 带 type/update 等服务端产物。入参只放调用方真正该给的:
+//    改哪个用户(user)+ 要写的值。
+message SetUserUnit {
+  string            user   = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 用户 did
+  string            name   = 2; // 昵称(空=不改)
+  string            avatar = 3; // 头像 url(空=不改)
+  UserExtensionInfo info   = 4; // 该商户维护的扩展信息
+}
+
 message SetUsersReq {
-  repeated UserExtensionUnit units = 1; // 批量写自己名下用户的扩展信息
+  repeated SetUserUnit units = 1; // 批量写自己名下用户的资料/扩展
 }
 
 message AddUsersReq {
