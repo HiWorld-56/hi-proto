@@ -88,8 +88,11 @@ message UnprocessedSysMsgCountResp {
   int32 count = 1 [(hi.visibility) = VIS_SELF];
 }
 
+// 改自己的资料。**不收 hi.Entity 整体** —— Entity 带 did/type/update,
+// 而"改谁"永远取自 token,type/update 是服务端产物。入参只放调用方真正该给的。
 message UpdateUserReq {
-  hi.Entity user = 1;
+  string name   = 1; // 昵称
+  string avatar = 4; // 头像 url
   // auto_reject-自动拒绝
   // manual_accept-手动同意
   // auto_accept-自动同意

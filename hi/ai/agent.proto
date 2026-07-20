@@ -64,8 +64,11 @@ message DefaultConfigResp {
   AgentConfig config = 1 [(hi.visibility) = VIS_SELF]; // 全局默认配置(建 agent 用的模板,与具体 agent 无关)
 }
 
+// 建机器人。**不收 hi.Entity** —— did 由后台生成、type 固定 assistant、update 是服务端产物,
+// 调用方能决定的只有名字和头像。
 message CreateAgentReq {
-  hi.Entity base = 1;
+  string name   = 1;
+  string avatar = 2;
 }
 
 message CreateAgentResp {
@@ -75,8 +78,11 @@ message CreateAgentResp {
   hi.Entity   creator = 3 [(hi.visibility) = VIS_PUBLIC]; // hi.Entity 恒 PUBLIC
 }
 
+// 改机器人。agent 是**定位**参数(改哪个),归属由后端校验;name/avatar 才是可改的内容。
 message EditAgentReq {
-  hi.Entity   base   = 1;
+  string      agent  = 1; // 机器人 did(定位)
+  string      name   = 4;
+  string      avatar = 5;
   AgentConfig config = 2;
   string      note   = 3;
 }
