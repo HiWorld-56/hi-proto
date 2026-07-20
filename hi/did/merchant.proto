@@ -117,6 +117,13 @@ message ListUsersResp {
   repeated UserExtensionUnit units = 2 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
+// 商户给名下某用户传头像。user 必须在该商户名下。
+message UploadUserAvatarReq {
+  string user    = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 用户 did
+  string name    = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 原始文件名(取扩展名用)
+  bytes  content = 3 [(buf.validate.field).bytes.min_len = 1];
+}
+
 message SetUsersReq {
   repeated UserExtensionUnit units = 1; // 批量写自己名下用户的扩展信息
 }
@@ -195,6 +202,13 @@ service Merchant {
   rpc RemoveUsers(RemoveUsersReq) returns (google.protobuf.Empty) {
     option (hi.auth) = AUTH_MERCHANT;
   } // 从自己名下删用户
+  // 给自己名下的用户传头像 → hidid bucket 的 avatar/。**档位必须是 AUTH_MERCHANT** ——
+  // 链路是 app --用户token--> club后端 --ExtendToken--> did后端,club 手里只有商户凭证,
+  // 调不了 User.UploadAvatar(那是用户档,给持 did 用户 token 的端用的)。
+  // 只回 url;写进资料仍走 SetUsers(与现有 SetUserProfile 一致)。
+  rpc UploadUserAvatar(UploadUserAvatarReq) returns (hi.UploadResp) {
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 商户:给名下用户传头像
   // ── 用户 mqtt 凭证(基础信息,商户可见)──
   rpc GetUserMqtt(GetUserMqttReq) returns (GetUserMqttResp) {
     option (hi.auth) = AUTH_MERCHANT;
