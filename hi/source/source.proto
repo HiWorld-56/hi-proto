@@ -9,18 +9,6 @@ import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/options.proto";
 
-message UploadReq {
-  string type    = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // image/video/audio/file/avatar/code
-  string name    = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 文件名
-  bytes  content = 3 [(buf.validate.field).bytes.min_len = 1]; // 文件内容
-}
-
-message UploadResp {
-  option (hi.audience) = VIS_PUBLIC; // File.Upload 为 AUTH_NONE(免鉴权),返回的是公开可访问资源 url
-  string          url       = 1 [(hi.visibility) = VIS_PUBLIC];
-  optional string thumb_url = 2 [(hi.visibility) = VIS_PUBLIC];
-}
-
 message DownloadReq {
   string url = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}];
 }
@@ -28,19 +16,6 @@ message DownloadReq {
 message DownloadResp {
   option (hi.audience) = VIS_PUBLIC; // File.Download 为 AUTH_NONE(免鉴权),按 url 取公开资源内容
   bytes content = 1 [(hi.visibility) = VIS_PUBLIC];
-}
-
-message UploadStreamReq {
-  oneof data {
-    UploadMeta meta  = 1; // 文件元数据，第一个请求包
-    bytes      chunk = 2; // 文件内容分片，后续请求包
-  }
-}
-
-message UploadMeta {
-  string type = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // image/video/audio/file/avatar/code
-  string name = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 文件名
-  int64  size = 3 [(buf.validate.field).int64 = { gt: 0 }]; // 文件大小, 单位：字节
 }
 
 message DownloadStreamResp {
@@ -77,7 +52,14 @@ message PutReq {
   string name      = 3 [(buf.validate.field).string.pattern="^\\S+$"]; // 原始文件名,仅用于取扩展名(hi-source 会随机改名)
   bytes  content   = 4 [(buf.validate.field).bytes.min_len = 1];
   bool   thumbnail = 5; // 是否同时生成缩略图(仅图片有效;原先靠 type==image 隐式触发,现改显式)
+  bool   keep_name = 6; // true=**原样用 name 作对象名,不随机改名**
 }
+
+// ⚠️ keep_name 的用途与红线:
+//   用途:需要**确定性覆盖**的场景 —— 典型是日志(log/<App>/<did>.log,同一设备反复覆盖同一对象)。
+//         若随机改名,每次上传都新增一个对象,日志会堆成千上万份。
+//   红线:**绝不能用于用户上传的内容 + 公开 bucket**。公开 bucket 的安全性正是靠
+//         "32 位随机名不可猜 + LIST 403 不可枚举"撑起来的;名字一旦可预测,等于门户洞开。
 
 message PutResp {
   option (hi.audience) = VIS_PUBLIC;
@@ -103,9 +85,7 @@ message PutMeta {
 service File {
   rpc Put (PutReq) returns (PutResp) { option (hi.auth) = AUTH_NONE; } // bucket 化上传(内网)
   rpc PutStream (stream PutStreamReq) returns (PutResp) { option (hi.auth) = AUTH_NONE; } // bucket 化流式上传(内网)
-  rpc Upload (UploadReq) returns (UploadResp) { option (hi.auth) = AUTH_NONE; } // ⚠️ 待废弃:type 分类上传,各模块切到 Put 后删
   rpc Download (DownloadReq) returns (DownloadResp) { option (hi.auth) = AUTH_NONE; } // 文件下载(从 url 解析 bucket,新老 url 通吃)
-  rpc UploadStream (stream UploadStreamReq) returns (UploadResp) { option (hi.auth) = AUTH_NONE; } // ⚠️ 待废弃:同 Upload
   rpc DownloadStream (DownloadStreamReq) returns (stream DownloadStreamResp) { option (hi.auth) = AUTH_NONE; } // 流式下载
 }
 

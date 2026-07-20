@@ -117,6 +117,13 @@ service User {
   // **hi.did.Merchant.UploadUserAvatar**(商户档),不是 User.UploadAvatar(用户档)。
   // app 不该感知头像"穿"到 did 这件事 —— 那是 club 与 did 之间的事,分层不能搅浑。
   rpc UploadAvatar (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; } // 用户:传自己的头像(转 hidid)
+
+  // 传客户端日志 → log bucket 的 HiClub/,对象名固定为 <did>.log(**同一设备覆盖同一对象**)。
+  //
+  // 原先客户端是**直连 hi-source 的 File.Upload(type=log)**,免鉴权、在公网可达 ——
+  // 现在收归模块转发,顺带给日志上传加上了鉴权(之前是裸奔的)。
+  // did 取自 token,**不接受入参指定**:否则可以覆盖别人的日志。
+  rpc UploadLog (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; } // 用户:传客户端日志
   rpc GetCurrent (google.protobuf.Empty) returns (UserInfo) { option (hi.auth) = AUTH_USER; } // 当前用户信息(原 GetCurrentUser 去 stutter)
   rpc Update (UpdateUserReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 更新用户信息(原 UpdateUser 去 stutter)
   rpc ListSystemMessages (ListSystemMessageReq) returns (SystemMessages) { option (hi.auth) = AUTH_USER; } // 系统消息列表
