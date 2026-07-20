@@ -120,7 +120,6 @@ message UpdateAssetsReq {
 service Wallet {
   rpc UpdateAssets (UpdateAssetsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 用户:刷新自己的资产快照
   rpc Get (GetWalletReq) returns (GetWalletResp) { option (hi.auth) = AUTH_USER; }               // 用户:查某链的钱包地址(原 GetWallet 去 stutter)
-  rpc ListAddresses (ListAddressesReq) returns (ListAddressesResp) { option (hi.auth) = AUTH_USER; }   // 用户:列出全部链地址
 }
 
 // 资产/地址(公开 + web3,web3 视为无鉴权,档位一致)。资产查询是链上公开数据;
@@ -130,4 +129,8 @@ service Assets {
   rpc List (ListUsersAssetsReq) returns (ListUsersAssetsResp) { option (hi.auth) = AUTH_NONE; } // 公开:批量用户资产(链上数据;原 ListUsersAssets)
   rpc Get (GetUserAssetsReq) returns (GetUserAssetsResp) { option (hi.auth) = AUTH_NONE; } // 公开:某用户资产(链上数据;原 GetUserAssets)
   rpc UpdateAddresses (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_WEB3; }    // web3:更新用户各链地址(btc/eth/trx/sol/apt),签名自证
+  // 列各链地址。**公开** —— 地址本就是链上公开数据,与同服务的 Total/List/Get 同档。
+  // 原先它在 Wallet(AUTH_USER)里,但 handler 遍历入参里的任意 did、零校验,
+  // 档位与行为对不上;而写入侧 UpdateAddresses 本来就在这个服务,读写归位到一处。
+  rpc ListAddresses (ListAddressesReq) returns (ListAddressesResp) { option (hi.auth) = AUTH_NONE; } // 公开:列各链地址
 }

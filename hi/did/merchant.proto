@@ -314,9 +314,15 @@ message OrderEventResp {
 
 // 订单事件订阅端(hidid-pc 订阅,token)。原 SSE.OrderEvents —— SSE 是传输术语不是主体。
 service OrderEvent {
-  rpc Sub(hi.DID) returns (stream OrderEventResp) {
+  // ⚠️ **只能订阅自己的** —— did 取自 token,入参不给 did。
+  //    原先是 `Sub(hi.DID)` 且 handler 直接用 req.Id:任何登录用户传别人的 did,
+  //    既能收对方订单事件,又会触发下面的"重复登录"逻辑把对方的 hidid-pc 挤下线。
+  //
+  // 重复登录语义(hidid-pc 特有):A 机已登录且未显式登出时,**B 机登录应被挡下**,
+  // 而不是踢掉 A。原实现踢的是 A,方向反了。
+  rpc Sub(google.protobuf.Empty) returns (stream OrderEventResp) {
     option (hi.auth) = AUTH_USER;
-  } // hidid-pc 订阅订单事件流(长连接)
+  } // hidid-pc 订阅**自己的**订单事件流(长连接)
 }
 
 // 订单通知发送端(商户触发,公开):商户业务系统触发一次付款通知,hidid 转发给对应 hidid-pc。

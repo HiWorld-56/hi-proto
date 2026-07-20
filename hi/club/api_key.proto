@@ -22,8 +22,10 @@ message ApiKeyInfo {
   int64  created_at = 4 [(hi.visibility) = VIS_SELF];
 }
 
+// ⚠️ **只有机器人能持 apikey** —— 原先设计里"人也能设 apikey",没必要,已废。
+// 故这里是**机器人 did**,后端校验:调用者必须是该机器人的 master。
 message CreateApiKeyReq {
-  string user = 1; // 给谁建(自己 / 自己名下的 agent;后端校验归属)
+  string agent = 1; // 机器人 did;能设置的只有它的 master
 }
 
 message CreateApiKeyResp {
@@ -42,7 +44,7 @@ message EditApiKeyResp {
 }
 
 message ListApiKeysReq {
-  string        user       = 1; // 列谁的(自己 / 自己名下的 agent)
+  string        agent      = 1; // 机器人 did;能查的只有它的 master
   hi.Pagination pagination = 2;
 }
 
