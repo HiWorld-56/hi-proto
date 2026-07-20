@@ -57,10 +57,55 @@ message DownloadStreamReq {
   int64  limit  = 3 [(buf.validate.field).int64 = {gte: 0}]; // 限制下载大小（字节），0表示下载全部
 }
 
+// ── bucket 化上传(新)────────────────────────────────────────────────────
+// hi-source 的定位:**只做"帮各服务拿着 minio 凭据的搬运工"** —— 不再懂业务。
+// 存哪个 bucket、哪个目录由**调用方**决定;hi-source 只负责随机改名 + 落库 + 回 url。
+// 故 Put 没有 `type` 那套业务枚举(image/avatar/code…),它已被 bucket+dir 取代。
+//
+// 分工(定稿):
+//   hidid  → avatar/ (用户头像)、logo/ (商户 logo)      公开读,永固
+//   hiclub → avatar/ (群头像)、background/ (群背景)      公开读,永固
+//   hiai   → plugin/<uuid>/<version>.zip (插件脚本)      **私有**,永固
+//   temp   → <YYYY_MM>/ (聊天/AI 媒体)                   公开读,**14 天过期**
+//   log    → <app>/<did>/                                私有
+//
+// ⚠️ 鉴权:AUTH_NONE 是**有意的** —— hi-source 只对内网开放(上传端口不对外),
+//    鉴权由各业务模块在转发前完成(它们本就持有用户身份)。
+message PutReq {
+  string bucket    = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 目标 bucket
+  string dir       = 2; // bucket 内逻辑目录,如 "avatar" / "plugin/<uuid>";空=根
+  string name      = 3 [(buf.validate.field).string.pattern="^\\S+$"]; // 原始文件名,仅用于取扩展名(hi-source 会随机改名)
+  bytes  content   = 4 [(buf.validate.field).bytes.min_len = 1];
+  bool   thumbnail = 5; // 是否同时生成缩略图(仅图片有效;原先靠 type==image 隐式触发,现改显式)
+}
+
+message PutResp {
+  option (hi.audience) = VIS_PUBLIC;
+  string          url       = 1 [(hi.visibility) = VIS_PUBLIC]; // 完整可下载 url(私有 bucket 的 url 需经 Download 取)
+  optional string thumb_url = 2 [(hi.visibility) = VIS_PUBLIC];
+}
+
+message PutStreamReq {
+  oneof data {
+    PutMeta meta  = 1; // 元数据,第一个请求包
+    bytes   chunk = 2; // 内容分片
+  }
+}
+
+message PutMeta {
+  string bucket    = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string dir       = 2;
+  string name      = 3 [(buf.validate.field).string.pattern="^\\S+$"];
+  int64  size      = 4 [(buf.validate.field).int64 = { gt: 0 }];
+  bool   thumbnail = 5;
+}
+
 service File {
-  rpc Upload (UploadReq) returns (UploadResp) { option (hi.auth) = AUTH_NONE; } // 文件上传
-  rpc Download (DownloadReq) returns (DownloadResp) { option (hi.auth) = AUTH_NONE; } // 文件下载
-  rpc UploadStream (stream UploadStreamReq) returns (UploadResp) { option (hi.auth) = AUTH_NONE; } // 流式上传
+  rpc Put (PutReq) returns (PutResp) { option (hi.auth) = AUTH_NONE; } // bucket 化上传(内网)
+  rpc PutStream (stream PutStreamReq) returns (PutResp) { option (hi.auth) = AUTH_NONE; } // bucket 化流式上传(内网)
+  rpc Upload (UploadReq) returns (UploadResp) { option (hi.auth) = AUTH_NONE; } // ⚠️ 待废弃:type 分类上传,各模块切到 Put 后删
+  rpc Download (DownloadReq) returns (DownloadResp) { option (hi.auth) = AUTH_NONE; } // 文件下载(从 url 解析 bucket,新老 url 通吃)
+  rpc UploadStream (stream UploadStreamReq) returns (UploadResp) { option (hi.auth) = AUTH_NONE; } // ⚠️ 待废弃:同 Upload
   rpc DownloadStream (DownloadStreamReq) returns (stream DownloadStreamResp) { option (hi.auth) = AUTH_NONE; } // 流式下载
 }
 
