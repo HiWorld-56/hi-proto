@@ -74,7 +74,7 @@ message GetAgentMasterResp {
 // 免鉴权的那几个(列表/在线/查主人)已拆去 AgentDirectory。
 service Agent {
   // ── hi.ai 门面(跟 ai 定稿改名)──
-  rpc Create (hi.ai.CreateAgentReq) returns (hi.ai.CreateAgentResp) { option (hi.auth) = AUTH_USER; }  // 原 CreateAgent
+  rpc CreateAssistant (hi.ai.CreateAssistantReq) returns (hi.ai.CreateAgentResp) { option (hi.auth) = AUTH_USER; }  // 原 CreateAgent
   rpc Edit (hi.ai.EditAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }      // 原 EditAgent
   rpc Delete (hi.ai.DeleteAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }  // 原 DeleteAgent
   rpc Get (hi.ai.GetAgentReq) returns (hi.ai.GetAgentResp) { option (hi.auth) = AUTH_USER; }           // 原 FindAgent

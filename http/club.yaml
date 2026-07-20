@@ -27,8 +27,8 @@ http:
     get: /api/v1/model/list_tts
   - selector: hi.club.Agent.GetDefaultConfig
     get: /api/v1/agent/get_default_config
-  - selector: hi.club.Agent.Create
-    post: /api/v1/agent/create
+  - selector: hi.club.Agent.CreateAssistant
+    post: /api/v1/agent/create_assistant
     body: "*"
   - selector: hi.club.Agent.Edit
     post: /api/v1/agent/edit

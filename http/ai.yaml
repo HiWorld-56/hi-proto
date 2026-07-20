@@ -39,8 +39,8 @@ http:
     post: /api/v1/api_key/delete
     body: "*"
 # Agent
-  - selector: hi.ai.Agent.Create
-    post: /api/v1/agent/create
+  - selector: hi.ai.Agent.CreateAssistant
+    post: /api/v1/agent/create_assistant
     body: "*"
   - selector: hi.ai.Agent.Edit
     post: /api/v1/agent/edit
