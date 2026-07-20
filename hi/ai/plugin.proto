@@ -53,14 +53,27 @@ message PluginAnnex {
 
 // 某 agent 视角的一个插件:body + 该 agent 的绑定状态(List/Get 返回;api_key 敏感不随列表回)。
 message PluginView {
-  option (hi.audience) = VIS_SELF; // 插件挂机器人下,owner 私产
-  PluginBody body    = 1 [(hi.visibility) = VIS_SELF];
-  bool       active  = 2 [(hi.visibility) = VIS_SELF]; // body.version 是否为该 agent 的激活版本(List 返回激活版本时恒 true)
-  bool       enabled = 3 [(hi.visibility) = VIS_SELF]; // 该 agent 是否启用此插件参与推理
+  option (hi.audience) = VIS_SELF; // 插件挂机器人下,持有者私产
+  PluginBody   body      = 1 [(hi.visibility) = VIS_SELF];
+  string       active    = 2 [(hi.visibility) = VIS_SELF]; // 该 agent 激活的 uuid;body.uuid == active 即本行生效
+  bool         enabled   = 3 [(hi.visibility) = VIS_SELF]; // 该 agent 是否启用此插件参与推理
+  PluginSource source    = 4 [(hi.visibility) = VIS_SELF]; // 来源:主人直接上传 or 经授权引用
+  int32        ref_count = 5 [(hi.visibility) = VIS_SELF]; // 被多少机器人引用(实时 COUNT,**不落库**,存了必漂)
 }
 
-// 上传一个脚本版本 + 建 owner 自己的 annex。`body.uuid` 空=新脚本(后台生成),非空=给已有脚本加版本。
-// 后台按 (uuid, version):存在则覆盖 body,否则新建。annex 建/更新按 (agent, uuid)。
+// 插件在某机器人列表里的来源。
+//
+// ⚠️ 这是**历史事实,推导不出来** —— 不能用"agent 是不是创建者"去判:
+//    一个主人有三个机器人、同一脚本装三个上去,那样会把其中两个误判成引用。
+// ⚠️ **引用不是拷贝** —— 只是把同一个 uuid 放进另一个机器人的列表,不新建 body。
+enum PluginSource {
+  PLUGIN_SOURCE_ORIGINAL  = 0; // 原始:主人给这个机器人上传的
+  PLUGIN_SOURCE_REFERENCE = 1; // 引用:经授权用别人的脚本;**不能下载源码**
+}
+
+// 发布一个插件(= 脚本的一个版本)+ 建该机器人的 annex(source=original)。
+// root 空=全新脚本(生成 主id+次id);非空=给该脚本加新版本(只生成次id,且版本号须大于现有最大)。
+// **uuid 已存在必拒**,发布即冻结。
 // annex.api_key 由 club 自动取该 agent 第一个 club-apikey 填入(ai 只存);data 用户填。
 message CreatePluginReq {
   string      agent = 1; // 装到哪个 agent
