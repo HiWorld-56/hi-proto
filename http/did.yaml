@@ -55,11 +55,14 @@ http:
     get: /api/v1/super_admin/list
   - selector: hi.did.Base.LatestVersion
     get: /api/v1/base/latest_version
-# MerchantExDB
-  - selector: hi.did.MerchantExDB.Refresh
-    post: /api/v1/merchant_ex_db/refresh
-  - selector: hi.did.MerchantExDB.Get
-    get: /api/v1/merchant_ex_db/get
+# MerchantOwner(原 MerchantExDB;商户主人主体,登录 token)
+  - selector: hi.did.MerchantOwner.RefreshExDB
+    post: /api/v1/merchant_owner/refresh_ex_db
+  - selector: hi.did.MerchantOwner.GetExDB
+    get: /api/v1/merchant_owner/get_ex_db
+  - selector: hi.did.MerchantOwner.SetServer
+    post: /api/v1/merchant_owner/set_server
+    body: "*"
   - selector: hi.did.Merchant.SetUsers
     post: /api/v1/merchant/set_users
     body: "*"
