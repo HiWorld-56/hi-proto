@@ -45,6 +45,9 @@ service:hi.source.Base        # 同上
 service:hi.club.User          # app 走 grpc 直连(公开查询已拆去 UserDirectory)
 service:hi.club.Group         # app 走 grpc 直连
 service:hi.ai.AiPlugin        # 插件运行时内部调用,不对外
+service:hi.did.LoginCallback  # 回调一律走 grpc(2026-07-21 确认)
+service:hi.did.OrderNotify    # 同上
+service:hi.did.PayCallback    # 同上
 
 # ⚠️ 待确认 —— 我判断不了它们该不该对 web 暴露,先记在此以免 CI 常红。
 #    确认一条就把它移到上面并注明理由,或去掉此行并配路由。
@@ -55,9 +58,6 @@ service:hi.club.Publisher
 service:hi.club.PushManager
 service:hi.club.TradeManage   # 超管档,web 超管面可能要用
 service:hi.club.Wallet
-service:hi.did.LoginCallback  # 回调类:由外部系统调?若是 http 回调则必须配路由
-service:hi.did.OrderNotify    # 同上
-service:hi.did.PayCallback    # 同上
 service:hi.did.Pay
 service:hi.did.Price
 service:hi.did.Transfer
