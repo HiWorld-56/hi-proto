@@ -77,6 +77,9 @@ http:
   - selector: hi.club.Permission.Get
     post: /api/v1/permission/get
     body: "*"
+  - selector: hi.club.Permission.List
+    post: /api/v1/permission/list
+    body: "*"
   - selector: hi.club.PermissionManage.List
     post: /api/v1/permission_manage/list
     body: "*"

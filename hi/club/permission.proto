@@ -47,13 +47,20 @@ enum PermissionType {
   PERMISSION_PLUGIN      = 4; // 插件:启用插件
 }
 
-// 查某台机器人的权限。
+// 批量查机器人的权限。**调用者必须是这些机器人的 master**,否则报错
+// (超管同样放行 —— 不管有没有 master 都能管,见 CheckAgentAccess)。
 //
-// ⚠️ 原先是 Get(Empty) 查"调用者自己" —— 而人用户根本没有权限配置,所以前端那三个
-//    页面(robot_memory / robot_plugin / robot_setup)拿到的永远是空。它们真正要看的
-//    是**那台机器人**能干什么。归属校验走 CheckAgentAccess(自己 / master / 超管)。
-message GetAgentPermissionReq {
-  string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 机器人 did
+// 与 Get() 的分工:
+//   Get()          机器人**查自己** —— 无参数,身份取自 token/apikey。
+//                  插件运行时拿的就是机器人自己的 apikey,走的正是这条。
+//   List(agents)   master 在 web 上**批量查自己名下机器人**的权限。
+message ListAgentPermissionsReq {
+  repeated string agents = 1; // 机器人 did 列表
+}
+
+message ListAgentPermissionsResp {
+  option (hi.audience) = VIS_SELF;
+  repeated PermissionInfo infos = 1 [(hi.visibility) = VIS_SELF];
 }
 
 message PermissionInfo {
@@ -100,7 +107,13 @@ message PermissionListResp {
 //    **传谁的 did 都能查 → 任意用户可读他人 ACL**(原注释里的 TODO 早已指出)。
 //    与 did 的 Merchant.Get 越权同一类病:身份必须来自 token,不能来自入参。
 service Permission {
-  rpc Get (GetAgentPermissionReq) returns (PermissionInfo) { option (hi.auth) = AUTH_USER; } // 查**某台机器人**有哪些权限
+  // 机器人查**自己**的权限。无参数 —— 身份取自 token/apikey,不接受入参指定。
+  //
+  // ⚠️ 人用户没有权限配置,只有机器人才有。前端那三个页面
+  //    (robot_memory / robot_plugin / robot_setup)要看的是机器人能干什么:
+  //    机器人自己调 Get,master 代查走 List。
+  rpc Get (google.protobuf.Empty) returns (PermissionInfo) { option (hi.auth) = AUTH_USER; }
+  rpc List (ListAgentPermissionsReq) returns (ListAgentPermissionsResp) { option (hi.auth) = AUTH_USER; } // master 批量查名下机器人的权限
 }
 
 // 权限管理(超管)。**club 自有存储,不转发 hi.ai** —— 权限各自单独管理。
