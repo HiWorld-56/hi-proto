@@ -33,14 +33,8 @@ http:
   - selector: hi.club.Agent.Edit
     post: /api/v1/agent/edit
     body: "*"
-  - selector: hi.club.AgentDirectory.List
-    post: /api/v1/agent_directory/list
-    body: "*"
   - selector: hi.club.AgentDirectory.ListOnline
     post: /api/v1/agent_directory/list_online
-    body: "*"
-  - selector: hi.club.AgentDirectory.GetAgentMaster
-    post: /api/v1/agent_directory/get_agent_master
     body: "*"
   - selector: hi.club.Agent.ListMarks
     post: /api/v1/agent/list_marks
