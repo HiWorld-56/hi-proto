@@ -34,6 +34,20 @@ echo "[2/5] go-http → $CODE"
 ( cd "$HIPROTO"; unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy
   rm -rf "$CODE/go/hi" "$CODE/go/google" "$CODE/go/buf"; buf generate --template codegen/go_http_code.yaml )
 
+# 字段名字符串核对:handler 里 validate.ValidateNotNil(req, []string{"X"}) 这类
+# **用字符串引用 proto 字段名**的地方,X 一旦随 proto 改名/删除就静默失效 ——
+# ValidateNotNil 走 reflect.FieldByName,「字段不存在」与「字段为 nil」是同一分支,
+# 于是接口永远返回 "field X is required",编译期毫无提示。
+# hi.club/hi.ai 的 Agent.Edit 就这么坏了(校验早已删除的 Base 字段),谁都调不通,
+# 直到写业务路径冒烟才发现。
+#
+# ⚠️ 必须放在 [2/5] **之后** —— 要用刚生成的 pb.go 校验,回答"我这次改 proto 会让
+#    哪个后端失效"。若按各仓 go.mod 锁定的旧版本校验,只能说明后端与自己当前依赖
+#    自洽,对刚改的这版 proto 一无所知,等于白跑。
+#
+# **只报不拦**(同 check_impl):正常工作流是先改 proto 再跟后端。
+python3 "$HIPROTO/codegen/check_validate.py" --pb-from "$CODE/go" --warn /home/lo/wip/backend-hi-* || true
+
 echo "[3/5] rust → $CODE/rust/src/gen"
 ( cd "$HIPROTO/codegen/rust-gen"
   export HTTPS_PROXY=$PROXY HTTP_PROXY=$PROXY          # cargo 走梯子;rust-gen 内部会为 buf 剥离代理
