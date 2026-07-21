@@ -5,6 +5,7 @@ package hi.ai;
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
 
 import "google/protobuf/empty.proto";
+import "buf/validate/validate.proto";
 import "hi/common.proto";
 import "hi/options.proto";
 
@@ -128,10 +129,8 @@ service Training {
   rpc Status (StatusReq) returns (StatusResp) { option (hi.auth) = AUTH_MERCHANT; }    // 训练状态(原 TrainingStatus)
   rpc Clear (ClearReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }   // 清除记忆/训练(原 TrainingClear)
   // ── 训练文件 ──
-  rpc UploadFile (UploadFileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }               // 上传训练文件
   rpc ListFiles (ListFilesReq) returns (ListFilesResp) { option (hi.auth) = AUTH_MERCHANT; }                 // 列训练文件(原 ListAgentFiles)
   rpc GetFile (GetFileReq) returns (GetFileResp) { option (hi.auth) = AUTH_MERCHANT; }                     // 取单个训练文件(原 GetAgentFile)
-  rpc DownloadFile (DownloadFileReq) returns (DownloadFileResp) { option (hi.auth) = AUTH_MERCHANT; } // 下载训练文件原件(私有桶,校验 agent 归属)
   rpc DeleteFiles (DeleteFilesReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }        // 批量删(带 agent 归属;原单删 DeleteFile 无归属校验=越权,已删)
   rpc DeleteFilesByAgents (DeleteFilesByAgentsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 按智能体清(原 DeleteAgentFilesByDid)
   // ── 文本记忆条目 ──

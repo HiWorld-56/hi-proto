@@ -152,8 +152,8 @@ http:
   - selector: hi.ai.Training.Clear
     post: /api/v1/training/clear
     body: "*"
-  - selector: hi.ai.Training.UploadFile
-    post: /api/v1/training/upload_file
+  - selector: hi.ai.Source.UploadTrainingFile
+    post: /api/v1/source/upload_training_file
     body: "*"
   - selector: hi.ai.Training.ListFiles
     post: /api/v1/training/list_files
@@ -161,8 +161,8 @@ http:
   - selector: hi.ai.Training.GetFile
     post: /api/v1/training/get_file
     body: "*"
-  - selector: hi.ai.Training.DownloadFile
-    post: /api/v1/training/download_file
+  - selector: hi.ai.Source.DownloadTrainingFile
+    post: /api/v1/source/download_training_file
     body: "*"
   - selector: hi.ai.Training.DeleteFiles
     post: /api/v1/training/delete_files

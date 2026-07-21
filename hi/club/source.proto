@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
+
+import "google/protobuf/empty.proto";
+import "hi/ai/plugin.proto";
+import "hi/ai/training.proto";
+import "hi/common.proto";
+import "hi/options.proto";
+
+// Source —— **所有直接搬运二进制的方法**都收在这里。
+//
+// 分法是**按资源类别**(落哪个桶、留多久、公开还是私有),不是按实体。
+// 原先散在 User/Group/Chat/Plugin/Training 五个 service 里,找一个上传口要翻半天,
+// 每加一种资源就得在某个业务 service 里再塞一个 Upload*。
+//
+// ⚠️ **上传不做归属校验,也不需要**:上传只把字节换成一个 32 位随机 url,
+//    url 本身不构成任何权限。真正决定"这张图能不能挂到这个群上"的仍是
+//    `Group.Update` 的 owner/admin 校验 —— 那层一点没动。
+//    所以这里也**不校验 url 属于哪个桶**:调用方拿临时桶的 url 去设群头像,
+//    顶多是自己的图 14 天后失效,伤不到别人。
+//
+// ⚠️ **用户头像不在这里** —— 头像归 hidid 管,直接调 `hi.did.Source.UploadAvatar`。
+//    club 原先的 `User.UploadAvatar` 只是一层转发,拆开后与群头像撞名,故删掉转发。
+//    本 service 的 `UploadAvatar` 指的是**群头像**(club 自己的实体只有群有头像)。
+service Source {
+  // ── 永久公开:club 自己的桶(hiclub)。只回 url,写进群信息仍走 Group.Update ──
+  rpc UploadAvatar (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }     // 群头像 → hiclub/avatar/
+  rpc UploadBackground (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; } // 群背景 → hiclub/background/
+
+  // ── 临时:temp 桶,**14 天自动过期**。聊天/AI 媒体,按年月分目录便于人工排查 ──
+  rpc UploadTemp (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }                    // 小文件
+  rpc UploadTempStream (stream hi.UploadStreamReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; } // 大文件分片
+
+  // ── 日志:log 桶(私有),对象名固定为 <did>.log,**同一设备覆盖同一份** ──
+  //    随机改名的话,845 次/48h 的上传频率会瞬间堆出上万个对象。
+  rpc UploadLog (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }
+
+  // ── 永久私有:商户私产,不公开读,取用必须经 Download 带归属校验 ──
+  rpc UploadScript (stream hi.UploadStreamReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }                     // 插件脚本 zip
+  rpc DownloadScript (hi.ai.DownloadScriptReq) returns (hi.ai.DownloadScriptResp) { option (hi.auth) = AUTH_USER; }          // **仅 ORIGINAL 放行**:引用方(可能是买的)不给源码
+  rpc UploadTrainingFile (hi.ai.UploadFileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }             // 训练资料
+  rpc DownloadTrainingFile (hi.ai.DownloadFileReq) returns (hi.ai.DownloadFileResp) { option (hi.auth) = AUTH_USER; }        // 训练资料原件
+}

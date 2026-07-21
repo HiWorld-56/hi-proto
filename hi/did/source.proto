@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package hi.did;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
+
+import "hi/common.proto";
+import "hi/options.proto";
+
+// Source —— hidid 侧直接搬运二进制的方法。分法见 hi/club/source.proto 的说明。
+//
+// **所有身份实体的头像都落 hidid/avatar/**:用户、商户(logo 即商户头像)、机器人,
+// 不再按实体分目录 —— 它们在存储上是同一类东西,分开只是徒增分支。
+// 以前不分家(全塞 upload 的按月目录)出过批量误删头像的事故,那是"不该合的合了";
+// 这里是"不该分的分了",两回事。
+//
+// ⚠️ 只回 url,**不改资料** —— 落库分别走 `User.Edit` / `Merchant.Update` /
+//    `Merchant.SetUsers`,上传与落库解耦(这个约定原先就是这样,只是方法搬了家)。
+service Source {
+  rpc UploadAvatar (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; } // 自己的头像 → hidid/avatar/
+}
+
+// MerchantSource —— 同样是传头像,但**调用主体是商户**(商户给名下用户传)。
+//
+// 拆成独立 service 而不是在 Source 里加一个方法:`hi.auth` 要求同一 service 内档位
+// 一致,商户档与用户档不能混。这也正是 Merchant / MerchantGranted 的拆法。
+service MerchantSource {
+  rpc UploadAvatar (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_MERCHANT; } // 头像 → hidid/avatar/;设给谁走 Merchant.SetUsers
+}

@@ -7,15 +7,15 @@
 # 规则:新增 rpc 若落进这种缺口,要么配 http 路由,要么写进本文件(注明理由),否则 CI 失败。
 # 下面是机制落地时的存量,**尚未逐条确认**是"确实不需要"还是"也漏了"。确认一条删一条。
 hi.ai.Agent.RegisterRobot
-hi.ai.Plugin.DownloadScript
+hi.ai.Source.DownloadScript
 hi.club.Agent.BindMaster
 hi.club.Agent.UnbindMaster
 hi.club.Agent.BindStatus
 hi.club.Auth.Verify
 hi.club.Base.ListCoins
 hi.club.Base.ServerVersion
-hi.club.Chat.UploadMedia
-hi.club.Plugin.DownloadScript
+hi.club.Source.UploadTemp
+hi.club.Source.DownloadScript
 hi.club.Trade.GetFee
 hi.club.Trade.Add
 hi.club.Trade.UpdateTransHash
@@ -63,3 +63,14 @@ service:hi.did.Price
 service:hi.did.Transfer
 service:hi.did.User
 service:hi.did.Wallet
+
+hi.club.Source.UploadLog
+hi.club.Source.UploadAvatar
+hi.club.Source.UploadBackground
+hi.club.Source.UploadTempStream
+hi.club.Source.UploadScript
+hi.ai.Source.UploadScript
+# Source —— 二进制搬运,走 grpc 不走 http 网关(json 里塞 bytes 只会 base64 膨胀 33%)。
+# 训练文件那两个是例外,web 后台在用,已在 http/*.yaml 配了路由。
+service:hi.did.Source
+service:hi.did.MerchantSource

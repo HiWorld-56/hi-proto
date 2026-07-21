@@ -159,8 +159,6 @@ message UpdateGroupReq {
 
 service Group {
   // 群资源 → hiclub bucket(avatar/ 与 background/)。只回 url;写进群信息仍走 Update。
-  rpc UploadAvatar (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }     // 【owner/admin】传群头像
-  rpc UploadBackground (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; } // 【owner/admin】传群背景
   rpc Get (GetGroupReq) returns (GroupMemberView) { option (hi.auth) = AUTH_USER; }                                 // 群信息(公共 base + 我的 attr + 我的 dnd)
   rpc Create (CreateGroupReq) returns (GroupBase) { option (hi.auth) = AUTH_USER; }                                 // 创建群
   rpc CreateSingle (CreateSingleReq) returns (GroupBase) { option (hi.auth) = AUTH_USER; }                          // 创建单聊群

@@ -18,10 +18,8 @@ service Training {
   rpc Status (hi.ai.StatusReq) returns (hi.ai.StatusResp) { option (hi.auth) = AUTH_USER; }                      // 训练状态(原 TrainingStatus)
   rpc Clear (hi.ai.ClearReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                   // 清除记忆/训练(原 TrainingClear)
   // ── 训练文件 ──
-  rpc UploadFile (hi.ai.UploadFileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }         // 上传训练文件
   rpc ListFiles (hi.ai.ListFilesReq) returns (hi.ai.ListFilesResp) { option (hi.auth) = AUTH_USER; }             // 列训练文件(原 ListAgentFiles)
   rpc GetFile (hi.ai.GetFileReq) returns (hi.ai.GetFileResp) { option (hi.auth) = AUTH_USER; }                   // 取单个训练文件(原 GetAgentFile)
-  rpc DownloadFile (hi.ai.DownloadFileReq) returns (hi.ai.DownloadFileResp) { option (hi.auth) = AUTH_USER; } // 下载训练文件原件(私有桶)
   rpc DeleteFiles (hi.ai.DeleteFilesReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }       // 批量删(带 agent 归属;原单删 DeleteFile 越权已删)
   // ── 文本记忆条目 ──
   rpc CreateContent (hi.ai.CreateContentReq) returns (hi.ai.CreateContentResp) { option (hi.auth) = AUTH_USER; } // 建文本记忆

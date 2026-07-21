@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package hi.ai;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
+
+import "google/protobuf/empty.proto";
+import "hi/ai/plugin.proto";
+import "hi/ai/training.proto";
+import "hi/common.proto";
+import "hi/options.proto";
+
+// Source —— hi.ai 侧直接搬运二进制的方法(club 的同名 service 是它的门面)。
+// 分法见 hi/club/source.proto 的说明:按资源类别,不按实体。
+//
+// hi.ai 的资源只有一类:**商户私产**(插件脚本、训练资料),一律落 hiai 私有桶,
+// 不公开读,取用必须经 Download 带归属校验。
+service Source {
+  rpc UploadScript (stream hi.UploadStreamReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_MERCHANT; }              // 插件脚本 zip → hiai/plugin/
+  rpc DownloadScript (DownloadScriptReq) returns (DownloadScriptResp) { option (hi.auth) = AUTH_MERCHANT; }               // **仅 ORIGINAL 放行**
+  rpc UploadTrainingFile (UploadFileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }            // 训练资料 → hiai/training/
+  rpc DownloadTrainingFile (DownloadFileReq) returns (DownloadFileResp) { option (hi.auth) = AUTH_MERCHANT; }             // 训练资料原件
+}

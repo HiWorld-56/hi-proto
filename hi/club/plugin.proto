@@ -22,8 +22,6 @@ import "hi/common.proto";
 //   3. **删 apikey 前必须查是否被插件引用,被引用则拒删**(创建插件时已把它注入进去了)。
 service Plugin {
   // 脚本包存取:纯透传 hi.ai.Plugin(club 侧只做用户鉴权 + CheckBotOwnership)。
-  rpc UploadScript (stream hi.UploadStreamReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }        // 传脚本 zip
-  rpc DownloadScript (hi.ai.DownloadScriptReq) returns (hi.ai.DownloadScriptResp) { option (hi.auth) = AUTH_USER; } // 下自己的脚本 zip
   rpc Create (hi.ai.CreatePluginReq) returns (hi.ai.CreatePluginResp) { option (hi.auth) = AUTH_USER; }              // 上传脚本版本 + 建 owner annex(club 自动取 agent 第一个 apikey 塞进 annex)
   rpc CreateVersion (hi.ai.CreateVersionReq) returns (hi.ai.CreatePluginResp) { option (hi.auth) = AUTH_USER; } // 给已有脚本加版本
   rpc CreateAnnex (hi.ai.CreateAnnexReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }           // 把已有 body 绑到某 agent(插件市场分享用;club 取该 agent apikey)
