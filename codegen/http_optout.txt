@@ -69,6 +69,7 @@ hi.club.Source.UploadAvatar
 hi.club.Source.UploadBackground
 hi.club.Source.UploadTempStream
 hi.club.Source.UploadScript
+hi.club.Source.Download
 hi.ai.Source.UploadScript
 # Source —— 二进制搬运,走 grpc 不走 http 网关(json 里塞 bytes 只会 base64 膨胀 33%)。
 # 训练文件那两个是例外,web 后台在用,已在 http/*.yaml 配了路由。

@@ -7,6 +7,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 import "google/protobuf/empty.proto";
 import "hi/ai/plugin.proto";
 import "hi/ai/training.proto";
+import "buf/validate/validate.proto";
 import "hi/common.proto";
 import "hi/options.proto";
 
@@ -29,6 +30,16 @@ service Source {
   // ── 永久公开:club 自己的桶(hiclub)。只回 url,写进群信息仍走 Group.Update ──
   rpc UploadAvatar (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }     // 群头像 → hiclub/avatar/
   rpc UploadBackground (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; } // 群背景 → hiclub/background/
+
+  // Download 按 url 取**公开桶**媒体(聊天/AI 媒体)。给 brain 这类没有浏览器、
+  // 却持有 hiclub grpc 通道的设备端用 —— app/web 直接 http GET 公开 url,不走这里。
+  //
+  // ⚠️ **只放公开桶**(temp/hiclub/hidid):hi-source 的 Download 带 minio 凭据、
+  //    能读私有桶,若在这里无条件转发,任意用户拿个 hiai/… 的脚本 url 就绕过了
+  //    DownloadScript 的 ORIGINAL 门禁。私有资源一律走 DownloadScript /
+  //    DownloadTrainingFile,那里有归属校验。这不是"靠校验保安全",是划定方法边界:
+  //    本方法只对"本就人人可匿名 GET"的对象开放,grpc 只是省掉设备端的 http 栈。
+  rpc Download (DownloadResourceReq) returns (DownloadResourceResp) { option (hi.auth) = AUTH_USER; }
 
   // ── 临时:temp 桶,**14 天自动过期**。聊天/AI 媒体,按年月分目录便于人工排查 ──
   rpc UploadTemp (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }                    // 小文件
@@ -54,4 +65,12 @@ service Source {
   // ⚠️ 不做归属校验,和上传对称 —— url 是 32 位随机名,知道 url 本身就是凭据。
   //    这也意味着**它删得掉任何你知道 url 的对象**,别把 url 泄漏出去。
   rpc Delete (hi.DeleteResourceReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
+}
+
+message DownloadResourceReq {
+  string url = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+}
+message DownloadResourceResp {
+  option (hi.audience) = VIS_PUBLIC; // 只服务公开桶,内容本就人人可取
+  bytes content = 1 [(hi.visibility) = VIS_PUBLIC];
 }
