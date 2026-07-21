@@ -2,7 +2,9 @@ type: google.api.Service
 config_version: 3
 
 # hi.ai HTTP 路由。**破坏性改动**:随 proto 重构一并对齐新的 service/方法名,
-# 不再保留 find_agent / favorite_agent / training_agent 这类词不达意的旧路径。
+# 不再保留 find_agent / training_agent 这类词不达意的旧路径。
+# favorite_agent 更进一步:**收藏功能已整体删除**(连同后来复用它那张表的 mark 标记),
+# 不是改了名字 —— 别照着老前端的调用去找新路径。
 # 规则:/api/v1/<service_snake>/<method_snake>。
 http:
   rules:
