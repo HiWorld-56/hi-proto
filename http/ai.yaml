@@ -53,12 +53,6 @@ http:
   - selector: hi.ai.Agent.List
     post: /api/v1/agent/list
     body: "*"
-  - selector: hi.ai.Agent.Mark
-    post: /api/v1/agent/mark
-    body: "*"
-  - selector: hi.ai.Agent.ListMarks
-    post: /api/v1/agent/list_marks
-    body: "*"
   - selector: hi.ai.Agent.GetUsage
     post: /api/v1/agent/get_usage
     body: "*"
