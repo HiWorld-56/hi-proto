@@ -49,6 +49,7 @@ message TokenUsage {
   int32 mem    = 3 [(hi.visibility) = VIS_SELF]; // 训练消耗的token数
 }
 
+// 机器人本身的信息。**只放机器人的属性** —— 观察者相关的东西不在这里(见 AgentBrief)。
 message AgentInfo {
   option (hi.audience) = VIS_SELF; // 含 config/token 私产 → 整条只发给 owner 本人
   hi.Entity   base       = 1 [(hi.visibility) = VIS_PUBLIC]; // hi.Entity 恒 PUBLIC
@@ -57,7 +58,19 @@ message AgentInfo {
   string      note       = 4 [(hi.visibility) = VIS_SELF];
   TokenUsage  token      = 5 [(hi.visibility) = VIS_SELF];
   int64       created_at = 6 [(hi.visibility) = VIS_SELF];
-  bool        marked     = 7 [(hi.visibility) = VIS_SELF]; // 是否被打了标记(带标记的显示靠前);原 favorited
+}
+
+// 列表项 = 机器人本身 + **看的人**对它的标记。
+//
+// ⚠️ marked 原先是 AgentInfo 的字段(第 7 个),那是**错的**:标记不是机器人的属性,
+//    而是观察者挂在机器人上的东西 —— 同一个机器人,不同的人看到的 marked 不一样。
+//    放进 AgentInfo 就等于宣称"这个机器人被标记了"这件事对所有人成立,不成立。
+//    各服务填各自视角的值:hiai 填 hiai 的标记,hiclub 填 hiclub 的,互不相干
+//    (关系不穿,只有机器人个体穿)。
+message AgentBrief {
+  option (hi.audience) = VIS_SELF;
+  AgentInfo agent  = 1 [(hi.visibility) = VIS_SELF]; // 机器人个体(assistant 软件 / robot 硬件)
+  bool      marked = 2 [(hi.visibility) = VIS_SELF]; // 看的人有没有标记它(标记的显示靠前)
 }
 
 message DefaultConfigResp {
@@ -100,8 +113,8 @@ message EditAgentReq {
 
 message ListAgentResp {
   option (hi.audience) = VIS_SELF; // 列 owner 自己的机器人(含 config)→ SELF
-  int32              total = 1 [(hi.visibility) = VIS_SELF];
-  repeated AgentInfo infos = 2 [(hi.visibility) = VIS_SELF];
+  int32               total = 1 [(hi.visibility) = VIS_SELF];
+  repeated AgentBrief infos = 2 [(hi.visibility) = VIS_SELF];
 }
 
 // Agent 列表入参:**按归属列** —— 传的是主人(creator)的 did,返回这些人名下的机器人总和。
