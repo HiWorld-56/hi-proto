@@ -24,14 +24,27 @@ latest = subprocess.run(['git', '-C', HIPROTO, 'tag', '--sort=-creatordate'],
                         capture_output=True, text=True).stdout.split()
 latest = next((t for t in latest if t.startswith('v')), None)
 
+# 各语言各写各的依赖,但钉的都是同一个 tag 字符串,所以放在一起比。
+# ⚠️ 只扫 go.mod 曾漏掉整个 Rust 侧:hiclub-core-mqtt 停在 v1.5.0-dev.21、
+#    hinj-brain 停在 v1.4.0-dev64,而六个 Go 后端已到 dev.31 —— 跨过了字段号
+#    从 1 重排那几版,线材已不兼容,而检查全绿。漏扫比不扫更危险:它给的是
+#    "已经查过了"的错觉。
+PATTERNS = [
+    ('go.mod',       r'github\.com/HiWorld-56/hi-proto (\S+)'),
+    ('Cargo.toml',   r'hi-proto\s*=\s*\{[^}]*tag\s*=\s*"([^"]+)"'),
+    ('pubspec.yaml', r'hi_proto:(?:[^\n]*\n)+?\s+ref:\s*(\S+)'),
+]
+
 versions = {}
 for repo in ARGS:
-    gomod = os.path.join(repo, 'go.mod')
-    if not os.path.exists(gomod):
-        continue
-    m = re.search(r'github\.com/HiWorld-56/hi-proto (\S+)', open(gomod, encoding='utf-8').read())
-    if m:
-        versions[os.path.basename(repo)] = m.group(1)
+    for fname, pat in PATTERNS:
+        f = os.path.join(repo, fname)
+        if not os.path.exists(f):
+            continue
+        m = re.search(pat, open(f, encoding='utf-8').read())
+        if m:
+            versions[os.path.basename(repo)] = m.group(1)
+            break
 
 if not versions:
     print('[check_lockstep] 没找到任何消费方,跳过'); sys.exit(0)
