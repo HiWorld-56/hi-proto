@@ -50,6 +50,9 @@ http:
   - selector: hi.did.MerchantManage.Edit
     post: /api/v1/merchant_manage/edit
     body: "*"
+  - selector: hi.did.MerchantManage.SetPermission
+    post: /api/v1/merchant_manage/set_permission
+    body: "*"
 # Base
   - selector: hi.did.SuperAdmin.List
     get: /api/v1/super_admin/list

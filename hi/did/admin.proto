@@ -4,6 +4,7 @@ package hi.did;
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 
+import "buf/validate/validate.proto";
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/did/merchant.proto";
@@ -147,6 +148,8 @@ message MerchantManageListResp {
     option (hi.audience) = VIS_SELF;
     MerchantInfo base    = 1 [(hi.visibility) = VIS_PARTICIPANT];
     string       comment = 2 [(hi.visibility) = VIS_SELF];
+    // 该商户持有的权限位(仅超管可见)。空=普通商户,什么附加能力都没有。
+    repeated MerchantPermission permissions = 3 [(hi.visibility) = VIS_SELF];
   }
   int32         total = 1 [(hi.visibility) = VIS_SELF];
   repeated Unit list  = 2 [(hi.visibility) = VIS_SELF];
@@ -157,6 +160,29 @@ message MerchantManageEditReq {
   string comment = 2;
 }
 
+// 商户权限位。**仅超管可读写**(提权/降权),商户自己看不到也改不了。
+//
+// 邀请码注册进来的是普通商户,权限字段默认 0 —— 什么附加能力都没有,
+// 要什么由超管一项项给。这与 club 侧"机器人建号即全给、出事再撤"的方向相反,
+// 是有意的:那边管的是自家机器人的能力,这边管的是**别家商户能拿到什么数据**。
+enum MerchantPermission {
+  MERCHANT_PERM_UNSPECIFIED = 0; // 占位,无业务语义
+  MERCHANT_PERM_MQTT        = 1; // bit0:可读用户的 mqtt 认证信息(GetUserMqtt)
+}
+
+// 超管给商户提权/降权。
+//
+// ⚠️ 为什么 mqtt 认证信息要单独一个权限位:GetUserMqtt 返回的是用户的
+//    **mqtt 用户名+密码**,拿到就能直连 broker 订阅该用户的单聊 topic,
+//    绕过所有 RPC 层鉴权。它比"读业务数据"高一档,不能所有商户默认都有。
+//    club 需要它是因为要把通知转发到自己的用户端(hidid 发通知 → 机器人订阅
+//    对应 topic 即可收到,不必各自维护一条到 hidid 的登录态)。
+message MerchantSetPermissionReq {
+  string             did     = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 目标商户
+  MerchantPermission perm    = 2; // 要改的权限位
+  bool               granted = 3; // true=授予,false=撤销
+}
+
 // 商户管理(超管面)。裁决 #11:此前 Delete/Edit 标 AUTH_USER 且 handler 零校验
 // (任何登录用户可删改商户,是漏洞),已全部收紧为 AUTH_SUPERADMIN。
 // ⚠️ handler 侧无内联校验,完全靠拦截器 —— 后端 bump 后必须实测"非超管调 Delete/Edit 被拒"。
@@ -164,4 +190,5 @@ service MerchantManage {
   rpc List (MerchantManageListReq) returns (MerchantManageListResp) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:分页列出所有商户
   rpc Delete (hi.DID) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }               // 超管:删商户
   rpc Edit (MerchantManageEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }  // 超管:改商户备注
+  rpc SetPermission (MerchantSetPermissionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:给商户提权/降权
 }
