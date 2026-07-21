@@ -117,3 +117,8 @@ message UploadResp {
   string          url       = 1 [(hi.visibility) = VIS_PUBLIC];
   optional string thumb_url = 2 [(hi.visibility) = VIS_PUBLIC];
 }
+
+// 删除一个已上传的资源对象。各模块的 Source.Delete 共用。
+message DeleteResourceReq {
+  string url = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 上传时拿到的完整 url
+}

@@ -203,3 +203,6 @@ http:
   - selector: hi.club.ApiKey.Delete
     post: /api/v1/api_key/delete
     body: "*"
+  - selector: hi.club.Source.Delete
+    post: /api/v1/source/delete
+    body: "*"

@@ -209,3 +209,6 @@ http:
   - selector: hi.ai.AgentManage.List
     post: /api/v1/agent_manage/list
     body: "*"
+  - selector: hi.ai.Source.Delete
+    post: /api/v1/source/delete
+    body: "*"
