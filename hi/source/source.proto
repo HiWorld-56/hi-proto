@@ -87,11 +87,22 @@ message PutMeta {
   bool   thumbnail = 5;
 }
 
+// 删除。**补这个是因为原先根本没有** —— 各业务模块把文件交给 hi-source 之后就再也
+// 删不掉了:用户在业务侧删掉记录,对象永远留在桶里。temp 桶有 14 天 lifecycle 兜底,
+// 永久桶和私有桶没有,只会一直涨。
+//
+// ⚠️ 幂等:对象不存在也返回成功 —— 调用方多半是"删库记录顺带删对象",
+//    对象早没了不该让整个删除操作失败。
+message DeleteReq {
+  string url = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 完整 url,bucket/对象名从中解析
+}
+
 service File {
   rpc Put (PutReq) returns (PutResp) { option (hi.auth) = AUTH_NONE; } // bucket 化上传(内网)
   rpc PutStream (stream PutStreamReq) returns (PutResp) { option (hi.auth) = AUTH_NONE; } // bucket 化流式上传(内网)
   rpc Download (DownloadReq) returns (DownloadResp) { option (hi.auth) = AUTH_NONE; } // 文件下载(从 url 解析 bucket,新老 url 通吃)
   rpc DownloadStream (DownloadStreamReq) returns (stream DownloadStreamResp) { option (hi.auth) = AUTH_NONE; } // 流式下载
+  rpc Delete (DeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; } // 按 url 删对象(bucket 从 url 解析)
 }
 
 service Base {

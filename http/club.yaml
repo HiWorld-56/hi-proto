@@ -172,6 +172,9 @@ http:
   - selector: hi.club.Training.GetFile
     post: /api/v1/training/get_file
     body: "*"
+  - selector: hi.club.Training.DownloadFile
+    post: /api/v1/training/download_file
+    body: "*"
   - selector: hi.club.Training.UpdateContent
     post: /api/v1/training/update_content
     body: "*"

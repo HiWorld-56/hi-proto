@@ -71,6 +71,18 @@ message DeleteFilesByAgentsReq {
   repeated string agents = 1; // 智能体did列表
 }
 
+// 下载训练文件原件。训练资料存**私有桶**(商户私产,不公开读),所以拿不到可直下的 url,
+// 必须经这里带归属校验取字节 —— 与插件脚本的 DownloadScript 同一套路。
+message DownloadFileReq {
+  string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // agent did(校验归属)
+  string uuid  = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 训练文件 uuid
+}
+message DownloadFileResp {
+  option (hi.audience) = VIS_SELF; // 训练资料是 owner 私产
+  bytes  content = 1 [(hi.visibility) = VIS_SELF];
+  string name    = 2 [(hi.visibility) = VIS_SELF]; // 建议的文件名
+}
+
 message GetFileReq {
   string uuid  = 1; // 训练文件 uuid
   string agent = 2; // 智能体did(供 club/ai 两级归属校验;club 按 agent 查本方用户是否拥有该 agent)
@@ -119,6 +131,7 @@ service Training {
   rpc UploadFile (UploadFileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }               // 上传训练文件
   rpc ListFiles (ListFilesReq) returns (ListFilesResp) { option (hi.auth) = AUTH_MERCHANT; }                 // 列训练文件(原 ListAgentFiles)
   rpc GetFile (GetFileReq) returns (GetFileResp) { option (hi.auth) = AUTH_MERCHANT; }                     // 取单个训练文件(原 GetAgentFile)
+  rpc DownloadFile (DownloadFileReq) returns (DownloadFileResp) { option (hi.auth) = AUTH_MERCHANT; } // 下载训练文件原件(私有桶,校验 agent 归属)
   rpc DeleteFiles (DeleteFilesReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }        // 批量删(带 agent 归属;原单删 DeleteFile 无归属校验=越权,已删)
   rpc DeleteFilesByAgents (DeleteFilesByAgentsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 按智能体清(原 DeleteAgentFilesByDid)
   // ── 文本记忆条目 ──

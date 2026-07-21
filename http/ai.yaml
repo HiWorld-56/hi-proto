@@ -161,6 +161,9 @@ http:
   - selector: hi.ai.Training.GetFile
     post: /api/v1/training/get_file
     body: "*"
+  - selector: hi.ai.Training.DownloadFile
+    post: /api/v1/training/download_file
+    body: "*"
   - selector: hi.ai.Training.DeleteFiles
     post: /api/v1/training/delete_files
     body: "*"
