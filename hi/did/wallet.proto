@@ -60,8 +60,19 @@ message ListAddressesResp {
   repeated Unit list = 1 [(hi.visibility) = VIS_SELF];
 }
 
+// 计价币种:**只支持 cny / usd**,传其他值直接报错。
+//
+// ⚠️ 原先服务端是「`currency == "cny"` 走人民币,**否则一律当美元**」——
+//    传 eur、传空、拼错,都静默返回美元金额,调用方无从察觉。白名单放在 proto 上
+//    (protovalidate 已在 grpc 拦截器里启用),校验前置到入口,各端也能直接看到取值范围。
+//
+// 不做成 enum 是有意的:币种要扩展时 enum 的增删比字符串麻烦得多。
 message TotalAssetsReq {
-  string currency = 1;
+  string currency = 1 [(buf.validate.field).cel = {
+    id: "currency.iso4217"
+    message: "currency 只支持 cny / usd"
+    expression: "this.lowerAscii() in ['cny', 'usd']"
+  }];
 }
 
 message TotalAssetsResp {
@@ -70,7 +81,11 @@ message TotalAssetsResp {
 }
 
 message ListUsersAssetsReq {
-  string        currency   = 1;
+  string        currency   = 1 [(buf.validate.field).cel = { // 同 TotalAssetsReq.currency,只支持 cny / usd
+    id: "currency.iso4217"
+    message: "currency 只支持 cny / usd"
+    expression: "this.lowerAscii() in ['cny', 'usd']"
+  }];
   hi.Pagination pagination = 2;
 }
 
