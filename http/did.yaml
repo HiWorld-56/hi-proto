@@ -69,6 +69,9 @@ http:
   - selector: hi.did.Merchant.ListUsers
     post: /api/v1/merchant/list_users
     body: "*"
+  - selector: hi.did.Merchant.ListGreeters
+    post: /api/v1/merchant/list_greeters
+    body: "*"
   - selector: hi.did.Merchant.RemoveUsers
     post: /api/v1/merchant/remove_users
     body: "*"
