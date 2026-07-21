@@ -104,9 +104,17 @@ message ListAgentResp {
   repeated AgentInfo infos = 2 [(hi.visibility) = VIS_SELF];
 }
 
-// Agent 列表入参:dids 空=列调用者自己的;非空=按 did 列。
+// Agent 列表入参:**按归属列** —— 传的是主人(creator)的 did,返回这些人名下的机器人总和。
+//
+// ⚠️ 原来字段叫 `agents`、注释又写 `dids`,两处都在说"按机器人 did 筛" ——
+//    但返回体就是机器人列表,入参再传机器人 did 讲不通;真正的意图一直是"列这些人的机器人"。
+//    实现也确实错了:非空分支查的是 `WHERE agent.did IN (...)`(按机器人筛),
+//    与空分支的 `WHERE creator = 调用者`(按归属)完全是两根轴,一个方法两种语义。
+//    统一成按 creator 归属,两个分支才是同一件事的"指定别人"与"默认自己"。
+//
+// 用词随 hi.ai 自己的存储:归属字段叫 creator(见 AgentInfo.creator),不叫 master。
 message ListAgentReq {
-  repeated string agents       = 1; // 可选:只看这些 did;空=列自己的
+  repeated string creators   = 1; // 主人的 did;空=列调用者自己的
   hi.Pagination   pagination = 2;
 }
 
