@@ -34,6 +34,10 @@ python3 "$HIPROTO/codegen/check_lockstep.py" --warn /home/lo/wip/backend-hi-* ||
 # **只报不拦** —— 正常工作流是先改 proto 再跟后端,硬失败会卡死每次改名的第一次推送。
 python3 "$HIPROTO/codegen/check_impl.py" /home/lo/wip --warn || true
 
+# 接口清单随发布重生成 —— 上一版是手写的,内容停在重构前(档位名/rpc 数/方法名全过时),
+# 当成当前清单会被误导。生成物入库,便于 review 时直接看接口面变化。
+python3 "$HIPROTO/codegen/gen_api_surface.py"
+
 echo "[1/5] 合并 HTTP 配置"
 ( cd "$HIPROTO" && make merge >/dev/null )
 

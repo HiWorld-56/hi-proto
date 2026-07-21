@@ -51,6 +51,7 @@ message AuthToken {
   string refresh_token = 2 [(hi.visibility) = VIS_SELF];
 }
 
+// ⚠️ 被后端 Go 引用(pc_order/notify_pull_order 的签名载荷),proto 里无 rpc 引用,勿当死 message 删。
 message Nonce {
   string nonce = 1;
 }
@@ -60,10 +61,12 @@ message RequestId {
   string id = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
+// ⚠️ 被后端 Go 引用(chat),proto 里无 rpc 引用,勿当死 message 删。
 message State {
   bool state = 1;
 }
 
+// ⚠️ 被后端 Go 引用,proto 里无 rpc 引用,勿当死 message 删。
 message Number {
   int64 n = 1;
 }

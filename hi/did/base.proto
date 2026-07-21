@@ -33,9 +33,11 @@ message LatestVersionResp {
   int64           release_time          = 5 [(hi.visibility) = VIS_PUBLIC];
 }
 
+// ⚠️ 超管 did 名单不是"任何人可见":三个 SuperAdmin.List(did/club/ai)分别是
+// USER+MERCHANT / USER / MERCHANT,没有一个是 AUTH_NONE,标 PUBLIC 与档位矛盾。
 message ListSuperAdminUsersResp {
-  option (hi.audience) = VIS_PUBLIC;
-  repeated string list = 1 [(hi.visibility) = VIS_PUBLIC];
+  option (hi.audience) = VIS_PARTICIPANT;
+  repeated string list = 1 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 message UserTotalResp {

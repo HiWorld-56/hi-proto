@@ -7,16 +7,18 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 import "google/protobuf/empty.proto";
 import "hi/options.proto";
 
+// ⚠️ 含 api_key(区块链节点凭证)—— 不是"任何人可见"的东西。
+// Gateway.List 本就要 AUTH_USER/AUTH_MERCHANT 才能调,标 PUBLIC 与档位自相矛盾。
 message GatewayConfigUnit {
-  option (hi.audience) = VIS_PUBLIC;
+  option (hi.audience) = VIS_PARTICIPANT;
   string name    = 1 [(hi.visibility) = VIS_PUBLIC]; //aptos/bitcoin/ethereum/solana/tatum/tron-grpc/tron-http
   string url     = 2 [(hi.visibility) = VIS_PUBLIC];
-  string api_key = 3 [(hi.visibility) = VIS_PUBLIC];
+  string api_key = 3 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 message GatewayConfigListResp {
-  option (hi.audience) = VIS_PUBLIC;
-  repeated GatewayConfigUnit list = 1 [(hi.visibility) = VIS_PUBLIC];
+  option (hi.audience) = VIS_PARTICIPANT;
+  repeated GatewayConfigUnit list = 1 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 message GatewayConfigSetReq {

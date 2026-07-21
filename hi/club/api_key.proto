@@ -59,7 +59,7 @@ message DeleteApiKeyReq {
 }
 
 service ApiKey {
-  rpc Create (CreateApiKeyReq) returns (CreateApiKeyResp) { option (hi.auth) = AUTH_USER; }      // 给某用户/agent 生成 apikey
+  rpc Create (CreateApiKeyReq) returns (CreateApiKeyResp) { option (hi.auth) = AUTH_USER; }      // 给自己名下的机器人生成 apikey(**只有机器人能持 apikey**,见文件头)
   // Edit/Delete 按 api_key 定位,**必须校验归属** —— 只有该机器人的 master 能改/删。
   // 已落地(handler 里 isMasterOf(调用者, apikey.user));新增同类方法要带同样的守卫。
   rpc Edit (EditApiKeyReq) returns (EditApiKeyResp) { option (hi.auth) = AUTH_USER; }            // 改 apikey 备注

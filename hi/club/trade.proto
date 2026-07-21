@@ -108,7 +108,7 @@ service Trade {
   rpc Get (GetTradeReq) returns (GetTradeResp) { option (hi.auth) = AUTH_USER; } // 原 GetTrade
   rpc Add (AddTradeReq) returns (AddTradeResp) { option (hi.auth) = AUTH_USER; } // 原 AddTrade
   rpc UpdateTransHash (UpdateTransHashReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
-  // 查自己的交易(did 必填)。
+  // 查自己的交易 —— **没有 did 入参**,主体取自 token(见字段注释;传 did 是越权)。
   rpc List (ListTradeReq) returns (ListTradeResp) { option (hi.auth) = AUTH_USER; }
 }
 

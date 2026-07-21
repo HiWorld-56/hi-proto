@@ -26,11 +26,14 @@ import "hi/options.proto";
 //    别人的机器人。删掉字段后,"指定给谁绑"在类型上就说不出来。
 //    (同文件 Agent.List 早就写明"没有查谁的参数,主体永远是 token 里的人",
 //     这两个**写**操作反而收了 master,不一致。)
-message BindMasterReq {
-  string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 机器人 did
-}
-
-message UnbindMasterReq {
+// 绑定/解绑共用 —— 两者入参完全一致(只需定位机器人),没必要两份定义。
+//
+// ⚠️ **没有 master 字段**:主人恒是 token 里的人。原先收 master 并校验
+//    `userDid != req.Master`,那是同义反复 —— 只拦"你填了别人的 did",
+//    而攻击者填自己的就过,对安全零贡献;真正要拦的「这台机器人是不是别人的」
+//    当时反而是漏的(见 validateBindMaster 的说明)。
+//    字段存在 → 就得写校验 → 写了就显得有防护,而防护点其实全在别处。
+message MasterBindReq {
   string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 机器人 did
 }
 
@@ -66,15 +69,6 @@ message ListOnlineResp {
   //    此前误用 AgentInfo,由可见性 lint 反向校验查出并收窄为 Entity。
   int32              total = 1 [(hi.visibility) = VIS_PUBLIC];
   repeated hi.Entity infos = 2 [(hi.visibility) = VIS_PUBLIC];
-}
-
-message GetAgentMasterReq {
-  string agent = 1;
-}
-
-message GetAgentMasterResp {
-  option (hi.audience) = VIS_PUBLIC; // 查机器人主人(AgentDirectory.GetAgentMaster 免鉴权 AUTH_NONE)
-  hi.Entity master = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
 // 智能体(主体=智能体)。**用户 token 档**,全档一致。
@@ -120,8 +114,8 @@ service Agent {
   rpc GetUsage (hi.ai.AgentUsageReq) returns (hi.ai.AgentUsageResp) { option (hi.auth) = AUTH_USER; }  // 原 FindAgentCount(消息数+token,不是"count")
   rpc GetDefaultConfig (google.protobuf.Empty) returns (hi.ai.DefaultConfigResp) { option (hi.auth) = AUTH_USER; } // 全局默认配置(原 DefaultConfig,补动词跟 ai)
   // ── club 自有:换绑主人 ──
-  rpc BindMaster (BindMasterReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }     // 绑定主人
-  rpc UnbindMaster (UnbindMasterReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 解绑主人
+  rpc BindMaster (MasterBindReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }     // 绑定主人
+  rpc UnbindMaster (MasterBindReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 解绑主人
   rpc BindStatus (BindStatusReq) returns (BindStatusResp) { option (hi.auth) = AUTH_USER; }            // 绑定状态
   rpc Transfer (TransferReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }         // 转让机器人=换 master(club 自实现)
 }

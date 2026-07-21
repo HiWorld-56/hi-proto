@@ -124,6 +124,7 @@ message Message {
   Prompt prompt = 9 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
+// ⚠️ 被后端 Go 引用(群消息 @ 解析),proto 里无 rpc 引用,勿当死 message 删。
 message Mention {
   hi.Entity group = 1;
   bool all = 2;
