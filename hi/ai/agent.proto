@@ -118,6 +118,14 @@ message ListAgentReq {
   hi.Pagination   pagination = 2;
 }
 
+// 按**机器人 did** 批量取信息(与"按归属列"是两回事,故分开)。
+// 用于"我已经知道是哪些机器人,补齐它们的信息" —— 如 club 的在线列表:
+// presence 给出在线机器人的 did,再来这里补名字/头像。
+message GetAgentsReq {
+  repeated string agents     = 1 [(buf.validate.field).repeated.min_items = 1]; // 机器人 did,必填
+  hi.Pagination   pagination = 2;
+}
+
 // 标记列表入参:查的是**调用者**打过标记的,必须有身份。
 message ListMarksReq {
   repeated string agents       = 1; // 可选:在我的标记里再按 did 过滤
@@ -174,7 +182,8 @@ service Agent {
   rpc Edit (EditAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }      // 改智能体
   rpc Delete (DeleteAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }  // 删智能体(连带删文件+训练数据)
   rpc Get (GetAgentReq) returns (GetAgentResp) { option (hi.auth) = AUTH_MERCHANT; }                 // 查单个智能体
-  rpc List (ListAgentReq) returns (ListAgentResp) { option (hi.auth) = AUTH_MERCHANT; }              // 列智能体
+  rpc List (ListAgentReq) returns (ListAgentResp) { option (hi.auth) = AUTH_MERCHANT; }              // 按归属列(creators 空=自己的)
+  rpc GetAgents (GetAgentsReq) returns (ListAgentResp) { option (hi.auth) = AUTH_MERCHANT; }         // 按机器人 did 批量取
   rpc Mark (MarkAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }      // 打/取消标记(显示靠前)
   rpc ListMarks (ListMarksReq) returns (ListAgentResp) { option (hi.auth) = AUTH_MERCHANT; }         // 列我打过标记的
   rpc GetUsage (AgentUsageReq) returns (AgentUsageResp) { option (hi.auth) = AUTH_MERCHANT; }        // 机器人用量(消息数+token)
