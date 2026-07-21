@@ -85,15 +85,27 @@ enum PluginSource {
   PLUGIN_SOURCE_REFERENCE = 1; // 引用:经授权用别人的脚本;**不能下载源码**
 }
 
-// 发布一个插件(= 脚本的一个版本)+ 建该机器人的 annex(source=original)。
-// root 空=全新脚本(生成 主id+次id);非空=给该脚本加新版本(只生成次id,且版本号须大于现有最大)。
+// 发布一个**全新脚本**(生成 主id+次id)+ 建该机器人的 annex(source=original)。
+//
+// ⚠️ 与 CreateVersion(给已有脚本加新版本)**拆成两个方法**,不用"root 空/非空"分叉 ——
+//    那是"创建一个新资源"与"往已有资源追加"两件事,连服务端的校验规则都不同
+//    (加版本要求版本号大于现有最大,建新脚本没有这条),必填字段也不同。
+//
 // **uuid 已存在必拒**,发布即冻结。
 // annex.api_key 由 club 自动取该 agent 第一个 club-apikey 填入(ai 只存);data 用户填。
 message CreatePluginReq {
-  string      agent = 1; // 装到哪个 agent
-  string      root  = 2; // 主id:**空=全新脚本**(后台生成 主id+次id);非空=给该脚本**加新版本**(只生成次id)
-  PluginBody  body  = 3; // uuid 由后台生成并回填,调用方不要传;其余字段由用户/前端提供
-  PluginAnnex annex = 4; // api_key 由 club 自动填、data 用户填
+  string      agent = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 装到哪个 agent
+  PluginBody  body  = 2; // uuid 由后台生成并回填,调用方不要传;其余字段由用户/前端提供
+  PluginAnnex annex = 3; // api_key 由 club 自动填、data 用户填
+}
+
+// 给**已有脚本**加一个新版本(只生成次id)。
+// 版本号须**大于该 root 下现有最大**(三级数字按数值比较,不限前导零)。
+message CreateVersionReq {
+  string      agent = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string      root  = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 主id:给哪个脚本加版本
+  PluginBody  body  = 3;
+  PluginAnnex annex = 4;
 }
 
 message CreatePluginResp {
@@ -169,13 +181,22 @@ message GetPluginResp {
   PluginView view = 1 [(hi.visibility) = VIS_SELF];
 }
 
-// 删除。二选一:uuid=删这一个版本(**连同脚本文件一并删**);root=删该脚本全部版本。
+// 删单个版本(**连同脚本文件一并删**)。
+//
+// ⚠️ 与 DeleteAll(删整个脚本的所有版本)**拆成两个方法**,不用"uuid/root 二选一" ——
+//    那两者破坏半径差一个数量级,却靠"哪个字段非空"分叉,且两个都传/都不传时行为未定义。
+//
 // ⚠️ 允许**强删正被引用的插件** —— 引用方的 annex 不清理,指向随即失效;
 //    调用时该 tool 返错给 LLM,但**不打断整体推理流程**。删前把 ref_count 摆给用户看。
 message DeletePluginReq {
-  string agent = 1; // agent did
-  string uuid  = 2; // 删单个版本
-  string root  = 3; // 主id:删该脚本全部版本(与 uuid 二选一)
+  string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // agent did
+  string uuid  = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 插件 id(<主id>_<次id>)
+}
+
+// 删整个脚本的**全部版本**。破坏半径远大于 Delete,故独立成方法。
+message DeleteAllPluginVersionsReq {
+  string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string root  = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 主id
 }
 
 message DeletePluginByAgentsReq {
@@ -191,13 +212,15 @@ service Plugin {
   // 上传与建插件解耦:先 UploadScript 拿 url,再把 url 放进 CreatePluginReq。
   rpc UploadScript (stream hi.UploadStreamReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_MERCHANT; } // 传脚本 zip(分片)
   rpc DownloadScript (DownloadScriptReq) returns (DownloadScriptResp) { option (hi.auth) = AUTH_MERCHANT; }  // 下脚本 zip;**仅 ORIGINAL 放行**,引用方不给源码
-  rpc Create (CreatePluginReq) returns (CreatePluginResp) { option (hi.auth) = AUTH_MERCHANT; }        // 上传脚本版本 + 建 owner annex
+  rpc Create (CreatePluginReq) returns (CreatePluginResp) { option (hi.auth) = AUTH_MERCHANT; }              // 发布全新脚本
+  rpc CreateVersion (CreateVersionReq) returns (CreatePluginResp) { option (hi.auth) = AUTH_MERCHANT; }      // 给已有脚本加版本        // 上传脚本版本 + 建 owner annex
   rpc CreateAnnex (CreateAnnexReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 把已有 body 绑到某 agent(市场分享用)
   rpc Edit (EditPluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 只改 annex(body 冻结)
   rpc Get (GetPluginReq) returns (GetPluginResp) { option (hi.auth) = AUTH_MERCHANT; }                 // 查某插件
   rpc List (ListPluginReq) returns (ListPluginResp) { option (hi.auth) = AUTH_MERCHANT; }              // 一级页:列某 agent 的脚本(每 uuid 一行,激活版本)
   rpc ListVersions (ListVersionsReq) returns (ListPluginResp) { option (hi.auth) = AUTH_MERCHANT; }    // 二级页:按主id 列该脚本所有版本
-  rpc Delete (DeletePluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }   // 删版本或整个脚本(连同脚本文件)
+  rpc Delete (DeletePluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }         // 删单个版本
+  rpc DeleteAll (DeleteAllPluginVersionsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 删该脚本全部版本   // 删版本或整个脚本(连同脚本文件)
   rpc DeleteByAgents (DeletePluginByAgentsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 按 agent 批量删
   rpc SetActive (SetActiveReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 选该 agent 的激活版本
   rpc SetEnabled (SetEnabledReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 该 agent 脚本级开关

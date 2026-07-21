@@ -110,6 +110,9 @@ http:
   - selector: hi.ai.Plugin.Create
     post: /api/v1/plugin/create
     body: "*"
+  - selector: hi.ai.Plugin.CreateVersion
+    post: /api/v1/plugin/create_version
+    body: "*"
   - selector: hi.ai.Plugin.CreateAnnex
     post: /api/v1/plugin/create_annex
     body: "*"
@@ -126,6 +129,9 @@ http:
     body: "*"
   - selector: hi.ai.Plugin.Delete
     post: /api/v1/plugin/delete
+    body: "*"
+  - selector: hi.ai.Plugin.DeleteAll
+    post: /api/v1/plugin/delete_all
     body: "*"
   - selector: hi.ai.Plugin.DeleteByAgents
     post: /api/v1/plugin/delete_by_agents

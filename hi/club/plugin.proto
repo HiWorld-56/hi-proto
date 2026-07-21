@@ -25,12 +25,14 @@ service Plugin {
   rpc UploadScript (stream hi.UploadStreamReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }        // 传脚本 zip
   rpc DownloadScript (hi.ai.DownloadScriptReq) returns (hi.ai.DownloadScriptResp) { option (hi.auth) = AUTH_USER; } // 下自己的脚本 zip
   rpc Create (hi.ai.CreatePluginReq) returns (hi.ai.CreatePluginResp) { option (hi.auth) = AUTH_USER; }              // 上传脚本版本 + 建 owner annex(club 自动取 agent 第一个 apikey 塞进 annex)
+  rpc CreateVersion (hi.ai.CreateVersionReq) returns (hi.ai.CreatePluginResp) { option (hi.auth) = AUTH_USER; } // 给已有脚本加版本
   rpc CreateAnnex (hi.ai.CreateAnnexReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }           // 把已有 body 绑到某 agent(插件市场分享用;club 取该 agent apikey)
   rpc Edit (hi.ai.EditPluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                   // 改插件
   rpc Get (hi.ai.GetPluginReq) returns (hi.ai.GetPluginResp) { option (hi.auth) = AUTH_USER; }                       // 查单个插件版本
   rpc List (hi.ai.ListPluginReq) returns (hi.ai.ListPluginResp) { option (hi.auth) = AUTH_USER; }                    // 一级页:列脚本(每 uuid 一行,返回激活版本)
   rpc ListVersions (hi.ai.ListVersionsReq) returns (hi.ai.ListPluginResp) { option (hi.auth) = AUTH_USER; }         // 二级页:列某脚本的所有版本
   rpc Delete (hi.ai.DeletePluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }               // 删某个版本
+  rpc DeleteAll (hi.ai.DeleteAllPluginVersionsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 删该脚本全部版本
   rpc DeleteByAgents (hi.ai.DeletePluginByAgentsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 按 agent 批量删(原 DeleteByDids)
   rpc SetActive (hi.ai.SetActiveReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 选定供 function call 调用的版本
   rpc SetEnabled (hi.ai.SetEnabledReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }             // 脚本级开关:是否参与推理(记忆开关已移到 Agent.Edit)

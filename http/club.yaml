@@ -121,6 +121,9 @@ http:
   - selector: hi.club.Plugin.Create
     post: /api/v1/plugin/create
     body: "*"
+  - selector: hi.club.Plugin.CreateVersion
+    post: /api/v1/plugin/create_version
+    body: "*"
   - selector: hi.club.Plugin.CreateAnnex
     post: /api/v1/plugin/create_annex
     body: "*"
@@ -134,6 +137,9 @@ http:
     body: "*"
   - selector: hi.club.Plugin.Delete
     post: /api/v1/plugin/delete
+    body: "*"
+  - selector: hi.club.Plugin.DeleteAll
+    post: /api/v1/plugin/delete_all
     body: "*"
   - selector: hi.club.Plugin.DeleteByAgents
     post: /api/v1/plugin/delete_by_agents
