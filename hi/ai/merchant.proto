@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package hi.ai;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
+
+import "hi/common.proto";
+import "hi/options.proto";
+
+// 商户目录。**从 permission.proto 搬来** —— 那个文件随「hiai 去掉权限控制」一起删除,
+// 而商户目录与权限无关,是超管面的功能(跨商户看全部机器人、配 openai endpoint 等),
+// 予以保留。
+
+// ── 商户目录 ─────────────────────────────────────────────────────────────
+message MerchantListReq {
+  string        did        = 1; // 可选:按 did 过滤
+  hi.Pagination pagination = 2;
+}
+
+message MerchantListResp {
+  option (hi.audience) = VIS_PARTICIPANT; // 注册商户目录 → 商户生态内 PARTICIPANT
+  message Unit {
+    option (hi.audience) = VIS_PARTICIPANT;
+    hi.Entity base       = 1 [(hi.visibility) = VIS_PUBLIC]; // hi.Entity 恒 PUBLIC
+    int64     created_at = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 取本消息档
+  }
+  int32         total = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  repeated Unit infos = 2 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+// 商户目录(超管)。承接原 `UserACL.List(type="all")` —— 那查的是**注册用户/商户名录**,
+// 与"授权限"是两件事,混在一个方法里靠 type 分流,读的人看不懂,故拆出来。
+// 与 hi.did.MerchantManage.List 同形对齐(hiai 里没有普通用户,只有商户)。
+service Merchant {
+  rpc List (MerchantListReq) returns (MerchantListResp) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:列注册商户
+}

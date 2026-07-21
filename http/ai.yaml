@@ -171,22 +171,7 @@ http:
 
 # ── 超管档(名单穿透 hidid)──
 # Permission(原 UserACL)—— 查(商户档)
-  - selector: hi.ai.Permission.Get
-    post: /api/v1/permission/get
-    body: "*"
 # PermissionManage —— 管(超管)
-  - selector: hi.ai.PermissionManage.Add
-    post: /api/v1/permission_manage/add
-    body: "*"
-  - selector: hi.ai.PermissionManage.Delete
-    post: /api/v1/permission_manage/delete
-    body: "*"
-  - selector: hi.ai.PermissionManage.Edit
-    post: /api/v1/permission_manage/edit
-    body: "*"
-  - selector: hi.ai.PermissionManage.List
-    post: /api/v1/permission_manage/list
-    body: "*"
 # Merchant(商户目录,承接原 UserACL.List(type=NORMAL))
   - selector: hi.ai.Merchant.List
     post: /api/v1/merchant/list
