@@ -42,9 +42,6 @@ http:
   - selector: hi.club.UserDirectory.ListOnline
     post: /api/v1/user_directory/list_online
     body: "*"
-  - selector: hi.club.AgentManage.ListMarks
-    post: /api/v1/agent_manage/list_marks
-    body: "*"
   - selector: hi.club.Agent.Delete
     post: /api/v1/agent/delete
     body: "*"
@@ -58,9 +55,6 @@ http:
     body: "*"
   - selector: hi.club.AgentManage.List
     post: /api/v1/agent_manage/list
-    body: "*"
-  - selector: hi.club.AgentManage.Mark
-    post: /api/v1/agent_manage/mark
     body: "*"
 # UserACL
   - selector: hi.club.PermissionManage.Add
