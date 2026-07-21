@@ -198,9 +198,3 @@ http:
   - selector: hi.ai.AgentManage.List
     post: /api/v1/agent_manage/list
     body: "*"
-  - selector: hi.ai.AgentManage.Mark
-    post: /api/v1/agent_manage/mark
-    body: "*"
-  - selector: hi.ai.AgentManage.ListMarks
-    post: /api/v1/agent_manage/list_marks
-    body: "*"

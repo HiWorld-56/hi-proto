@@ -49,7 +49,12 @@ message TokenUsage {
   int32 mem    = 3 [(hi.visibility) = VIS_SELF]; // 训练消耗的token数
 }
 
-// 机器人本身的信息。**只放机器人的属性** —— 观察者相关的东西不在这里(见 AgentBrief)。
+// 机器人本身的信息。
+//
+// ⚠️ 曾经有个 marked 字段(以及配套的 AgentBrief / Mark / ListMarks),用来给机器人打
+//    标记让它在列表里显示靠前。已整体删除:实际没什么用,而且它从一开始就是错位的 ——
+//    标记不是机器人的属性,是观察者挂在机器人上的东西,同一台机器人不同的人看到的
+//    应该不一样,而存储上(唯一键只有 agent_did)根本表达不了这件事。**别再加回来。**
 message AgentInfo {
   option (hi.audience) = VIS_SELF; // 含 config/token 私产 → 整条只发给 owner 本人
   hi.Entity   base       = 1 [(hi.visibility) = VIS_PUBLIC]; // hi.Entity 恒 PUBLIC
@@ -58,21 +63,6 @@ message AgentInfo {
   string      note       = 4 [(hi.visibility) = VIS_SELF];
   TokenUsage  token      = 5 [(hi.visibility) = VIS_SELF];
   int64       created_at = 6 [(hi.visibility) = VIS_SELF];
-}
-
-// 列表项 = 机器人本身 + 标记。**只用于超管档**。
-//
-// ⚠️ marked 原先是 AgentInfo 的字段(第 7 个),那是**错的**:标记不是机器人的属性,
-//    而是观察者挂在机器人上的东西 —— 同一个机器人,不同的人看到的 marked 不一样。
-//    放进 AgentInfo 就等于宣称"这个机器人被标记了"这件事对所有人成立,不成立。
-//    但落到存储上,hi_ai_agent_favorites 的唯一键只有 agent_did(不含 user_did)——
-//    一个机器人全局只能有一条标记,**表达不了"每个人各自的标记"**。所以标记只能是一个
-//    全局概念,即超管给机器人置顶。商户档曾有 Mark/ListMarks,在这张表上语义是坏的
-//    (商户 A 标了 B 就撞唯一键;A 取消会把超管标的一起删掉),已删。
-message AgentBrief {
-  option (hi.audience) = VIS_SELF;
-  AgentInfo agent  = 1 [(hi.visibility) = VIS_SELF]; // 机器人个体(assistant 软件 / robot 硬件)
-  bool      marked = 2 [(hi.visibility) = VIS_SELF]; // 看的人有没有标记它(标记的显示靠前)
 }
 
 message DefaultConfigResp {
@@ -121,13 +111,6 @@ message ListAgentResp {
   repeated AgentInfo infos = 2 [(hi.visibility) = VIS_SELF];
 }
 
-// 超管档的列表:带 marked。
-message ListAgentBriefResp {
-  option (hi.audience) = VIS_SELF;
-  int32               total = 1 [(hi.visibility) = VIS_SELF];
-  repeated AgentBrief infos = 2 [(hi.visibility) = VIS_SELF];
-}
-
 // 列**调用者名下**的机器人。范围恒是自己名下,agents 只是在这个范围内再筛。
 //
 // ⚠️ agents 是**过滤条件**:空=不筛(名下全部),非空=只要这几个。这与"空=换一种
@@ -141,12 +124,6 @@ message ListAgentBriefResp {
 // (都是"自己名下"),只剩筛不筛之别,是同一个方法,已合并至此。
 message ListAgentReq {
   repeated string agents     = 1; // 可选:按机器人 did 筛;空=名下全部
-  hi.Pagination   pagination = 2;
-}
-
-// 标记列表入参:查的是**调用者**打过标记的,必须有身份。
-message ListMarksReq {
-  repeated string agents       = 1; // 可选:在我的标记里再按 did 过滤
   hi.Pagination   pagination = 2;
 }
 
@@ -176,12 +153,6 @@ message AgentUsageResp {
 
 message ResetToDefaultReq {
   repeated string agents = 1;
-}
-
-// 给机器人打/取消标记。**不是收藏** —— 带标记的机器人在显示时靠前。
-message MarkAgentReq {
-  string agent    = 1;
-  bool   marked = 2; // true=打标记(显示靠前),false=取消(与 AgentInfo.marked 对称)
 }
 
 // 智能体(主体=智能体)。商户档:hiai web(token)与商户后台服务(apikey)都会调,
@@ -222,7 +193,5 @@ message ManageListAgentsReq {
 // 超管是**跨商户**的另一个主体。混在一个 service 里,就只能靠"入参空不空"或
 // "运行时查是不是超管"来分叉 —— 那正是最容易搞混、也最容易漏判的写法。
 service AgentManage {
-  rpc List (ManageListAgentsReq) returns (ListAgentBriefResp) { option (hi.auth) = AUTH_SUPERADMIN; }          // 超管:按归属搜(跨商户)
-  rpc Mark (MarkAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }         // 超管:打/取消标记
-  rpc ListMarks (ListMarksReq) returns (ListAgentBriefResp) { option (hi.auth) = AUTH_SUPERADMIN; }            // 超管:列已打标记的
+  rpc List (ManageListAgentsReq) returns (ListAgentResp) { option (hi.auth) = AUTH_SUPERADMIN; }          // 超管:按归属搜(跨商户)
 }
