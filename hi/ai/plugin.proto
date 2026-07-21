@@ -61,6 +61,20 @@ message PluginView {
   int32        ref_count = 5 [(hi.visibility) = VIS_SELF]; // 被多少机器人引用(实时 COUNT,**不落库**,存了必漂)
 }
 
+// 插件加载完成的**通知载荷**。只说"哪个插件好了",不带任何私产。
+//
+// ⚠️ 别再往通知里塞 PluginView:它是 VIS_SELF(body.url 是私有 bucket 的脚本包地址,
+//    脚本是 owner 私产、且是可交易资产),而 hi.club.Notice 是 VIS_PARTICIPANT ——
+//    SELF 装进 PARTICIPANT 本该被可见性 lint 拦下,只因中间隔了个 google.protobuf.Any
+//    才没拦住。**Any 是那套 lint 唯一的结构性缺口**,往里塞什么要自己把关。
+message PluginLoaded {
+  option (hi.audience) = VIS_PARTICIPANT;
+  string uuid    = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 插件 id(<主id>_<次id>)
+  string name    = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  string version = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  bool   enabled = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 是否参与推理
+}
+
 // 插件在某机器人列表里的来源。
 //
 // ⚠️ 这是**历史事实,推导不出来** —— 不能用"agent 是不是创建者"去判:
