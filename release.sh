@@ -25,7 +25,8 @@ python3 "$HIPROTO/codegen/check_auth.py"
 # **硬失败** —— 这类错误没有"先改 proto 再跟后端"的过渡期:字段名不变所以各仓编译
 # 全过,但没升级的仓按老编号编码、新版按新编号解析,收到空值,线上直接错,
 # 而报错常常指向别处(真踩过:GetUserReq 挪了字段号,错误信息却是 validate 不匹配)。
-python3 "$HIPROTO/codegen/check_fieldnum.py"
+# FIELDNUM_BASE 可覆盖比对基线 —— 仅当上一个 tag 本身编号就是错的时用(见脚本注释)。
+python3 "$HIPROTO/codegen/check_fieldnum.py" ${FIELDNUM_BASE:+--base "$FIELDNUM_BASE"}
 
 # 实现覆盖:proto 声明的 rpc 后端有没有对应 handler。
 # Go 的 Unimplemented<Svc>Server 会兜底,所以「proto 改了名、handler 没跟」编译期一声不吭,

@@ -39,8 +39,15 @@ def at_rev(rev, path):
     return r.stdout if r.returncode == 0 else None
 
 
-tags = subprocess.run(['git', 'tag', '--sort=-creatordate'], capture_output=True, text=True).stdout.split()
-base = next((t for t in tags if t.startswith('v')), None)
+# 基线默认取最近的 tag。可用 --base 指定 —— 唯一的正当用途是**上一个 tag 本身就错**
+# (编号已经被挪过),这时要拿更早的正确版本作基线,否则等于把错误固化成基准。
+# 真发生过:dev.25/26 里 GetUserReq.user 被挪到 1,修回 2 时相对它们反而"变动"了。
+base = None
+if '--base' in sys.argv:
+    base = sys.argv[sys.argv.index('--base') + 1]
+else:
+    tags = subprocess.run(['git', 'tag', '--sort=-creatordate'], capture_output=True, text=True).stdout.split()
+    base = next((t for t in tags if t.startswith('v')), None)
 if not base:
     print('[check_fieldnum] 没有可比对的 tag,跳过'); sys.exit(0)
 
