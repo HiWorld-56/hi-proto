@@ -140,5 +140,15 @@ service User {
   rpc GetOther (GetUserReq) returns (hi.Entity) { option (hi.auth) = AUTH_USER; } // 根据DID获取用户基本信息
   rpc UnprocessedSysMsgCount (google.protobuf.Empty) returns (UnprocessedSysMsgCountResp) { option (hi.auth) = AUTH_USER; }
   rpc SetRemark (SetRemarkReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
-  rpc ListOnline (ListOnlineUserReq) returns (ListOnlineUserResp) { option (hi.auth) = AUTH_USER; } // 在线用户列表(原 ListOnlineUsers 去 stutter)
+}
+
+// 在线用户目录(**公开**)。与 User(用户自服务)主体不同,故拆 service ——
+// User 里每个方法都是"我对我自己"(改我的资料、我的好友、我的系统消息),
+// 而这里是"查一批 did 谁在线",跟调用者是谁毫无关系,实现里也用不到调用者身份。
+//
+// 对称范式:机器人那侧早就是 AgentDirectory.ListOnline(AUTH_NONE)。
+// 原先它挂在 User 下、标 AUTH_USER,而返回体的 audience 一直写着 VIS_PUBLIC、
+// 注释也写着"公开" —— 档位与数据定级自相矛盾。presence 本就是公开信息。
+service UserDirectory {
+  rpc ListOnline (ListOnlineUserReq) returns (ListOnlineUserResp) { option (hi.auth) = AUTH_NONE; } // 公开:在线用户(传 did 列表,返在线的那些)
 }
