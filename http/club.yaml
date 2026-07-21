@@ -58,6 +58,15 @@ http:
   - selector: hi.club.AgentManage.List
     post: /api/v1/agent_manage/list
     body: "*"
+# Merchant(转发 hidid)
+  - selector: hi.club.Merchant.List
+    get: /api/v1/merchant/list
+  - selector: hi.club.Merchant.ListGreeters
+    post: /api/v1/merchant/list_greeters
+    body: "*"
+  - selector: hi.club.MerchantManage.List
+    post: /api/v1/merchant_manage/list
+    body: "*"
 # UserACL
   - selector: hi.club.PermissionManage.Add
     post: /api/v1/permission_manage/add

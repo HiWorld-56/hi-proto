@@ -24,6 +24,8 @@ http:
 # Base(版本+环境探测;与 did 一致)
   - selector: hi.ai.Base.ServerVersion
     get: /api/v1/base/server_version
+  - selector: hi.ai.SuperAdmin.List
+    get: /api/v1/super_admin/list
 
 # ── 商户档(apikey 或 token)──
 # ApiKey

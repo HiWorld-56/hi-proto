@@ -41,7 +41,11 @@ import "hi/options.proto";
 // 权限类型:固定闭集(四档),故用枚举而非魔法字符串。客户端有枚举即可显隐功能,不必再拉 ListTypes。
 // 名为 PermissionType(不能叫 Permission —— 与 service Permission 同命名空间会撞)。
 enum PermissionType {
-  PERMISSION_UNSPECIFIED = 0; // 占位 / 列表过滤时表示"全部"
+  // ⚠️ **纯占位,不要赋予任何业务语义。** proto3 要求首值必须为 0,故这一行删不掉,
+  //    但它不代表"全部"、也不代表"不过滤" —— 传它一律按无效参数拒绝。
+  //    要列全部,传 PERMISSION_NORMAL:权限是 bit 位拼的,所有用户默认持有 normal 位,
+  //    所以"列持有 normal 的人"天然就等于"列全部用户"。不需要再造一个"不过滤"的档。
+  PERMISSION_UNSPECIFIED = 0;
   PERMISSION_NORMAL      = 1; // 普通:自由度/系统提示词/用户提示词
   PERMISSION_ADVANCED    = 2; // 高级:上下文数/对话模型/嵌入模型/STT 模型
   PERMISSION_MEM         = 3; // 记忆:上传资料/训练记忆
@@ -77,7 +81,7 @@ message PermissionEditReq {
 
 message PermissionListReq {
   string         did        = 1; // 可选:按 did 过滤
-  PermissionType type       = 2; // 可选:按权限类型过滤(UNSPECIFIED=全部)
+  PermissionType type       = 2; // **必填**,须是四档之一。列全部传 NORMAL(人人默认持有该位),不是 UNSPECIFIED
   hi.Pagination  pagination = 3;
 }
 

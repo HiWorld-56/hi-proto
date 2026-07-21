@@ -240,10 +240,22 @@ for f in glob.glob('hi/**/*.proto', recursive=True):
                 continue
             _by_svc.setdefault(svc, []).append((rm.group(1), f'{svc}.{rm.group(1)}'))
 
+# 整个 service 一条路由都没有:**不再默认放行**。
+# 原先这里直接 continue,理由是"整体不导出是设计"。但两次真实遗漏都是这个形态:
+#   · hi.club.Agent.List 挪位置后,新 service 忘了配路由,web 拿到 code 5;
+#   · hi.club 加了 SuperAdmin.List,hi.ai 对称的那个整个 service 都没建。
+# 「整体不导出」确实存在(app/设备走 grpc 直连,如 hi.club.Group),但那是**少数**,
+# 且应当是显式声明的,不该和"忘了"长得一模一样。故要求写进 http_optout.txt,
+# 用 `service:<全名>` 一行声明,新增 service 便无法静默漏掉。
 gap_total = 0
 for svc, methods in sorted(_by_svc.items()):
     exported = [f for m, f in methods if f in http_selectors]
-    if not exported:                       # 整个 service 不走 http —— 设计使然
+    if not exported:
+        if f'service:{svc}' not in optout:
+            gap_total += 1
+            bad.append(f'{svc} 整个 service 没有任何 http 路由 —— web 调不到。'
+                       f'要么在 http/*.yaml 配路由,要么在 codegen/http_optout.txt 写一行 '
+                       f'`service:{svc}` 注明它只走 grpc')
         continue
     for m, full in methods:
         if full in http_selectors or full in optout:

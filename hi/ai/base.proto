@@ -12,3 +12,16 @@ import "hi/options.proto";
 service Base {
   rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权:查服务自身版本+环境
 }
+
+// 超管名单(转发 hidid)。与 hi.club.SuperAdmin 对称 —— hiai 的 web 登录后也要
+// 知道自己是不是超管,以决定显不显示内部菜单。
+//
+// ai 不留自己的表:名单唯一持有方是 hidid(此前 did/club/ai/media 四张表实测已
+// 漂移 11/14/15/3,一处撤权另一处不生效)。ai 作为 hidid 的商户,用自己的
+// ExtendToken 去取(didapi.ListSuperAdmins 早已存在,原先只有中间件在用,没对外暴露)。
+//
+// ⚠️ 档位 AUTH_MERCHANT 而**不是** AUTH_SUPERADMIN —— 否则成了"先得是超管,
+//    才能知道自己是不是超管"。hiai 的 web(token)与商户后台(apikey)都走这一档。
+service SuperAdmin {
+  rpc List (google.protobuf.Empty) returns (hi.did.ListSuperAdminUsersResp) { option (hi.auth) = AUTH_MERCHANT; } // 取超管名单(前端显隐内部菜单用)
+}
