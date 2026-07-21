@@ -75,6 +75,16 @@ http:
   - selector: hi.did.Merchant.ListGreeters
     post: /api/v1/merchant/list_greeters
     body: "*"
+# MerchantGranted(跨商户读,整个 service 走 requireGrant)
+  - selector: hi.did.MerchantGranted.GetUser
+    post: /api/v1/merchant_granted/get_user
+    body: "*"
+  - selector: hi.did.MerchantGranted.ListUsers
+    post: /api/v1/merchant_granted/list_users
+    body: "*"
+  - selector: hi.did.MerchantGranted.ListGreeters
+    post: /api/v1/merchant_granted/list_greeters
+    body: "*"
   - selector: hi.did.Merchant.RemoveUsers
     post: /api/v1/merchant/remove_users
     body: "*"

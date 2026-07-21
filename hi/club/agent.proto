@@ -18,14 +18,20 @@ import "hi/options.proto";
 // 所以 **hi.ai 的类型/方法一改,这里必须跟着改** —— 这是继承关系,不是耦合。
 // club 自有的部分(绑主人、在线状态)不走 ai,用 club 自己的类型。
 
+// 绑定/解绑机器人的主人。
+//
+// ⚠️ **没有 master 字段** —— 主人恒是 token 里的人。原先收 `master` 并靠 handler
+//    校验 `userDid != req.Master` 才拒;守卫是有的,但接口形状在撒谎:调用方有理由
+//    以为传 master 管用,而这类"靠 handler 记得校验"的写法,漏一次就是强塞/解绑
+//    别人的机器人。删掉字段后,"指定给谁绑"在类型上就说不出来。
+//    (同文件 Agent.List 早就写明"没有查谁的参数,主体永远是 token 里的人",
+//     这两个**写**操作反而收了 master,不一致。)
 message BindMasterReq {
-  string master = 1;
-  string agent  = 2;
+  string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 机器人 did
 }
 
 message UnbindMasterReq {
-  string master = 1;
-  string agent  = 2;
+  string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 机器人 did
 }
 
 message BindStatusReq {
