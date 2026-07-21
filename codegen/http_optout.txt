@@ -7,7 +7,6 @@
 # 规则:新增 rpc 若落进这种缺口,要么配 http 路由,要么写进本文件(注明理由),否则 CI 失败。
 # 下面是机制落地时的存量,**尚未逐条确认**是"确实不需要"还是"也漏了"。确认一条删一条。
 hi.ai.Agent.RegisterRobot
-hi.ai.Agent.GetAgents
 hi.ai.Plugin.DownloadScript
 hi.club.Agent.BindMaster
 hi.club.Agent.UnbindMaster

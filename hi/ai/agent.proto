@@ -128,11 +128,19 @@ message ListAgentBriefResp {
   repeated AgentBrief infos = 2 [(hi.visibility) = VIS_SELF];
 }
 
-// 按**机器人 did** 批量取信息(与"按归属列"是两回事,故分开)。
-// 用于"我已经知道是哪些机器人,补齐它们的信息" —— 如 club 的在线列表:
-// presence 给出在线机器人的 did,再来这里补名字/头像。
-message GetAgentsReq {
-  repeated string agents     = 1 [(buf.validate.field).repeated.min_items = 1]; // 机器人 did,必填
+// 列**调用者名下**的机器人。范围恒是自己名下,agents 只是在这个范围内再筛。
+//
+// ⚠️ agents 是**过滤条件**:空=不筛(名下全部),非空=只要这几个。这与"空=换一种
+//    语义"不同 —— 两种情况是同一根轴上的"筛/不筛",所以合并成一个方法是对的。
+//
+// ⚠️ 这个字段曾叫 creators(按主人筛),那是**另一根轴**且没有归属校验:
+//    任一商户传别人的 did 就能拿走对方机器人的完整 AgentInfo(含 prompt)。已删。
+//    跨商户列是超管的活,走 AgentManage.List。**别再把 creators 加回来。**
+//
+// 也曾另有一个按 did 批量取的方法与本方法并存 —— 加上归属校验后两者范围完全相同
+// (都是"自己名下"),只剩筛不筛之别,是同一个方法,已合并至此。
+message ListAgentReq {
+  repeated string agents     = 1; // 可选:按机器人 did 筛;空=名下全部
   hi.Pagination   pagination = 2;
 }
 
@@ -192,18 +200,9 @@ service Agent {
   rpc Edit (EditAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }      // 改智能体
   rpc Delete (DeleteAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }  // 删智能体(连带删文件+训练数据)
   rpc Get (GetAgentReq) returns (GetAgentResp) { option (hi.auth) = AUTH_MERCHANT; }                 // 查单个智能体
-  // List **只列自己的**,没有"查谁"的参数 —— 归属取自 apikey 解出的商户 did。
-  //
-  // ⚠️ 原签名是 List(ListAgentReq{creators}),creators 非空就直接按它查,**没有任何归属
-  //    校验** —— 任一商户传别人的 did,就能拿走对方名下机器人的完整 AgentInfo,里面含
-  //    AgentConfig 的 system_prompt/user_prompt/模型配置。而 AgentInfo 标着 VIS_SELF
-  //    "整条只发给 owner 本人"。这与当初删掉 club.AgentDirectory.List 是同一个病,
-  //    只是门槛从"匿名"变成"任一商户"。**别再把 creators 加回来**:跨商户列是超管的活,
-  //    走 AgentManage.List。
-  rpc List (hi.Pagination) returns (ListAgentResp) { option (hi.auth) = AUTH_MERCHANT; }             // 列自己名下的机器人
-  // 按机器人 did 批量取。**服务端强制只返回调用者名下的** —— 同上,原先不校验归属,
-  // 传任意 did 就能拿到别家的 prompt。兄弟服务(club)取的本就是自己名下的,不受影响。
-  rpc GetAgents (GetAgentsReq) returns (ListAgentResp) { option (hi.auth) = AUTH_MERCHANT; }         // 按机器人 did 批量取(限自己名下)
+  // 列**自己名下**的机器人;agents 非空则在名下再按 did 筛(见 ListAgentReq 的说明)。
+  // 归属恒取自 apikey 解出的商户 did,守卫下沉在 SQL,不靠 handler 记得过滤。
+  rpc List (ListAgentReq) returns (ListAgentResp) { option (hi.auth) = AUTH_MERCHANT; }              // 列名下机器人(agents 可选过滤)
   rpc GetUsage (AgentUsageReq) returns (AgentUsageResp) { option (hi.auth) = AUTH_MERCHANT; }        // 机器人用量(消息数+token)
   rpc GetDefaultConfig (google.protobuf.Empty) returns (DefaultConfigResp) { option (hi.auth) = AUTH_MERCHANT; } // 取全局默认配置(原 DefaultConfig,补动词)
   rpc ResetToDefault (ResetToDefaultReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 批量重置为默认配置
