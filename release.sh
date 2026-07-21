@@ -48,6 +48,13 @@ echo "[2/5] go-http → $CODE"
 # **只报不拦**(同 check_impl):正常工作流是先改 proto 再跟后端。
 python3 "$HIPROTO/codegen/check_validate.py" --pb-from "$CODE/go" --warn /home/lo/wip/backend-hi-* || true
 
+# 网关注册核对:路由链路有**两段**,断哪一段都是 404,且两段的失败长得一模一样 ——
+#   ① proto 侧 http/*.yaml 配 selector      → check_auth 覆盖
+#   ② Go 侧 RegisterXxxHandlerFromEndpoint  → 本检查覆盖
+# hi.club.Merchant 就是断在②:grpc 注册了、路由也配了,唯独网关没注册,
+# 于是 /api/v1/merchant/* 全部 code 5,而 grpcurl 直连完全正常,真因极难定位。
+python3 "$HIPROTO/codegen/check_gateway.py" --warn /home/lo/wip/backend-hi-* || true
+
 echo "[3/5] rust → $CODE/rust/src/gen"
 ( cd "$HIPROTO/codegen/rust-gen"
   export HTTPS_PROXY=$PROXY HTTP_PROXY=$PROXY          # cargo 走梯子;rust-gen 内部会为 buf 剥离代理
