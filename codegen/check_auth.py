@@ -200,6 +200,60 @@ for y in sorted(glob.glob('http/*.yaml')):
 
 print(f'[check_auth] 共 {http_total} 条 http 路由')
 
+# ── 反向:rpc 有没有漏配 http 路由 ─────────────────────────────────────────
+# 上面几段都是「路由 → rpc」(不悬空);这里是「rpc → 路由」(不遗漏)。
+# 缺了这一向的代价:hi.club.Agent.List 加完 rpc 忘了配路由,web 调
+# /api/v1/agent/list 拿到 code 5 Not Found,后端明明实现了、注册了、也能 grpc 调通,
+# 最后由同事反馈才发现。gateway 没有路由 = 编译期与运行期都不吭声。
+#
+# 判据不能是「每个 rpc 都要有 http」—— 全仓 259 个 unary rpc 里 93 个没路由,
+# 绝大多数是 app/设备走 grpc 直连的(hi.club.Group 整个 service 都不走 gateway),
+# 一刀切会淹在误报里。只看**同一 service 已导出一部分却漏几条**的情况:
+# 整体不导出是设计,部分不导出才是可疑。豁免写在 codegen/http_optout.txt。
+optout = set()
+_optout_path = os.path.join(os.path.dirname(__file__), 'http_optout.txt')
+if os.path.exists(_optout_path):
+    for l in open(_optout_path):
+        l = l.split('#')[0].strip()
+        if l:
+            optout.add(l)
+
+http_selectors = set()
+for y in glob.glob('http/*.yaml'):
+    if os.path.basename(y) == 'merged.yaml':
+        continue
+    http_selectors |= set(re.findall(r'-\s*selector:\s*([\w.]+)',
+                                     open(y, encoding='utf-8').read()))
+
+_by_svc = {}
+for f in glob.glob('hi/**/*.proto', recursive=True):
+    t = open(f, encoding='utf-8').read()
+    pm = re.search(r'^package\s+([\w.]+);', t, re.M)
+    if not pm:
+        continue
+    for sm in re.finditer(r'^service\s+(\w+)\s*\{(.*?)^\}', t, re.S | re.M):
+        svc = f'{pm.group(1)}.{sm.group(1)}'
+        for rm in re.finditer(
+                r'rpc\s+(\w+)\s*\(\s*(stream\s+)?[\w.]+\s*\)\s*returns\s*\(\s*(stream\s+)?',
+                sm.group(2)):
+            if rm.group(2) or rm.group(3):   # 流式走不了 grpc-gateway,不参与判定
+                continue
+            _by_svc.setdefault(svc, []).append((rm.group(1), f'{svc}.{rm.group(1)}'))
+
+gap_total = 0
+for svc, methods in sorted(_by_svc.items()):
+    exported = [f for m, f in methods if f in http_selectors]
+    if not exported:                       # 整个 service 不走 http —— 设计使然
+        continue
+    for m, full in methods:
+        if full in http_selectors or full in optout:
+            continue
+        gap_total += 1
+        bad.append(f'{svc} 已导出 {len(exported)} 条 http 路由却漏了 {m} —— '
+                   f'要么在 http/*.yaml 配路由,要么写进 codegen/http_optout.txt 注明理由')
+
+print(f'[check_auth] http 缺口检查:豁免 {len(optout)} 条,新增缺口 {gap_total} 条')
+
 # ══ 数据可见性(hi.visibility / hi.audience)机器强制 ═══════════════════════════
 # auth 管"谁能调方法";这里管"返回数据里哪些字段能给这个受众看"。规则:
 #   · 每个"方法返回值可达"的数据消息必须标 option (hi.audience);

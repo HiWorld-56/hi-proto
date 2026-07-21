@@ -1,0 +1,37 @@
+# 有意不导出 http 的 rpc —— 「同 service 已导出部分方法,却漏了这几条」的豁免名单。
+#
+# 判据(check_auth.py 用):一个 service 若一条 http 路由都没有,说明它整体不走 gateway
+# (app/设备走 grpc 直连),不管;但**已经导出了一部分**却漏几条,那多半是加 rpc 时忘了配路由 ——
+# hi.club.Agent.List 就是这么漏的,web 调 /api/v1/agent/list 拿到 code 5,由同事反馈才发现。
+#
+# 规则:新增 rpc 若落进这种缺口,要么配 http 路由,要么写进本文件(注明理由),否则 CI 失败。
+# 下面是机制落地时的存量,**尚未逐条确认**是"确实不需要"还是"也漏了"。确认一条删一条。
+hi.ai.Agent.RegisterRobot
+hi.ai.Agent.GetAgents
+hi.ai.Plugin.DownloadScript
+hi.club.Agent.BindMaster
+hi.club.Agent.UnbindMaster
+hi.club.Agent.BindStatus
+hi.club.Auth.Verify
+hi.club.Base.ListCoins
+hi.club.Base.ServerVersion
+hi.club.Chat.UploadMedia
+hi.club.Plugin.DownloadScript
+hi.club.Trade.GetFee
+hi.club.Trade.Add
+hi.club.Trade.UpdateTransHash
+hi.did.Assets.UpdateAddresses
+hi.did.Assets.ListAddresses
+hi.did.Auth.Verify
+hi.did.Auth.VerifyOffline
+hi.did.Auth.Notify
+hi.did.Auth.Logout
+hi.did.Base.ListCoins
+hi.did.Base.ServerVersion
+hi.did.Merchant.UploadLogo
+hi.did.Merchant.GetUser
+hi.did.Merchant.UploadUserAvatar
+hi.did.Merchant.GetUserMqtt
+hi.did.Merchant.ListGrants
+hi.did.Merchant.AddGrant
+hi.did.Merchant.RemoveGrant
