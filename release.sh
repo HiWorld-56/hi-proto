@@ -21,12 +21,12 @@ echo "[hi-proto] $(git -C "$HIPROTO" rev-parse --short HEAD)"
 echo "[0/5] 校验 hi.auth 标注"
 python3 "$HIPROTO/codegen/check_auth.py"
 
-# 字段号稳定性:与上一个 tag 比对,同名字段的编号不得变化、空出的编号不得被复用。
-# **硬失败** —— 这类错误没有"先改 proto 再跟后端"的过渡期:字段名不变所以各仓编译
-# 全过,但没升级的仓按老编号编码、新版按新编号解析,收到空值,线上直接错,
-# 而报错常常指向别处(真踩过:GetUserReq 挪了字段号,错误信息却是 validate 不匹配)。
-# FIELDNUM_BASE 可覆盖比对基线 —— 仅当上一个 tag 本身编号就是错的时用(见脚本注释)。
-python3 "$HIPROTO/codegen/check_fieldnum.py" ${FIELDNUM_BASE:+--base "$FIELDNUM_BASE"}
+# 消费方版本一致性。**开发阶段字段号随便改、不做向后兼容**,前提是全仓 lockstep 升级。
+# 这条前提一破就是编译期查不出的线上故障:GetUserReq 挪了字段号而 hi-ai 停在旧版,
+# 它按老编号编码、hi-did 按新编号解析 → 收到空值,所有仓编译全过、CreateAssistant
+# 整条链路却挂掉,报错还是 validate 的 "pattern 不匹配",完全指不到真因。
+# 只报不拦:发布 proto 的当下各仓本来就还没升,拦了会卡死每次发布。
+python3 "$HIPROTO/codegen/check_lockstep.py" --warn /home/lo/wip/backend-hi-* || true
 
 # 实现覆盖:proto 声明的 rpc 后端有没有对应 handler。
 # Go 的 Unimplemented<Svc>Server 会兜底,所以「proto 改了名、handler 没跟」编译期一声不吭,

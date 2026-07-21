@@ -26,15 +26,12 @@ import "hi/options.proto";
 //    别人的机器人。删掉字段后,"指定给谁绑"在类型上就说不出来。
 //    (同文件 Agent.List 早就写明"没有查谁的参数,主体永远是 token 里的人",
 //     这两个**写**操作反而收了 master,不一致。)
-//    ⚠️ agent **保持字段号 2**,不复用已删的 master=1 —— 复用编号是隐形破坏:
-//       字段名没变,各仓编译全过,但没升级的仓按老编号编码、新版按新编号解析,
-//       收到空值,编译期零提示。(did 侧 GetUserReq 真踩过这个。)
 message BindMasterReq {
-  string agent = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 机器人 did
+  string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 机器人 did
 }
 
 message UnbindMasterReq {
-  string agent = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 机器人 did
+  string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 机器人 did
 }
 
 message BindStatusReq {

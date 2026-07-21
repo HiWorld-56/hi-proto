@@ -108,18 +108,13 @@ message ListGrantsResp {
 //    一旦 handler 里 `if merchant == ""` 与 requireGrant 的分支写岔,就是静默跨商户读。
 //    按既有范式(Merchant/MerchantManage、Gateway/GatewayAdmin)拆成两个 service:
 //    读自己的在这里,跨商户的在 MerchantGranted(整个 service 走 requireGrant)。
-// ⚠️ **字段号保持原样,不因删字段而挪位**(user 仍是 2,不复用已删的 merchant=1)。
-//    复用编号是隐形破坏:字段名没变 → 各仓编译全过,但没升级的那个仓按老编号编码,
-//    新版按新编号解析,收到的是空值。**编译期零提示,只有线上行为错**。
-//    真踩过:ai 停在旧版时,它编码 user=2、did 解析 field 1,于是拿到空 user,
-//    CreateAssistant 整条链路挂掉,报错却指向 validate 的 pattern 不匹配。
 message GetUserReq {
-  string user = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 用户 did
+  string user = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 用户 did
 }
 
 message ListUsersReq {
-  string        user       = 2; // 可选:按用户 did 过滤
-  hi.Pagination pagination = 3;
+  string        user       = 1; // 可选:按用户 did 过滤
+  hi.Pagination pagination = 2;
 }
 
 // ── 读**别家商户**名下的用户(MerchantGranted,整个 service 走 requireGrant)──
@@ -148,8 +143,7 @@ message GrantedListGreetersReq {
 // 与 ListUsers 分开而不是加个 level 过滤参数:这是一类**有业务含义的固定人群**
 // (club 用来展示可接待的人),不是通用筛选。合成一个方法就又要靠"参数传没传"分支。
 message ListGreetersReq {
-  // 字段号保持原样(不复用已删的 merchant=1),理由见 GetUserReq。
-  hi.Pagination pagination = 2; // 列**自己**名下的 greeter;跨商户走 MerchantGranted.ListGreeters
+  hi.Pagination pagination = 1; // 列**自己**名下的 greeter;跨商户走 MerchantGranted.ListGreeters
 }
 
 message ListUsersResp {
