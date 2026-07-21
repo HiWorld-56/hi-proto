@@ -33,6 +33,9 @@ http:
   - selector: hi.club.Agent.Edit
     post: /api/v1/agent/edit
     body: "*"
+  - selector: hi.club.Agent.List
+    post: /api/v1/agent/list
+    body: "*"
   - selector: hi.club.AgentDirectory.ListOnline
     post: /api/v1/agent_directory/list_online
     body: "*"
