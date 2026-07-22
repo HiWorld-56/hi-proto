@@ -78,4 +78,48 @@ if missing:
         sys.exit(1)
     print('[check_impl] (--warn:只报不拦。若这是"proto 先行、后端待跟",属预期;'
           '若改完后端仍在报,那就是真漂移了)')
-print('[check_impl] ✓ 所有 rpc 均能找到后端实现')
+else:
+    print('[check_impl] ✓ 所有 rpc 均能找到后端实现')
+
+# ── http 暴露面漂移(强化 pass)────────────────────────────────────────────
+# 上面那个"包内任一仓实现即算通过"有个盲区:同一 service 被多仓注册时,只要
+# **某个**仓实现了就放行 —— 而真正挂在 http 网关后面的那个仓可能名字漂了。
+#   真踩过(同一天连中三个):hi.club.Trade.Get / Order.ListNotPulled /
+#   Agent.GetDefaultConfig —— club(网关转发方)handler 还叫 GetTrade /
+#   GetNotPulledPcOrders / DefaultConfig(旧名),而 club-trade/ai 里有正确名字的实现,
+#   于是弱检查被骗过,web 一调 http 却 "method X not implemented"。
+# 判据收紧:**谁注册了 http 网关(Register<Svc>HandlerFromEndpoint),谁就是 404 的
+# 暴露面,必须自己实现该 service 的所有 http 路由方法**(方法名精确匹配 grpc rpc 名)。
+# club-trade 只注册 grpc、不注册 http 网关,故它 Base 只实现 ServerVersion 不会误报。
+ALIAS = {'hiclub': 'hi.club', 'hidid': 'hi.did', 'hiai': 'hi.ai',
+         'source': 'hi.source', 'hisource': 'hi.source'}
+# 有 http 路由的 (pkg.svc) → {method}
+routed = {}
+for y in glob.glob('http/*.yaml'):
+    for sel in re.findall(r'selector:\s*([\w.]+)', open(y, encoding='utf-8').read()):
+        parts = sel.split('.')
+        routed.setdefault('.'.join(parts[:-1]), set()).add(parts[-1])
+
+repo_dirs = sorted(set(r for rs in REPOS.values() for r in rs))
+gateway_gaps = []
+for repo in repo_dirs:
+    src = repo_src(repo)
+    for alias, svc in re.findall(r'(\w+)\.Register(\w+?)HandlerFromEndpoint\(', src):
+        pkg = ALIAS.get(alias)
+        key = f'{pkg}.{svc}'
+        if not pkg or key not in routed:
+            continue
+        for meth in sorted(routed[key]):
+            if not re.search(r'func \(\w+ \*' + svc + r'\w*Server\) ' + meth + r'\(', src):
+                gateway_gaps.append(f'{repo}: 注册了 {key} 的 http 网关,却没实现 {meth} '
+                                    f'—— web 调 http 会 "method {meth} not implemented"')
+
+if gateway_gaps:
+    print(f'[check_impl] ❌ http 暴露面漂移 {len(gateway_gaps)} 个(比上面更要命,直接 404/Unimplemented):')
+    for g in gateway_gaps:
+        print('    ' + g)
+    if not WARN_ONLY:
+        sys.exit(1)
+    print('[check_impl] (--warn:只报不拦;后端跟完 proto 后仍报 = 真漂移)')
+else:
+    print('[check_impl] ✓ http 网关暴露面无漂移')
