@@ -76,6 +76,10 @@ python3 "$HIPROTO/codegen/check_gateway.py" --warn /home/lo/wip/backend-hi-* || 
 # 实例:Notice.extra(PARTICIPANT)曾装 PluginView(SELF,含私有 bucket 脚本地址)。
 python3 "$HIPROTO/codegen/check_any.py" --warn /home/lo/wip/backend-hi-* || true
 
+# 各后端死代码(不可达函数)。6 个后端已全清到 0,从干净起步,新增即显形。
+# **只报不拦**:deadcode 保守看不到反射,重构中途也会短暂出现不可达 —— 硬失败会卡开发。
+python3 "$HIPROTO/codegen/check_deadcode.py" --warn /home/lo/wip/backend-hi-* || true
+
 echo "[3/5] rust → $CODE/rust/src/gen"
 ( cd "$HIPROTO/codegen/rust-gen"
   export HTTPS_PROXY=$PROXY HTTP_PROXY=$PROXY          # cargo 走梯子;rust-gen 内部会为 buf 剥离代理
