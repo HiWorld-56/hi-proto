@@ -108,7 +108,7 @@ message EditAgentReq {
 message ListAgentsResp {
   option (hi.audience) = VIS_SELF; // 列 owner 自己的机器人(含 config)→ SELF
   int32              total = 1 [(hi.visibility) = VIS_SELF];
-  repeated AgentInfo infos = 2 [(hi.visibility) = VIS_SELF];
+  repeated AgentInfo agents = 2 [(hi.visibility) = VIS_SELF]; // 与 hi.club.ListAgentsResp 对齐(原 infos)
 }
 
 // 列**调用者名下**的机器人。范围恒是自己名下,agents 只是在这个范围内再筛。

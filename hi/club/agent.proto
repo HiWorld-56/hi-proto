@@ -74,8 +74,11 @@ message ListOnlineResp {
 // 智能体(主体=智能体)。**用户 token 档**,全档一致。
 // 免鉴权的那几个(列表/在线/查主人)已拆去 AgentDirectory。
 // 列我的机器人。**没有"查谁"的参数** —— 主体永远是 token 里的人。
-message ListMyAgentsReq {
-  hi.Pagination pagination = 1;
+// 与 hi.ai.ListAgentsReq 结构对齐:agents 可选按 did 过滤(空=名下全部),
+// 传别人的 did 得空(交集即归属守卫,不报错)。
+message ListAgentsReq {
+  repeated string agents     = 1; // 可选:按机器人 did 筛;空=名下全部
+  hi.Pagination   pagination = 2;
 }
 
 // 超管按用户搜机器人。users 是**过滤条件**(空=不过滤,即全部)——
@@ -105,7 +108,7 @@ service Agent {
   // 由 club 自己管理,与 hiai 无关(hiai 那边所有 club 机器人的 creator 都是 club 商户,
   // 根本表达不了"谁的机器人")。did 取自 token,不接受入参指定;
   // 将来若要开放"查别人的机器人列表",那是**另一个方法**,不是把这个的档位放开。
-  rpc List (ListMyAgentsReq) returns (ListAgentsResp) { option (hi.auth) = AUTH_USER; } // 列我名下的机器人
+  rpc List (ListAgentsReq) returns (ListAgentsResp) { option (hi.auth) = AUTH_USER; } // 列我名下的机器人
   // ── hi.ai 门面(跟 ai 定稿改名)──
   rpc CreateAssistant (hi.ai.CreateAssistantReq) returns (hi.ai.CreateAgentResp) { option (hi.auth) = AUTH_USER; }  // 原 CreateAgent
   rpc Edit (hi.ai.EditAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }      // 原 EditAgent
