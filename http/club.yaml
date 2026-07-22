@@ -190,6 +190,9 @@ http:
     body: "*"
   - selector: hi.club.Trade.Get
     get: /api/v1/trade/get
+  - selector: hi.club.TradeManage.List
+    post: /api/v1/trade_manage/list
+    body: "*"
 # ApiKey
   - selector: hi.club.ApiKey.Create
     post: /api/v1/api_key/create

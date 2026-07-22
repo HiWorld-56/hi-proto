@@ -56,7 +56,6 @@ service:hi.club.Order
 service:hi.club.Price
 service:hi.club.Publisher
 service:hi.club.PushManager
-service:hi.club.TradeManage   # 超管档,web 超管面可能要用
 service:hi.club.Wallet
 service:hi.did.Pay
 service:hi.did.Price
