@@ -163,6 +163,18 @@ http:
   - selector: hi.club.Source.UploadTrainingFile
     post: /api/v1/source/upload_training_file
     body: "*"
+  - selector: hi.club.Source.UploadAvatar
+    post: /api/v1/source/upload_avatar
+    body: "*"
+  - selector: hi.club.Source.UploadBackground
+    post: /api/v1/source/upload_background
+    body: "*"
+  - selector: hi.club.Source.UploadTemp
+    post: /api/v1/source/upload_temp
+    body: "*"
+  - selector: hi.club.Source.UploadLog
+    post: /api/v1/source/upload_log
+    body: "*"
   - selector: hi.club.Training.ListFiles
     post: /api/v1/training/list_files
     body: "*"

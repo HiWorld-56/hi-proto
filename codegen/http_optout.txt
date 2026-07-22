@@ -14,7 +14,6 @@ hi.club.Agent.BindStatus
 hi.club.Auth.Verify
 hi.club.Base.ListCoins
 hi.club.Base.ServerVersion
-hi.club.Source.UploadTemp
 hi.club.Source.DownloadScript
 hi.club.Trade.GetFee
 hi.club.Trade.Add
@@ -63,9 +62,6 @@ service:hi.did.Transfer
 service:hi.did.User
 service:hi.did.Wallet
 
-hi.club.Source.UploadLog
-hi.club.Source.UploadAvatar
-hi.club.Source.UploadBackground
 hi.club.Source.UploadTempStream
 hi.club.Source.UploadScript
 hi.club.Source.Download
