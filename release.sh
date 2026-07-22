@@ -70,6 +70,10 @@ python3 "$HIPROTO/codegen/check_validate.py" --pb-from "$CODE/go" --warn /home/l
 # 于是 /api/v1/merchant/* 全部 code 5,而 grpcurl 直连完全正常,真因极难定位。
 python3 "$HIPROTO/codegen/check_gateway.py" --warn /home/lo/wip/backend-hi-* || true
 
+# 流式白名单(streamApi)是否跟上 proto 的 server-streaming 路由。硬编码字符串列表,
+# 改名时无类型引用可依靠 —— complete_stream 就这么漏过、流式端点静默变空。
+python3 "$HIPROTO/codegen/check_stream.py" --warn /home/lo/wip/backend-hi-* || true
+
 # Any 载荷可见性:装进 google.protobuf.Any 的类型,其 audience 不得比宿主字段更严。
 # **Any 是可见性 lint 唯一的结构性缺口** —— 装进去的真实类型 check_auth 看不见,
 # 于是 level(field.visibility) <= level(message.audience) 这条规则在那里失效。
