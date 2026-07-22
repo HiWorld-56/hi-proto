@@ -21,6 +21,10 @@ echo "[hi-proto] $(git -C "$HIPROTO" rev-parse --short HEAD)"
 echo "[0/5] 校验 hi.auth 标注"
 python3 "$HIPROTO/codegen/check_auth.py"
 
+# 请求/响应命名坏味道(纯 proto 侧,硬拦):All 冗余段、裸 Manage/Admin 前缀。
+# 与 check_auth 一样不依赖消费方,可在生成前直接拒。
+python3 "$HIPROTO/codegen/check_naming.py"
+
 # 消费方版本一致性。**开发阶段字段号随便改、不做向后兼容**,前提是全仓 lockstep 升级。
 # 这条前提一破就是编译期查不出的线上故障:GetUserReq 挪了字段号而 hi-ai 停在旧版,
 # 它按老编号编码、hi-did 按新编号解析 → 收到空值,所有仓编译全过、CreateAssistant

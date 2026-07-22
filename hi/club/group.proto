@@ -69,17 +69,17 @@ message CreateSingleReq {
 }
 
 // 组聊天消息列表参数
-message ListGroupMessageReq {
+message ListGroupMessagesReq {
   string last_uuid = 1;
   string code      = 2; // 群/单聊 code;群类型由后端按 code 查 GroupModel.group_type
 }
 
-message ListGroupMessageResp {
+message ListGroupMessagesResp {
   option (hi.audience) = VIS_PARTICIPANT; // 群消息列表,成员可见
   repeated Packet list = 1 [(hi.visibility) = VIS_PARTICIPANT]; // Packet=PARTICIPANT
 }
 
-message ListGroupMemberReq {
+message ListGroupMembersReq {
   string        code       = 1;
   hi.Pagination pagination = 2;
 }
@@ -163,13 +163,13 @@ service Group {
   rpc Create (CreateGroupReq) returns (GroupBase) { option (hi.auth) = AUTH_USER; }                                 // 创建群
   rpc CreateSingle (CreateSingleReq) returns (GroupBase) { option (hi.auth) = AUTH_USER; }                          // 创建单聊群
   rpc Update (UpdateGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                     // 【owner/admin】改群信息/群类型(private)
-  rpc ListMembers (ListGroupMemberReq) returns (GroupInfo) { option (hi.auth) = AUTH_USER; }                        // 群成员列表
+  rpc ListMembers (ListGroupMembersReq) returns (GroupInfo) { option (hi.auth) = AUTH_USER; }                        // 群成员列表
   rpc GetMemberTotal (GetGroupMemberTotalReq) returns (GetGroupMemberTotalResp) { option (hi.auth) = AUTH_USER; }   // 群成员总数
   rpc Invite (InviteGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                     // 拉人/拉机器人入群(公开群 member 也可;私密群仅 owner/admin)
   rpc Join (JoinGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                         // 凭 code 申请加入(公开群直进)
   rpc Quit (QuitGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                         // 主动退群;owner 退=解散群
   rpc Remove (RemoveGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                     // 【owner/admin】踢人/踢机器人(只能踢比自己低级别)
-  rpc ListMessages (ListGroupMessageReq) returns (ListGroupMessageResp) { option (hi.auth) = AUTH_USER; }           // 群消息列表
+  rpc ListMessages (ListGroupMessagesReq) returns (ListGroupMessagesResp) { option (hi.auth) = AUTH_USER; }           // 群消息列表
   rpc SetRole (SetRoleReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                        // 【仅 owner】加/取消管理员
   rpc GetRole (GetRoleReq) returns (GetRoleResp) { option (hi.auth) = AUTH_USER; }                                  // 获取自己在群里的角色
   rpc SetDnd (SetDndReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                          // 自己:设/取消免打扰(原 Mute)

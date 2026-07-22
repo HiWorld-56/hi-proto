@@ -154,7 +154,7 @@ message DownloadScriptResp {
   string name    = 2 [(hi.visibility) = VIS_SELF]; // 建议的文件名
 }
 
-message ListPluginReq {
+message ListPluginsReq {
   string        agent      = 1;
   hi.Pagination pagination = 2;
 }
@@ -165,7 +165,7 @@ message ListVersionsReq {
   hi.Pagination pagination = 3;
 }
 
-message ListPluginResp {
+message ListPluginsResp {
   option (hi.audience) = VIS_SELF;
   int32               total = 1 [(hi.visibility) = VIS_SELF];
   repeated PluginView list  = 2 [(hi.visibility) = VIS_SELF];
@@ -215,8 +215,8 @@ service Plugin {
   rpc CreateAnnex (CreateAnnexReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 把已有 body 绑到某 agent(市场分享用)
   rpc Edit (EditPluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 只改 annex(body 冻结)
   rpc Get (GetPluginReq) returns (GetPluginResp) { option (hi.auth) = AUTH_MERCHANT; }                 // 查某插件
-  rpc List (ListPluginReq) returns (ListPluginResp) { option (hi.auth) = AUTH_MERCHANT; }              // 一级页:列某 agent 的脚本(每 uuid 一行,激活版本)
-  rpc ListVersions (ListVersionsReq) returns (ListPluginResp) { option (hi.auth) = AUTH_MERCHANT; }    // 二级页:按主id 列该脚本所有版本
+  rpc List (ListPluginsReq) returns (ListPluginsResp) { option (hi.auth) = AUTH_MERCHANT; }              // 一级页:列某 agent 的脚本(每 uuid 一行,激活版本)
+  rpc ListVersions (ListVersionsReq) returns (ListPluginsResp) { option (hi.auth) = AUTH_MERCHANT; }    // 二级页:按主id 列该脚本所有版本
   rpc Delete (DeletePluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }         // 删单个版本
   rpc DeleteAll (DeleteAllPluginVersionsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 删该脚本全部版本   // 删版本或整个脚本(连同脚本文件)
   rpc DeleteByAgents (DeletePluginByAgentsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 按 agent 批量删

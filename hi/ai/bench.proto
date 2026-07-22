@@ -22,13 +22,13 @@ message AgentDelayUnit {
   int64  test_time     = 9 [(hi.visibility) = VIS_SELF];
 }
 
-message ListAgentDelayReq {
+message ListAgentDelaysReq {
   string        agent      = 1; // 可选:按 agent 过滤
   string        type       = 2; // 可选:按类型过滤
   hi.Pagination pagination = 3;
 }
 
-message ListAgentDelayResp {
+message ListAgentDelaysResp {
   option (hi.audience) = VIS_SELF; // 我的机器人延迟统计列表
   int32                   total = 1 [(hi.visibility) = VIS_SELF];
   repeated AgentDelayUnit units = 2 [(hi.visibility) = VIS_SELF];
@@ -42,5 +42,5 @@ message ListAgentDelayResp {
 //
 // 商户档:hiai web 与商户后台服务都会调。
 service AgentBench {
-  rpc List (ListAgentDelayReq) returns (ListAgentDelayResp) { option (hi.auth) = AUTH_MERCHANT; } // 列各段耗时明细(LLM/STT/TTS/FunctionCall)
+  rpc List (ListAgentDelaysReq) returns (ListAgentDelaysResp) { option (hi.auth) = AUTH_MERCHANT; } // 列各段耗时明细(LLM/STT/TTS/FunctionCall)
 }

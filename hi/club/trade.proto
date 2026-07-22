@@ -52,7 +52,7 @@ message TradeTrans {
   int64                  timestamp = 4 [(hi.visibility) = VIS_SELF];
 }
 
-// 我的交易详情:仅被 SELF 壳(GetTradeResp/AddTradeResp/ListTradeResp)引用 → SELF。
+// 我的交易详情:仅被 SELF 壳(GetTradeResp/AddTradeResp/ListTradesResp)引用 → SELF。
 // 里面放 PARTICIPANT 的 TradeUnit 合法(2<=3)。
 message TradeDetail {
   option (hi.audience) = VIS_SELF;
@@ -85,19 +85,19 @@ message UpdateTransHashReq {
 }
 
 // 查自己的交易。
-message ListTradeReq {
+message ListTradesReq {
   string        id         = 1; // 可选:只看该交易。查询主体(用户)从 token 取,不接受 did 入参(越权)
   hi.Pagination pagination = 2;
 }
 
 // 交易统计(内部使用)。id 为空 = 全量。
-message ListAllTradeReq {
+message TradeManageListReq {
   string        id         = 1; // 可选:只看该交易;空=全量
   hi.Pagination pagination = 2;
 }
 
 // 我的交易列表壳:SELF 壳收窄整体私密性,元素放 SELF 的 TradeDetail。
-message ListTradeResp {
+message ListTradesResp {
   option (hi.audience) = VIS_SELF;
   int32                total = 1 [(hi.visibility) = VIS_SELF];
   repeated TradeDetail list  = 2 [(hi.visibility) = VIS_SELF];
@@ -109,7 +109,7 @@ service Trade {
   rpc Add (AddTradeReq) returns (AddTradeResp) { option (hi.auth) = AUTH_USER; } // 原 AddTrade
   rpc UpdateTransHash (UpdateTransHashReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
   // 查自己的交易 —— **没有 did 入参**,主体取自 token(见字段注释;传 did 是越权)。
-  rpc List (ListTradeReq) returns (ListTradeResp) { option (hi.auth) = AUTH_USER; }
+  rpc List (ListTradesReq) returns (ListTradesResp) { option (hi.auth) = AUTH_USER; }
 }
 
 // 交易管理(超管)。原 `Trade.ListAll` —— 超管方法蹲在用户面 service 里(混档),
@@ -119,5 +119,5 @@ service Trade {
 //    二者鉴权主体不同,而档位是按方法挂的 —— 合并会导致"did 留空即拿到全部人的交易",
 //    **把 filter 值变成越权入口**。拆成两个 service 后,这个坑物理上不存在了。
 service TradeManage {
-  rpc List (ListAllTradeReq) returns (ListTradeResp) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:交易统计(全量/按 id;id 空=全量)
+  rpc List (TradeManageListReq) returns (ListTradesResp) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:交易统计(全量/按 id;id 空=全量)
 }
