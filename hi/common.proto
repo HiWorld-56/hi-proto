@@ -95,7 +95,7 @@ message ServerVersionResp {
 //   hidid  → hidid/avatar、hidid/logo        hiclub → hiclub/avatar、hiclub/background
 //   hiai   → hiai/plugin/<uuid>              聊天/AI 媒体 → temp/<YYYY_MM>(14 天过期)
 message UploadReq {
-  string name    = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 原始文件名,仅用于取扩展名(存储侧会随机改名)
+  string name    = 1 [(buf.validate.field).string.min_len = 1]; // 原始文件名(允许空格等,仅用于取扩展名;存储侧随机改名)
   bytes  content = 2 [(buf.validate.field).bytes.min_len = 1];
 }
 
@@ -108,7 +108,7 @@ message UploadStreamReq {
 }
 
 message UploadMeta {
-  string name = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string name = 1 [(buf.validate.field).string.min_len = 1]; // 允许空格等,仅用于取扩展名
   int64  size = 2 [(buf.validate.field).int64 = { gt: 0 }];
 }
 
