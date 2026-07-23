@@ -193,6 +193,9 @@ http:
   - selector: hi.ai.Setting.Edit
     post: /api/v1/setting/edit
     body: "*"
+  - selector: hi.ai.Setting.ResetToDefault
+    post: /api/v1/setting/reset_to_default
+    body: "*"
 # InviteCode(管理;注册见上面 Register)
   - selector: hi.ai.InviteCode.Create
     post: /api/v1/invite_code/create

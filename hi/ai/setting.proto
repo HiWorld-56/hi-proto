@@ -35,4 +35,5 @@ message SettingGetResp {
 service Setting {
   rpc Get (google.protobuf.Empty) returns (SettingGetResp) { option (hi.auth) = AUTH_SUPERADMIN; }  // 超管:读全局配置
   rpc Edit (SettingEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:改全局配置(原实现是空壳,须真落地)
+  rpc ResetToDefault (google.protobuf.Empty) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:重置为内置默认值
 }
