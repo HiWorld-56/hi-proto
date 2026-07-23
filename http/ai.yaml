@@ -155,6 +155,9 @@ http:
   - selector: hi.ai.Source.UploadTrainingFile
     post: /api/v1/source/upload_training_file
     body: "*"
+  - selector: hi.ai.Source.UploadTemp
+    post: /api/v1/source/upload_temp
+    body: "*"
   - selector: hi.ai.Training.ListFiles
     post: /api/v1/training/list_files
     body: "*"

@@ -13,13 +13,16 @@ import "hi/options.proto";
 // Source —— hi.ai 侧直接搬运二进制的方法(club 的同名 service 是它的门面)。
 // 分法见 hi/club/source.proto 的说明:按资源类别,不按实体。
 //
-// hi.ai 的资源只有一类:**商户私产**(插件脚本、训练资料),一律落 hiai 私有桶,
-// 不公开读,取用必须经 Download 带归属校验。
+// hi.ai 的资源分两类:
+//   1. **商户私产**(插件脚本、训练资料):落 hiai 私有桶,不公开读,取用经 Download 带归属校验;
+//   2. **临时媒体**(聊天/AI 产出的图等):落共享 temp 桶,14 天自动过期、公开读,与 hiclub 同桶。
+// 桶/目录/命名是 handler 内部封装,对 hi-source 只用其原子 Put(不外泄 hi-source 的接口)。
 service Source {
   rpc UploadScript (stream hi.UploadStreamReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_MERCHANT; }              // 插件脚本 zip → hiai/plugin/
   rpc DownloadScript (DownloadScriptReq) returns (DownloadScriptResp) { option (hi.auth) = AUTH_MERCHANT; }               // **仅 ORIGINAL 放行**
   rpc UploadTrainingFile (UploadFileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }            // 训练资料 → hiai/training/
   rpc DownloadTrainingFile (DownloadFileReq) returns (DownloadFileResp) { option (hi.auth) = AUTH_MERCHANT; }             // 训练资料原件
+  rpc UploadTemp (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_MERCHANT; }                            // 临时媒体(小文件)→ temp 桶(14 天)
 
   // Delete 删掉刚传上去、但**没被任何地方引用**的对象。
   //
