@@ -22,6 +22,7 @@ import "hi/options.proto";
 //    `Merchant.SetUsers` 即可 —— 设置那步才是有主体校验的地方。
 service Source {
   rpc UploadAvatar (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; } // 自己的头像 → hidid/avatar/
+  rpc UploadLog (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }     // 端上日志 → log/HiDid/(NAME_TIMESTAMP 留历史)
 
   // Delete 删掉刚传上去、但**没被任何地方引用**的对象。
   //

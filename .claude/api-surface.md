@@ -1,15 +1,15 @@
 # hi-proto 接口全量核对表
 
-**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.0-dev.47` @ `5d59739`)。
+**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.0-dev.49` @ `5037932`)。
 上一版是手写的,内容停在重构前 —— 档位名、rpc 数量、方法名全部过时,当成当前清单会被误导,故改为随发布自动重生成。
 
-共 **274** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
+共 **275** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
 
 ## 档位分布
 
 | 档位 | 数量 |
 |---|---|
-| `AUTH_USER` | 116 |
+| `AUTH_USER` | 117 |
 | `AUTH_MERCHANT` | 74 |
 | `AUTH_NONE` | 43 |
 | `AUTH_SUPERADMIN` | 30 |
@@ -611,6 +611,7 @@
 |---|---|---|---|---|
 | Delete | `AUTH_USER` | hi.DeleteResourceReq | google.protobuf.Empty | — |
 | UploadAvatar | `AUTH_USER` | hi.UploadReq | hi.UploadResp | — |
+| UploadLog | `AUTH_USER` | hi.UploadReq | hi.UploadResp | — |
 
 ### hi.did.SuperAdmin
 
