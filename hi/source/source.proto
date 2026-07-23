@@ -49,7 +49,7 @@ message DownloadStreamReq {
 message PutReq {
   string bucket    = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 目标 bucket
   string dir       = 2; // bucket 内逻辑目录,如 "avatar" / "plugin/<uuid>";空=根
-  string name      = 3 [(buf.validate.field).string.pattern="^\\S+$"]; // 原始文件名,仅用于取扩展名(hi-source 会随机改名)
+  string name      = 3 [(buf.validate.field).string.min_len = 1]; // 原始文件名(允许空格等,仅用于取扩展名;NAME_RANDOM 只保留扩展名,不带原名)
   bytes  content   = 4 [(buf.validate.field).bytes.min_len = 1];
   bool   thumbnail = 5; // 是否同时生成缩略图(仅图片有效;原先靠 type==image 隐式触发,现改显式)
   NameMode name_mode = 6; // 对象命名方式,默认随机
@@ -61,7 +61,7 @@ message PutReq {
 //    「32 位随机名不可猜 + LIST 403 不可枚举」撑起来的 —— 名字一旦可预测,等于门户洞开。
 //    非随机模式只给**私有 bucket 的运维类文件**(日志等)用。
 enum NameMode {
-  NAME_RANDOM    = 0; // <32位随机>_<原名>。默认,用户内容必须用它
+  NAME_RANDOM    = 0; // <32位随机><扩展名>。默认,用户内容必须用它;不带原名(原名可能含空格/特殊字符)
   NAME_TIMESTAMP = 1; // <原名主干>_<UTC纳秒时间戳><扩展名>。名字可读、天然有序,每次新对象 —— 日志用
   NAME_KEEP      = 2; // 原样用 name。**同一对象反复覆盖,只留最新一份**,会丢历史,慎用
 }
@@ -82,7 +82,7 @@ message PutStreamReq {
 message PutMeta {
   string bucket    = 1 [(buf.validate.field).string.pattern="^\\S+$"];
   string dir       = 2;
-  string name      = 3 [(buf.validate.field).string.pattern="^\\S+$"];
+  string name      = 3 [(buf.validate.field).string.min_len = 1]; // 允许空格等,仅用于取扩展名
   int64  size      = 4 [(buf.validate.field).int64 = { gt: 0 }];
   bool   thumbnail = 5;
 }

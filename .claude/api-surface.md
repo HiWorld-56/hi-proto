@@ -1,6 +1,6 @@
 # hi-proto 接口全量核对表
 
-**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.0-dev.45` @ `860e4bc`)。
+**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.0-dev.47` @ `5d59739`)。
 上一版是手写的,内容停在重构前 —— 档位名、rpc 数量、方法名全部过时,当成当前清单会被误导,故改为随发布自动重生成。
 
 共 **274** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
