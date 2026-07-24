@@ -152,11 +152,19 @@ message DeleteVersionReq {
   string uuid    = 2 [(buf.validate.field).string.pattern="^\\S+$"];
   string version = 3 [(buf.validate.field).string.pattern="^\\S+$"];
 }
-// 删整个插件(a + 全部 b + 全部 c + 全部 d + 脚本文件)。
+// 从某机器人移除插件。**按归属分别处理**:该 agent 是创建者(c.source=original)→ 删整个插件
+// (a+全部b+全部c+全部d+脚本文件,全局);是引用方(reference)→ 只解绑本机器人(删本 agent 的 c/d,壳留给 owner)。
+// 这样引用方删不掉别人的插件。
 message DeleteShellReq {
   string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"];
   string uuid  = 2 [(buf.validate.field).string.pattern="^\\S+$"];
 }
+// 批量:一次从某机器人移除多个插件,每个 uuid 语义同 DeleteShell(按归属删壳或解绑)。
+message DeleteShellsReq {
+  string          agent = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  repeated string uuids = 2;
+}
+// **内部级联清理**:某些机器人被撤"插件权限"时,清掉它们名下全部插件绑定(club PermissionService.Revoke 调,非前端按钮)。
 message DeletePluginByAgentsReq { repeated string agents = 1; }
 
 // 插件管理(主体=插件)。商户档:hiai web 与三方商户后台(club)都会调。
@@ -169,8 +177,9 @@ service Plugin {
   rpc List (ListPluginsReq) returns (ListPluginsResp) { option (hi.auth) = AUTH_MERCHANT; }                  // 一级页:壳 + 激活版
   rpc ListVersions (ListVersionsReq) returns (ListVersionsResp) { option (hi.auth) = AUTH_MERCHANT; }        // 二级页:某壳所有版本 + 哪个 active
   rpc Delete (DeleteVersionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }        // 删单个版本
-  rpc DeleteShell (DeleteShellReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }     // 删整个插件
-  rpc DeleteByAgents (DeletePluginByAgentsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }
+  rpc DeleteShell (DeleteShellReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }     // 从机器人移除单个插件(创建者删壳/引用方解绑)
+  rpc DeleteShells (DeleteShellsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }   // 批量从机器人移除多个插件
+  rpc DeleteByAgents (DeletePluginByAgentsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 内部级联:撤插件权限时清某些机器人的全部插件
   rpc SetActive (SetActiveReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }         // 激活某版本(d.active 互斥)
   rpc SetEnabled (SetEnabledReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 插件开关(c.enabled)
 }
