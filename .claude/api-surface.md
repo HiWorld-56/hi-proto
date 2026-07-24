@@ -1,15 +1,15 @@
 # hi-proto 接口全量核对表
 
-**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.0-dev.54` @ `0b67d1f`)。
+**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.0-dev.55` @ `8257df2`)。
 上一版是手写的,内容停在重构前 —— 档位名、rpc 数量、方法名全部过时,当成当前清单会被误导,故改为随发布自动重生成。
 
-共 **279** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
+共 **280** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
 
 ## 档位分布
 
 | 档位 | 数量 |
 |---|---|
-| `AUTH_USER` | 119 |
+| `AUTH_USER` | 120 |
 | `AUTH_MERCHANT` | 76 |
 | `AUTH_NONE` | 43 |
 | `AUTH_SUPERADMIN` | 30 |
@@ -335,6 +335,7 @@
 | Get | `AUTH_USER` | hi.ai.GetPluginReq | hi.ai.GetPluginResp | GET /api/v1/plugin/get |
 | List | `AUTH_USER` | hi.ai.ListPluginsReq | hi.ai.ListPluginsResp | POST /api/v1/plugin/list |
 | ListVersions | `AUTH_USER` | hi.ai.ListVersionsReq | hi.ai.ListVersionsResp | POST /api/v1/plugin/list_versions |
+| ReloadApiKey | `AUTH_USER` | ReloadApiKeyReq | ReloadApiKeyResp | POST /api/v1/plugin/reload_api_key |
 | SetActive | `AUTH_USER` | hi.ai.SetActiveReq | google.protobuf.Empty | POST /api/v1/plugin/set_active |
 | SetEnabled | `AUTH_USER` | hi.ai.SetEnabledReq | google.protobuf.Empty | POST /api/v1/plugin/set_enabled |
 
