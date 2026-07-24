@@ -118,6 +118,9 @@ http:
   - selector: hi.club.Plugin.SetEnabled
     post: /api/v1/plugin/set_enabled
     body: "*"
+  - selector: hi.club.Plugin.RefreshApiKey
+    post: /api/v1/plugin/refresh_api_key
+    body: "*"
   - selector: hi.club.Plugin.CreateShell
     post: /api/v1/plugin/create_shell
     body: "*"

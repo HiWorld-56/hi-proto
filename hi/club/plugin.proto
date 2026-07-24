@@ -35,4 +35,17 @@ service Plugin {
   rpc DeleteByAgents (hi.ai.DeletePluginByAgentsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 按 agent 批量删
   rpc SetActive (hi.ai.SetActiveReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }               // 选该 agent 激活版本
   rpc SetEnabled (hi.ai.SetEnabledReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }             // 插件级开关
+  rpc RefreshApiKey (RefreshApiKeyReq) returns (RefreshApiKeyResp) { option (hi.auth) = AUTH_USER; } // 重获 api_key:重新取该机器人第一个 apikey 写入 c.data 并重载(用户删旧 apikey 后修复)
+}
+
+// RefreshApiKey —— club 专属(hi.ai 无 api_key 概念)。
+// api_key 存在 c.data(该机器人自己的),用户可在别处删掉某个 apikey,导致插件里存的那个失效;
+// 用户重建 apikey 后调此方法,后端重新取该机器人**第一个** apikey 覆盖写入 c.data 并发重载通知。
+// 前端**不允许手填 api_key**(防伪),一律由此/建插件时后端自动注入;机器人 apikey 列表为空则报错。
+message RefreshApiKeyReq {
+  string agent = 1; // 机器人 did
+  string uuid = 2;  // 插件 uuid
+}
+message RefreshApiKeyResp {
+  string api_key = 1; // 重新写入的 api_key(便于前端就地刷新列表)
 }
