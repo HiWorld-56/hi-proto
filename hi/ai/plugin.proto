@@ -46,12 +46,18 @@ message PluginVersion {
 }
 
 // plugin_annex:某 agent 对某壳的**运行期附件**。运行期以字典全局变量 plugin_annex 注入执行环境。
+//
+// ⚠️ **api_key 是"载入方"这个机器人自己的 club-apikey**(club 在建壳/引用时自动取该 agent 第一个 key)。
+//    引用别家插件时**不借被引方 owner 的 key** —— 取的是我(载入方)这个机器人的 key,以我的身份跑脚本。
 message PluginAnnex {
-  string                 api_key = 1; // agent 的 club-apikey(club 上传时自动取第一个;鉴权范围 ≤ token)
+  string                 api_key = 1; // **载入方 agent 自己的** club-apikey(club 自动填;引用不借被引方的)
   google.protobuf.Struct data    = 2; // 用户填的运行时扩展数据
 }
 
-// 某 agent 视角的一个插件:壳 + 该 agent 激活的版本 + 绑定状态(List/Get 返回;api_key 敏感不随列表回)。
+// 某 agent 视角的一个插件:壳(共享)+ **该 agent 自己的 annex**(每机器人各一份)+ 引用计数。
+// **每个机器人各不相同的正是这几项 annex**:激活版本 / 是否启用 / api_key / 附加数据 ——
+// 这就是壳+版本(共享本体)与 using(每机器人各一份)分开的意义。api_key 是该机器人**自己的** key,
+// 非敏感借来物,随 View 一并回给持有者(持有者本就能在 apikey 管理页看到自己机器人的 key)。
 message PluginView {
   option (hi.audience) = VIS_SELF; // 插件挂机器人下,持有者私产
   PluginShell   shell     = 1 [(hi.visibility) = VIS_SELF];
@@ -59,6 +65,8 @@ message PluginView {
   bool          enabled   = 3 [(hi.visibility) = VIS_SELF]; // 该 agent 是否启用此插件参与推理
   PluginSource  source    = 4 [(hi.visibility) = VIS_SELF]; // 来源:主人直接上传 or 经授权引用
   int32         ref_count = 5 [(hi.visibility) = VIS_SELF]; // 被多少机器人引用(实时 COUNT,**不落库**)
+  string                 api_key = 6 [(hi.visibility) = VIS_SELF]; // 该 agent 载入此插件用的 club-apikey(该 agent 自己的)
+  google.protobuf.Struct data    = 7 [(hi.visibility) = VIS_SELF]; // 该 agent 填的运行时扩展数据
 }
 
 // 插件加载完成的**通知载荷**。只说"哪个插件好了",不带任何私产。
