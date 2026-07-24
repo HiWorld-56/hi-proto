@@ -11,238 +11,192 @@ import "hi/common.proto";
 import "buf/validate/validate.proto";
 import "hi/options.proto";
 
-// ── 插件模型(壳 / 版本 / 使用 三层,2026-07 重构)──────────────────────────
-// 一个"插件" = 一个**壳**(shell)+ 它下面的多个**版本**(version)+ 多条**使用**(using)记录。
-//   · 壳    hi_ai_plugin        {uuid, name}                —— 插件身份。**uuid 由后台分配、单一 id**
-//                                                              (不再是 <主id>_<次id>);name 是给人看的标签。
-//   · 版本  hi_ai_plugin_version {uuid, version, 本体内容}   —— 插件本体除名字外的一切:
-//                                                              logo/summary/url(脚本zip)/description(function-call spec)。
-//                                                              按 (uuid,version) 不可变,发布即冻结;同壳多版本共存。
-//   · 使用  hi_ai_plugin_using   {agent, uuid, version, ...} —— **某 agent 用某壳、用的是哪个版本**:
-//                                                              version=该 agent 激活的版本(空=未激活);
-//                                                              enabled/api_key/data/source 都在这一层。
-//                                                              一个 (agent,uuid) 一行;引用=多一行 source=reference。
+// ── 插件模型(a 壳 / b 版本 / c 壳级使用 / d 版本级使用,2026-07 四层重构)────────
 //
-// 运行期:按 using.version 找到 version 行,取 url/description 装配工具;
-//   把 {api_key, data} 作为字典型全局变量 **plugin_annex** 注入 py 执行环境。
-// 只保留 py 脚本一种(原 search/draw 已砍)。依赖由工程内 requirement.txt 显式声明。
-
-// PluginShell:插件的壳(身份)。uuid 后台分配,单一 id。
-message PluginShell {
-  option (hi.audience) = VIS_SELF; // 经 PluginView 返回给持有者
-  string uuid = 1 [(hi.visibility) = VIS_SELF]; // 插件 id,后台分配(单一 id,不含子id)
-  string name = 2 [(hi.visibility) = VIS_SELF]; // 脚本名(给人看)
-}
-
-// PluginVersion:插件本体的一个版本(除名字外的内容)。按 (uuid,version) 冻结。
-message PluginVersion {
-  option (hi.audience) = VIS_SELF; // url(脚本)是私产
-  string uuid        = 1 [(hi.visibility) = VIS_SELF]; // 所属壳 uuid
-  string version     = 2 [(hi.visibility) = VIS_SELF]; // 三级版本号如 1.23.66,用户自填;前端按现有版本自动预填,后端校验
-  string logo        = 3 [(hi.visibility) = VIS_SELF]; // 图标 url
-  string summary     = 4 [(hi.visibility) = VIS_SELF]; // 详情资源 url:介绍页或美工图,用户自定
-  string url         = 5 [(hi.visibility) = VIS_SELF]; // 主脚本包 zip url(内含 main.py + requirement.txt)
-  string description = 6 [(hi.visibility) = VIS_SELF]; // 完整 function-call spec(作用 + parameters schema)
-}
-
-// plugin_annex:某 agent 对某壳的**运行期附件**。运行期以字典全局变量 plugin_annex 注入执行环境。
+//   a 壳    hi_ai_plugin                {uuid, name}                        —— 插件身份。**不含使用者**
+//   b 版本  hi_ai_plugin_version        {uuid, version, 本体内容}            —— 脚本本体。**不含使用者**;(uuid,version) 冻结
+//        **a + b 唯一确定一个脚本(执行流程),与谁用无关。**
 //
-// ⚠️ **api_key 是"载入方"这个机器人自己的 club-apikey**(club 在建壳/引用时自动取该 agent 第一个 key)。
-//    引用别家插件时**不借被引方 owner 的 key** —— 取的是我(载入方)这个机器人的 key,以我的身份跑脚本。
-message PluginAnnex {
-  string                 api_key = 1; // **载入方 agent 自己的** club-apikey(club 自动填;引用不借被引方的)
-  google.protobuf.Struct data    = 2; // 用户填的运行时扩展数据
-}
-
-// 某 agent 视角的一个插件:壳(共享)+ **该 agent 自己的 annex**(每机器人各一份)+ 引用计数。
-// **每个机器人各不相同的正是这几项 annex**:激活版本 / 是否启用 / api_key / 附加数据 ——
-// 这就是壳+版本(共享本体)与 using(每机器人各一份)分开的意义。api_key 是该机器人**自己的** key,
-// 非敏感借来物,随 View 一并回给持有者(持有者本就能在 apikey 管理页看到自己机器人的 key)。
-message PluginView {
-  option (hi.audience) = VIS_SELF; // 插件挂机器人下,持有者私产
-  PluginShell   shell     = 1 [(hi.visibility) = VIS_SELF];
-  PluginVersion active    = 2 [(hi.visibility) = VIS_SELF]; // 该 agent 激活版本的内容(using.version 对应行);未激活为空
-  bool          enabled   = 3 [(hi.visibility) = VIS_SELF]; // 该 agent 是否启用此插件参与推理
-  PluginSource  source    = 4 [(hi.visibility) = VIS_SELF]; // 来源:主人直接上传 or 经授权引用
-  int32         ref_count = 5 [(hi.visibility) = VIS_SELF]; // 被多少机器人引用(实时 COUNT,**不落库**)
-  string                 api_key = 6 [(hi.visibility) = VIS_SELF]; // 该 agent 载入此插件用的 club-apikey(该 agent 自己的)
-  google.protobuf.Struct data    = 7 [(hi.visibility) = VIS_SELF]; // 该 agent 填的运行时扩展数据
-}
-
-// 插件加载完成的**通知载荷**。只说"哪个插件好了",不带任何私产。
+//   c 壳级使用 hi_ai_plugin_using        {agent, uuid, enabled, source, data} —— 每 (使用者,插件) 一行,
+//        **对该插件所有版本一致**。data=插件级扩展数据(hiclub 放 api_key)。
+//        创建者由 (uuid, source=ORIGINAL) 唯一确定(DB 生成列唯一索引兜底)。
+//   d 版本级使用 hi_ai_plugin_version_using {agent, uuid, version, active, data} —— 每 (使用者,插件,版本) 一行,
+//        **各版本可不同**。active=该版本是否激活(同 (使用者,插件) 同时仅一个,DB 生成列唯一索引兜底);
+//        data=版本级扩展数据(hiclub 放 club 侧数据)。
+//        **当前激活版本从 d 查(active=true),不在 c 冗余存**,避免不同步。
 //
-// ⚠️ 别往通知里塞 PluginView(VIS_SELF,含脚本 url 这类私产);hi.club.Notice 是 VIS_PARTICIPANT。
-message PluginLoaded {
-  option (hi.audience) = VIS_PARTICIPANT;
-  string uuid    = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 插件 id
-  string name    = 2 [(hi.visibility) = VIS_PARTICIPANT];
-  string version = 3 [(hi.visibility) = VIS_PARTICIPANT];
-  bool   enabled = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 是否参与推理
+// 运行期:c(enabled)⋈ d(active)⋈ b 取 url/description;注入 py 的 plugin_annex = c.data ∪ d.data(激活版)。
+// **hiai 侧不认识 api_key**,只有 c/d 两级泛型扩展数据;api_key 是 hiclub 塞进 c.data 的约定。
+
+message PluginShell {                                    // a
+  option (hi.audience) = VIS_SELF;
+  string uuid = 1 [(hi.visibility) = VIS_SELF]; // 插件 id,后台分配(单一 id)
+  string name = 2 [(hi.visibility) = VIS_SELF]; // 脚本名
 }
 
-// 插件在某机器人使用记录里的来源。
-//
-// ⚠️ 这是**历史事实,推导不出来** —— 不能用"agent 是不是创建者"去判。
-// ⚠️ **引用不是拷贝** —— 只是给另一个 agent 多一条 using 记录指向同一个壳,不新建壳/版本。
+message PluginVersion {                                  // b:按 (uuid,version) 冻结
+  option (hi.audience) = VIS_SELF;
+  string uuid        = 1 [(hi.visibility) = VIS_SELF]; // 所属壳
+  string version     = 2 [(hi.visibility) = VIS_SELF]; // 版本号(前端按现有版本预填,后端校验须>现有最大)
+  string logo        = 3 [(hi.visibility) = VIS_SELF];
+  string summary     = 4 [(hi.visibility) = VIS_SELF];
+  string url         = 5 [(hi.visibility) = VIS_SELF]; // 脚本包 zip
+  string description = 6 [(hi.visibility) = VIS_SELF]; // function-call spec
+}
+
+// 插件在某机器人使用记录里的来源(历史事实;引用不是拷贝,只多一行 c 指向同壳)。
 enum PluginSource {
-  PLUGIN_SOURCE_ORIGINAL  = 0; // 原始:主人给这个机器人上传的
+  PLUGIN_SOURCE_ORIGINAL  = 0; // 原始:主人上传的(每 uuid 唯一)
   PLUGIN_SOURCE_REFERENCE = 1; // 引用:经授权用别人的脚本;**不能下载源码**
 }
 
-// 建壳:只建一个空壳(uuid + name),**还没有任何版本**,该 agent 的激活版本为空。
-// uuid 由后台分配并返回,调用方不要传。同时给 owner 建一条 using(source=original)。
-// annex.api_key 由 club 自动取该 agent 第一个 club-apikey 填入(ai 只存);data 用户填(可空)。
-message CreateShellReq {
-  string      agent = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 壳挂到哪个 agent(owner)
-  string      name  = 2 [(buf.validate.field).string.min_len = 1];
-  PluginAnnex annex = 3; // api_key 由 club 填、data 用户填
+// 某 agent 视角的一个插件:壳 + 激活版本内容 + 壳级使用(enabled/source/data)+ 激活版本的版本级 data + 引用计数。
+// **每机器人各不相同的 = c(enabled/source/data,含 api_key)+ d(激活版 + 版本级 data)**,这正是拆表的意义。
+message PluginView {
+  option (hi.audience) = VIS_SELF;
+  PluginShell   shell        = 1 [(hi.visibility) = VIS_SELF];
+  PluginVersion active       = 2 [(hi.visibility) = VIS_SELF]; // 激活版本内容(无激活为空)
+  bool          enabled      = 3 [(hi.visibility) = VIS_SELF]; // c.enabled:插件是否开启
+  PluginSource  source       = 4 [(hi.visibility) = VIS_SELF]; // c.source
+  int32         ref_count    = 5 [(hi.visibility) = VIS_SELF]; // 被多少机器人引用(实时 COUNT)
+  google.protobuf.Struct data         = 6 [(hi.visibility) = VIS_SELF]; // c.data:插件级扩展数据(含 api_key)
+  google.protobuf.Struct version_data = 7 [(hi.visibility) = VIS_SELF]; // 激活版本的 d.data:版本级扩展数据
 }
 
+// 二级页一行:某版本内容 + 该 agent 是否激活它 + 该 agent 对该版本的版本级数据。
+message PluginVersionView {
+  option (hi.audience) = VIS_SELF;
+  PluginVersion version = 1 [(hi.visibility) = VIS_SELF];
+  bool          active  = 2 [(hi.visibility) = VIS_SELF];
+  google.protobuf.Struct data = 3 [(hi.visibility) = VIS_SELF]; // d.data
+}
+
+// 插件加载完成通知(公开摘要,不带私产)。
+message PluginLoaded {
+  option (hi.audience) = VIS_PARTICIPANT;
+  string uuid    = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  string name    = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  string version = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  bool   enabled = 4 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+// 建空壳:插 a{uuid,name} + owner 的 c{source=original, enabled}。uuid 后台分配返回;此时无版本、无激活。
+// data=插件级扩展数据(hiclub 放该机器人 api_key;hiai 直连则空)。
+message CreateShellReq {
+  string      agent = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string      name  = 2 [(buf.validate.field).string.min_len = 1];
+  google.protobuf.Struct data = 3; // c.data(插件级)
+}
 message CreateShellResp {
   option (hi.audience) = VIS_SELF;
-  string uuid = 1 [(hi.visibility) = VIS_SELF]; // 后台分配的插件 id
+  string uuid = 1 [(hi.visibility) = VIS_SELF];
 }
 
-// 给已有壳加一个新版本。version 号由前端按版本列表自动计算/预填,后端做合法性校验:
-// 必须**大于该壳现有最大版本**(三级数字按数值比较,不限前导零)。
-// 若该 agent 当前激活版本为空(新壳首版),自动把这一版设为激活版。
+// 给壳加版本:插 b。若该 agent 对此壳还没激活版(首版)→ 顺带插 d(active=true) 自动激活。
+// data=该 agent 对这一版的版本级扩展数据(hiclub 放 club 数据)。
 message CreateVersionReq {
   string        agent   = 1 [(buf.validate.field).string.pattern="^\\S+$"];
-  PluginVersion version = 2; // version.uuid = 壳 uuid;version.version + 本体内容由用户/前端提供
+  PluginVersion version = 2; // version.uuid=壳;version.version + 本体内容
+  google.protobuf.Struct data = 3; // d.data(版本级)
 }
 
-// 把一个**已有壳**绑定到某 agent(生成一条 using,source=reference)。插件市场"分享/授权"通过后由 club 调。
+// 引用:把已有壳绑到某 agent。插 c{source=reference, data} + 选定激活版插 d{version, active=true, version_data}。
 message CreateUsingReq {
-  string      agent   = 1; // 目标 agent did
-  string      uuid    = 2; // 要绑定的壳 uuid
-  string      version = 3; // 激活哪个版本(该 agent 的 using.version)
-  PluginAnnex annex   = 4; // 该 agent 的 api_key(club 取)+ data
+  string      agent        = 1;
+  string      uuid         = 2; // 壳
+  string      version      = 3; // 激活哪个版本
+  google.protobuf.Struct data         = 4; // c.data(插件级,api_key)
+  google.protobuf.Struct version_data = 5; // d.data(版本级)
 }
 
-// 改使用记录。**壳/版本一个字段都不能改**(发布即冻结,要改就发新版本)。这里只动该 agent 的 annex。
+// 改扩展数据:壳级(c.data)和/或某版本级(d.data)。**壳/版本本体冻结,不动。**
 message EditPluginReq {
-  string      agent = 1; // agent did
-  string      uuid  = 2; // 插件 id(壳)
-  PluginAnnex annex = 3; // 改该 agent 的 api_key/data
+  string                 agent        = 1;
+  string                 uuid         = 2;
+  optional google.protobuf.Struct data         = 3; // 传了才改 c.data(插件级)
+  optional string                 version      = 4; // 配合 version_data 指定改哪个版本的 d.data
+  optional google.protobuf.Struct version_data = 5; // 传了(且 version 非空)才改 d.data
 }
 
-message SetEnabledReq {
-  string agent   = 1; // agent did
-  string uuid    = 2; // 壳 id
-  bool   enabled = 3; // 该 agent 是否参与推理
-}
+message SetEnabledReq { string agent = 1; string uuid = 2; bool enabled = 3; }             // 改 c.enabled
+message SetActiveReq  { string agent = 1; string uuid = 2; string version = 3; }           // 改 d.active(事务内互斥)
 
-// 选定该 agent 激活哪个版本(设 using.version)。同一壳每 agent 各选各的。
-message SetActiveReq {
-  string agent   = 1; // agent did
-  string uuid    = 2; // 壳 id
-  string version = 3; // 要激活的版本号(须为该壳已存在的版本)
-}
-
-// 下载某版本的脚本包。私有 bucket 匿名取不到,故由服务端带凭据取回字节。
-message DownloadScriptReq {
-  string agent   = 1; // agent did(校验持有关系)
-  string uuid    = 2; // 壳 id
-  string version = 3; // 哪个版本(url 在版本上)
-}
-
+message DownloadScriptReq { string agent = 1; string uuid = 2; string version = 3; }
 message DownloadScriptResp {
-  option (hi.audience) = VIS_SELF; // 脚本内容是 owner 私产
+  option (hi.audience) = VIS_SELF;
   bytes  content = 1 [(hi.visibility) = VIS_SELF];
-  string name    = 2 [(hi.visibility) = VIS_SELF]; // 建议的文件名
+  string name    = 2 [(hi.visibility) = VIS_SELF];
 }
 
-message ListPluginsReq {
-  string        agent      = 1;
-  hi.Pagination pagination = 2;
-}
-
-// 二级页:列某壳的所有版本。
-message ListVersionsReq {
-  string        agent      = 1; // agent did
-  string        uuid       = 2; // 壳 id
-  hi.Pagination pagination = 3;
-}
-
+message ListPluginsReq  { string agent = 1; hi.Pagination pagination = 2; }
+message ListVersionsReq { string agent = 1; string uuid = 2; hi.Pagination pagination = 3; }
 message ListPluginsResp {
   option (hi.audience) = VIS_SELF;
   int32               total = 1 [(hi.visibility) = VIS_SELF];
   repeated PluginView list  = 2 [(hi.visibility) = VIS_SELF];
 }
-
 message ListVersionsResp {
   option (hi.audience) = VIS_SELF;
-  int32                  total = 1 [(hi.visibility) = VIS_SELF];
-  repeated PluginVersion list  = 2 [(hi.visibility) = VIS_SELF];
+  int32                      total = 1 [(hi.visibility) = VIS_SELF];
+  repeated PluginVersionView list  = 2 [(hi.visibility) = VIS_SELF];
 }
-
-message GetPluginReq {
-  string agent = 1; // agent did
-  string uuid  = 2; // 壳 id
-}
-
+message GetPluginReq  { string agent = 1; string uuid = 2; }
 message GetPluginResp {
   option (hi.audience) = VIS_SELF;
   PluginView view = 1 [(hi.visibility) = VIS_SELF];
 }
 
-// 删单个版本(**连同脚本文件一并删**)。
-// ⚠️ 允许**强删正被引用的版本** —— 引用方 using.version 指向随即失效;删前把 ref_count 摆给用户看。
+// 删单个版本(b 该行 + 全部 agent 的 d 该版本行 + 脚本文件)。
 message DeleteVersionReq {
-  string agent   = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // agent did
-  string uuid    = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 壳 id
-  string version = 3 [(buf.validate.field).string.pattern="^\\S+$"]; // 要删的版本
+  string agent   = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string uuid    = 2 [(buf.validate.field).string.pattern="^\\S+$"];
+  string version = 3 [(buf.validate.field).string.pattern="^\\S+$"];
 }
-
-// 删整个插件:壳 + 全部版本 + 全部 using 记录(连同所有脚本文件)。破坏半径远大于删单版本,独立成方法。
+// 删整个插件(a + 全部 b + 全部 c + 全部 d + 脚本文件)。
 message DeleteShellReq {
   string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"];
-  string uuid  = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 壳 id
+  string uuid  = 2 [(buf.validate.field).string.pattern="^\\S+$"];
 }
-
-message DeletePluginByAgentsReq {
-  repeated string agents = 1;
-}
+message DeletePluginByAgentsReq { repeated string agents = 1; }
 
 // 插件管理(主体=插件)。商户档:hiai web 与三方商户后台(club)都会调。
-// ⚠️ 方法名别用 `Switch`(Dart 保留字,dart 生成器会语法错)。
 service Plugin {
-  // ── 脚本包存取(hiai bucket,**私有**)。上传与建版本解耦:先 UploadScript 拿 url,再放进 CreateVersionReq。
   rpc CreateShell (CreateShellReq) returns (CreateShellResp) { option (hi.auth) = AUTH_MERCHANT; }           // 建空壳(后台分配 uuid)
-  rpc CreateVersion (CreateVersionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 给壳加版本(后台校验版本号)
-  rpc CreateUsing (CreateUsingReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }     // 把已有壳绑到某 agent(市场引用用)
-  rpc Edit (EditPluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }             // 只改 using 的 annex(壳/版本冻结)
-  rpc Get (GetPluginReq) returns (GetPluginResp) { option (hi.auth) = AUTH_MERCHANT; }                       // 查某插件
-  rpc List (ListPluginsReq) returns (ListPluginsResp) { option (hi.auth) = AUTH_MERCHANT; }                  // 一级页:列某 agent 的插件(壳 + 该 agent 激活版本)
-  rpc ListVersions (ListVersionsReq) returns (ListVersionsResp) { option (hi.auth) = AUTH_MERCHANT; }        // 二级页:列某壳所有版本
+  rpc CreateVersion (CreateVersionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 给壳加版本(校验版本号,首版自动激活)
+  rpc CreateUsing (CreateUsingReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }     // 引用:把已有壳绑到某 agent
+  rpc Edit (EditPluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }             // 改 c.data / d.data(本体冻结)
+  rpc Get (GetPluginReq) returns (GetPluginResp) { option (hi.auth) = AUTH_MERCHANT; }
+  rpc List (ListPluginsReq) returns (ListPluginsResp) { option (hi.auth) = AUTH_MERCHANT; }                  // 一级页:壳 + 激活版
+  rpc ListVersions (ListVersionsReq) returns (ListVersionsResp) { option (hi.auth) = AUTH_MERCHANT; }        // 二级页:某壳所有版本 + 哪个 active
   rpc Delete (DeleteVersionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }        // 删单个版本
-  rpc DeleteShell (DeleteShellReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }     // 删整个插件(壳+全部版本)
-  rpc DeleteByAgents (DeletePluginByAgentsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 按 agent 批量删
-  rpc SetActive (SetActiveReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }         // 选该 agent 的激活版本
-  rpc SetEnabled (SetEnabledReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 该 agent 插件级开关
+  rpc DeleteShell (DeleteShellReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }     // 删整个插件
+  rpc DeleteByAgents (DeletePluginByAgentsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }
+  rpc SetActive (SetActiveReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }         // 激活某版本(d.active 互斥)
+  rpc SetEnabled (SetEnabledReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 插件开关(c.enabled)
 }
 
-// ── py-docker 执行契约 ──────────────────────────────────────────────────
-// AiPlugin 是独立 py-docker 服务,专门安全执行 py 脚本。hiai 只作调用方,本 server 不在 hiai 实现。
+// ── py-docker 执行契约(独立 py-docker 服务实现,hiai 只作调用方)──────────────
+// 运行期 plugin_annex = c.data ∪ d.data(激活版),作字典全局变量 plugin_annex 注入。
+// 这里保留 {api_key, data} 的注入形态不变(py-docker 契约),由 hiai 从 c.data 取 api_key、
+// data = c.data ∪ d.data 合并;脚本照旧 plugin_annex['api_key'] / plugin_annex[...]。
+message PluginAnnex {
+  string                 api_key = 1; // 运行期注入用:取自 c.data 的 api_key
+  google.protobuf.Struct data    = 2; // 运行期注入用:c.data ∪ d.data(激活版)
+}
 message RunReq {
-  string          code_archive_url = 1; // 主脚本包 zip(= version.url)
-  string          code_params      = 2; // 调用参数(作 argv)
-  string          uuid             = 3; // 插件壳 uuid
-  repeated string envs             = 4; // 环境变量 key=value
-  PluginAnnex     annex            = 5; // {api_key, data} → 以字典全局变量 plugin_annex 注入
+  string          code_archive_url = 1; // = 激活版 b.url
+  string          code_params      = 2;
+  string          uuid             = 3; // 壳 uuid
+  repeated string envs             = 4;
+  PluginAnnex     annex            = 5; // → 字典全局变量 plugin_annex
 }
-
 message RunResp {
-  option (hi.audience) = VIS_SELF; // 引用 chat.Content(SELF)
+  option (hi.audience) = VIS_SELF;
   repeated Content conts = 1 [(hi.visibility) = VIS_SELF];
 }
+message CleanupReq { string code_archive_url = 1; }
 
-message CleanupReq {
-  string code_archive_url = 1;
-}
-
-// py-docker 脚本执行(由 py-docker 服务实现,hiai 只作调用方)。
 service AiPlugin {
-  rpc Run (RunReq) returns (RunResp) { option (hi.auth) = AUTH_NONE; }                            // 跑脚本工程
-  rpc Cleanup (CleanupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; }      // 清理脚本工程
+  rpc Run (RunReq) returns (RunResp) { option (hi.auth) = AUTH_NONE; }
+  rpc Cleanup (CleanupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; }
 }
