@@ -118,14 +118,14 @@ http:
   - selector: hi.club.Plugin.SetEnabled
     post: /api/v1/plugin/set_enabled
     body: "*"
-  - selector: hi.club.Plugin.Create
-    post: /api/v1/plugin/create
+  - selector: hi.club.Plugin.CreateShell
+    post: /api/v1/plugin/create_shell
     body: "*"
   - selector: hi.club.Plugin.CreateVersion
     post: /api/v1/plugin/create_version
     body: "*"
-  - selector: hi.club.Plugin.CreateAnnex
-    post: /api/v1/plugin/create_annex
+  - selector: hi.club.Plugin.CreateUsing
+    post: /api/v1/plugin/create_using
     body: "*"
   - selector: hi.club.Plugin.Get
     get: /api/v1/plugin/get
@@ -138,8 +138,8 @@ http:
   - selector: hi.club.Plugin.Delete
     post: /api/v1/plugin/delete
     body: "*"
-  - selector: hi.club.Plugin.DeleteAll
-    post: /api/v1/plugin/delete_all
+  - selector: hi.club.Plugin.DeleteShell
+    post: /api/v1/plugin/delete_shell
     body: "*"
   - selector: hi.club.Plugin.DeleteByAgents
     post: /api/v1/plugin/delete_by_agents

@@ -107,14 +107,14 @@ http:
     post: /api/v1/agent_bench/list
     body: "*"
 # Plugin(py 脚本一种;search/draw 已砍)
-  - selector: hi.ai.Plugin.Create
-    post: /api/v1/plugin/create
+  - selector: hi.ai.Plugin.CreateShell
+    post: /api/v1/plugin/create_shell
     body: "*"
   - selector: hi.ai.Plugin.CreateVersion
     post: /api/v1/plugin/create_version
     body: "*"
-  - selector: hi.ai.Plugin.CreateAnnex
-    post: /api/v1/plugin/create_annex
+  - selector: hi.ai.Plugin.CreateUsing
+    post: /api/v1/plugin/create_using
     body: "*"
   - selector: hi.ai.Plugin.Edit
     post: /api/v1/plugin/edit
@@ -130,8 +130,8 @@ http:
   - selector: hi.ai.Plugin.Delete
     post: /api/v1/plugin/delete
     body: "*"
-  - selector: hi.ai.Plugin.DeleteAll
-    post: /api/v1/plugin/delete_all
+  - selector: hi.ai.Plugin.DeleteShell
+    post: /api/v1/plugin/delete_shell
     body: "*"
   - selector: hi.ai.Plugin.DeleteByAgents
     post: /api/v1/plugin/delete_by_agents

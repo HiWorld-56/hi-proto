@@ -1,6 +1,6 @@
 # hi-proto 接口全量核对表
 
-**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.0-dev.49` @ `5037932`)。
+**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.0-dev.50` @ `c52b937`)。
 上一版是手写的,内容停在重构前 —— 档位名、rpc 数量、方法名全部过时,当成当前清单会被误导,故改为随发布自动重生成。
 
 共 **275** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
@@ -114,16 +114,16 @@
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
-| Create | `AUTH_MERCHANT` | CreatePluginReq | CreatePluginResp | POST /api/v1/plugin/create |
-| CreateAnnex | `AUTH_MERCHANT` | CreateAnnexReq | google.protobuf.Empty | POST /api/v1/plugin/create_annex |
-| CreateVersion | `AUTH_MERCHANT` | CreateVersionReq | CreatePluginResp | POST /api/v1/plugin/create_version |
-| Delete | `AUTH_MERCHANT` | DeletePluginReq | google.protobuf.Empty | POST /api/v1/plugin/delete |
-| DeleteAll | `AUTH_MERCHANT` | DeleteAllPluginVersionsReq | google.protobuf.Empty | POST /api/v1/plugin/delete_all |
+| CreateShell | `AUTH_MERCHANT` | CreateShellReq | CreateShellResp | POST /api/v1/plugin/create_shell |
+| CreateUsing | `AUTH_MERCHANT` | CreateUsingReq | google.protobuf.Empty | POST /api/v1/plugin/create_using |
+| CreateVersion | `AUTH_MERCHANT` | CreateVersionReq | google.protobuf.Empty | POST /api/v1/plugin/create_version |
+| Delete | `AUTH_MERCHANT` | DeleteVersionReq | google.protobuf.Empty | POST /api/v1/plugin/delete |
 | DeleteByAgents | `AUTH_MERCHANT` | DeletePluginByAgentsReq | google.protobuf.Empty | POST /api/v1/plugin/delete_by_agents |
+| DeleteShell | `AUTH_MERCHANT` | DeleteShellReq | google.protobuf.Empty | POST /api/v1/plugin/delete_shell |
 | Edit | `AUTH_MERCHANT` | EditPluginReq | google.protobuf.Empty | POST /api/v1/plugin/edit |
 | Get | `AUTH_MERCHANT` | GetPluginReq | GetPluginResp | GET /api/v1/plugin/get |
 | List | `AUTH_MERCHANT` | ListPluginsReq | ListPluginsResp | POST /api/v1/plugin/list |
-| ListVersions | `AUTH_MERCHANT` | ListVersionsReq | ListPluginsResp | POST /api/v1/plugin/list_versions |
+| ListVersions | `AUTH_MERCHANT` | ListVersionsReq | ListVersionsResp | POST /api/v1/plugin/list_versions |
 | SetActive | `AUTH_MERCHANT` | SetActiveReq | google.protobuf.Empty | POST /api/v1/plugin/set_active |
 | SetEnabled | `AUTH_MERCHANT` | SetEnabledReq | google.protobuf.Empty | POST /api/v1/plugin/set_enabled |
 
@@ -321,16 +321,16 @@
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
-| Create | `AUTH_USER` | hi.ai.CreatePluginReq | hi.ai.CreatePluginResp | POST /api/v1/plugin/create |
-| CreateAnnex | `AUTH_USER` | hi.ai.CreateAnnexReq | google.protobuf.Empty | POST /api/v1/plugin/create_annex |
-| CreateVersion | `AUTH_USER` | hi.ai.CreateVersionReq | hi.ai.CreatePluginResp | POST /api/v1/plugin/create_version |
-| Delete | `AUTH_USER` | hi.ai.DeletePluginReq | google.protobuf.Empty | POST /api/v1/plugin/delete |
-| DeleteAll | `AUTH_USER` | hi.ai.DeleteAllPluginVersionsReq | google.protobuf.Empty | POST /api/v1/plugin/delete_all |
+| CreateShell | `AUTH_USER` | hi.ai.CreateShellReq | hi.ai.CreateShellResp | POST /api/v1/plugin/create_shell |
+| CreateUsing | `AUTH_USER` | hi.ai.CreateUsingReq | google.protobuf.Empty | POST /api/v1/plugin/create_using |
+| CreateVersion | `AUTH_USER` | hi.ai.CreateVersionReq | google.protobuf.Empty | POST /api/v1/plugin/create_version |
+| Delete | `AUTH_USER` | hi.ai.DeleteVersionReq | google.protobuf.Empty | POST /api/v1/plugin/delete |
 | DeleteByAgents | `AUTH_USER` | hi.ai.DeletePluginByAgentsReq | google.protobuf.Empty | POST /api/v1/plugin/delete_by_agents |
+| DeleteShell | `AUTH_USER` | hi.ai.DeleteShellReq | google.protobuf.Empty | POST /api/v1/plugin/delete_shell |
 | Edit | `AUTH_USER` | hi.ai.EditPluginReq | google.protobuf.Empty | POST /api/v1/plugin/edit |
 | Get | `AUTH_USER` | hi.ai.GetPluginReq | hi.ai.GetPluginResp | GET /api/v1/plugin/get |
 | List | `AUTH_USER` | hi.ai.ListPluginsReq | hi.ai.ListPluginsResp | POST /api/v1/plugin/list |
-| ListVersions | `AUTH_USER` | hi.ai.ListVersionsReq | hi.ai.ListPluginsResp | POST /api/v1/plugin/list_versions |
+| ListVersions | `AUTH_USER` | hi.ai.ListVersionsReq | hi.ai.ListVersionsResp | POST /api/v1/plugin/list_versions |
 | SetActive | `AUTH_USER` | hi.ai.SetActiveReq | google.protobuf.Empty | POST /api/v1/plugin/set_active |
 | SetEnabled | `AUTH_USER` | hi.ai.SetEnabledReq | google.protobuf.Empty | POST /api/v1/plugin/set_enabled |
 

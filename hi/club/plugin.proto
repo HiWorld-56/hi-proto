@@ -11,27 +11,26 @@ import "hi/common.proto";
 
 // 插件管理(主体=插件)。**hi.ai.Plugin 的门面**,纯透传 → 类型直接复用 hi.ai(有意为之)。
 //
-// 插件只剩 **py 脚本一种** —— 网搜(search)/画图(draw)已随 ai 整体砍掉:
-// 那两类完全可以封装进 py 脚本里执行,且局限性太大(比如不好传入用户数据)。
-// 故 DrawConfig / SearchCreate / DrawCreate / GetDraw 一并删除。
+// 插件只剩 **py 脚本一种** —— 网搜/画图已随 ai 整体砍掉(可封装进 py 脚本)。
 //
 // ⚠️ club 侧的实际代码活(不只是改名):
-//   1. **上传脚本工程(Create)时,自动把该机器人的 ExAPIKey 塞进去** —— 这是根除
-//      "运行期回调三方要 apikey"那套机制的落地点(ai 的 UserCallback 已删)。
-//   2. apikey **挂机器人名下、不挂用户**,以便机器人换持有者后脚本照常跑。
-//   3. **删 apikey 前必须查是否被插件引用,被引用则拒删**(创建插件时已把它注入进去了)。
+//   1. **建壳/引用(CreateShell/CreateUsing)时,自动把该机器人的 club-apikey 塞进 annex** ——
+//      根除"运行期回调三方要 apikey"那套机制的落地点。
+//   2. apikey **挂机器人名下、不挂用户**,机器人换持有者后脚本照常跑。
+//   3. **删 apikey 前必须查是否被插件引用,被引用则拒删**。
+//
+// 三层模型见 hi/ai/plugin.proto:壳(uuid,name)/ 版本(uuid,version,本体)/ 使用(agent,uuid,激活版本)。
 service Plugin {
-  // 脚本包存取:纯透传 hi.ai.Plugin(club 侧只做用户鉴权 + CheckBotOwnership)。
-  rpc Create (hi.ai.CreatePluginReq) returns (hi.ai.CreatePluginResp) { option (hi.auth) = AUTH_USER; }              // 上传脚本版本 + 建 owner annex(club 自动取 agent 第一个 apikey 塞进 annex)
-  rpc CreateVersion (hi.ai.CreateVersionReq) returns (hi.ai.CreatePluginResp) { option (hi.auth) = AUTH_USER; } // 给已有脚本加版本
-  rpc CreateAnnex (hi.ai.CreateAnnexReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }           // 把已有 body 绑到某 agent(插件市场分享用;club 取该 agent apikey)
-  rpc Edit (hi.ai.EditPluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                   // 改插件
-  rpc Get (hi.ai.GetPluginReq) returns (hi.ai.GetPluginResp) { option (hi.auth) = AUTH_USER; }                       // 查单个插件版本
-  rpc List (hi.ai.ListPluginsReq) returns (hi.ai.ListPluginsResp) { option (hi.auth) = AUTH_USER; }                    // 一级页:列脚本(每 uuid 一行,返回激活版本)
-  rpc ListVersions (hi.ai.ListVersionsReq) returns (hi.ai.ListPluginsResp) { option (hi.auth) = AUTH_USER; }         // 二级页:列某脚本的所有版本
-  rpc Delete (hi.ai.DeletePluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }               // 删某个版本
-  rpc DeleteAll (hi.ai.DeleteAllPluginVersionsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 删该脚本全部版本
-  rpc DeleteByAgents (hi.ai.DeletePluginByAgentsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 按 agent 批量删(原 DeleteByDids)
-  rpc SetActive (hi.ai.SetActiveReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 选定供 function call 调用的版本
-  rpc SetEnabled (hi.ai.SetEnabledReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }             // 脚本级开关:是否参与推理(记忆开关已移到 Agent.Edit)
+  rpc CreateShell (hi.ai.CreateShellReq) returns (hi.ai.CreateShellResp) { option (hi.auth) = AUTH_USER; }           // 建空壳(后台分配 uuid;club 取 agent 第一个 apikey 塞进 annex)
+  rpc CreateVersion (hi.ai.CreateVersionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }       // 给壳加版本
+  rpc CreateUsing (hi.ai.CreateUsingReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }           // 把已有壳绑到某 agent(插件市场引用;club 取该 agent apikey)
+  rpc Edit (hi.ai.EditPluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                   // 只改 using 的 annex
+  rpc Get (hi.ai.GetPluginReq) returns (hi.ai.GetPluginResp) { option (hi.auth) = AUTH_USER; }                       // 查单个插件
+  rpc List (hi.ai.ListPluginsReq) returns (hi.ai.ListPluginsResp) { option (hi.auth) = AUTH_USER; }                  // 一级页:列壳 + 该 agent 激活版本
+  rpc ListVersions (hi.ai.ListVersionsReq) returns (hi.ai.ListVersionsResp) { option (hi.auth) = AUTH_USER; }        // 二级页:列某壳所有版本
+  rpc Delete (hi.ai.DeleteVersionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }              // 删某个版本
+  rpc DeleteShell (hi.ai.DeleteShellReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }           // 删整个插件(壳+全部版本)
+  rpc DeleteByAgents (hi.ai.DeletePluginByAgentsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 按 agent 批量删
+  rpc SetActive (hi.ai.SetActiveReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }               // 选该 agent 激活版本
+  rpc SetEnabled (hi.ai.SetEnabledReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }             // 插件级开关
 }
