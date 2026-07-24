@@ -130,6 +130,9 @@ http:
   - selector: hi.ai.Plugin.Delete
     post: /api/v1/plugin/delete
     body: "*"
+  - selector: hi.ai.Plugin.DeleteVersions
+    post: /api/v1/plugin/delete_versions
+    body: "*"
   - selector: hi.ai.Plugin.DeleteShell
     post: /api/v1/plugin/delete_shell
     body: "*"

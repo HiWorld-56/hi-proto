@@ -138,6 +138,9 @@ http:
   - selector: hi.club.Plugin.Delete
     post: /api/v1/plugin/delete
     body: "*"
+  - selector: hi.club.Plugin.DeleteVersions
+    post: /api/v1/plugin/delete_versions
+    body: "*"
   - selector: hi.club.Plugin.DeleteShell
     post: /api/v1/plugin/delete_shell
     body: "*"

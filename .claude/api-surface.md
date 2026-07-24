@@ -1,16 +1,16 @@
 # hi-proto 接口全量核对表
 
-**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.0-dev.53` @ `9209dbe`)。
+**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.0-dev.54` @ `7ac2e7e`)。
 上一版是手写的,内容停在重构前 —— 档位名、rpc 数量、方法名全部过时,当成当前清单会被误导,故改为随发布自动重生成。
 
-共 **277** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
+共 **279** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
 
 ## 档位分布
 
 | 档位 | 数量 |
 |---|---|
-| `AUTH_USER` | 118 |
-| `AUTH_MERCHANT` | 75 |
+| `AUTH_USER` | 119 |
+| `AUTH_MERCHANT` | 76 |
 | `AUTH_NONE` | 43 |
 | `AUTH_SUPERADMIN` | 30 |
 | `AUTH_WEB3` | 13 |
@@ -121,6 +121,7 @@
 | DeleteByAgents | `AUTH_MERCHANT` | DeletePluginByAgentsReq | google.protobuf.Empty | POST /api/v1/plugin/delete_by_agents |
 | DeleteShell | `AUTH_MERCHANT` | DeleteShellReq | google.protobuf.Empty | POST /api/v1/plugin/delete_shell |
 | DeleteShells | `AUTH_MERCHANT` | DeleteShellsReq | google.protobuf.Empty | POST /api/v1/plugin/delete_shells |
+| DeleteVersions | `AUTH_MERCHANT` | DeleteVersionsReq | google.protobuf.Empty | POST /api/v1/plugin/delete_versions |
 | Edit | `AUTH_MERCHANT` | EditPluginReq | google.protobuf.Empty | POST /api/v1/plugin/edit |
 | Get | `AUTH_MERCHANT` | GetPluginReq | GetPluginResp | GET /api/v1/plugin/get |
 | List | `AUTH_MERCHANT` | ListPluginsReq | ListPluginsResp | POST /api/v1/plugin/list |
@@ -329,6 +330,7 @@
 | DeleteByAgents | `AUTH_USER` | hi.ai.DeletePluginByAgentsReq | google.protobuf.Empty | POST /api/v1/plugin/delete_by_agents |
 | DeleteShell | `AUTH_USER` | hi.ai.DeleteShellReq | google.protobuf.Empty | POST /api/v1/plugin/delete_shell |
 | DeleteShells | `AUTH_USER` | hi.ai.DeleteShellsReq | google.protobuf.Empty | POST /api/v1/plugin/delete_shells |
+| DeleteVersions | `AUTH_USER` | hi.ai.DeleteVersionsReq | google.protobuf.Empty | POST /api/v1/plugin/delete_versions |
 | Edit | `AUTH_USER` | hi.ai.EditPluginReq | google.protobuf.Empty | POST /api/v1/plugin/edit |
 | Get | `AUTH_USER` | hi.ai.GetPluginReq | hi.ai.GetPluginResp | GET /api/v1/plugin/get |
 | List | `AUTH_USER` | hi.ai.ListPluginsReq | hi.ai.ListPluginsResp | POST /api/v1/plugin/list |
