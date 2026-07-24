@@ -1,16 +1,16 @@
 # hi-proto 接口全量核对表
 
-**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.0-dev.55` @ `8257df2`)。
+**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.0-dev.56` @ `6cc6b47`)。
 上一版是手写的,内容停在重构前 —— 档位名、rpc 数量、方法名全部过时,当成当前清单会被误导,故改为随发布自动重生成。
 
-共 **280** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
+共 **278** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
 
 ## 档位分布
 
 | 档位 | 数量 |
 |---|---|
-| `AUTH_USER` | 120 |
-| `AUTH_MERCHANT` | 76 |
+| `AUTH_USER` | 119 |
+| `AUTH_MERCHANT` | 75 |
 | `AUTH_NONE` | 43 |
 | `AUTH_SUPERADMIN` | 30 |
 | `AUTH_WEB3` | 13 |
@@ -115,7 +115,6 @@
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | CreateShell | `AUTH_MERCHANT` | CreateShellReq | CreateShellResp | POST /api/v1/plugin/create_shell |
-| CreateUsing | `AUTH_MERCHANT` | CreateUsingReq | google.protobuf.Empty | POST /api/v1/plugin/create_using |
 | CreateVersion | `AUTH_MERCHANT` | CreateVersionReq | google.protobuf.Empty | POST /api/v1/plugin/create_version |
 | Delete | `AUTH_MERCHANT` | DeleteVersionReq | google.protobuf.Empty | POST /api/v1/plugin/delete |
 | DeleteByAgents | `AUTH_MERCHANT` | DeletePluginByAgentsReq | google.protobuf.Empty | POST /api/v1/plugin/delete_by_agents |
@@ -324,7 +323,6 @@
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | CreateShell | `AUTH_USER` | hi.ai.CreateShellReq | hi.ai.CreateShellResp | POST /api/v1/plugin/create_shell |
-| CreateUsing | `AUTH_USER` | hi.ai.CreateUsingReq | google.protobuf.Empty | POST /api/v1/plugin/create_using |
 | CreateVersion | `AUTH_USER` | hi.ai.CreateVersionReq | google.protobuf.Empty | POST /api/v1/plugin/create_version |
 | Delete | `AUTH_USER` | hi.ai.DeleteVersionReq | google.protobuf.Empty | POST /api/v1/plugin/delete |
 | DeleteByAgents | `AUTH_USER` | hi.ai.DeletePluginByAgentsReq | google.protobuf.Empty | POST /api/v1/plugin/delete_by_agents |

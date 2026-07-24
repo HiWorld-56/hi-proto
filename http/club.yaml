@@ -127,9 +127,6 @@ http:
   - selector: hi.club.Plugin.CreateVersion
     post: /api/v1/plugin/create_version
     body: "*"
-  - selector: hi.club.Plugin.CreateUsing
-    post: /api/v1/plugin/create_using
-    body: "*"
   - selector: hi.club.Plugin.Get
     get: /api/v1/plugin/get
   - selector: hi.club.Plugin.List

@@ -113,9 +113,6 @@ http:
   - selector: hi.ai.Plugin.CreateVersion
     post: /api/v1/plugin/create_version
     body: "*"
-  - selector: hi.ai.Plugin.CreateUsing
-    post: /api/v1/plugin/create_using
-    body: "*"
   - selector: hi.ai.Plugin.Edit
     post: /api/v1/plugin/edit
     body: "*"

@@ -100,15 +100,6 @@ message CreateVersionReq {
   google.protobuf.Struct data = 3; // d.data(版本级)
 }
 
-// 引用:把已有壳绑到某 agent。插 c{source=reference, data} + 选定激活版插 d{version, active=true, version_data}。
-message CreateUsingReq {
-  string      agent        = 1;
-  string      uuid         = 2; // 壳
-  string      version      = 3; // 激活哪个版本
-  google.protobuf.Struct data         = 4; // c.data(插件级,api_key)
-  google.protobuf.Struct version_data = 5; // d.data(版本级)
-}
-
 // 改扩展数据:壳级(c.data)和/或某版本级(d.data)。**壳/版本本体冻结,不动。**
 message EditPluginReq {
   string                 agent        = 1;
@@ -179,8 +170,7 @@ message DeletePluginByAgentsReq { repeated string agents = 1; }
 service Plugin {
   rpc CreateShell (CreateShellReq) returns (CreateShellResp) { option (hi.auth) = AUTH_MERCHANT; }           // 建空壳(后台分配 uuid)
   rpc CreateVersion (CreateVersionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 给壳加版本(校验版本号,首版自动激活)
-  rpc CreateUsing (CreateUsingReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }     // 引用:把已有壳绑到某 agent
-  rpc Edit (EditPluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }             // 改 c.data / d.data(本体冻结)
+  rpc Edit (EditPluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }             // 只改 c.data / d.data 扩展数据(壳名/版本本体发布后冻结,要改删了重建)
   rpc Get (GetPluginReq) returns (GetPluginResp) { option (hi.auth) = AUTH_MERCHANT; }
   rpc List (ListPluginsReq) returns (ListPluginsResp) { option (hi.auth) = AUTH_MERCHANT; }                  // 一级页:壳 + 激活版
   rpc ListVersions (ListVersionsReq) returns (ListVersionsResp) { option (hi.auth) = AUTH_MERCHANT; }        // 二级页:某壳所有版本 + 哪个 active
