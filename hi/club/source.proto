@@ -41,6 +41,12 @@ service Source {
   //    本方法只对"本就人人可匿名 GET"的对象开放,grpc 只是省掉设备端的 http 栈。
   rpc Download (DownloadResourceReq) returns (DownloadResourceResp) { option (hi.auth) = AUTH_USER; }
 
+  // DownloadStream 流式取**公开桶**媒体,带 offset/limit 支持 range/断点续传 ——
+  // 语音、视频这类边下边播、可拖动的场景用它,别用 Download 把整包读进内存。
+  // 桶边界与 Download 一致(只放 temp/hiclub/hidid 公开桶),私有资源仍走 DownloadScript / DownloadTrainingFile。
+  // 透传 hi-source 的 File.DownloadStream。
+  rpc DownloadStream (DownloadResourceStreamReq) returns (stream DownloadResourceStreamResp) { option (hi.auth) = AUTH_USER; }
+
   // ── 临时:temp 桶,**14 天自动过期**。聊天/AI 媒体,按年月分目录便于人工排查 ──
   rpc UploadTemp (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }                    // 小文件
   rpc UploadTempStream (stream hi.UploadStreamReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; } // 大文件分片
@@ -73,4 +79,17 @@ message DownloadResourceReq {
 message DownloadResourceResp {
   option (hi.audience) = VIS_PUBLIC; // 只服务公开桶,内容本就人人可取
   bytes content = 1 [(hi.visibility) = VIS_PUBLIC];
+}
+
+message DownloadResourceStreamReq {
+  string url    = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}];
+  int64  offset = 2 [(buf.validate.field).int64 = {gte: 0}]; // 起始偏移(字节),0=从头;支持 range/断点续传
+  int64  limit  = 3 [(buf.validate.field).int64 = {gte: 0}]; // 限制大小(字节),0=到文件尾
+}
+message DownloadResourceStreamResp {
+  option (hi.audience) = VIS_PUBLIC; // 只服务公开桶,内容本就人人可取
+  bytes chunk  = 1 [(hi.visibility) = VIS_PUBLIC]; // 内容分片
+  int64 sent   = 2 [(hi.visibility) = VIS_PUBLIC]; // 本次流累计已发送字节
+  int64 total  = 3 [(hi.visibility) = VIS_PUBLIC]; // 文件总大小(字节)
+  int64 offset = 4 [(hi.visibility) = VIS_PUBLIC]; // 当前块在文件中的起始字节位置
 }

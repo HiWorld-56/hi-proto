@@ -66,6 +66,7 @@ service:hi.did.Wallet
 hi.club.Source.UploadTempStream
 hi.club.Source.UploadScript
 hi.club.Source.Download
+hi.club.Source.DownloadStream  # 服务端流式,grpc-only(同 UploadTempStream);app 走 core grpc 边下边播
 hi.ai.Source.UploadScript
 # Source —— 二进制搬运,走 grpc 不走 http 网关(json 里塞 bytes 只会 base64 膨胀 33%)。
 # 训练文件那两个是例外,web 后台在用,已在 http/*.yaml 配了路由。
