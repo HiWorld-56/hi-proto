@@ -178,7 +178,7 @@ service Plugin {
   rpc DeleteVersions (DeleteVersionsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 批量删版本(范围 [min,max],仅创建者)
   rpc DeleteShell (DeleteShellReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }     // 从机器人移除单个插件(创建者删壳/引用方解绑)
   rpc DeleteShells (DeleteShellsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }   // 批量从机器人移除多个插件
-  rpc DeleteByAgents (DeletePluginByAgentsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 内部级联:撤插件权限时清某些机器人的全部插件
+  rpc DeleteByAgents (DeletePluginByAgentsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 内部级联(仅 grpc,不配 http):club 撤"插件权限"时经 aiapi 调,清某些机器人全部插件;非前端接口
   rpc SetActive (SetActiveReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }         // 激活某版本(d.active 互斥)
   rpc SetEnabled (SetEnabledReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 插件开关(c.enabled)
 }

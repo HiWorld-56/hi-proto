@@ -147,9 +147,6 @@ http:
   - selector: hi.club.Plugin.DeleteShells
     post: /api/v1/plugin/delete_shells
     body: "*"
-  - selector: hi.club.Plugin.DeleteByAgents
-    post: /api/v1/plugin/delete_by_agents
-    body: "*"
   - selector: hi.club.Plugin.Edit
     post: /api/v1/plugin/edit
     body: "*"

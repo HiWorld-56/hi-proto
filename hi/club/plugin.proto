@@ -32,7 +32,8 @@ service Plugin {
   rpc DeleteVersions (hi.ai.DeleteVersionsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }     // 批量删版本(范围,仅创建者)
   rpc DeleteShell (hi.ai.DeleteShellReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }           // 从机器人移除单个插件(创建者删壳/引用方解绑)
   rpc DeleteShells (hi.ai.DeleteShellsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }        // 批量从机器人移除多个插件
-  rpc DeleteByAgents (hi.ai.DeletePluginByAgentsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 按 agent 批量删
+  // 注:按 agent 批量清插件是撤权级联的内部动作,club 侧不暴露给前端 ——
+  //     PermissionService 撤"插件权限"时直接调 hi.ai.Plugin.DeleteByAgents(grpc),不走 club 门面。
   rpc SetActive (hi.ai.SetActiveReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }               // 选该 agent 激活版本
   rpc SetEnabled (hi.ai.SetEnabledReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }             // 插件级开关
   rpc ReloadApiKey (ReloadApiKeyReq) returns (ReloadApiKeyResp) { option (hi.auth) = AUTH_USER; } // 重装 api_key:重新取该机器人第一个 apikey 写入 c.data 并重载(用户删旧 apikey 后修复)

@@ -136,9 +136,6 @@ http:
   - selector: hi.ai.Plugin.DeleteShells
     post: /api/v1/plugin/delete_shells
     body: "*"
-  - selector: hi.ai.Plugin.DeleteByAgents
-    post: /api/v1/plugin/delete_by_agents
-    body: "*"
   - selector: hi.ai.Plugin.SetActive
     post: /api/v1/plugin/set_active
     body: "*"
