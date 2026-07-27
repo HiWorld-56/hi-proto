@@ -67,12 +67,25 @@ message VerifyTransactionResp {
   uint32 query_count      = 6 [(hi.visibility) = VIS_PUBLIC]; // 该 hash 在缓存窗口内被查询次数（业务侧据此防伪）
 }
 
-// Transfer —— 一组**helper 方法**:都是查链上数据 / 验签,给三方(尤其没能力自己做
+// 金额换算:人类可读 → 该币最小单位整数串。did 拥有各币精度,显式暴露给调用方,
+// 供其在调 VerifyTransaction 前把金额备成链上口径。**不把换算藏进 VerifyTransaction**——
+// 否则金额对不上时分不清是链上不符还是内部换算错,查都查不出。
+message AmountToRawReq {
+  string coin   = 1; // 币种(定位精度)
+  string amount = 2; // 人类可读金额,如 "0.101"
+}
+message AmountToRawResp {
+  option (hi.audience) = VIS_PUBLIC;
+  string raw = 1 [(hi.visibility) = VIS_PUBLIC]; // 最小单位整数串,如 "10100000"
+}
+
+// Transfer —— 一组**helper 方法**:都是查链上数据 / 验签 / 链上口径换算,给三方(尤其没能力自己做
 // 链上查询或 web3 验签的)用。全部公开或 web3(web3 视为无鉴权),档位一致。
 service Transfer {
   rpc History (HistoryReq) returns (HistoryResp) { option (hi.auth) = AUTH_NONE; }                                // 公开:某地址的转账历史(链上数据)
   rpc TxStatus (TxStatusReq) returns (TxStatusResp) { option (hi.auth) = AUTH_NONE; }                             // 公开:查交易状态(链上数据)
-  rpc VerifyTransaction (VerifyTransactionReq) returns (VerifyTransactionResp) { option (hi.auth) = AUTH_NONE; }  // 公开:交易校验(两阶段都只查链上数据比对,无需鉴权)
+  rpc VerifyTransaction (VerifyTransactionReq) returns (VerifyTransactionResp) { option (hi.auth) = AUTH_NONE; }  // 公开:交易校验(只吃地址+最小单位,纯链上比对,不做换算)
+  rpc AmountToRaw (AmountToRawReq) returns (AmountToRawResp) { option (hi.auth) = AUTH_NONE; }                    // 公开:金额换算(人类可读→最小单位),供调用方备 VerifyTransaction 数据
   rpc VerifySignature (hi.SignedData) returns (hi.DID) { option (hi.auth) = AUTH_WEB3; }                          // web3:验签工具(原 Assist.VerifySignature),给不会自己验签的三方用
   // 注:handler 里另有 HistoryOld,proto 未声明 —— 死代码,应在后端删除。
 }

@@ -13,6 +13,7 @@ message Coin {
   string icon     = 1 [(hi.visibility) = VIS_PUBLIC];
   string name     = 2 [(hi.visibility) = VIS_PUBLIC];
   string category = 3 [(hi.visibility) = VIS_PUBLIC]; // public-公共币种, custom-自定义币种
+  string type     = 4 [(hi.visibility) = VIS_PUBLIC]; // 所在链(btc/eth/trx/sol/aptos);随 coin 传递,调用方直接当 chain 用,免 coin→chain 映射
 }
 
 message ListCoinsResp {
