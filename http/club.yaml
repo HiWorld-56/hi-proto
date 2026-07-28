@@ -176,10 +176,10 @@ http:
     post: /api/v1/source/upload_temp
     body: "*"
   - selector: hi.club.Source.UploadLog
+    post: /api/v1/source/upload_log
+    body: "*"
   - selector: hi.club.Source.UploadScript
     post: /api/v1/source/upload_script
-    body: "*"
-    post: /api/v1/source/upload_log
     body: "*"
   - selector: hi.club.Training.ListFiles
     post: /api/v1/training/list_files

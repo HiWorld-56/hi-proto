@@ -1,15 +1,15 @@
 # hi-proto 接口全量核对表
 
-**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.0-dev.59` @ `d14113a`)。
+**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.0-dev.60` @ `6419416`)。
 上一版是手写的,内容停在重构前 —— 档位名、rpc 数量、方法名全部过时,当成当前清单会被误导,故改为随发布自动重生成。
 
-共 **279** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
+共 **280** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
 
 ## 档位分布
 
 | 档位 | 数量 |
 |---|---|
-| `AUTH_USER` | 119 |
+| `AUTH_USER` | 120 |
 | `AUTH_MERCHANT` | 75 |
 | `AUTH_NONE` | 44 |
 | `AUTH_SUPERADMIN` | 30 |
@@ -367,7 +367,8 @@
 | UploadAvatar | `AUTH_USER` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_avatar |
 | UploadBackground | `AUTH_USER` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_background |
 | UploadLog | `AUTH_USER` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_log |
-| UploadScript ⇄ | `AUTH_USER` | hi.UploadStreamReq | hi.UploadResp | — |
+| UploadScript | `AUTH_USER` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_script |
+| UploadScriptStream ⇄ | `AUTH_USER` | hi.UploadStreamReq | hi.UploadResp | — |
 | UploadTemp | `AUTH_USER` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_temp |
 | UploadTempStream ⇄ | `AUTH_USER` | hi.UploadStreamReq | hi.UploadResp | — |
 | UploadTrainingFile | `AUTH_USER` | hi.ai.UploadFileReq | google.protobuf.Empty | POST /api/v1/source/upload_training_file |
