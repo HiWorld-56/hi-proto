@@ -56,7 +56,9 @@ service Source {
   rpc UploadLog (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }
 
   // ── 永久私有:商户私产,不公开读,取用必须经 Download 带归属校验 ──
-  rpc UploadScript (stream hi.UploadStreamReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }                     // 插件脚本 zip
+  // 插件脚本 zip。unary 供 web(浏览器发不了 grpc 流式);流式版 UploadScriptStream 给 app/大文件。
+  rpc UploadScript (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }                                  // 小文件整包(web)
+  rpc UploadScriptStream (stream hi.UploadStreamReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }               // 大文件分片(grpc)
   rpc DownloadScript (hi.ai.DownloadScriptReq) returns (hi.ai.DownloadScriptResp) { option (hi.auth) = AUTH_USER; }          // **仅 ORIGINAL 放行**:引用方(可能是买的)不给源码
   rpc UploadTrainingFile (hi.ai.UploadFileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }             // 训练资料
   rpc DownloadTrainingFile (hi.ai.DownloadFileReq) returns (hi.ai.DownloadFileResp) { option (hi.auth) = AUTH_USER; }        // 训练资料原件

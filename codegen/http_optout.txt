@@ -64,7 +64,7 @@ service:hi.did.User
 service:hi.did.Wallet
 
 hi.club.Source.UploadTempStream
-hi.club.Source.UploadScript
+hi.club.Source.UploadScriptStream  # 服务端不需，客户端流式 grpc-only
 hi.club.Source.Download
 hi.club.Source.DownloadStream  # 服务端流式,grpc-only(同 UploadTempStream);app 走 core grpc 边下边播
 hi.ai.Source.UploadScript
