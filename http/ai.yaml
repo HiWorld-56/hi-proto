@@ -161,6 +161,12 @@ http:
   - selector: hi.ai.Source.UploadTemp
     post: /api/v1/source/upload_temp
     body: "*"
+  - selector: hi.ai.Source.UploadScript
+    post: /api/v1/source/upload_script
+    body: "*"
+  - selector: hi.ai.Source.DownloadScript
+    post: /api/v1/source/download_script
+    body: "*"
   - selector: hi.ai.Training.ListFiles
     post: /api/v1/training/list_files
     body: "*"

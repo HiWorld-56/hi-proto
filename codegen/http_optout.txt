@@ -7,7 +7,6 @@
 # 规则:新增 rpc 若落进这种缺口,要么配 http 路由,要么写进本文件(注明理由),否则 CI 失败。
 # 下面是机制落地时的存量,**尚未逐条确认**是"确实不需要"还是"也漏了"。确认一条删一条。
 hi.ai.Agent.RegisterRobot
-hi.ai.Source.DownloadScript
 hi.ai.Plugin.DeleteByAgents  # 内部级联(club 撤插件权限时经 aiapi grpc 调),非前端接口,故意不配 http
 hi.club.Agent.BindMaster
 hi.club.Agent.UnbindMaster
@@ -66,7 +65,7 @@ hi.club.Source.UploadTempStream
 hi.club.Source.UploadScriptStream  # 服务端不需，客户端流式 grpc-only
 hi.club.Source.Download
 hi.club.Source.DownloadStream  # 服务端流式,grpc-only(同 UploadTempStream);app 走 core grpc 边下边播
-hi.ai.Source.UploadScript
+hi.ai.Source.UploadScriptStream  # 客户端流式 grpc-only
 # Source —— 二进制搬运,走 grpc 不走 http 网关(json 里塞 bytes 只会 base64 膨胀 33%)。
 # 训练文件那两个是例外,web 后台在用,已在 http/*.yaml 配了路由。
 service:hi.did.Source

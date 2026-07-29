@@ -1,16 +1,16 @@
 # hi-proto 接口全量核对表
 
-**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.0-dev.63` @ `f6e3440`)。
+**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.0-dev.64` @ `31ad6e5`)。
 上一版是手写的,内容停在重构前 —— 档位名、rpc 数量、方法名全部过时,当成当前清单会被误导,故改为随发布自动重生成。
 
-共 **281** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
+共 **282** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
 
 ## 档位分布
 
 | 档位 | 数量 |
 |---|---|
 | `AUTH_USER` | 121 |
-| `AUTH_MERCHANT` | 76 |
+| `AUTH_MERCHANT` | 77 |
 | `AUTH_NONE` | 43 |
 | `AUTH_SUPERADMIN` | 30 |
 | `AUTH_WEB3` | 13 |
@@ -148,9 +148,10 @@
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | Delete | `AUTH_MERCHANT` | hi.DeleteResourceReq | google.protobuf.Empty | POST /api/v1/source/delete |
-| DownloadScript | `AUTH_MERCHANT` | DownloadScriptReq | DownloadScriptResp | — |
+| DownloadScript | `AUTH_MERCHANT` | DownloadScriptReq | DownloadScriptResp | POST /api/v1/source/download_script |
 | DownloadTrainingFile | `AUTH_MERCHANT` | DownloadFileReq | DownloadFileResp | POST /api/v1/source/download_training_file |
-| UploadScript ⇄ | `AUTH_MERCHANT` | hi.UploadStreamReq | hi.UploadResp | — |
+| UploadScript | `AUTH_MERCHANT` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_script |
+| UploadScriptStream ⇄ | `AUTH_MERCHANT` | hi.UploadStreamReq | hi.UploadResp | — |
 | UploadTemp | `AUTH_MERCHANT` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_temp |
 | UploadTrainingFile | `AUTH_MERCHANT` | UploadFileReq | google.protobuf.Empty | POST /api/v1/source/upload_training_file |
 

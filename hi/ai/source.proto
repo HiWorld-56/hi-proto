@@ -18,7 +18,9 @@ import "hi/options.proto";
 //   2. **临时媒体**(聊天/AI 产出的图等):落共享 temp 桶,14 天自动过期、公开读,与 hiclub 同桶。
 // 桶/目录/命名是 handler 内部封装,对 hi-source 只用其原子 Put(不外泄 hi-source 的接口)。
 service Source {
-  rpc UploadScript (stream hi.UploadStreamReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_MERCHANT; }              // 插件脚本 zip → hiai/plugin/
+  // 插件脚本 zip → hiai/plugin/。unary 供 web(浏览器发不了 grpc 流式);流式 UploadScriptStream 给大文件/grpc。
+  rpc UploadScript (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_MERCHANT; }                           // 小文件整包(web)
+  rpc UploadScriptStream (stream hi.UploadStreamReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_MERCHANT; }        // 大文件分片(grpc)
   rpc DownloadScript (DownloadScriptReq) returns (DownloadScriptResp) { option (hi.auth) = AUTH_MERCHANT; }               // **仅 ORIGINAL 放行**
   rpc UploadTrainingFile (UploadFileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }            // 训练资料 → hiai/training/
   rpc DownloadTrainingFile (DownloadFileReq) returns (DownloadFileResp) { option (hi.auth) = AUTH_MERCHANT; }             // 训练资料原件
