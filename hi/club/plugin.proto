@@ -29,7 +29,8 @@ service Plugin {
   rpc List (hi.ai.ListPluginsReq) returns (hi.ai.ListPluginsResp) { option (hi.auth) = AUTH_USER; }                  // 一级页:列壳 + 该 agent 激活版本
   rpc ListVersions (hi.ai.ListVersionsReq) returns (hi.ai.ListVersionsResp) { option (hi.auth) = AUTH_USER; }        // 二级页:列某壳所有版本
   rpc Delete (hi.ai.DeleteVersionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }              // 删某个版本(仅创建者)
-  rpc DeleteVersions (hi.ai.DeleteVersionsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }     // 批量删版本(范围,仅创建者)
+  rpc DeleteVersions (hi.ai.DeleteVersionsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }     // 批量删版本(范围 [min,max],仅创建者)
+  rpc DeleteVersionList (hi.ai.DeleteVersionListReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 批量删指定版本(列表,可不连续,仅创建者)
   rpc DeleteShell (hi.ai.DeleteShellReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }           // 从机器人移除单个插件(创建者删壳/引用方解绑)
   rpc DeleteShells (hi.ai.DeleteShellsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }        // 批量从机器人移除多个插件
   // 注:按 agent 批量清插件是撤权级联的内部动作,club 侧不暴露给前端 ——

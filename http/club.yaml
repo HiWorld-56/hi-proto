@@ -141,6 +141,9 @@ http:
   - selector: hi.club.Plugin.DeleteVersions
     post: /api/v1/plugin/delete_versions
     body: "*"
+  - selector: hi.club.Plugin.DeleteVersionList
+    post: /api/v1/plugin/delete_version_list
+    body: "*"
   - selector: hi.club.Plugin.DeleteShell
     post: /api/v1/plugin/delete_shell
     body: "*"
