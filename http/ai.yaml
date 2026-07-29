@@ -164,6 +164,12 @@ http:
   - selector: hi.ai.Source.UploadScript
     post: /api/v1/source/upload_script
     body: "*"
+  - selector: hi.ai.Source.UploadLogo
+    post: /api/v1/source/upload_logo
+    body: "*"
+  - selector: hi.ai.Source.UploadSummary
+    post: /api/v1/source/upload_summary
+    body: "*"
   - selector: hi.ai.Source.DownloadScript
     post: /api/v1/source/download_script
     body: "*"

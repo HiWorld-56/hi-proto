@@ -1,16 +1,16 @@
 # hi-proto 接口全量核对表
 
-**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.0-dev.64` @ `31ad6e5`)。
+**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.0-dev.65` @ `0ae2748`)。
 上一版是手写的,内容停在重构前 —— 档位名、rpc 数量、方法名全部过时,当成当前清单会被误导,故改为随发布自动重生成。
 
-共 **282** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
+共 **286** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
 
 ## 档位分布
 
 | 档位 | 数量 |
 |---|---|
-| `AUTH_USER` | 121 |
-| `AUTH_MERCHANT` | 77 |
+| `AUTH_USER` | 123 |
+| `AUTH_MERCHANT` | 79 |
 | `AUTH_NONE` | 43 |
 | `AUTH_SUPERADMIN` | 30 |
 | `AUTH_WEB3` | 13 |
@@ -150,8 +150,10 @@
 | Delete | `AUTH_MERCHANT` | hi.DeleteResourceReq | google.protobuf.Empty | POST /api/v1/source/delete |
 | DownloadScript | `AUTH_MERCHANT` | DownloadScriptReq | DownloadScriptResp | POST /api/v1/source/download_script |
 | DownloadTrainingFile | `AUTH_MERCHANT` | DownloadFileReq | DownloadFileResp | POST /api/v1/source/download_training_file |
+| UploadLogo | `AUTH_MERCHANT` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_logo |
 | UploadScript | `AUTH_MERCHANT` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_script |
 | UploadScriptStream ⇄ | `AUTH_MERCHANT` | hi.UploadStreamReq | hi.UploadResp | — |
+| UploadSummary | `AUTH_MERCHANT` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_summary |
 | UploadTemp | `AUTH_MERCHANT` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_temp |
 | UploadTrainingFile | `AUTH_MERCHANT` | UploadFileReq | google.protobuf.Empty | POST /api/v1/source/upload_training_file |
 
@@ -370,8 +372,10 @@
 | UploadAvatar | `AUTH_USER` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_avatar |
 | UploadBackground | `AUTH_USER` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_background |
 | UploadLog | `AUTH_USER` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_log |
+| UploadLogo | `AUTH_USER` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_logo |
 | UploadScript | `AUTH_USER` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_script |
 | UploadScriptStream ⇄ | `AUTH_USER` | hi.UploadStreamReq | hi.UploadResp | — |
+| UploadSummary | `AUTH_USER` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_summary |
 | UploadTemp | `AUTH_USER` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_temp |
 | UploadTempStream ⇄ | `AUTH_USER` | hi.UploadStreamReq | hi.UploadResp | — |
 | UploadTrainingFile | `AUTH_USER` | hi.ai.UploadFileReq | google.protobuf.Empty | POST /api/v1/source/upload_training_file |

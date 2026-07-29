@@ -184,6 +184,12 @@ http:
   - selector: hi.club.Source.UploadScript
     post: /api/v1/source/upload_script
     body: "*"
+  - selector: hi.club.Source.UploadLogo
+    post: /api/v1/source/upload_logo
+    body: "*"
+  - selector: hi.club.Source.UploadSummary
+    post: /api/v1/source/upload_summary
+    body: "*"
   - selector: hi.club.Training.ListFiles
     post: /api/v1/training/list_files
     body: "*"

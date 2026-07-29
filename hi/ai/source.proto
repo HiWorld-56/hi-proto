@@ -22,6 +22,8 @@ service Source {
   rpc UploadScript (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_MERCHANT; }                           // 小文件整包(web)
   rpc UploadScriptStream (stream hi.UploadStreamReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_MERCHANT; }        // 大文件分片(grpc)
   rpc DownloadScript (DownloadScriptReq) returns (DownloadScriptResp) { option (hi.auth) = AUTH_MERCHANT; }               // **仅 ORIGINAL 放行**
+  rpc UploadLogo (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_MERCHANT; }                             // 插件图标 → hiai/plugin/(小文件,web)
+  rpc UploadSummary (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_MERCHANT; }                          // 插件简介资源 → hiai/plugin/(小文件,web)
   rpc UploadTrainingFile (UploadFileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }            // 训练资料 → hiai/training/
   rpc DownloadTrainingFile (DownloadFileReq) returns (DownloadFileResp) { option (hi.auth) = AUTH_MERCHANT; }             // 训练资料原件
   rpc UploadTemp (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_MERCHANT; }                            // 临时媒体(小文件)→ temp 桶(14 天)
