@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package hi.club;
 
+import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/did/auth.proto";
 import "hi/options.proto";
@@ -18,6 +19,7 @@ message LoginResp {
 
 service Auth {
   rpc RefreshToken (hi.did.RefreshTokenReq) returns (hi.AuthToken) { option (hi.auth) = AUTH_NONE; } // 不鉴权
+  rpc Logout (hi.did.RefreshTokenReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; } // 登出:删该会话 refresh/access 行;凭 refresh_token 证明归属(不鉴权,故复用带 token 的 req)
   rpc GenerateReqId (hi.did.GenerateReqIdReq) returns (hi.RequestId) { option (hi.auth) = AUTH_NONE; } // 不鉴权
   rpc GetReqStatus (hi.RequestId) returns (hi.did.ReqStatusResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权
   rpc Verify (hi.SignedData) returns (LoginResp) { option (hi.auth) = AUTH_WEB3; } // Web3鉴权 / hi.did.LoginReq

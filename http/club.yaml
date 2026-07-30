@@ -13,6 +13,9 @@ http:
   - selector: hi.club.Auth.RefreshToken
     post: /api/v1/auth/refresh_token
     body: "*"
+  - selector: hi.club.Auth.Logout
+    post: /api/v1/auth/logout
+    body: "*"
 # Base
   - selector: hi.club.Base.LatestVersion
     get: /api/v1/base/latest_version
