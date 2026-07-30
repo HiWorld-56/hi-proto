@@ -136,3 +136,7 @@ http:
   - selector: hi.did.GatewayAdmin.Set
     post: /api/v1/gateway_admin/set
     body: "*"
+# Broadcast(超管系统广播)—— web 调用,系统用 root 代发 mqtt
+  - selector: hi.did.Broadcast.AppUpdate
+    post: /api/v1/broadcast/app_update
+    body: "*"
