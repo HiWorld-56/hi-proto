@@ -109,6 +109,8 @@ message BrainToFace {
 
     // 系统状态：NTP 时间同步 + 网络连通性（face 上线推送 + 状态变化时推送）
     StatusEvent           event_status        = 18;
+    //资源更新信息同步
+    UpdateInfo            event_update        = 19;
 
   }
 }
@@ -119,11 +121,50 @@ message BrainToFace {
 message StatusEvent {
   bool ntp  = 1;
   bool wifi = 2;
+  bool usb  = 3;
+}
+//资源更新进度信息
+// `state`：当前更新状态，例如 `idle`、`checking`、`downloading`、`installing`、`success`、`failed` 等。 
+// `current_version`：当前已安装/正在运行的版本号。 
+// `target_version`：目标版本号，也就是准备更新到的版本。 
+// `progress`： 更新进度，通常是 `0-100` 的百分比。 
+// `message` ： 给用户或前端展示的状态说明，例如“正在下载更新包”。 
+// `error` ：错误信息。更新失败时记录失败原因；正常情况下通常为空。 
+// `changes` ：版本变更列表，通常是 changelog，例如修复了哪些问题、增加了哪些功能。 
+// `trigger`：更新触发来源，例如 `manual` 手动触发、`auto` 自动检查、`startup` 启动时触发等。 
+// `updated_at` ：状态最后更新时间，通常是 Unix 时间戳。具体是秒还是毫秒要看实现约定。 
+// `downloaded_bytes`：已下载的字节数。 
+// `total_bytes`：需要下载的总字节数。可用于计算下载百分比。 
+message UpdateInfo {
+  string state = 1;
+  string current_version = 2;
+  string target_version = 3;
+  uint32 progress = 4;
+  string message = 5;
+  string error = 6;
+  repeated string changes = 7;
+  string trigger = 8;
+  uint64 updated_at = 9;
+  uint64 downloaded_bytes = 10;
+  uint64 total_bytes = 11;
 }
 
 // face -> brain
 message FaceToBrain {
   oneof cmd {
     StateToggle voice_state = 1; // 音频播放开始/结束，brain 据此控制麦克风静音
+    UpdateAction update_action = 2;//更新动作
   }
 }
+//更新动作
+message UpdateAction {
+  enum Action {
+    ACTION_UNKNOWN = 0;
+    ACTION_CHECK = 1;
+    ACTION_APPLY = 2;
+    ACTION_DISMISS = 3;
+  }
+
+  Action action = 1;
+}
+
