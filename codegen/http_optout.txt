@@ -6,6 +6,12 @@
 #
 # 规则:新增 rpc 若落进这种缺口,要么配 http 路由,要么写进本文件(注明理由),否则 CI 失败。
 # 下面是机制落地时的存量,**尚未逐条确认**是"确实不需要"还是"也漏了"。确认一条删一条。
+# 内部面(AUTH_INTERNAL):子服务只由父服务经 grpc 转发调用,**不该**出现在 http gateway 上
+# —— 它们不鉴权,主体是调用方传进来的普通字段,一旦挂到 web 就是任填 did 的越权入口。
+service:hi.club.trade.Trade
+service:hi.club.trade.TradeManage
+service:hi.club.trade.Order
+
 hi.ai.Agent.RegisterRobot
 hi.ai.Plugin.DeleteByAgents  # 内部级联(club 撤插件权限时经 aiapi grpc 调),非前端接口,故意不配 http
 hi.club.Agent.BindMaster
