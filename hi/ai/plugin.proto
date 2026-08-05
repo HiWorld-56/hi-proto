@@ -190,28 +190,11 @@ service Plugin {
   rpc SetEnabled (SetEnabledReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 插件开关(c.enabled)
 }
 
-// ── py-docker 执行契约(独立 py-docker 服务实现,hiai 只作调用方)──────────────
-// 运行期 plugin_annex = c.data ∪ d.data(激活版),作字典全局变量 plugin_annex 注入。
-// 这里保留 {api_key, data} 的注入形态不变(py-docker 契约),由 hiai 从 c.data 取 api_key、
-// data = c.data ∪ d.data 合并;脚本照旧 plugin_annex['api_key'] / plugin_annex[...]。
-message PluginAnnex {
-  string                 api_key = 1; // 运行期注入用:取自 c.data 的 api_key
-  google.protobuf.Struct data    = 2; // 运行期注入用:c.data ∪ d.data(激活版)
-}
-message RunReq {
-  string          code_archive_url = 1; // = 激活版 b.url
-  string          code_params      = 2;
-  string          uuid             = 3; // 壳 uuid
-  repeated string envs             = 4;
-  PluginAnnex     annex            = 5; // → 字典全局变量 plugin_annex
-}
-message RunResp {
-  option (hi.audience) = VIS_SELF;
-  repeated Content conts = 1 [(hi.visibility) = VIS_SELF];
-}
-message CleanupReq { string code_archive_url = 1; }
-
-service AiPlugin {
-  rpc Run (RunReq) returns (RunResp) { option (hi.auth) = AUTH_NONE; }
-  rpc Cleanup (CleanupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; }
-}
+// ── py-docker 执行契约已迁至子服务内部面 `hi/ai/plugin/base.proto`(package hi.ai.plugin)──
+//
+// 原 `service AiPlugin` + `RunReq/RunResp/CleanupReq/PluginAnnex` 都搬去了那里,并:
+//   · 档位 AUTH_NONE → **AUTH_INTERNAL**(它只由 ai 转发调用,不是公开面;而它执行的是任意代码,
+//     标成"公开"极易被误当作可对外暴露);
+//   · 服务名 AiPlugin → **Runner**(全名 hi.ai.plugin.Runner,去掉 `hi.ai.AiPlugin` 里冗余的 Ai)。
+//
+// 本文件只保留**对外面** `service Plugin`(AUTH_MERCHANT,插件管理),契约一字未动。

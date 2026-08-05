@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+// ai 的**插件执行子服务**内部面(backend-hi-ai-plugin 实现)。
+//
+// 位置即语义:放在 `hi/ai/plugin/` 而不是顶层 —— plugin 是 ai 的子服务,**不是**与 ai/club/did
+// 平级的模块。包名 `hi.ai.plugin` 同理。与 `hi/club/trade/` 一套范式。
+//
+// ## 与对外面 `hi.ai.Plugin` 的分工
+//
+// `hi.ai.Plugin`(AUTH_MERCHANT,backend-hi-ai 实现)是**插件管理**:建壳、发版本、增删改查、
+// 开关与激活 —— 面向 hiai web 与三方商户后台,有明确的主体(商户)。
+// 本文件是**执行契约**:给定脚本包与参数,跑一次、清理产物。它**没有"谁在调"这个概念**,
+// 也不需要有 —— 主体校验在 ai 那一层做完了。
+//
+// ## 为什么单独拆出来
+//
+// 原来 `service AiPlugin` 与对外的 `service Plugin` 挤在同一个文件、同一个包(`hi.ai`)里,
+// 后果有三:
+//   1. **档位标错**:Run/Cleanup 原标 `AUTH_NONE`(= 公开:真·免鉴权),但它只由 ai 转发调用,
+//      是内部面。`AUTH_NONE` 会诱导人把它对外暴露 —— 而它执行的是**任意代码**
+//      (code_archive_url 指哪跑哪),暴露出去后果比一般接口严重得多。现改标 AUTH_INTERNAL。
+//   2. **服务名冗余**:`hi.ai.AiPlugin` 里 "Ai" 重复了一遍。这个别扭名字正是"没地方放"憋出来的
+//      —— 不能叫 Plugin(被对外面占了),只好加前缀。搬到本包后改名 `Runner`,
+//      全名 `hi.ai.plugin.Runner`,同时更准确地描述"跑脚本的那个东西"。
+//   3. **结构不体现从属**:子服务的内部契约混在父服务的对外文件里,看不出谁是谁的子服务。
+//
+// 对外契约**零变化**:`hi.ai.Plugin` 那 14 个管理方法一个不动,前端与 hiai web 无感。
+package hi.ai.plugin;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai/plugin";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/struct.proto";
+import "hi/ai/chat.proto";
+import "hi/options.proto";
+
+// ── py-docker 执行契约(独立 py-docker 服务实现,hiai 只作调用方)──────────────
+// 运行期 plugin_annex = c.data ∪ d.data(激活版),作字典全局变量 plugin_annex 注入。
+// 这里保留 {api_key, data} 的注入形态不变(py-docker 契约),由 hiai 从 c.data 取 api_key、
+// data = c.data ∪ d.data 合并;脚本照旧 plugin_annex['api_key'] / plugin_annex[...]。
+message PluginAnnex {
+  string                 api_key = 1; // 运行期注入用:取自 c.data 的 api_key
+  google.protobuf.Struct data    = 2; // 运行期注入用:c.data ∪ d.data(激活版)
+}
+
+message RunReq {
+  string          code_archive_url = 1; // = 激活版 b.url
+  string          code_params      = 2;
+  string          uuid             = 3; // 壳 uuid
+  repeated string envs             = 4;
+  PluginAnnex     annex            = 5; // → 字典全局变量 plugin_annex
+}
+
+message RunResp {
+  option (hi.audience) = VIS_SELF;
+  repeated hi.ai.Content conts = 1 [(hi.visibility) = VIS_SELF];
+}
+
+message CleanupReq { string code_archive_url = 1; }
+
+// 脚本执行器(内部面)。只由父服务 ai 经 grpc 转发调用;不鉴权、也不认识"调用者"
+// —— 主体(商户/机器人)的校验在 `hi.ai.Plugin` 那一层完成。
+service Runner {
+  rpc Run (RunReq) returns (RunResp) { option (hi.auth) = AUTH_INTERNAL; }
+  rpc Cleanup (CleanupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_INTERNAL; }
+}

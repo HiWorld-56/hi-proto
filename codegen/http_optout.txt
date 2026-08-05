@@ -11,6 +11,7 @@
 service:hi.club.trade.Trade
 service:hi.club.trade.TradeManage
 service:hi.club.trade.Order
+service:hi.ai.plugin.Runner
 
 hi.ai.Agent.RegisterRobot
 hi.ai.Plugin.DeleteByAgents  # 内部级联(club 撤插件权限时经 aiapi grpc 调),非前端接口,故意不配 http
