@@ -117,6 +117,40 @@ message PresignedUrlResp {
   int64  expire_at = 2 [(hi.visibility) = VIS_PUBLIC]; // 失效时刻(unix 秒),调用方据此决定要不要重新要一个
 }
 
+// 按 **bucket+对象键** 直接取/查,不经 url。
+//
+// 既有的 Download/Delete 都从 url 反解 bucket+object —— 那是给"手里只有 url"的调用方用的。
+// 而发布模块手里本来就是对象键(latest.json、包路径),再去拼一个 url 让对方反解回来,
+// 等于让调用方复制一份 url 拼装规则,base 一改两边就散。
+message GetObjectReq {
+  string bucket = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string object = 2 [(buf.validate.field).string.pattern="^\\S+$"];
+}
+
+message GetObjectResp {
+  option (hi.audience) = VIS_PARTICIPANT; // 内网调用方取回的原始字节
+  bytes content = 1 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+message PutObjectReq {
+  string bucket  = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string object  = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // **精确对象键**,不改名
+  bytes  content = 3;
+}
+
+// 对象元信息。`sha256` 由 hi-source **内部流式算**(字节不出本服务),供发布时核对
+// "manifest 里写的 sha256 与真正传上去的包是否一致"。
+message ObjectInfoReq {
+  string bucket = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string object = 2 [(buf.validate.field).string.pattern="^\\S+$"];
+}
+
+message ObjectInfoResp {
+  option (hi.audience) = VIS_PARTICIPANT;
+  int64  size   = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  string sha256 = 2 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
 service File {
   rpc Put (PutReq) returns (PutResp) { option (hi.auth) = AUTH_NONE; } // bucket 化上传(内网)
   rpc PutStream (stream PutStreamReq) returns (PutResp) { option (hi.auth) = AUTH_NONE; } // bucket 化流式上传(内网)
@@ -124,6 +158,9 @@ service File {
   rpc DownloadStream (DownloadStreamReq) returns (stream DownloadStreamResp) { option (hi.auth) = AUTH_NONE; } // 流式下载
   rpc Delete (DeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; } // 按 url 删对象(bucket 从 url 解析)
   rpc PresignedUrl (PresignedUrlReq) returns (PresignedUrlResp) { option (hi.auth) = AUTH_NONE; } // 私有桶的限期公开下载链接
+  rpc GetObject (GetObjectReq) returns (GetObjectResp) { option (hi.auth) = AUTH_NONE; }            // 按 bucket+对象键取(小对象,如 latest.json)
+  rpc PutObject (PutObjectReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; }    // 按**精确对象键**写(不改名),覆盖式
+  rpc ObjectInfo (ObjectInfoReq) returns (ObjectInfoResp) { option (hi.auth) = AUTH_NONE; }         // 大小 + sha256(内部流式算,字节不出本服务)
 }
 
 service Base {
