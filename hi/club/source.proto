@@ -23,13 +23,24 @@ import "hi/options.proto";
 //    所以这里也**不校验 url 属于哪个桶**:调用方拿临时桶的 url 去设群头像,
 //    顶多是自己的图 14 天后失效,伤不到别人。
 //
-// ⚠️ **用户头像不在这里** —— 头像归 hidid 管,直接调 `hi.did.Source.UploadAvatar`。
-//    club 原先的 `User.UploadAvatar` 只是一层转发,拆开后与群头像撞名,故删掉转发。
-//    本 service 的 `UploadAvatar` 指的是**群头像**(club 自己的实体只有群有头像)。
+// ⚠️ **club 前端只调 club 的方法** —— 这是硬约束,不是偏好:app 侧的 core 只持有一条
+//    hiclub 通道,`hi.did.*` 它够不着。所以凡是 club 前端要用的搬运口,这里都得有一个,
+//    哪怕实现只是转发。曾经把用户头像"指路"到 `hi.did.Source.UploadAvatar`,
+//    结果是前端根本调不动 —— 别再犯。
+//
+//    命名:`UploadAvatar` = **用户头像**(与 `hi.did.Source.UploadAvatar` 同名同义);
+//    群资源一律带 Group 前缀,`UploadGroupAvatar` / `UploadGroupBackground`。
 service Source {
+  // 用户头像 → **hidid/avatar/**(不是 club 自己的桶)。
+  //
+  // 落别家的桶是有意的:`hi/did/source.proto` 定下"所有身份实体的头像都落 hidid/avatar/"。
+  // 同一个用户从 hidid 端传、还是从 hiclub 端传,该落同一处 —— 否则一份头像两边各存一份,
+  // 而"权威在哪"这个问题会随入口漂移。加载端只认 url,存哪儿对它透明。
+  rpc UploadAvatar (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; } // 用户头像 → hidid/avatar/
+
   // ── 永久公开:club 自己的桶(hiclub)。只回 url,写进群信息仍走 Group.Update ──
-  rpc UploadAvatar (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }     // 群头像 → hiclub/avatar/
-  rpc UploadBackground (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; } // 群背景 → hiclub/background/
+  rpc UploadGroupAvatar (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }     // 群头像 → hiclub/avatar/
+  rpc UploadGroupBackground (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; } // 群背景 → hiclub/background/
 
   // Download 按 url 取**公开桶**媒体(聊天/AI 媒体)。给 brain 这类没有浏览器、
   // 却持有 hiclub grpc 通道的设备端用 —— app/web 直接 http GET 公开 url,不走这里。

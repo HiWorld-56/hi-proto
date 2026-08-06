@@ -115,16 +115,7 @@ message ListOnlineUsersResp {
 }
 
 service User {
-  // 传用户头像:**club 不自己存**,内部转发 did,落 hidid bucket。
-  // 链路 app --用户token--> club后端 --ExtendToken--> did后端,故 club 调的是
-  // **hi.did.Merchant.UploadUserAvatar**(商户档),不是 User.UploadAvatar(用户档)。
-  // app 不该感知头像"穿"到 did 这件事 —— 那是 club 与 did 之间的事,分层不能搅浑。
-
-  // 传客户端日志 → log bucket 的 HiClub/,对象名固定为 <did>.log(**同一设备覆盖同一对象**)。
-  //
-  // 原先客户端是**直连 hi-source 的 File.Upload(type=log)**,免鉴权、在公网可达 ——
-  // 现在收归模块转发,顺带给日志上传加上了鉴权(之前是裸奔的)。
-  // did 取自 token,**不接受入参指定**:否则可以覆盖别人的日志。
+  // 头像与日志的上传口都已搬到 `Source`(UploadAvatar / UploadLog),此处不再有。
   rpc GetCurrent (google.protobuf.Empty) returns (UserInfo) { option (hi.auth) = AUTH_USER; } // 当前用户信息(原 GetCurrentUser 去 stutter)
   rpc Update (UpdateUserReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 更新用户信息(原 UpdateUser 去 stutter)
   rpc ListSystemMessages (ListSystemMessagesReq) returns (SystemMessages) { option (hi.auth) = AUTH_USER; } // 系统消息列表
