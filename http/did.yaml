@@ -56,8 +56,12 @@ http:
 # Base
   - selector: hi.did.SuperAdmin.List
     get: /api/v1/super_admin/list
-  - selector: hi.did.Base.LatestVersion
-    get: /api/v1/base/latest_version
+# Release(产品发布;两个流式方法配不了 http,见 codegen/http_optout.txt)
+  - selector: hi.did.Release.Latest
+    get: /api/v1/release/latest
+  - selector: hi.did.ReleaseManage.Publish
+    post: /api/v1/release_manage/publish
+    body: "*"
 # MerchantOwner(原 MerchantExDB;商户主人主体,登录 token)
   - selector: hi.did.MerchantOwner.RefreshExDB
     post: /api/v1/merchant_owner/refresh_ex_db

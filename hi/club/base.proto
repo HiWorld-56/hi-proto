@@ -15,7 +15,6 @@ import "hi/options.proto";
 // —— 注释与档位对不上,按 did 统一为公开。
 service Base {
   rpc ListCoins (google.protobuf.Empty) returns (hi.did.ListCoinsResp) { option (hi.auth) = AUTH_NONE; }              // 公开:币种列表
-  rpc LatestVersion (hi.did.LatestVersionReq) returns (hi.did.LatestVersionResp) { option (hi.auth) = AUTH_NONE; }    // 公开:最新版本
   rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp) { option (hi.auth) = AUTH_NONE; }          // 公开:服务自身版本+环境
 }
 

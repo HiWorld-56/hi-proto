@@ -13,6 +13,14 @@ service:hi.club.trade.TradeManage
 service:hi.club.trade.Order
 service:hi.ai.plugin.Runner
 
+# hi.club.Base 的唯一 http 路由(LatestVersion)随该接口一起删了 —— 剩下的 ListCoins/ServerVersion
+# 本就只走 grpc(app 用 grpc 直连),故整体声明不导出。
+service:hi.club.Base
+
+# 流式方法:grpc-gateway 不适合搬二进制流,web 端不经它们(发布页面用 Latest/Publish 即可)。
+hi.did.ReleaseManage.UploadPackage
+hi.did.Release.Download
+
 hi.ai.Agent.RegisterRobot
 hi.ai.Plugin.DeleteByAgents  # 内部级联(club 撤插件权限时经 aiapi grpc 调),非前端接口,故意不配 http
 hi.club.Agent.BindMaster

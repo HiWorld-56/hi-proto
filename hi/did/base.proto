@@ -20,19 +20,6 @@ message ListCoinsResp {
   repeated Coin list = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
-message LatestVersionReq {
-  string platform = 1; // android / ios / ...
-}
-
-message LatestVersionResp {
-  option (hi.audience) = VIS_PUBLIC;
-  string          min_supported_version = 1 [(hi.visibility) = VIS_PUBLIC];
-  string          latest_version        = 2 [(hi.visibility) = VIS_PUBLIC];
-  string          download_url          = 3 [(hi.visibility) = VIS_PUBLIC];
-  repeated string changes               = 4 [(hi.visibility) = VIS_PUBLIC];
-  int64           release_time          = 5 [(hi.visibility) = VIS_PUBLIC];
-}
-
 // ⚠️ 超管 did 名单不是"任何人可见":三个 SuperAdmin.List(did/club/ai)分别是
 // USER+MERCHANT / USER / MERCHANT,没有一个是 AUTH_NONE,标 PUBLIC 与档位矛盾。
 message ListSuperAdminUsersResp {
@@ -45,11 +32,13 @@ message UserTotalResp {
   int32 total = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
-// Base —— 每个包统一的公共信息入口(版本/币种/服务自身版本/用户总数),全部公开。
-// 生态约定:club/ai/media 也各有 Base.ServerVersion / Base.LatestVersion,保持一致。
+// Base —— 每个包统一的公共信息入口(币种/服务自身版本/用户总数),全部公开。
+// 生态约定:club/ai/media 也各有 Base.ServerVersion,保持一致。
+//
+// ⚠️ 原 `Base.LatestVersion` 已删:那是临时过渡品(数据在 hi_app_version 表、字段不足以描述
+//    机器人的按需更新)。产品发布统一走 `hi.did.Release`,见 hi/did/release.proto。
 service Base {
   rpc ListCoins (google.protobuf.Empty) returns (ListCoinsResp) { option (hi.auth) = AUTH_NONE; }            // 公开:支持的币种列表
-  rpc LatestVersion (LatestVersionReq) returns (LatestVersionResp) { option (hi.auth) = AUTH_NONE; }         // 公开:某平台的最新版本
   rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp) { option (hi.auth) = AUTH_NONE; } // 公开:本服务 bin 版本 + 运行环境
   rpc UserTotal (google.protobuf.Empty) returns (UserTotalResp) { option (hi.auth) = AUTH_NONE; }            // 公开:用户总数(原 User.Total)
 }
