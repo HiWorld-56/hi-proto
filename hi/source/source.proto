@@ -140,6 +140,19 @@ message PutObjectReq {
 
 // 对象元信息。`sha256` 由 hi-source **内部流式算**(字节不出本服务),供发布时核对
 // "manifest 里写的 sha256 与真正传上去的包是否一致"。
+message GetObjectStreamReq {
+  string bucket = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string object = 2 [(buf.validate.field).string.pattern="^\\S+$"];
+  int64  offset = 3 [(buf.validate.field).int64 = {gte: 0}]; // 断点续传起点;0=从头
+  int64  limit  = 4 [(buf.validate.field).int64 = {gte: 0}]; // 0=到结尾
+}
+
+message GetObjectStreamResp {
+  option (hi.audience) = VIS_PARTICIPANT;
+  bytes content = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  int64 total   = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 整个对象的大小,首块带上,便于显示进度
+}
+
 message ObjectInfoReq {
   string bucket = 1 [(buf.validate.field).string.pattern="^\\S+$"];
   string object = 2 [(buf.validate.field).string.pattern="^\\S+$"];
@@ -161,6 +174,7 @@ service File {
   rpc GetObject (GetObjectReq) returns (GetObjectResp) { option (hi.auth) = AUTH_NONE; }            // 按 bucket+对象键取(小对象,如 latest.json)
   rpc PutObject (PutObjectReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; }    // 按**精确对象键**写(不改名),覆盖式
   rpc ObjectInfo (ObjectInfoReq) returns (ObjectInfoResp) { option (hi.auth) = AUTH_NONE; }         // 大小 + sha256(内部流式算,字节不出本服务)
+  rpc GetObjectStream (GetObjectStreamReq) returns (stream GetObjectStreamResp) { option (hi.auth) = AUTH_NONE; } // 按对象键流式下载(带 offset 续传)
 }
 
 service Base {
