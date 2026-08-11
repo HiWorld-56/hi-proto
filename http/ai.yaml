@@ -205,6 +205,9 @@ http:
   - selector: hi.ai.Merchant.List
     post: /api/v1/merchant/list
     body: "*"
+  - selector: hi.ai.Merchant.Edit
+    post: /api/v1/merchant/edit
+    body: "*"
 # Setting(服务级全局配置)
   - selector: hi.ai.Setting.Get
     get: /api/v1/setting/get
