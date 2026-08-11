@@ -4,6 +4,7 @@ package hi.ai;
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
 
+import "buf/validate/validate.proto";
 import "hi/common.proto";
 import "hi/options.proto";
 
@@ -22,9 +23,19 @@ message AgentDelayUnit {
   int64  test_time     = 9 [(hi.visibility) = VIS_SELF];
 }
 
+// 概览:**每台机器人各一条**(各自最新)。要看某一台的历次记录用 ListHistory。
 message ListAgentDelaysReq {
-  string        agent      = 1; // 可选:按 agent 过滤
-  string        type       = 2; // 可选:按类型过滤
+  reserved 1;       // 原 agent:传了它,这个方法就悄悄变成"只回那台的最新一条",
+  reserved "agent"; //   而且**连分页都忽略、total 恒为 1** —— 一个方法两种语义、
+                    //   靠参数空不空隐式分支,proto 上完全看不出来。已拆成 ListHistory。
+  string        type       = 2; // 可选:按类型过滤(**空 = 全部类型**)
+  hi.Pagination pagination = 3;
+}
+
+// 明细:**某一台机器人的历次**测时记录,按时间倒序分页。
+message ListAgentDelayHistoryReq {
+  string        agent      = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string        type       = 2; // 可选:按类型过滤(**空 = 全部类型**)
   hi.Pagination pagination = 3;
 }
 
@@ -36,11 +47,18 @@ message ListAgentDelaysResp {
 
 // 智能体延迟基准(主体=测时数据)。从 Chat 拆出 —— 这是监控统计,不是对话。
 //
-// 原 `Chat.ListAgentDelays` 与 `Chat.GetAgentDelay` **近乎重复**:都查 agent_sts_count、
-// 同参(type/agent/分页)、返回同形 {total, []AgentDelayUnit} 明细行,唯一差别是前者多校验
-// 一次 agent 存在。二者都不是"列 agent",故合并为一个 List。
+// **两个方法,因为本来就是两种查询**:
+//   · List        —— 概览:每台机器人各一条(各自最新),铺"所有机器人当前延迟"那张表;
+//   · ListHistory —— 明细:某一台的历次测时记录,分页翻。
+//
+// ⚠️ 曾经把 `Chat.ListAgentDelays` / `Chat.GetAgentDelay` 合成一个 List,理由写的是
+// "近乎重复,唯一差别是前者多校验一次 agent 存在" —— **那句话是错的**。二者返回同形,
+// 但查询完全不同(一个 GROUP BY agent 取各自最新,一个只取那台的最新一条)。合并后靠
+// `agent` 空不空隐式分支,于是**没有任何传参拿得到"某台机器人的全部记录"**,分页也失效。
+// **返回同形 ≠ 语义相同;要合并,先看 SQL,别看返回类型。**
 //
 // 商户档:hiai web 与商户后台服务都会调。
 service AgentBench {
-  rpc List (ListAgentDelaysReq) returns (ListAgentDelaysResp) { option (hi.auth) = AUTH_MERCHANT; } // 列各段耗时明细(LLM/STT/TTS/FunctionCall)
+  rpc List (ListAgentDelaysReq) returns (ListAgentDelaysResp) { option (hi.auth) = AUTH_MERCHANT; }               // 概览:每台各一条(最新)
+  rpc ListHistory (ListAgentDelayHistoryReq) returns (ListAgentDelaysResp) { option (hi.auth) = AUTH_MERCHANT; } // 明细:某台的历次记录(分页)
 }

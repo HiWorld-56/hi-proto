@@ -102,9 +102,12 @@ http:
   - selector: hi.ai.Speech.Synthesize
     post: /api/v1/speech/synthesize
     body: "*"
-# AgentBench(延迟统计,从 Chat 拆出;两个 Delay 方法合一)
+# AgentBench(延迟统计,从 Chat 拆出):List=每台各一条(概览) / ListHistory=某台的历次记录(明细)
   - selector: hi.ai.AgentBench.List
     post: /api/v1/agent_bench/list
+    body: "*"
+  - selector: hi.ai.AgentBench.ListHistory
+    post: /api/v1/agent_bench/list_history
     body: "*"
 # Plugin(py 脚本一种;search/draw 已砍)
   - selector: hi.ai.Plugin.CreateShell
