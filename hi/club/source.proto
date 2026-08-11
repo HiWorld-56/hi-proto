@@ -71,10 +71,14 @@ service Source {
   rpc UploadScript (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }                                  // 小文件整包(web)
   rpc UploadScriptStream (stream hi.UploadStreamReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }               // 大文件分片(grpc)
   rpc DownloadScript (hi.ai.DownloadScriptReq) returns (hi.ai.DownloadScriptResp) { option (hi.auth) = AUTH_USER; }          // **仅 ORIGINAL 放行**:引用方(可能是买的)不给源码
-  rpc UploadLogo (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }                                    // 插件图标 → hiai/plugin/(小文件,web)
-  rpc UploadSummary (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }                                 // 插件简介资源 → hiai/plugin/(小文件,web)
   rpc UploadTrainingFile (hi.ai.UploadFileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }             // 训练资料
   rpc DownloadTrainingFile (hi.ai.DownloadFileReq) returns (hi.ai.DownloadFileResp) { option (hi.auth) = AUTH_USER; }        // 训练资料原件
+
+  // ── 插件的**展示资源** → hiai/pub/,**公开读**(透传 hi.ai.Source 的同名方法)──
+  // 图标/简介图是网页 <img src> 直接加载的,不公开读就是 403;它们**不是商户私产**。
+  // 曾与脚本 zip 混在 hiai/plugin/ 一个前缀,而那个桶不能整个开公开(开了白送源码),故单开 pub/。
+  rpc UploadLogo (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }    // 插件图标 → hiai/pub/(公开读)
+  rpc UploadSummary (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; } // 插件简介图 → hiai/pub/(公开读)
 
   // Delete 删掉刚传上去、但**没被任何地方引用**的对象。
   //
