@@ -40,8 +40,12 @@ message PluginVersion {                                  // b:按 (uuid,version)
   string version     = 2 [(hi.visibility) = VIS_SELF]; // 版本号(前端按现有版本预填,后端校验须>现有最大)
   string logo        = 3 [(hi.visibility) = VIS_SELF];
   string summary     = 4 [(hi.visibility) = VIS_SELF];
-  string url         = 5 [(hi.visibility) = VIS_SELF]; // 脚本包 zip
-  string description = 6 [(hi.visibility) = VIS_SELF]; // function-call spec
+  string url         = 5 [(hi.visibility) = VIS_SELF]; // 脚本包 zip:**至少含 main.py / requirements.txt / description.json**
+  // function-call spec({"description":...,"parameters":{schema}})。
+  // **创建时不用传** —— 后端在 CreateVersion 时从脚本包里的 description.json 读出来存库
+  // (运行期每次装配 function-call 都要它,存在包里就得每次下载解压,所以发版时预读一次)。
+  // 读接口(Get/List/ListVersions)会把内容回给你,web 拿它展示这个工具是干什么的。
+  string description = 6 [(hi.visibility) = VIS_SELF];
 }
 
 // 插件在某机器人使用记录里的来源(历史事实;引用不是拷贝,只多一行 c 指向同壳)。
@@ -96,7 +100,10 @@ message CreateShellResp {
 // data=该 agent 对这一版的版本级扩展数据(hiclub 放 club 数据)。
 message CreateVersionReq {
   string        agent   = 1 [(buf.validate.field).string.pattern="^\\S+$"];
-  PluginVersion version = 2; // version.uuid=壳;version.version + 本体内容
+  // version.uuid=壳;version.version + 本体内容。
+  // **description 不用填**:后端从 version.url 那个包里的 description.json 预读入库;
+  // 包里没有它会直接报错(过渡期:字段里直接给合法 spec 内容仍收,但会告警)。
+  PluginVersion version = 2;
   google.protobuf.Struct data = 3; // d.data(版本级)
 }
 
