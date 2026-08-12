@@ -18,18 +18,18 @@ message PcOrderData {
 
 // 我的订单(hidid-pc 为订单主体拉取)→ SELF。
 //
-// 注:字段号 1 空着 —— 原 `id` 填的是 hi_trade_sub_order 库的自增主键,违反
+// 原先第一个字段是 `id`,填的是 hi_trade_sub_order 库的自增主键,违反
 // "自增 id 禁止跨端流转"铁律,且下游回传只认 order_id(uuid),从无消费方,已删除。
 message PcOrder {
   option (hi.audience) = VIS_SELF;
-  string order_id   = 2 [(hi.visibility) = VIS_SELF];
-  string to_did     = 3 [(hi.visibility) = VIS_SELF];
-  string amount     = 4 [(hi.visibility) = VIS_SELF];
-  string type       = 5 [(hi.visibility) = VIS_SELF];
-  int64  created_at = 6 [(hi.visibility) = VIS_SELF];
-  int64  updated_at = 7 [(hi.visibility) = VIS_SELF];
-  string did        = 8 [(hi.visibility) = VIS_SELF];
-  string status     = 9 [(hi.visibility) = VIS_SELF];
+  string order_id   = 1 [(hi.visibility) = VIS_SELF];
+  string to_did     = 2 [(hi.visibility) = VIS_SELF];
+  string amount     = 3 [(hi.visibility) = VIS_SELF];
+  string type       = 4 [(hi.visibility) = VIS_SELF];
+  int64  created_at = 5 [(hi.visibility) = VIS_SELF];
+  int64  updated_at = 6 [(hi.visibility) = VIS_SELF];
+  string did        = 7 [(hi.visibility) = VIS_SELF];
+  string status     = 8 [(hi.visibility) = VIS_SELF];
 }
 
 message GetNotPulledPcOrdersResp {

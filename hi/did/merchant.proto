@@ -27,7 +27,7 @@ message MerchantInfo {
   repeated Coin custom_tokens = 6 [(hi.visibility) = VIS_PARTICIPANT]; // 自定义币种
   string endpoint = 7 [(hi.visibility) = VIS_PARTICIPANT];
   string scheme = 8 [(hi.visibility) = VIS_PARTICIPANT];
-  int64 created_at = 10 [(hi.visibility) = VIS_PARTICIPANT];
+  int64 created_at = 9 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 message MerchantGetResp {
