@@ -35,12 +35,21 @@ import "hi/ai/chat.proto";
 import "hi/options.proto";
 
 // ── py-docker 执行契约(独立 py-docker 服务实现,hiai 只作调用方)──────────────
-// 运行期 plugin_annex = c.data ∪ d.data(激活版),作字典全局变量 plugin_annex 注入。
-// 这里保留 {api_key, data} 的注入形态不变(py-docker 契约),由 hiai 从 c.data 取 api_key、
-// data = c.data ∪ d.data 合并;脚本照旧 plugin_annex['api_key'] / plugin_annex[...]。
+//
+// 运行期 plugin_annex = c.data ∪ d.data(激活版),**原样**作字典全局变量注入脚本。
+//
+// ⚠️ **这是一袋不透明的键值,谁都不该认识里面有什么。**
+// api_key 只是其中一个普通键,由 **hiclub** 塞进 c.data(见它的 withApiKey ——
+// 只有它知道哪台机器人对应哪个 apikey);hiai 与 py-docker 都只负责搬运。
+//
+// 曾经这里单列过一个 `api_key` 字段,hiai 为此在 mergeRuntime 里把它从扩展数据中
+// 挖出来(delete(m,"api_key"))。代价有二:hiclub 的约定泄进了 hiai(分层漏了);
+// 脚本侧还得多穿一层 plugin_annex['data'][...]。现在扁平:脚本直接
+// plugin_annex['api_key'] / plugin_annex['其它键']。
 message PluginAnnex {
-  string                 api_key = 1; // 运行期注入用:取自 c.data 的 api_key
-  google.protobuf.Struct data    = 2; // 运行期注入用:c.data ∪ d.data(激活版)
+  reserved 1;         // 原 api_key:hiai 不该认识它,已并回 data 里的普通键
+  reserved "api_key";
+  google.protobuf.Struct data = 2; // 扩展数据(c.data ∪ d.data,版本级覆盖插件级)
 }
 
 message RunReq {
