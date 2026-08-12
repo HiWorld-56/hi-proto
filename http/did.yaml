@@ -73,6 +73,9 @@ http:
   - selector: hi.did.Merchant.SetUsers
     post: /api/v1/merchant/set_users
     body: "*"
+  - selector: hi.did.Merchant.SetUserCard
+    post: /api/v1/merchant/set_user_card
+    body: "*"
   - selector: hi.did.Merchant.ListUsers
     post: /api/v1/merchant/list_users
     body: "*"
