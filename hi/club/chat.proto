@@ -34,6 +34,7 @@ message CompleteReq {
   // 于是经 club 进来的调用方(app / hiclub web)即便 ai 修好了也永远拿不到 toolCalls。
   bool return_plugin_use    = 6; // 发 type="toolCalls" 帧:模型调了哪个函数、传了什么参数、工具返回什么
   bool return_training_data = 7; // 回训练数据(命中的记忆片段)
+  bool return_context       = 8; // 发 type="context" 帧:这次真正喂给模型的那份上下文(系统提示词 + 截出的历史 + 本轮输入)
 }
 
 message QA {
