@@ -67,9 +67,24 @@ message UserExtensionInfo {
   option (hi.audience) = VIS_PARTICIPANT;
   optional string logo = 1 [(hi.visibility) = VIS_PARTICIPANT];
   optional int32 level = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  // card 存的是**卡片 json 正文本身**,不是文件 url。
+  // 卡片是结构化数据,不是媒体:读的人要的是里面的字段,存成文件就得多一跳 http 去取
+  // (还得管桶的可见性、失效、跨环境地址),而落库之后 GetUser/ListUsers 顺手就带出来了。
+  // 写入走 Merchant.SetUserCard(传 .json 文件,后端读正文入库,文件不留);清空走 SetUsers。
   optional string card = 3 [(hi.visibility) = VIS_PARTICIPANT];
   optional string extend = 4 [(hi.visibility) = VIS_PARTICIPANT];
   optional string note = 5 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+// 商户给**自己名下**用户设置扩展卡片:前端传 .json 文件,后端读出正文直接落库,文件丢弃。
+//
+// 为什么单开一个方法而不是让前端把 json 塞进 SetUsers.card:
+// 卡片是**编辑好的文件**,前端的动作就是"选个文件传上去" —— 让它先把文件读成字符串再塞字段,
+// 等于把"文件怎么读、编码怎么定、多大算大"这些事推给每个调用端各写一遍。
+// (同样的理由见 hi-ai 的插件 description.json:也是后端读、前端只管传。)
+message SetUserCardReq {
+  string user    = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}]; // 目标用户 did,**必须在调用者名下**
+  bytes  content = 2 [(buf.validate.field).bytes.min_len = 1];            // .json 文件正文;服务端校验是合法 json 才入库
 }
 
 message UserExtensionUnit {
@@ -242,6 +257,9 @@ service Merchant {
   rpc SetUsers(SetUsersReq) returns (google.protobuf.Empty) {
     option (hi.auth) = AUTH_MERCHANT;
   } // 批量写自己名下用户的扩展信息
+  rpc SetUserCard(SetUserCardReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 传 .json 文件设置某用户的扩展卡片(读正文入库,不落文件;清空走 SetUsers)
   rpc AddUsers(AddUsersReq) returns (google.protobuf.Empty) {
     option (hi.auth) = AUTH_MERCHANT;
   } // 加用户到自己名下
