@@ -83,4 +83,9 @@ hi.club.Source.DownloadStream  # 服务端流式,grpc-only(同 UploadTempStream)
 hi.ai.Source.UploadScriptStream  # 客户端流式 grpc-only
 # Source —— 二进制搬运,走 grpc 不走 http 网关(json 里塞 bytes 只会 base64 膨胀 33%)。
 # 训练文件那两个是例外,web 后台在用,已在 http/*.yaml 配了路由。
-service:hi.did.Source
+#
+# hi.did.Source **不能再整个 service 豁免**:UploadPub 已导出 http(网页要传公共区文件)。
+# 降到方法级逐条写,这样以后这个 service 再加 rpc 漏配路由,CI 照样拦得住。
+hi.did.Source.UploadAvatar  # 端上(app)传自己的头像,走 core grpc
+hi.did.Source.UploadLog     # 端上日志上报,走 grpc
+hi.did.Source.Delete        # **有意不导出**:按 url 删对象且不做归属校验,知道 url 就能删,挂网关上风险不对等
