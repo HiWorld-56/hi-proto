@@ -29,9 +29,10 @@ message Packet {
       group-update        群基础信息更新（名称、头像等）             / hi.club.GroupBase
 
       单聊通知（topic: hiclub/v1/single/<用户Did>）
-      friend-invite         收到好友邀请（自动 accept）
+      friend-invite         收到好友邀请（需我处理）
       friend-invite-accept  我发出的好友邀请已被对方接受，双方已成为好友
       friend-invite-reject  我发出的好友邀请已被对方拒绝（无需响应）
+      friend-add            对方加我为好友，**后台按我的"自动同意"设置代我同意了** / hi.Entity(对方)
       friend-delete         我已被对方删除好友
       group-invite          收到入群邀请（自动 accept）              / hi.club.Member
       group-invite-reject   我邀请他人入群已被对方拒绝（无需响应）
@@ -88,6 +89,23 @@ message Packet {
    2. **判断要不要更新一律比 `update` 时间戳,不比字段值。** 比值有两个坑:
       重设同一个值被当成没改而漏发/漏更新;更糟的是拿手里那份旧的去盖新的
       —— 比值的前提是"我这份是最新的",分布式下并不成立。
+*/
+/*
+   ## status:这条通知我处理过没有
+
+   `not_processed` / `processed`(邀请类另有 `accept` / `reject`)。**发出时一律写 `not_processed`**,
+   收方处理完调 `User.MarkNoticeProcessed`(按 uuid)置为 `processed`。
+
+   为什么要落到通知上而不是让端上自己记:端**不在线时发生的事**,上线补拉 `ListSystemMessages`
+   拿到的是同一条通知,状态跟着它走,端就知道这条到底处理过没有 —— 端上自己那份记录,
+   换台设备、重装、清缓存就没了。
+
+   ⚠️ 补拉走的是**库里的 status**(`ListSystemMessage` 用 `sysMsg.Status` 覆盖 payload 里那份),
+   实时那条则是发出时的快照(恒为 `not_processed`)。所以判据以补拉/回执为准。
+
+   典型:`friend-add` —— 我把 A 删了、A 又加回来、我又是"自动同意",
+   那么这条通知就是我唯一能知道"好友回来了"的信号,处理完(清掉会话的 severed)回执一下,
+   免得每次上线都重复处理。
 */
 message Notice {
   option (hi.audience) = VIS_PARTICIPANT; // 群/单聊通知,收信域内可见

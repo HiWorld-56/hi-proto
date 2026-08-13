@@ -39,6 +39,14 @@ message HandleSystemMessageReq {
   string status = 2;
 }
 
+// 通知回执:**我处理完这条通知了**。与 HandleSystemMessage 不是一回事 ——
+// 后者是"我对邀请做决定"(accept/reject,带真加好友/真入群的副作用),
+// 这里只是"这条我消费过了",没有任何业务副作用,对**任何**需要端上处理的通知都适用。
+// 以通知 uuid 为唯一标识,所以不用按类型各写一个接口。
+message MarkNoticeProcessedReq {
+  string uuid = 1;
+}
+
 message RelationInfo {
   option (hi.audience) = VIS_SELF; // 我的关系视图:含仅本人可见的 remark,故 SELF(见 report)
   hi.Entity base   = 1 [(hi.visibility) = VIS_PUBLIC];      // 名片
@@ -128,7 +136,8 @@ service User {
   rpc ListSystemMessages (ListSystemMessagesReq) returns (SystemMessages) { option (hi.auth) = AUTH_USER; } // 系统消息列表
   rpc DeleteSystemMessage (DeleteSystemMessageReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 删除系统消息
   rpc DeleteAllSystemMessage (google.protobuf.Empty) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 删除所有系统消息
-  rpc HandleSystemMessage (HandleSystemMessageReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 处理系统消息
+  rpc HandleSystemMessage (HandleSystemMessageReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 处理系统消息(对邀请做决定:accept/reject)
+  rpc MarkNoticeProcessed (MarkNoticeProcessedReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 通知回执:这条我处理完了(通用,按 uuid)
   rpc ListRelations (google.protobuf.Empty) returns (ListRelationsResp) { option (hi.auth) = AUTH_USER; } // 一次拿好友+仆从(同表;原 ListFriends/ListServitors 已合并进来)
   rpc AddFriend (AddFriendReq) returns (AddFriendResp) { option (hi.auth) = AUTH_USER; } // 添加好友
   rpc DeleteFriend (DeleteFriendReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 删除好友
