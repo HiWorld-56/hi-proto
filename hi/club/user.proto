@@ -117,7 +117,14 @@ message ListOnlineUsersResp {
 service User {
   // 头像与日志的上传口都已搬到 `Source`(UploadAvatar / UploadLog),此处不再有。
   rpc GetCurrent (google.protobuf.Empty) returns (UserInfo) { option (hi.auth) = AUTH_USER; } // 当前用户信息(原 GetCurrentUser 去 stutter)
-  rpc Update (UpdateUserReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 更新用户信息(原 UpdateUser 去 stutter)
+  // 更新用户信息。**返回更新后的完整资料**(原先返 Empty)。
+  //
+  // 为什么要回:`base.update` 是资料传播的唯一依据 —— 我发消息时 message.from 带着它,
+  // 收信方按它比时间戳决定要不要刷本地缓存(惰性传播,见 hi/club/messaging.proto)。
+  // 这个时间戳的权威在服务端;客户端自己造一个,与服务端那份就是两个时钟,会**倒退**
+  // (实测差 0.6s:客户端微秒 vs 服务端整秒)。写完顺手回权威值,调用方不必再多一次
+  // GetCurrent,也避免中间被自己的另一个端插一手、拿回不一致的资料。
+  rpc Update (UpdateUserReq) returns (UserInfo) { option (hi.auth) = AUTH_USER; } // 更新用户信息(原 UpdateUser 去 stutter)
   rpc ListSystemMessages (ListSystemMessagesReq) returns (SystemMessages) { option (hi.auth) = AUTH_USER; } // 系统消息列表
   rpc DeleteSystemMessage (DeleteSystemMessageReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 删除系统消息
   rpc DeleteAllSystemMessage (google.protobuf.Empty) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 删除所有系统消息
