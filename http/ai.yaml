@@ -56,6 +56,9 @@ http:
   - selector: hi.ai.Permission.Edit
     post: /api/v1/permission/edit
     body: "*"
+  - selector: hi.ai.Permission.ListByType
+    post: /api/v1/permission/list_by_type
+    body: "*"
   - selector: hi.ai.Agent.CreateAssistant
     post: /api/v1/agent/create_assistant
     body: "*"

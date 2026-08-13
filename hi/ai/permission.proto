@@ -66,6 +66,19 @@ message PermissionDeleteReq {
   PermissionType type  = 2;
 }
 
+// 按档位分页列持有者(club 超管页穿透过来用)。**只出调用者名下的机器人**。
+message PermissionListReq {
+  string         did        = 1; // 可选:按 did 过滤
+  PermissionType type       = 2; // **必填**,须是四档之一;列全部传 NORMAL(所有机器人都持有它),不是 UNSPECIFIED
+  hi.Pagination  pagination = 3;
+}
+
+message PermissionListResp {
+  option (hi.audience) = VIS_SELF;
+  int32                   total = 1 [(hi.visibility) = VIS_SELF];
+  repeated PermissionInfo infos = 2 [(hi.visibility) = VIS_SELF];
+}
+
 message PermissionEditReq {
   string agent = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
   string note  = 2; // 备注
@@ -81,4 +94,5 @@ service Permission {
   rpc Add (PermissionAddReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }            // 授予一档(幂等)
   rpc Delete (PermissionDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }      // 取消一档(不删数据)
   rpc Edit (PermissionEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }          // 改备注
+  rpc ListByType (PermissionListReq) returns (PermissionListResp) { option (hi.auth) = AUTH_MERCHANT; }       // 按档位分页列自己名下的持有者
 }
