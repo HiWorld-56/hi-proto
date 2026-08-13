@@ -111,7 +111,11 @@ service Agent {
   rpc List (ListAgentsReq) returns (ListAgentsResp) { option (hi.auth) = AUTH_USER; } // 列我名下的机器人
   // ── hi.ai 门面(跟 ai 定稿改名)──
   rpc CreateAssistant (hi.ai.CreateAssistantReq) returns (hi.ai.CreateAgentResp) { option (hi.auth) = AUTH_USER; }  // 原 CreateAgent
-  rpc Edit (hi.ai.EditAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }      // 原 EditAgent
+  // **改完回权威资料**(原先返 Empty)。`base.update` 是资料传播的唯一依据:
+  // 发消息时 message.from / 群通知的 extra 都带着它,收信方按它比时间戳决定要不要刷缓存
+  // (惰性传播,见 hi/club/messaging.proto)。时间戳的权威在服务端,客户端自己造一个就是
+  // 两个时钟,会倒退(实测客户端微秒 vs 服务端整秒差 0.6s)。回权威值,调用方不必再查一次。
+  rpc Edit (hi.ai.EditAgentReq) returns (hi.ai.CreateAgentResp) { option (hi.auth) = AUTH_USER; } // 原 EditAgent;回改完的机器人资料
   rpc Delete (hi.ai.DeleteAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }  // 原 DeleteAgent
   rpc Get (hi.ai.GetAgentReq) returns (hi.ai.GetAgentResp) { option (hi.auth) = AUTH_USER; }           // 原 FindAgent
   rpc GetUsage (hi.ai.AgentUsageReq) returns (hi.ai.AgentUsageResp) { option (hi.auth) = AUTH_USER; }  // 原 FindAgentCount(消息数+token,不是"count")

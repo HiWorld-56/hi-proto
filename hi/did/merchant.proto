@@ -184,6 +184,14 @@ message SetUsersReq {
   repeated SetUserUnit units = 1; // 批量写自己名下用户的资料/扩展
 }
 
+// SetUsers 的返回:每个被改用户改完之后的**权威 Entity**。
+// Entity.update 是资料惰性传播的唯一依据(见 hi/club/messaging.proto),
+// 时间戳的权威在服务端 —— 回给调用方,它才能把自己的缓存对齐,不必再逐个 GetUser。
+message SetUsersResp {
+  option (hi.audience) = VIS_PARTICIPANT;
+  repeated hi.Entity users = 1 [(hi.visibility) = VIS_PUBLIC];
+}
+
 message AddUsersReq {
   repeated string users = 1; // 用户 did:加到自己名下
 }
@@ -254,7 +262,10 @@ service Merchant {
   rpc List(ListMerchantsReq) returns (MerchantListResp) {
     option (hi.auth) = AUTH_MERCHANT;
   } // 查某用户所属的所有商户(hiclub 作为商户调)
-  rpc SetUsers(SetUsersReq) returns (google.protobuf.Empty) {
+  // 回**每个被改用户的权威 Entity**(原先返 Empty):这个接口会穿透写全局 user 表的
+  // name/avatar,而 `Entity.update` 是资料惰性传播的唯一依据 —— 调用方(club)拿到权威
+  // 时间戳才能把自己的缓存对齐,不必再逐个 GetUser。只改 Info 不改 Entity 的那些 unit 也照回。
+  rpc SetUsers(SetUsersReq) returns (SetUsersResp) {
     option (hi.auth) = AUTH_MERCHANT;
   } // 批量写自己名下用户的扩展信息
   rpc SetUserCard(SetUserCardReq) returns (google.protobuf.Empty) {

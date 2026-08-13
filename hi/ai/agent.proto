@@ -168,7 +168,11 @@ service Agent {
   //    拆开后各自的 type 由服务端固定,调用方无从传错。
   rpc CreateAssistant (CreateAssistantReq) returns (CreateAgentResp) { option (hi.auth) = AUTH_MERCHANT; } // 造软件 assistant(did 后台生成,type 固定 assistant)
   rpc RegisterRobot (RegisterRobotReq) returns (CreateAgentResp) { option (hi.auth) = AUTH_MERCHANT; }       // 为已注册的硬件 robot 建 agent 记录(did 必填,type 固定 robot)
-  rpc Edit (EditAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }      // 改智能体
+  // **改完回权威资料**(原先返 Empty)。`base.update` 是资料传播的唯一依据:
+  // 发消息时 message.from / 群通知的 extra 都带着它,收信方按它比时间戳决定要不要刷缓存
+  // (惰性传播,见 hi/club/messaging.proto)。时间戳的权威在服务端,客户端自己造一个就是
+  // 两个时钟,会倒退(实测客户端微秒 vs 服务端整秒差 0.6s)。回权威值,调用方不必再查一次。
+  rpc Edit (EditAgentReq) returns (CreateAgentResp) { option (hi.auth) = AUTH_MERCHANT; }      // 改智能体
   rpc Delete (DeleteAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }  // 删智能体(连带删文件+训练数据)
   rpc Get (GetAgentReq) returns (GetAgentResp) { option (hi.auth) = AUTH_MERCHANT; }                 // 查单个智能体
   // 列**自己名下**的机器人;agents 非空则在名下再按 did 筛(见 ListAgentsReq 的说明)。
