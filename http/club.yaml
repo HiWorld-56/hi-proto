@@ -227,8 +227,6 @@ http:
   - selector: hi.club.TradeManage.List
     post: /api/v1/trade_manage/list
     body: "*"
-  - selector: hi.club.TradeManage.Get
-    get: /api/v1/trade_manage/get
 # ApiKey
   - selector: hi.club.ApiKey.Create
     post: /api/v1/api_key/create
