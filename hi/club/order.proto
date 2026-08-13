@@ -20,6 +20,15 @@ message PcOrderData {
 //
 // 原先第一个字段是 `id`,填的是 hi_trade_sub_order 库的自增主键,违反
 // "自增 id 禁止跨端流转"铁律,且下游回传只认 order_id(uuid),从无消费方,已删除。
+//
+// ⚠️ **字段号在 dev.87 整体前移过一位**(order_id..status 2..9 → 1..8)。
+// 老客户端(pre-dev.87 生成码)解新响应会 **硬报错**,不是"静默解错":
+// 新的 `did`(7, string) 落在老的 `updated_at`(7, int64) 上 —— Dart 的 protobuf
+// 对 int64 字段**接受 length-delimited**(按 packed 重复处理),于是把字符串字节
+// 当 varint 一路读下去,流当场错位,最后 `InvalidProtocolBufferException: input
+// ended unexpectedly`,grpc-dart 再包成 **code 15 DATA_LOSS "Error parsing response"**。
+// (protoc/Go 的解码器则是宽容的 —— 同一段字节只是字段错位、不报错。
+//  所以"我这边解得开"不能作为客户端不用升级的理由。)
 message PcOrder {
   option (hi.audience) = VIS_SELF;
   string order_id   = 1 [(hi.visibility) = VIS_SELF];
