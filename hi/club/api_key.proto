@@ -6,6 +6,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "hi/ai/api_key.proto";
 import "hi/options.proto";
 
 // ── apikey(裁决 #6:apikey 是 hiclub 的东西,已从 did 迁来原生拥有)──────────────
@@ -33,11 +34,6 @@ message CreateApiKeyResp {
   ApiKeyInfo info = 1 [(hi.visibility) = VIS_SELF];
 }
 
-message EditApiKeyReq {
-  string api_key = 1;
-  string note    = 2;
-}
-
 message EditApiKeyResp {
   option (hi.audience) = VIS_SELF;
   ApiKeyInfo info = 1 [(hi.visibility) = VIS_SELF];
@@ -58,11 +54,14 @@ message DeleteApiKeyReq {
   string api_key = 1;
 }
 
+// ⚠️ 入参 `EditApiKeyReq` **复用 hi.ai 的**(字段完全一致,club 只是门面)。
+//    但 `ApiKeyInfo` / `ListApiKeysResp` **不复用** —— club 那份有意收窄
+//    (不吐 rate_limit / is_active),形状看着像、内容不是一回事。
 service ApiKey {
   rpc Create (CreateApiKeyReq) returns (CreateApiKeyResp) { option (hi.auth) = AUTH_USER; }      // 给自己名下的机器人生成 apikey(**只有机器人能持 apikey**,见文件头)
   // Edit/Delete 按 api_key 定位,**必须校验归属** —— 只有该机器人的 master 能改/删。
   // 已落地(handler 里 isMasterOf(调用者, apikey.user));新增同类方法要带同样的守卫。
-  rpc Edit (EditApiKeyReq) returns (EditApiKeyResp) { option (hi.auth) = AUTH_USER; }            // 改 apikey 备注
+  rpc Edit (hi.ai.EditApiKeyReq) returns (EditApiKeyResp) { option (hi.auth) = AUTH_USER; }            // 改 apikey 备注
   rpc List (ListApiKeysReq) returns (ListApiKeysResp) { option (hi.auth) = AUTH_USER; }          // 列 apikey
   rpc Delete (DeleteApiKeyReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 删 apikey
 }

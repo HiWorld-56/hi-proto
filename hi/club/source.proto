@@ -9,6 +9,7 @@ import "hi/ai/plugin.proto";
 import "hi/ai/training.proto";
 import "buf/validate/validate.proto";
 import "hi/common.proto";
+import "hi/source/source.proto";
 import "hi/options.proto";
 
 // Source —— **所有直接搬运二进制的方法**都收在这里。
@@ -56,7 +57,7 @@ service Source {
   // 语音、视频这类边下边播、可拖动的场景用它,别用 Download 把整包读进内存。
   // 桶边界与 Download 一致(只放 temp/hiclub/hidid 公开桶),私有资源仍走 DownloadScript / DownloadTrainingFile。
   // 透传 hi-source 的 File.DownloadStream。
-  rpc DownloadStream (DownloadResourceStreamReq) returns (stream DownloadResourceStreamResp) { option (hi.auth) = AUTH_USER; }
+  rpc DownloadStream (hi.source.DownloadStreamReq) returns (stream hi.source.DownloadStreamResp) { option (hi.auth) = AUTH_USER; }
 
   // ── 临时:temp 桶,**14 天自动过期**。聊天/AI 媒体,按年月分目录便于人工排查 ──
   rpc UploadTemp (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }                    // 小文件
@@ -100,15 +101,3 @@ message DownloadResourceResp {
   bytes content = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
-message DownloadResourceStreamReq {
-  string url    = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}];
-  int64  offset = 2 [(buf.validate.field).int64 = {gte: 0}]; // 起始偏移(字节),0=从头;支持 range/断点续传
-  int64  limit  = 3 [(buf.validate.field).int64 = {gte: 0}]; // 限制大小(字节),0=到文件尾
-}
-message DownloadResourceStreamResp {
-  option (hi.audience) = VIS_PUBLIC; // 只服务公开桶,内容本就人人可取
-  bytes chunk  = 1 [(hi.visibility) = VIS_PUBLIC]; // 内容分片
-  int64 sent   = 2 [(hi.visibility) = VIS_PUBLIC]; // 本次流累计已发送字节
-  int64 total  = 3 [(hi.visibility) = VIS_PUBLIC]; // 文件总大小(字节)
-  int64 offset = 4 [(hi.visibility) = VIS_PUBLIC]; // 当前块在文件中的起始字节位置
-}
