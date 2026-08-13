@@ -57,13 +57,13 @@ message ListAgentPermissionsResp {
 }
 
 message PermissionAddReq {
-  string         agent = 1 [(buf.validate.field).string.pattern = "^\\S+$"]; // 机器人 did
-  PermissionType type  = 2;
+  string         did  = 1 [(buf.validate.field).string.pattern = "^\\S+$"]; // 机器人 did
+  PermissionType type = 2;
 }
 
 message PermissionDeleteReq {
-  string         agent = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
-  PermissionType type  = 2;
+  string         did  = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
+  PermissionType type = 2;
 }
 
 // 按档位分页列持有者(club 超管页穿透过来用)。**只出调用者名下的机器人**。
@@ -80,8 +80,8 @@ message PermissionListResp {
 }
 
 message PermissionEditReq {
-  string agent = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
-  string note  = 2; // 备注
+  string did  = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
+  string note = 2; // 备注
 }
 
 // 机器人权限(商户档)。**权威存储在 ai**,推理时由 ai 自己校验。

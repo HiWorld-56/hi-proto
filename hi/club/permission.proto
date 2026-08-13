@@ -4,9 +4,8 @@ package hi.club;
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
-import "buf/validate/validate.proto";
 import "google/protobuf/empty.proto";
-import "hi/common.proto";
+import "hi/ai/permission.proto";
 import "hi/options.proto";
 
 // ── 权限(原 UserACL)────────────────────────────────────────────────────────
@@ -27,75 +26,17 @@ import "hi/options.proto";
 // 未决(后端阶段定):授权限这个动作的入口在哪 —— 倾向 club 超管面为入口,
 // 转发 ai 的 PermissionManage 成功后,club 再执行自己的收尾(群上限/踢人/语音开关)。
 
-// ── 权限模型(club 自有)────────────────────────────────────────────────
-// **权限归 club 自己管**,类型定义也放在这里 —— 曾经复用 hi.ai 的,那是错的:
-// 两边模型相同但各存各的表、各判各的,不跨服务查(见 hi.ai.Permission 的说明)。
+// ── 权限模型:**直接复用 hi.ai 的那套** ────────────────────────────────────
 //
-// 权限是 **bit 位**拼的,可组合。**授予的是实体本身(机器人),不从 master 继承** ——
-// 机器人的能力写在它自己身上,没有 master 也能独立运作。
-// 用途是**出问题时撤掉**(把瞎搞的机器人踢掉),不是逐步授予:建号即授全部。
+// PermissionType / PermissionInfo / PermissionAddReq / PermissionDeleteReq /
+// PermissionEditReq / PermissionListReq / PermissionListResp /
+// ListAgentPermissionsReq / ListAgentPermissionsResp —— 全部用 `hi.ai.*`。
 //
-// ⚠️ **人用户没有权限配置,只有机器人才有。**
-enum PermissionType {
-  // ⚠️ 纯占位。proto3 要求首值为 0,故删不掉,但**不代表"全部"或"不过滤"** ——
-  //    传它一律按无效参数拒绝。要列全部传 PERMISSION_NORMAL:所有机器人都持有
-  //    normal 位,按它筛天然等于不过滤,不需要另造一个"不过滤"的档。
-  PERMISSION_UNSPECIFIED = 0;
-  PERMISSION_NORMAL      = 1; // 普通:自由度/系统提示词/用户提示词。**所有机器人默认持有**
-  PERMISSION_ADVANCED    = 2; // 高级:上下文数/对话模型/嵌入模型/STT 模型
-  PERMISSION_MEM         = 3; // 记忆:上传资料/训练记忆
-  PERMISSION_PLUGIN      = 4; // 插件:启用插件
-}
-
-// 批量查机器人的权限。**调用者必须是这些机器人的 master**,否则报错
-// (超管同样放行 —— 不管有没有 master 都能管,见 CheckAgentAccess)。
+// 曾经这里原样抄了一套一模一样的(字段、枚举值都一致),理由是"两边各存各的表、
+// 各判各的"。现在权威只有 ai 一处、club 是穿透门面,那份副本就纯粹是**同一个东西
+// 定义两遍**:改一处忘另一处就开始漂移。与 hi.club.Agent 复用 hi.ai.EditAgentReq 同一范式。
 //
-// 与 Get() 的分工:
-//   Get()          机器人**查自己** —— 无参数,身份取自 token/apikey。
-//                  插件运行时拿的就是机器人自己的 apikey,走的正是这条。
-//   List(agents)   master 在 web 上**批量查自己名下机器人**的权限。
-message ListAgentPermissionsReq {
-  repeated string agents = 1; // 机器人 did 列表
-}
-
-message ListAgentPermissionsResp {
-  option (hi.audience) = VIS_SELF;
-  repeated PermissionInfo infos = 1 [(hi.visibility) = VIS_SELF];
-}
-
-message PermissionInfo {
-  option (hi.audience) = VIS_SELF;
-  string                  did         = 1 [(hi.visibility) = VIS_SELF];
-  repeated PermissionType permissions = 2 [(hi.visibility) = VIS_SELF];
-  string                  note        = 3 [(hi.visibility) = VIS_SELF];
-}
-
-message PermissionAddReq {
-  string         did  = 1; // 机器人 did
-  PermissionType type = 2;
-}
-
-message PermissionDeleteReq {
-  string         did  = 1; // 机器人 did
-  PermissionType type = 2;
-}
-
-message PermissionEditReq {
-  string did  = 1;
-  string note = 2;
-}
-
-message PermissionListReq {
-  string         did        = 1; // 可选:按 did 过滤
-  PermissionType type       = 2; // **必填**,须是四档之一;列全部传 NORMAL,不是 UNSPECIFIED
-  hi.Pagination  pagination = 3;
-}
-
-message PermissionListResp {
-  option (hi.audience) = VIS_SELF;
-  int32                   total = 1 [(hi.visibility) = VIS_SELF];
-  repeated PermissionInfo infos = 2 [(hi.visibility) = VIS_SELF];
-}
+// 前端无感:字段名、枚举值、路由都没变(ai 那边的字段本就叫 did)。
 
 // 权限查询(用户档)。前端 robot_memory / robot_plugin / robot_setup 三个**普通用户页面**
 // 拿它当 getPermissions 用(查自己有哪些权限以显隐功能)。
@@ -112,8 +53,8 @@ service Permission {
   // ⚠️ 人用户没有权限配置,只有机器人才有。前端那三个页面
   //    (robot_memory / robot_plugin / robot_setup)要看的是机器人能干什么:
   //    机器人自己调 Get,master 代查走 List。
-  rpc Get (google.protobuf.Empty) returns (PermissionInfo) { option (hi.auth) = AUTH_USER; }
-  rpc List (ListAgentPermissionsReq) returns (ListAgentPermissionsResp) { option (hi.auth) = AUTH_USER; } // master 批量查名下机器人的权限
+  rpc Get (google.protobuf.Empty) returns (hi.ai.PermissionInfo) { option (hi.auth) = AUTH_USER; }
+  rpc List (hi.ai.ListAgentPermissionsReq) returns (hi.ai.ListAgentPermissionsResp) { option (hi.auth) = AUTH_USER; } // master 批量查名下机器人的权限
 }
 
 // 权限管理(超管)。**存储在 hi.ai,这里是穿透门面** ——
@@ -125,8 +66,8 @@ service Permission {
 //    两边各存一份也不行:同步必漂移,一漂移就是安全问题。
 // club 侧仍执行自己的副作用(取消高级 → 群缩容踢人等,见文件头)。
 service PermissionManage {
-  rpc Add (PermissionAddReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }       // 超管:授予(追加)
-  rpc Delete (PermissionDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:取消(伴随踢群等副作用)
-  rpc Edit (PermissionEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }     // 超管:改备注
-  rpc List (PermissionListReq) returns (PermissionListResp) { option (hi.auth) = AUTH_SUPERADMIN; }  // 超管:按类型列持有者
+  rpc Add (hi.ai.PermissionAddReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }       // 超管:授予(追加)
+  rpc Delete (hi.ai.PermissionDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:取消(伴随踢群等副作用)
+  rpc Edit (hi.ai.PermissionEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }     // 超管:改备注
+  rpc List (hi.ai.PermissionListReq) returns (hi.ai.PermissionListResp) { option (hi.auth) = AUTH_SUPERADMIN; }  // 超管:按类型列持有者
 }
