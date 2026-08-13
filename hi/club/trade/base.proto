@@ -74,6 +74,6 @@ service TradeManage {
 // 所以 SignedData 一路透传到验签点是**设计如此**:AUTH_WEB3 的语义就是"传输层不鉴权、
 // handler 自验签",中间任何一跳都不该、也无法代劳(它们没有签名上下文)。
 service Order {
-  rpc ListNotPulled (hi.SignedData) returns (hi.club.GetNotPulledPcOrdersResp) { option (hi.auth) = AUTH_INTERNAL; }
-  rpc UpdatePulled (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_INTERNAL; }
+  rpc Pull (hi.SignedData) returns (hi.club.PullOrdersResp) { option (hi.auth) = AUTH_INTERNAL; }
+  rpc Report (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_INTERNAL; }
 }
