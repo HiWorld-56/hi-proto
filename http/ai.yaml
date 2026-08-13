@@ -43,6 +43,19 @@ http:
     post: /api/v1/api_key/delete
     body: "*"
 # Agent
+# Permission(商户档:配置**自己名下**机器人的能力位;权威存储在 ai,club 超管页穿透到这里)
+  - selector: hi.ai.Permission.List
+    post: /api/v1/permission/list
+    body: "*"
+  - selector: hi.ai.Permission.Add
+    post: /api/v1/permission/add
+    body: "*"
+  - selector: hi.ai.Permission.Delete
+    post: /api/v1/permission/delete
+    body: "*"
+  - selector: hi.ai.Permission.Edit
+    post: /api/v1/permission/edit
+    body: "*"
   - selector: hi.ai.Agent.CreateAssistant
     post: /api/v1/agent/create_assistant
     body: "*"
