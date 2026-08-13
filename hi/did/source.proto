@@ -17,9 +17,12 @@ import "hi/options.proto";
 //
 // ⚠️ 只回 url,**不改资料** —— 落库分别走 `User.Edit` / `Merchant.Update` /
 //    `Merchant.SetUsers`,上传与落库解耦(这个约定原先就是这样,只是方法搬了家)。
-// ⚠️ **没有商户档的上传口**,也不需要:资源的消耗方不关心资源由谁上传。
+// ⚠️ **头像没有商户档的上传口**,也不需要:资源的消耗方不关心资源由谁上传。
 //    商户要给名下用户设头像,拿任意一个自己有权调的上传口换到 url,再走
 //    `Merchant.SetUsers` 即可 —— 设置那步才是有主体校验的地方。
+//    公共区(`hidid/pub/`)是唯一例外:商户后台确实要传附件/图并拿到直链,
+//    而 hidid 这边没有别的口子可借,所以另开了 `SourceMerchant`(见文件末尾)。
+//    **不是把商户档并进 Source** —— 同一个 service 里混档位,说明主体归类错了。
 service Source {
   rpc UploadAvatar (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; } // 自己的头像 → hidid/avatar/
   rpc UploadLog (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }     // 端上日志 → log/HiDid/(NAME_TIMESTAMP 留历史)
@@ -33,11 +36,7 @@ service Source {
   // ⚠️ 只回 url,**不改任何资料** —— 与本文件其它上传口一致,落库各走各的设置方法;
   //    设置失败记得调 Delete 收尸,否则就是无主文件(公开桶没有 lifecycle 兜底)。
   //
-  // 用户档与商户档都放行:资源的消耗方不关心资源由谁上传,而两边都确实要传东西。
-  rpc UploadPub (hi.UploadReq) returns (hi.UploadResp) {
-    option (hi.auth) = AUTH_USER;
-    option (hi.auth) = AUTH_MERCHANT;
-  }
+  rpc UploadPub (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }
 
   // Delete 删掉刚传上去、但**没被任何地方引用**的对象。
   //
@@ -49,4 +48,15 @@ service Source {
   // ⚠️ 不做归属校验,和上传对称 —— url 是 32 位随机名,知道 url 本身就是凭据。
   //    这也意味着**它删得掉任何你知道 url 的对象**,别把 url 泄漏出去。
   rpc Delete (hi.DeleteResourceReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
+}
+
+// SourceMerchant —— **商户档**的二进制搬运。目前只有公共区上传一个方法。
+//
+// 与 `Source` 拆开而不是并进去:同一个 service 里两种档位,拦截器放行范围就得按方法看,
+// 归属校验也没法在 service 层一次说清 —— 仓里的范式是拆(见 DApp / DAppAdmin)。
+//
+// 落点与用户档那条**完全一样**(`hidid/pub/`,匿名可读):公共区就是公共区,
+// 不按上传者分目录 —— 分了也没人按这个维度取用。
+service SourceMerchant {
+  rpc UploadPub (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_MERCHANT; }
 }
