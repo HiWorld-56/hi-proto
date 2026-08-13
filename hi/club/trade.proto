@@ -120,4 +120,14 @@ service Trade {
 //    **把 filter 值变成越权入口**。拆成两个 service 后,这个坑物理上不存在了。
 service TradeManage {
   rpc List (TradeManageListReq) returns (ListTradesResp) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:交易统计(全量/按 id;id 空=全量)
+
+  // 超管:看任意一笔的详情。
+  //
+  // 为什么不复用 `Trade.Get`:那条是**用户面**的,带归属校验(只有付款/收款方本人能看,
+  // 别人一律 NotFound —— 否则拿到 order id 就能读别人的交易)。超管页列的是全站交易,
+  // 详情却打在用户面那条上,于是"列表有、点开空",只有自己参与的那两笔打得开。
+  //
+  // 校验跟着**调用主体**走,而档位是按方法挂的 —— 所以是再开一条超管档的口,
+  // 不是给用户面那条开后门(那等于把 filter/身份判断混进同一个方法,老坑了)。
+  rpc Get (GetTradeReq) returns (GetTradeResp) { option (hi.auth) = AUTH_SUPERADMIN; }
 }
