@@ -10,13 +10,17 @@ import "hi/did/base.proto";
 import "buf/validate/validate.proto";
 import "hi/options.proto";
 
-// 链（chain）：
-//    ethereum
-//    tron
-//    filecoin（已废弃）
-//    bitcoin
-//    solana
-//    aptos
+// 链标识（`chain` 字段的取值）——**全生态就这一套短名**：
+//
+//    btc / eth / trx / sol / aptos      （身份标识另有 did，不是链）
+//
+// 权威在 **hidid-core 的 `Chain::id()`**（`from_id()` 反解），其余各处都是照它来的：
+// 后端 `common.ChainType`（存进 hi_user_wallet.chain 的就是这几个值）、
+// hidid-simple-app 的 `chain_utils.dart`、以及本文件里所有带 `chain` 的请求。
+//
+// ⚠️ 这里原先写的是 `ethereum / tron / bitcoin / solana / filecoin(已废弃)` —— **从来没有人这么用过**。
+// 照它去查 `ListAddresses`，五条链只回得来 aptos（只有它两边同名），
+// 而库里五条其实都在 —— 差一点被误判成"后端只写了一条"。注释比代码更容易骗人，这条是实例。
 
 message UpdateAddressesReq {
   optional string did = 1;
