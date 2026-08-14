@@ -208,8 +208,13 @@ message MemberExit {
      broadcast   广播
 
    ⚠️ **注意是 `image_url` 不是 `image`、`audio_url` 不是 `audio`。**
-   名字带 `_url` 是因为载荷放的是 url 而不是字节 —— 别看着别扭就"顺手改成 image",
-   Android 端(hiclub-app)与硬件端(hinj-brain)现网都按这张表收发。
+
+   这套 content 是**从 OpenAI 的 content 标准扩展来的** —— 那边的多模态内容块就是
+   `{"type":"text"}` / `{"type":"image_url"}`,`image_url` 是照抄它的词,不是我们随手起的。
+   `audio_url` / `file` / `transfer` / `trade` 是我们在同一范式下的扩展。
+   所以**别看着别扭就"顺手改成 image"**:改了既背离上游那套约定,也当场打断
+   Android 端(hiclub-app)与硬件端(hinj-brain)—— 它们现网都按这张表收发。
+   同理,以后加多模态类型**先看 OpenAI 那边叫什么**,能对齐就对齐。
 
    这张表原先**只存在于各端的代码里**(Android 的 MQTTConfig、brain 的 pb_ext),proto 这边
    只写了 `string type = 1`。代价:hiclub-simple-app 自己发明了 `image`,于是
