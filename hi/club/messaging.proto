@@ -196,6 +196,30 @@ message MemberExit {
   string type = 2;
 }
 
+/*
+   Content.type —— **一条消息里这一段是什么**。字符串,取值就是下面这张表,**别自己发明**。
+
+     text        纯文本            chat.content = 正文
+     image_url   图片              chat.content = 图片 url(name=原文件名, size=字节数)
+     audio_url   语音              chat.content = 音频 url(duration=秒)
+     file        文件              chat.content = 文件 url(name/size)
+     transfer    转账卡            kind=trans(hi.did.Transaction)
+     trade       交易卡            kind=trade(TradeBase)
+     broadcast   广播
+
+   ⚠️ **注意是 `image_url` 不是 `image`、`audio_url` 不是 `audio`。**
+   名字带 `_url` 是因为载荷放的是 url 而不是字节 —— 别看着别扭就"顺手改成 image",
+   Android 端(hiclub-app)与硬件端(hinj-brain)现网都按这张表收发。
+
+   这张表原先**只存在于各端的代码里**(Android 的 MQTTConfig、brain 的 pb_ext),proto 这边
+   只写了 `string type = 1`。代价:hiclub-simple-app 自己发明了 `image`,于是
+   **发出去 Android 显示"未知类型消息"、收进来自己当文本把 url 打在屏幕上** —— 两个方向同时错,
+   而两边代码各自看都"没毛病"。后端的推送预览甚至为此写成 `strings.Contains(t, "image")`
+   模糊匹配来兜 —— 那是缺词汇表的补丁,不是词汇表。
+
+   为什么不改成枚举:这个字段已在现网多端流通,换 wire 类型要所有端同批发版;
+   而**把表写在这里**就已经解决"各自发明"的问题了。新增类型:先往这张表加一行,再去实现。
+*/
 message Content {
   option (hi.audience) = VIS_PARTICIPANT; // 消息内容体,群成员可见
   message Chat {
