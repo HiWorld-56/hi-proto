@@ -45,6 +45,8 @@ message Packet {
       plugin-grant-request  收到插件授权申请(需我处理)              / hi.club.MarketGrantBrief
       plugin-grant-approved 我的插件申请被同意                       / hi.club.MarketGrantBrief
       plugin-grant-rejected 我的插件申请被拒绝                       / hi.club.MarketGrantBrief
+      plugin-grant-expiring 插件授权快到期了(**发给受让方机器人本人**)    / hi.club.MarketRenewBrief
+      plugin-grant-expired  插件授权已到期,已解绑                       / hi.club.MarketGrantBrief
 
    ex_type: 附加类型
       扩充主类型，避免主类型产生过多分支。

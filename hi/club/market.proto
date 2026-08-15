@@ -137,6 +137,27 @@ message MarketGrantBrief {
   string    coin       = 8 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
+// MarketRenewBrief 「快到期了」通知的载荷 —— **发给受让方机器人本人**。
+//
+// 硬件机器人收到它之后:查自己的余额够不够 → 够且开了自动续费 → 自己付款 →
+// 把 tx_hash 交回 `Market.ConfirmPayment` 完成续期。
+//
+// ⚠️ **不做币种转换**:要付 USDT 而机器人只有 BTC,就是付不了,如实失败。
+//    自动换币会把"续个费"变成"替用户做了一笔他没同意的兑换",不是这个功能该干的事。
+//
+// ⚠️ 与其它 Notice extra 同理:audience 必须 ≥ PARTICIPANT
+//    (Any 是可见性 lint 唯一的结构性缺口,塞 SELF 的东西会静默泄漏)。
+message MarketRenewBrief {
+  option (hi.audience) = VIS_PARTICIPANT;
+  string grant_uuid = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  string title      = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 插件标题
+  string payee      = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 付给谁(后端推导,机器人别自己算)
+  string amount     = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 人类可读金额
+  string coin       = 5 [(hi.visibility) = VIS_PARTICIPANT];
+  int64  expire_at  = 6 [(hi.visibility) = VIS_PARTICIPANT]; // 到期时刻(秒)
+  bool   auto_renew = 7 [(hi.visibility) = VIS_PARTICIPANT]; // 用户开没开自动续费
+}
+
 // MarketGrantView 我的授权 / 我收到的申请(SELF)。
 message MarketGrantView {
   option (hi.audience) = VIS_SELF;
@@ -158,6 +179,8 @@ message MarketGrantView {
   int64       created_at   = 16 [(hi.visibility) = VIS_SELF];
   int64       decided_at   = 17 [(hi.visibility) = VIS_SELF];
   int64       installed_at = 18 [(hi.visibility) = VIS_SELF];
+  // 自动续费。**只有硬件机器人能开** —— 续费要它自己掏钱付款,软件机器人没有私钥。
+  bool        auto_renew   = 19 [(hi.visibility) = VIS_SELF];
 }
 
 // ── 公开面入参 ───────────────────────────────────────────────────────────────
@@ -312,6 +335,12 @@ message DecideGrantReq {
 //
 // ⚠️ **同一个 tx_hash 只能兑换一次** —— 后端按 hash 全局去重,
 //    不然一笔转账可以拿去把所有挂牌都买一遍。
+//
+// **首购与续费共用这一个接口**:
+//   · grant 处于 PENDING → 首购,核验通过后装载;
+//   · grant 处于 INSTALLED → 续费,核验通过后 `expire_at += duration`。
+// 续费**延长同一个 grant,不新建** —— 新建要先撤旧的,而撤销会删掉 ai 侧的 c/d 行,
+// 用户在这个插件上攒的使用态配置(d.data)就没了。
 message ConfirmPaymentReq {
   string grant_uuid = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
   string tx_hash    = 2 [(buf.validate.field).string.min_len = 1];
@@ -333,6 +362,17 @@ message ListGrantsResp {
 // 语义与 `hi.club.Plugin.SetActive` 一致 —— 若该 agent 对 (uuid, version) 还没有 d 行,
 // 就**以当前激活版的 d.data 为模板建一行**再置 active。
 // c 是壳级的、每 (agent,uuid) 只有一行、跨版本不变,**不需要复制**,要复制的只有 d.data。
+// SetAutoRenewReq 开/关自动续费。
+//
+// ⚠️ **只有受让方是硬件机器人时才能开** —— 续费是机器人自己掏钱付款,
+//    软件机器人没有私钥,开了也只会到期时白失败一次。
+//
+// 用户在 hiclub 里随手开关;真正执行续费的是机器人自己(见 plugin-grant-expiring 通知)。
+message SetAutoRenewReq {
+  string grant_uuid = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
+  bool   enabled    = 2;
+}
+
 message SetGrantVersionReq {
   string grant_uuid = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
   string version    = 2 [(buf.validate.field).string.pattern = "^\\S+$"];
@@ -389,6 +429,7 @@ service Market {
   rpc ConfirmPayment (ConfirmPaymentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // SETTLE_AGENT:交回 tx_hash
   rpc ListMyGrants (ListGrantsReq) returns (ListGrantsResp) { option (hi.auth) = AUTH_USER; }              // 我买到的
   rpc SetGrantVersion (SetGrantVersionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 切换引用的版本
+  rpc SetAutoRenew (SetAutoRenewReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }       // 开/关自动续费(仅硬件机器人)
 }
 
 // ── 外部结算:**商户来拉 + 回传**,club 不主动调商户 ──────────────────────────

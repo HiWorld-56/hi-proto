@@ -161,6 +161,9 @@ http:
   - selector: hi.club.Market.SetGrantVersion
     post: /api/v1/market/set_grant_version
     body: "*"
+  - selector: hi.club.Market.SetAutoRenew
+    post: /api/v1/market/set_auto_renew
+    body: "*"
   - selector: hi.club.MarketManage.ListListings
     post: /api/v1/market_manage/list_listings
     body: "*"
