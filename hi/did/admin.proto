@@ -220,10 +220,21 @@ message BroadcastPluginUpdateReq {
   string plugin_uuid = 1; // 哪个插件的壳;空=让大家把自己的插件全都核对一遍
 }
 
-// 拆成独立 service 是因为**主体不同**:上面那条是超管在 web 上点的,这条是 hi.ai 转发的。
+// 拆成独立 service 是因为**主体不同**:上面那条是超管在 web 上点的,这条是别的后端服务转发的。
 // 同 service 混档会让"这个接口到底谁能调"取决于方法而不是服务,拦截器就没法整体挂。
+//
+// ⚠️ 档位是 **AUTH_MERCHANT(ExtendToken),不是 AUTH_INTERNAL**。
+//    AUTH_INTERNAL 的前提是"这个口外面够不着"(如 hi.ai.plugin.Runner,只在内网),
+//    而 **did 的 grpc 口是对设备公开的**(机器人就连在上面)。在这里标 INTERNAL,
+//    等于给每一台设备一个"惊动全网机器人"的按钮 —— 而且 did 的拦截器是 fail-closed 的,
+//    压根没有 INTERNAL 这一档,标了的结果是**永远鉴权失败**、广播悄悄地一次也发不出去。
+//
+//    ExtendToken 是 did 里既有的机器对机器凭证(hi.ai 在 did 注册为商户,club→did 一直这么走),
+//    不必新造一套配置。残留风险:任何持有效 ExtendToken 的商户都能发这条广播 ——
+//    它的破坏面仅限于"让机器人多自查几次",可以接受;要再收紧就在 handler 里
+//    比对调用方 merchant_did 是否是 ai 服务那个。
 service BroadcastInternal {
-  rpc PluginUpdate (BroadcastPluginUpdateReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_INTERNAL; } // 插件有新版,叫大家自查
+  rpc PluginUpdate (BroadcastPluginUpdateReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 插件有新版,叫大家自查
 }
 
 service Broadcast {
