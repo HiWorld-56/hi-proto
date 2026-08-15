@@ -115,6 +115,61 @@ http:
   - selector: hi.club.Chat.ResumeStream
     post: /api/v1/chat/resume_stream
     body: "*"
+# Market(插件市场)
+  - selector: hi.club.MarketDirectory.SearchListings
+    post: /api/v1/market_directory/search_listings
+    body: "*"
+  - selector: hi.club.MarketDirectory.ListAgentListings
+    post: /api/v1/market_directory/list_agent_listings
+    body: "*"
+  - selector: hi.club.MarketDirectory.GetListing
+    post: /api/v1/market_directory/get_listing
+    body: "*"
+  - selector: hi.club.Market.CreateListing
+    post: /api/v1/market/create_listing
+    body: "*"
+  - selector: hi.club.Market.EditListing
+    post: /api/v1/market/edit_listing
+    body: "*"
+  - selector: hi.club.Market.SetListingStatus
+    post: /api/v1/market/set_listing_status
+    body: "*"
+  - selector: hi.club.Market.ListMyListings
+    post: /api/v1/market/list_my_listings
+    body: "*"
+  - selector: hi.club.Market.ListReceivedRequests
+    post: /api/v1/market/list_received_requests
+    body: "*"
+  - selector: hi.club.Market.Approve
+    post: /api/v1/market/approve
+    body: "*"
+  - selector: hi.club.Market.Reject
+    post: /api/v1/market/reject
+    body: "*"
+  - selector: hi.club.Market.Revoke
+    post: /api/v1/market/revoke
+    body: "*"
+  - selector: hi.club.Market.Apply
+    post: /api/v1/market/apply
+    body: "*"
+  - selector: hi.club.Market.ConfirmPayment
+    post: /api/v1/market/confirm_payment
+    body: "*"
+  - selector: hi.club.Market.ListMyGrants
+    post: /api/v1/market/list_my_grants
+    body: "*"
+  - selector: hi.club.Market.SetGrantVersion
+    post: /api/v1/market/set_grant_version
+    body: "*"
+  - selector: hi.club.MarketManage.ListListings
+    post: /api/v1/market_manage/list_listings
+    body: "*"
+  - selector: hi.club.MarketManage.ListGrants
+    post: /api/v1/market_manage/list_grants
+    body: "*"
+  - selector: hi.club.MarketManage.ForceDelist
+    post: /api/v1/market_manage/force_delist
+    body: "*"
 # Plugin
   - selector: hi.club.Plugin.SetEnabled
     post: /api/v1/plugin/set_enabled

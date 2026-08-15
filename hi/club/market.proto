@@ -1,0 +1,384 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/struct.proto";
+import "buf/validate/validate.proto";
+import "hi/common.proto";
+import "hi/options.proto";
+
+// ── 插件市场:机器人的插件可授权给其他机器人使用 ────────────────────────────────
+//
+// ## 分界线只有一条:club 管「谁能用」,ai 管「实际能不能跑」
+//
+// 插件本体与使用态(a壳/b版本/c壳级使用/d版本级使用)权威在 **hi.ai**;
+// 机器人归属(master)、用户体系、通知权威在 **hi.club**;
+// 挂牌/申请/授权/结算这套**状态机**是本文件新增的,也在 club。
+//
+// 授权成立后 club **必须**穿透到 ai 插一行 `c(source=REFERENCE)` —— 不能只在 club 记一笔。
+// 老规矩:**权限判据要跟执行同一侧**。插件挂不挂进 tools 是 ai 推理时的事,
+// club 那张授权表运行期根本没人查。c 行的存在本身就是运行期判据。
+//
+// ## 地基是现成的
+//
+// `hi.ai.PluginSource.PLUGIN_SOURCE_REFERENCE` 早就定义了 ——「引用:经授权用别人的脚本;
+// **不能下载源码**」;`hi/club/plugin.proto` 结尾也写着「市场引用(复用 a/b + 建自己 c/d)未开放」。
+// 市场不改那个模型,只是**把开关打开并补上授权流程**。
+//
+// ## 授权粒度:按壳授权,按版本引用
+//
+// grant 给的是**壳**的使用权(落成 ai 侧一行 c),引用方自己选用哪个版本(d 行),可变更。
+// 于是壳级/版本级各有一份引用计数,正好当 ai 侧的删除门限。
+
+// SettleMode 结算方式。**挂牌后不可改** —— 改价可以,改"钱怎么走"不行。
+//
+// club 不实现任何一种业务,它只跑状态机:FREE/APPROVAL 自己闭合;
+// MERCHANT/AGENT/EXTERNAL 共用同一条回调路径(见 hi/club/callback.proto),
+// club 完全不关心对方是在收钱还是在审资质。
+enum SettleMode {
+  SETTLE_MODE_UNSPECIFIED = 0;
+  SETTLE_MODE_FREE     = 1; // 免费:申请即成立
+  SETTLE_MODE_APPROVAL = 2; // 人工审批,不收钱 —— 出让方 master 点头即成立
+  SETTLE_MODE_MERCHANT = 3; // 走 master 的商户(hidid 结算系统)。要求 master 已注册商户
+  SETTLE_MODE_AGENT    = 4; // 机器人自己收款。**仅硬件机器人(Entity.type == robot)** —— 软件机器人没有私钥
+  SETTLE_MODE_EXTERNAL = 5; // 三方自定义流程
+}
+
+// ListingStatus 挂牌状态。
+//
+// ⚠️ **下架 ≠ 撤销已成立的授权** —— 下架只是不再接新申请,已授权的照跑。
+//    否则「隐藏一下」会误伤一片付费用户。
+enum ListingStatus {
+  LISTING_STATUS_UNSPECIFIED = 0;
+  LISTING_STATUS_DRAFT    = 1; // 草稿:还没挂出去
+  LISTING_STATUS_LISTED   = 2; // 挂牌中:可搜到、可申请
+  LISTING_STATUS_HIDDEN   = 3; // 隐藏:搜不到,但直链可见(出让方自己收着)
+  LISTING_STATUS_DELISTED = 4; // 已下架:不再接新申请
+}
+
+// GrantStatus 授权状态机。
+//
+// ⚠️ **`APPROVED` 与 `INSTALLED` 必须分开。** 前者是"授权成立"(club 的事实),
+//    后者是"ai 侧 c/d 行建好了"(执行侧的事实)。中间会失败:ai 不通、受让方机器人被撤了
+//    PERMISSION_PLUGIN、uuid 已存在……合并成一个状态就无从重试,而且状态在撒谎
+//    (说装好了其实没装)。
+enum GrantStatus {
+  GRANT_STATUS_UNSPECIFIED = 0;
+  GRANT_STATUS_PENDING   = 1; // 申请中(等审批 / 等外部流程回调)
+  GRANT_STATUS_APPROVED  = 2; // 授权成立,但还没装上
+  GRANT_STATUS_INSTALLED = 3; // 已装载(ai 侧 c/d 行就绪)
+  GRANT_STATUS_REJECTED  = 4;
+  GRANT_STATUS_REVOKED   = 5; // 被出让方撤回
+  GRANT_STATUS_EXPIRED   = 6; // 到期
+}
+
+// ── 公开面数据 ───────────────────────────────────────────────────────────────
+//
+// ⚠️ **不能复用 `hi.ai.PluginView`** —— 那是 VIS_SELF,里面有脚本 url 和 api_key。
+// ⚠️ **也不能复用 `PluginVersion.summary/logo`** —— 那两个是主人的私有配置(VIS_SELF),
+//    而挂牌页是 VIS_PUBLIC。直接复用会被可见性 lint 当场拦下 —— 这次 lint 是帮我们的,
+//    它逼着在公私之间切一层门面。
+
+// MarketListingBrief 挂牌摘要(搜索结果一行)。
+message MarketListingBrief {
+  option (hi.audience) = VIS_PUBLIC;
+  string        uuid    = 1 [(hi.visibility) = VIS_PUBLIC]; // 挂牌 id
+  hi.Entity     agent   = 2 [(hi.visibility) = VIS_PUBLIC]; // 出让方机器人(只到 Entity,**不吐它的 master**)
+  string        title   = 3 [(hi.visibility) = VIS_PUBLIC];
+  string        summary = 4 [(hi.visibility) = VIS_PUBLIC];
+  string        logo    = 5 [(hi.visibility) = VIS_PUBLIC];
+  repeated string tags  = 6 [(hi.visibility) = VIS_PUBLIC];
+  SettleMode    settle_mode = 7 [(hi.visibility) = VIS_PUBLIC];
+  string        price   = 8 [(hi.visibility) = VIS_PUBLIC];  // 十进制字符串,免浮点误差
+  string        coin    = 9 [(hi.visibility) = VIS_PUBLIC];
+  int64         duration = 10 [(hi.visibility) = VIS_PUBLIC]; // 商品规格:买一次能用多久(秒);0 = 永久
+  int32         install_count = 11 [(hi.visibility) = VIS_PUBLIC]; // 装机数
+}
+
+// MarketListingDetail 挂牌详情。
+message MarketListingDetail {
+  option (hi.audience) = VIS_PUBLIC;
+  MarketListingBrief brief = 1 [(hi.visibility) = VIS_PUBLIC];
+  // 这个包提供哪些方法。直接取自 hi.ai 那份 tools 数组(已是最终形态、name 带壳前缀),
+  // 买家装之前就知道会得到什么能力。
+  string capabilities = 2 [(hi.visibility) = VIS_PUBLIC];
+  // 出让方是否允许引用方跟随最新版。引用方自己再选(见 ApplyReq.follow_latest)。
+  bool   allow_follow_latest = 3 [(hi.visibility) = VIS_PUBLIC];
+  // 可选版本列表(引用方装好后可在其中切换)。
+  repeated string versions = 4 [(hi.visibility) = VIS_PUBLIC];
+}
+
+// MarketGrantBrief 授权摘要 —— **专供单聊 Notice 的 extra**。
+//
+// ⚠️ `Notice.extra` 是 `google.protobuf.Any`,而 Any 是可见性 lint **唯一的结构性缺口**:
+//    装进去的真实类型 lint 看不见。所以往里塞的类型必须自己是 VIS_PARTICIPANT 或更宽。
+//    踩过:plugin-load 曾塞 `hi.ai.PluginView`(SELF,body.url 是私有 bucket 的脚本地址)。
+//    **别把 grant 详情塞进来。**
+message MarketGrantBrief {
+  option (hi.audience) = VIS_PARTICIPANT;
+  string    grant_uuid = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  string    title      = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 挂牌标题
+  hi.Entity from_agent = 3 [(hi.visibility) = VIS_PUBLIC];      // 出让方机器人
+  hi.Entity to_agent   = 4 [(hi.visibility) = VIS_PUBLIC];      // 受让方机器人
+  hi.Entity applicant  = 5 [(hi.visibility) = VIS_PUBLIC];      // 申请人
+  SettleMode settle_mode = 6 [(hi.visibility) = VIS_PARTICIPANT];
+  string    price      = 7 [(hi.visibility) = VIS_PARTICIPANT];
+  string    coin       = 8 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+// MarketGrantView 我的授权 / 我收到的申请(SELF)。
+message MarketGrantView {
+  option (hi.audience) = VIS_SELF;
+  string      uuid         = 1 [(hi.visibility) = VIS_SELF];
+  string      listing_uuid = 2 [(hi.visibility) = VIS_SELF];
+  string      title        = 3 [(hi.visibility) = VIS_SELF];
+  hi.Entity   from_agent   = 4 [(hi.visibility) = VIS_PUBLIC];
+  hi.Entity   to_agent     = 5 [(hi.visibility) = VIS_PUBLIC];
+  hi.Entity   applicant    = 6 [(hi.visibility) = VIS_PUBLIC];
+  GrantStatus status       = 7 [(hi.visibility) = VIS_SELF];
+  SettleMode  settle_mode  = 8 [(hi.visibility) = VIS_SELF];
+  string      price        = 9 [(hi.visibility) = VIS_SELF];
+  string      coin         = 10 [(hi.visibility) = VIS_SELF];
+  bool        follow_latest = 11 [(hi.visibility) = VIS_SELF];
+  string      version      = 12 [(hi.visibility) = VIS_SELF]; // 当前引用的版本
+  int64       expire_at    = 13 [(hi.visibility) = VIS_SELF]; // installed_at + duration;0 = 永久
+  string      action_url   = 14 [(hi.visibility) = VIS_SELF]; // 外部流程给的"去付款/去填资料"地址(可空)
+  string      reason       = 15 [(hi.visibility) = VIS_SELF]; // 拒绝/撤销原因
+  int64       created_at   = 16 [(hi.visibility) = VIS_SELF];
+  int64       decided_at   = 17 [(hi.visibility) = VIS_SELF];
+  int64       installed_at = 18 [(hi.visibility) = VIS_SELF];
+}
+
+// ── 公开面入参 ───────────────────────────────────────────────────────────────
+
+message SearchListingsReq {
+  string        keyword    = 1; // 空 = 不过滤
+  repeated string tags     = 2;
+  hi.Pagination pagination = 3;
+}
+
+message ListAgentListingsReq {
+  string        agent      = 1 [(buf.validate.field).string.pattern = "^\\S+$"]; // 逛这台机器人的"店"
+  hi.Pagination pagination = 2;
+}
+
+message GetListingReq {
+  string uuid = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
+}
+
+message SearchListingsResp {
+  option (hi.audience) = VIS_PUBLIC;
+  int32                       total = 1 [(hi.visibility) = VIS_PUBLIC];
+  repeated MarketListingBrief list  = 2 [(hi.visibility) = VIS_PUBLIC];
+}
+
+message GetListingResp {
+  option (hi.audience) = VIS_PUBLIC;
+  MarketListingDetail detail = 1 [(hi.visibility) = VIS_PUBLIC];
+}
+
+// ── 用户面入参 ───────────────────────────────────────────────────────────────
+
+// CreateListingReq 挂牌。
+//
+// ⚠️ **只有原始持有者能挂牌**:ai 侧 `c.source` 必须是 ORIGINAL。引用来的不能转挂,
+//    否则授权链失控(B 从 A 拿的转手挂给 C,A 撤 B 的权时 C 怎么办)。后端穿透 ai 查 c.source。
+message CreateListingReq {
+  string          agent       = 1 [(buf.validate.field).string.pattern = "^\\S+$"]; // 出让方机器人(须是调用者名下)
+  string          plugin_uuid = 2 [(buf.validate.field).string.pattern = "^\\S+$"];
+  SettleMode      settle_mode = 3; // **建后不可改**
+  string          price       = 4;
+  string          coin        = 5;
+  int64           duration    = 6; // 秒;0 = 永久
+  string          title       = 7 [(buf.validate.field).string.min_len = 1];
+  string          summary     = 8;
+  string          logo        = 9;
+  repeated string tags        = 10;
+  bool            allow_follow_latest = 11;
+}
+
+// EditListingReq 改挂牌。**没有 settle_mode** —— 定价三元组可改,结算方式不可改。
+//
+// ⚠️ 「不可改」要真做到:下架**不删** listing 行(唯一索引 (agent, plugin_uuid) 天然保证
+//    重新挂牌复用同一行),该字段在首次 LISTED 之后禁止 UPDATE。否则"下架再上架"就绕过去了。
+message EditListingReq {
+  string          uuid     = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
+  optional string price    = 2;
+  optional string coin     = 3;
+  optional int64  duration = 4;
+  optional string title    = 5;
+  optional string summary  = 6;
+  optional string logo     = 7;
+  repeated string tags     = 8;
+  optional bool   allow_follow_latest = 9;
+}
+
+message SetListingStatusReq {
+  string        uuid   = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
+  ListingStatus status = 2;
+}
+
+message ListMyListingsReq {
+  string        agent      = 1; // 可选:只看这台机器人的
+  hi.Pagination pagination = 2;
+}
+
+message ListMyListingsResp {
+  option (hi.audience) = VIS_SELF;
+  int32                        total = 1 [(hi.visibility) = VIS_SELF];
+  repeated MarketListingDetail list  = 2 [(hi.visibility) = VIS_SELF]; // Detail=PUBLIC,放进 SELF 壳合法
+}
+
+message CreateListingResp {
+  option (hi.audience) = VIS_SELF;
+  string uuid = 1 [(hi.visibility) = VIS_SELF];
+}
+
+// ApplyReq 申请把某个挂牌的插件装到自己的机器人上。
+//
+// ⚠️ **没有申请人字段** —— 主体恒从凭证取。
+//    照 `MasterBindReq` 删掉 `master` 那次的教训:字段存在就得写校验,写了就显得有防护,
+//    而真正的防护点其实全在别处;删掉字段后"替别人申请"在类型上就说不出来。
+//
+// ⚠️ **主体是 `to_agent`(机器人),不是用户** —— 这是为「机器人自主搜插件并申请」留的口子,
+//    也是**唯一现在不做就补不回来**的一条。将来机器人自己调时,档位从 AUTH_USER 扩成
+//    AUTH_USER + AUTH_MERCHANT(apikey 主体)即可,**接口形状一个字不用改**。
+//    反过来现在写成 user-only 的形状,将来就是破坏性改动。
+message ApplyReq {
+  string listing_uuid = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
+  string to_agent     = 2 [(buf.validate.field).string.pattern = "^\\S+$"]; // 装到哪台机器人上
+  bool   follow_latest = 3; // 是否自动跟随出让方的新版本。**默认 false**(见下)
+  google.protobuf.Struct params = 4; // 外部流程要的额外参数,原样转给商户后台
+}
+
+// ApplyResp
+//
+// status=PENDING 且 action_url 非空 → 前端把用户带去那个地址(付款/填资料)。
+message ApplyResp {
+  option (hi.audience) = VIS_SELF;
+  string      grant_uuid = 1 [(hi.visibility) = VIS_SELF];
+  GrantStatus status     = 2 [(hi.visibility) = VIS_SELF];
+  string      action_url = 3 [(hi.visibility) = VIS_SELF];
+}
+
+message DecideGrantReq {
+  string grant_uuid = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
+  string reason     = 2; // 拒绝/撤销原因,给人看的
+}
+
+// ConfirmPaymentReq `SETTLE_MODE_AGENT`(硬件机器人自己收款)用:
+// 用户付完款把 tx_hash 交上来,club 调 `hi.did.Transfer.VerifyTransaction` 核验。
+//
+// 那个接口是 AUTH_NONE、收 DID + 人类可读金额、did 内部解析地址与精度后比对 ——
+// 所以**收款验证不需要商户体系,也不需要机器人在线**,club 自己就能验。
+message ConfirmPaymentReq {
+  string grant_uuid = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
+  string tx_hash    = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+message ListGrantsReq {
+  GrantStatus   status     = 1; // 可选:按状态筛
+  hi.Pagination pagination = 2;
+}
+
+message ListGrantsResp {
+  option (hi.audience) = VIS_SELF;
+  int32                    total = 1 [(hi.visibility) = VIS_SELF];
+  repeated MarketGrantView list  = 2 [(hi.visibility) = VIS_SELF];
+}
+
+// SetGrantVersionReq 引用方切换用哪个版本。
+//
+// 语义与 `hi.club.Plugin.SetActive` 一致 —— 若该 agent 对 (uuid, version) 还没有 d 行,
+// 就**以当前激活版的 d.data 为模板建一行**再置 active。
+// c 是壳级的、每 (agent,uuid) 只有一行、跨版本不变,**不需要复制**,要复制的只有 d.data。
+message SetGrantVersionReq {
+  string grant_uuid = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
+  string version    = 2 [(buf.validate.field).string.pattern = "^\\S+$"];
+}
+
+// ── 超管面 ───────────────────────────────────────────────────────────────────
+
+message MarketManageListListingsReq {
+  string        agent      = 1; // 可选:按机器人筛
+  ListingStatus status     = 2; // 可选:按状态筛
+  hi.Pagination pagination = 3;
+}
+
+message MarketManageListGrantsReq {
+  string        listing_uuid = 1;
+  GrantStatus   status       = 2;
+  hi.Pagination pagination   = 3;
+}
+
+message ForceDelistReq {
+  string uuid   = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
+  string reason = 2;
+}
+
+// ── 服务 ─────────────────────────────────────────────────────────────────────
+//
+// ⚠️ **四个 service 必须拆开,不能合并** —— `check_auth.py` 要求「同一 service 内档位集合一致」。
+//    由来见 `Trade`/`TradeManage` 的警告:合并会让 filter 值变成越权入口
+//    (「did 留空即拿到全部人的数据」)。
+
+// 市场公开目录(免鉴权):逛市场不需要登录。
+//
+// ⚠️ **公开面不吐 master did。** `AgentDirectory.GetAgentMaster` 当初就是因为
+//    「不该随便让人反查某机器人的主人」被删掉的。挂牌页只吐机器人 Entity + 公开文案。
+service MarketDirectory {
+  rpc SearchListings (SearchListingsReq) returns (SearchListingsResp) { option (hi.auth) = AUTH_NONE; }        // 搜插件
+  rpc ListAgentListings (ListAgentListingsReq) returns (SearchListingsResp) { option (hi.auth) = AUTH_NONE; }  // 逛某台机器人的"店"
+  rpc GetListing (GetListingReq) returns (GetListingResp) { option (hi.auth) = AUTH_NONE; }                    // 挂牌详情
+}
+
+// 市场用户面:挂牌方与购买方都在这。
+service Market {
+  // ── 挂牌方 ──
+  rpc CreateListing (CreateListingReq) returns (CreateListingResp) { option (hi.auth) = AUTH_USER; }
+  rpc EditListing (EditListingReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }       // 改定价三元组;结算方式改不了
+  rpc SetListingStatus (SetListingStatusReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 上架/隐藏/下架
+  rpc ListMyListings (ListMyListingsReq) returns (ListMyListingsResp) { option (hi.auth) = AUTH_USER; }
+  rpc ListReceivedRequests (ListGrantsReq) returns (ListGrantsResp) { option (hi.auth) = AUTH_USER; }      // 别人向我的机器人申请的
+  rpc Approve (DecideGrantReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
+  rpc Reject (DecideGrantReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
+  rpc Revoke (DecideGrantReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }            // 撤权:删引用行 + 通知商户
+  // ── 购买方 ──
+  rpc Apply (ApplyReq) returns (ApplyResp) { option (hi.auth) = AUTH_USER; }
+  rpc ConfirmPayment (ConfirmPaymentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // SETTLE_AGENT:交回 tx_hash
+  rpc ListMyGrants (ListGrantsReq) returns (ListGrantsResp) { option (hi.auth) = AUTH_USER; }              // 我买到的
+  rpc SetGrantVersion (SetGrantVersionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 切换引用的版本
+}
+
+// 市场回调(商户后台 → club)。传输层不鉴权,**鉴权在载荷里**:
+// 收 hi.SignedData,handler 用 `grant.from_master` 的 did 公钥验签 —— 不是"谁签的都收"。
+//
+// 幂等键 `(grant_uuid, outer_id)`,重复回调直接返 OK。移动支付必踩,不留到线上再补。
+// 状态机只接受合法迁移:只有 PENDING 能被回调推进;APPROVED 后重复回调 = 幂等 OK;
+// REVOKED/EXPIRED 后来的回调 = 记 flow、不改 grant。
+service MarketCallback {
+  rpc Notify (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_WEB3; }
+}
+
+// Notify 的**签名载荷 schema**(rpc 收的是 hi.SignedData,后端把 SignedData.Data 反序列化进它)。
+// ⚠️ 只被后端 Go 引用、proto 里无 rpc 引用 —— **勿按「无引用」当死 message 删**
+//    (同 `PullOrdersData` / `ReportResultsData` 的先例)。
+message MarketNotifyData {
+  string grant_uuid = 1;
+  string outer_id   = 2; // 商户侧单号
+  string result     = 3; // approved / rejected
+  string reason     = 4;
+  google.protobuf.Struct terms_override = 5; // 可选:商户回填实际生效条款(实付金额 / 有效期)
+  string nonce      = 6;
+  int64  timestamp  = 7;
+}
+
+// 市场管理(超管)。与用户面**主体不同,故拆 service** —— 范式见 Trade/TradeManage。
+service MarketManage {
+  rpc ListListings (MarketManageListListingsReq) returns (SearchListingsResp) { option (hi.auth) = AUTH_SUPERADMIN; }
+  rpc ListGrants (MarketManageListGrantsReq) returns (ListGrantsResp) { option (hi.auth) = AUTH_SUPERADMIN; }
+  rpc ForceDelist (ForceDelistReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }
+}
