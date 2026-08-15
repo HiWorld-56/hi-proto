@@ -139,8 +139,13 @@ message MarketGrantBrief {
 
 // MarketRenewBrief 「快到期了」通知的载荷 —— **发给受让方机器人本人**。
 //
-// 硬件机器人收到它之后:查自己的余额够不够 → 够且开了自动续费 → 自己付款 →
-// 把 tx_hash 交回 `Market.ConfirmPayment` 完成续期。
+// 硬件机器人收到它之后:查自己的余额够不够 → 够且开了自动续费 →
+// `Market.CreateRenewOrder` 开一张续期账单 → 自己付款 →
+// 拿 (order_id, tx_hash) 调 `Market.ReportPayment` 完成续期。
+//
+// ⚠️ 这里**没有 order_id** 是有意的:提醒可能重发、可能被补拉,里面塞一个订单号
+//    就等于让一条通知去决定"付哪张单",而订单有自己的有效期。开单是机器人自己那一步,
+//    它开出来的单是当时的价、当时的时限。
 //
 // ⚠️ **不做币种转换**:要付 USDT 而机器人只有 BTC,就是付不了,如实失败。
 //    自动换币会把"续个费"变成"替用户做了一笔他没同意的兑换",不是这个功能该干的事。
@@ -294,11 +299,15 @@ message ApplyReq {
 // MarketPayInfo 这一笔要付多少、付给谁 —— **前端拿它直接唤起 hidid app**。
 //
 // 用户体验就是:点购买 → 弹出金额和币种 → 确认 → 跳 hidid 付款 → 回来即可用。
-// 付完把 tx_hash 交回 `Market.ConfirmPayment`,club 调 `hi.did.Transfer.VerifyTransaction`
-// 核验(那是个 AUTH_NONE 的公开接口,收 DID + 人类可读金额,内部解析地址与精度后比对)。
+// 付完拿 **(order_id, tx_hash)** 调 `Market.ReportPayment` 认款
+// (order_id 在同一个 `ApplyResp.order` 里,`pay` 只是它的摘要)。
 //
-// ⚠️ **club 全程只需要验签/验交易的能力,不需要签名。** 这条链路上持私钥的是用户的
-//    hidid app —— 与登录、授权登录用的是同一套现成流程。
+// club 用 `hi.did.Transfer.TxDetail` 取链上事实、**自己按订单比对**,
+// 而不是 `VerifyTransaction` —— 后者要求把付款方一并交给它(它不替调用方做假设),
+// 而订单制**不看付款方**。两者的分工见 hi/did/transfer.proto。
+//
+// ⚠️ **club 全程只需要读链/验签的能力,不需要签名。** 这条链路上持私钥的是用户的
+//    hidid app(或硬件机器人自己)—— 与登录、授权登录用的是同一套现成流程。
 // ── 订单 ────────────────────────────────────────────────────────────────────
 //
 // **购买与续期共用同一个东西。** 两者的业务流程本来就是一样的:
@@ -415,24 +424,19 @@ message DecideGrantReq {
   string reason     = 2; // 拒绝/撤销原因,给人看的
 }
 
-// ConfirmPaymentReq 付完款把 tx_hash 交回来,club 核验后放行插件。
-//
-// club 调 `hi.did.Transfer.VerifyTransaction`(AUTH_NONE 公开接口,收 DID + 人类可读金额,
-// 内部解析地址与精度后比对)。所以**收款验证不需要商户体系,也不需要卖方在线**。
-//
-// ⚠️ **同一个 tx_hash 只能兑换一次** —— 后端按 hash 全局去重,
-//    不然一笔转账可以拿去把所有挂牌都买一遍。
-//
-// **首购与续费共用这一个接口**:
-//   · grant 处于 PENDING → 首购,核验通过后装载;
-//   · grant 处于 INSTALLED → 续费,核验通过后 `expire_at += duration`。
-// 续费**延长同一个 grant,不新建** —— 新建要先撤旧的,而撤销会删掉 ai 侧的 c/d 行,
-// 用户在这个插件上攒的使用态配置(d.data)就没了。
-// ⚠️ **已删 ConfirmPaymentReq(grant_uuid, tx_hash)。**
+// ⚠️ **已删 `ConfirmPaymentReq(grant_uuid, tx_hash)`。**
 //    它拿 (付款方,收款方,金额,币种) 去链上认款,于是"谁付的"成了判据 ——
 //    机器人替自己付款时判据就对不上,只能一路放宽"付款方必须是谁"。
 //    改成订单制之后判据是"这张单要的钱到账了没有",付款方是谁不再进判据。
-//    认款走 Market.ReportPayment(hi.SignedData → MarketPayReport)。
+//    认款走 `Market.ReportPayment(MarketPayReport)`。
+//
+// 下面这两条不随接口一起废,搬到订单上继续成立:
+//   · **同一个 tx_hash 只能兑换一次** —— 后端按 hash 全局去重,
+//     不然一笔转账可以拿去把所有挂牌都买一遍。这是唯一的**硬闸**(本地事实,重试无关)。
+//   · **首购与续费共用同一条履约路径**,差别只在最后一步:
+//     kind=PURCHASE → 装载;kind=RENEW → `expire_at += duration`。
+//     续费**延长同一个 grant,不新建** —— 新建要先撤旧的,而撤销会删掉 ai 侧的 c/d 行,
+//     用户在这个插件上攒的使用态配置(d.data)就没了。
 
 message ListGrantsReq {
   GrantStatus   status     = 1; // 可选:按状态筛
