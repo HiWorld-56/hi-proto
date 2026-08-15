@@ -32,6 +32,8 @@ message PluginShell {                                    // a
   option (hi.audience) = VIS_SELF;
   string uuid = 1 [(hi.visibility) = VIS_SELF]; // 插件 id,后台分配(单一 id)
   string name = 2 [(hi.visibility) = VIS_SELF]; // 脚本名
+  // 跑在哪儿。建壳时定,之后不变 —— 它决定包的格式与执行方,换了等于换个插件。
+  PluginRuntime runtime = 3 [(hi.visibility) = VIS_SELF];
 }
 
 message PluginVersion {                                  // b:按 (uuid,version) 冻结
@@ -61,6 +63,27 @@ message PluginVersion {                                  // b:按 (uuid,version)
   //
   // 拿它跟包里的文件比对会对不上,**这是预期行为,别当 bug 查**。
   string description = 6 [(hi.visibility) = VIS_SELF];
+}
+
+// 插件跑在哪儿 —— **壳的属性**(同一个包不会一半 py 一半 rust),发版后不该再改。
+//
+// 这不只是个标签,它决定**谁执行**,而"谁执行"决定了一堆判据该由谁把关:
+//
+//   PYTHON —— 脚本包(main.py/requirements.txt/description.json),**hiai 服务端执行**。
+//   NATIVE —— rust 源码包(Cargo.toml/src/description.json),云端交叉编译成 .so
+//             **下发到机器人本地执行**,能碰摄像头、屏幕、GPIO、钱包。
+//
+// ⚠️ **服务端装配 function-call 时只收 PYTHON。** 不是"顺手过滤一下",
+//    而是 hiai 这个运行时**物理上跑不了 .so** —— 把 NATIVE 放进服务端 tools 数组,
+//    模型迟早会调它,然后拿到一个假的成功。宁可它压根不在数组里。
+//    NATIVE 的 tools 由机器人自己在 ChatReq.tools 里上报(它才知道自己装了什么、加载成没成功)。
+//
+// 由此,NATIVE 插件挂在一个**软件**机器人上是完全合法的 —— 那台机器人当"柜台":
+// 只展示和存储、供人选购与下发,自己一个也跑不了。这样公共插件就不必挂在某台
+// 硬件机器人上,免得那台机器一下线整个货架跟着消失。
+enum PluginRuntime {
+  PLUGIN_RUNTIME_PYTHON = 0; // 服务端跑的 py 脚本包(默认,历史插件全是这个)
+  PLUGIN_RUNTIME_NATIVE = 1; // 机器人本地跑的 rust 插件(源码上传,云端编译后下发)
 }
 
 // 插件在某机器人使用记录里的来源(历史事实;引用不是拷贝,只多一行 c 指向同壳)。
@@ -105,6 +128,8 @@ message CreateShellReq {
   string      agent = 1 [(buf.validate.field).string.pattern="^\\S+$"];
   string      name  = 2 [(buf.validate.field).string.min_len = 1];
   google.protobuf.Struct data = 3; // c.data(插件级)
+  // 不填=PYTHON(历史行为)。NATIVE 的包是 rust 源码,由云端编译后下发到机器人本地跑。
+  PluginRuntime runtime = 4;
 }
 message CreateShellResp {
   option (hi.audience) = VIS_SELF;

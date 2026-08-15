@@ -21,6 +21,10 @@ service:hi.club.Base
 hi.did.ReleaseManage.UploadPackage
 hi.did.Release.Download
 
+# 内部面:插件出新版时由 hi.ai 经 grpc 叫 hidid 用 root 账号广播一嗓子。
+# 不配 http —— 它会惊动全体机器人,挂到 web 上就是一个人人可按的开关。
+service:hi.did.BroadcastInternal
+
 hi.ai.Agent.RegisterRobot
 hi.ai.Plugin.DeleteByAgents  # 内部级联(club 撤插件权限时经 aiapi grpc 调),非前端接口,故意不配 http
 hi.club.Agent.BindMaster
