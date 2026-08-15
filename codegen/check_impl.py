@@ -34,7 +34,8 @@ REPOS = {
     'hi.source': ['backend-hi-source'],
 }
 # 由**三方**实现的回调契约:平台反向调用,本方不实现是对的
-THIRD_PARTY = {('hi.did', 'LoginCallback'), ('hi.did', 'PayCallback')}
+THIRD_PARTY = {('hi.did', 'LoginCallback'), ('hi.did', 'PayCallback'),
+               ('hi.club', 'MarketProvider')}
 
 src_cache = {}
 def repo_src(repo):
