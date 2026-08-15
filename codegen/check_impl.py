@@ -31,6 +31,12 @@ REPOS = {
     'hi.did':    ['backend-hi-did'],
     'hi.club':   ['backend-hi-club', 'backend-hi-club-trade', 'backend-hi-ai'],
     'hi.ai':     ['backend-hi-ai', 'backend-hi-ai-plugin'],
+    # ⚠️ **包名是精确匹配的,`hi.ai` 不覆盖 `hi.ai.plugin`。** 少了这一行,
+    #    hi/ai/plugin/base.proto 整个文件在上面 `pkg not in REPOS` 处被跳过 ——
+    #    Runner(执行任意脚本)和 Builder(交叉编译任意 rust)这两个内部面
+    #    **从来没被检查过**,而它们恰恰是最不该静默返 Unimplemented 的:
+    #    一个卡住所有插件调用,一个卡住所有 NATIVE 发版,且都不会报错、只是不干活。
+    'hi.ai.plugin': ['backend-hi-ai-plugin'],
     'hi.source': ['backend-hi-source'],
 }
 # 由**三方**实现的回调契约:平台反向调用,本方不实现是对的
