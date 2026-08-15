@@ -41,10 +41,25 @@ message PluginVersion {                                  // b:按 (uuid,version)
   string logo        = 3 [(hi.visibility) = VIS_SELF];
   string summary     = 4 [(hi.visibility) = VIS_SELF];
   string url         = 5 [(hi.visibility) = VIS_SELF]; // 脚本包 zip:**至少含 main.py / requirements.txt / description.json**
-  // function-call spec({"description":...,"parameters":{schema}})。
+  // function-call spec,**OpenAI tools 数组格式**(与 hi.ai.ToolSupply、与 brain 的
+  // functions.json 完全一致 —— 三者的 tools 最终会合进同一个数组喂给模型):
+  //
+  //   [{"type":"function","function":{"name":...,"description":...,"parameters":{schema}}}, ...]
+  //
   // **创建时不用传** —— 后端在 CreateVersion 时从脚本包里的 description.json 读出来存库
   // (运行期每次装配 function-call 都要它,存在包里就得每次下载解压,所以发版时预读一次)。
-  // 读接口(Get/List/ListVersions)会把内容回给你,web 拿它展示这个工具是干什么的。
+  // 读接口(Get/List/ListVersions)会把内容回给你,web 拿它展示这个包提供哪些方法。
+  //
+  // ⚠️ **存的是加工后的版本,不等于包里的 description.json** ——
+  // 每个 name 都被改写成 `<壳前缀>_<原名>`。前缀是壳的属性(建壳时分配、全局唯一、永不变),
+  // 作用是让不同插件包里的同名方法(`search` 遍地都是)喂给模型时不撞;
+  // 与 brain 的内置工具(express_emotion 等,不带前缀)也天然错开。
+  //
+  // 为什么在**发版时**算好而不是每次装配现拼:装配是每轮对话都跑的热路径,名字本来就是固定的。
+  // 派生值入库通常危险(会漂),但这里安全 —— 单一写入点,且 (uuid,version) 发布后冻结,
+  // 那一行物理上改不了,没有第二份可以跟它分叉。
+  //
+  // 拿它跟包里的文件比对会对不上,**这是预期行为,别当 bug 查**。
   string description = 6 [(hi.visibility) = VIS_SELF];
 }
 
