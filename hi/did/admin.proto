@@ -224,10 +224,15 @@ message BroadcastPluginUpdateReq {
 // 同 service 混档会让"这个接口到底谁能调"取决于方法而不是服务,拦截器就没法整体挂。
 //
 // ⚠️ 档位是 **AUTH_MERCHANT(ExtendToken),不是 AUTH_INTERNAL**。
-//    AUTH_INTERNAL 的前提是"这个口外面够不着"(如 hi.ai.plugin.Runner,只在内网),
-//    而 **did 的 grpc 口是对设备公开的**(机器人就连在上面)。在这里标 INTERNAL,
-//    等于给每一台设备一个"惊动全网机器人"的按钮 —— 而且 did 的拦截器是 fail-closed 的,
-//    压根没有 INTERNAL 这一档,标了的结果是**永远鉴权失败**、广播悄悄地一次也发不出去。
+//    AUTH_INTERNAL 的前提是"这个端口外面够不着"(如 hi.ai.plugin.Runner,只在内网),
+//    而 **did 的 grpc 口是公网可达的**(prod: hidid-grpc-api.mados.net:443),
+//    上面本来就挂着 21 个 AUTH_NONE 方法 —— 换句话说,谁都连得上、谁都能调其中一部分。
+//    在这样一个端口上再加一个不鉴权的方法,就是给所有人一个"惊动全网机器人"的按钮。
+//    (与设备无关:机器人并不登录 did,它只调 Assets.UpdateAddresses,那条是 AUTH_WEB3、
+//     签名自证 —— 设备侧一直是有凭证的,问题出在端口本身是公开的。)
+//
+//    另一半原因更直接:did 的拦截器 fail-closed 且**压根没有 INTERNAL 这一档**,
+//    标了的结果是**永远鉴权失败**、广播悄悄地一次也发不出去。
 //
 //    ExtendToken 是 did 里既有的机器对机器凭证(hi.ai 在 did 注册为商户,club→did 一直这么走),
 //    不必新造一套配置。残留风险:任何持有效 ExtendToken 的商户都能发这条广播 ——
