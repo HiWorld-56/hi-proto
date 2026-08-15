@@ -86,6 +86,36 @@ enum PluginRuntime {
   PLUGIN_RUNTIME_NATIVE = 1; // 机器人本地跑的 rust 插件(源码上传,云端编译后下发)
 }
 
+// ── NATIVE 的构建态 ────────────────────────────────────────────────────────
+//
+// **只有 NATIVE 有这一段。** PYTHON 的包传上来就能跑,不存在"编不编得出来";
+// NATIVE 传上来的是 rust 源码,要交叉编译成 arm64 `.so` 才谈得上下发。
+//
+// 单独一张表、不并进 b(PluginVersion):b 是**发版即冻结**的本体,
+// 而构建结果是几分钟后才回填的、还可能重试 —— 两种寿命塞进一行迟早打架。
+enum PluginBuildStatus {
+  PLUGIN_BUILD_STATUS_PENDING   = 0; // 已排队,还没开始(发版当场就是这个)
+  PLUGIN_BUILD_STATUS_BUILDING  = 1; // 正在编
+  PLUGIN_BUILD_STATUS_SUCCEEDED = 2; // 编出来了、校验过了、产物已上传
+  PLUGIN_BUILD_STATUS_FAILED    = 3; // 编不出来 / 校验没过。error+log 里有原因
+}
+
+// 一次构建的结果。**发版接口不返回它** —— 发版是立即返回的,构建在后台跑,
+// 结果经 Get/ListVersions 回显给发版的人看(编译中 / 失败+日志 / 成功)。
+message PluginBuild {
+  option (hi.audience) = VIS_SELF;
+  string uuid    = 1 [(hi.visibility) = VIS_SELF];
+  string version = 2 [(hi.visibility) = VIS_SELF];
+  PluginBuildStatus status = 3 [(hi.visibility) = VIS_SELF];
+  string artifact_url = 4 [(hi.visibility) = VIS_SELF]; // 编好的 .so(私有桶;下发时现签 presigned)
+  string sha256       = 5 [(hi.visibility) = VIS_SELF]; // 产物摘要,机器人下完照此核对
+  uint32 abi_version  = 6 [(hi.visibility) = VIS_SELF]; // 从 .so 里真读出来的(见 hi.ai.plugin.BuildResp)
+  string error        = 7 [(hi.visibility) = VIS_SELF]; // 失败原因(一句话)
+  string log          = 8 [(hi.visibility) = VIS_SELF]; // 编译日志尾部
+  int64  started_at   = 9 [(hi.visibility) = VIS_SELF];
+  int64  finished_at  = 10 [(hi.visibility) = VIS_SELF];
+}
+
 // 插件在某机器人使用记录里的来源(历史事实;引用不是拷贝,只多一行 c 指向同壳)。
 enum PluginSource {
   PLUGIN_SOURCE_ORIGINAL  = 0; // 原始:主人上传的(每 uuid 唯一)
@@ -103,6 +133,10 @@ message PluginView {
   int32         ref_count    = 5 [(hi.visibility) = VIS_SELF]; // 被多少机器人引用(实时 COUNT)
   google.protobuf.Struct data         = 6 [(hi.visibility) = VIS_SELF]; // c.data:插件级扩展数据(含 api_key)
   google.protobuf.Struct version_data = 7 [(hi.visibility) = VIS_SELF]; // 激活版本的 d.data:版本级扩展数据
+  // 激活版本的构建态。**NATIVE 才有,PYTHON 恒空。**
+  // 一级页要它是因为:NATIVE 插件"挂上了"不等于"能用了" —— 中间隔着一次交叉编译。
+  // 不回显的话,用户看到插件已启用、机器人却始终没装上,查不出是编失败了。
+  PluginBuild   build        = 8 [(hi.visibility) = VIS_SELF];
 }
 
 // 二级页一行:某版本内容 + 该 agent 是否激活它 + 该 agent 对该版本的版本级数据。
@@ -111,6 +145,7 @@ message PluginVersionView {
   PluginVersion version = 1 [(hi.visibility) = VIS_SELF];
   bool          active  = 2 [(hi.visibility) = VIS_SELF];
   google.protobuf.Struct data = 3 [(hi.visibility) = VIS_SELF]; // d.data
+  PluginBuild   build   = 4 [(hi.visibility) = VIS_SELF]; // 该版本的构建态(NATIVE 才有)
 }
 
 // 插件加载完成通知(公开摘要,不带私产)。
@@ -241,6 +276,48 @@ message CreateReferenceReq {
   google.protobuf.Struct version_data = 5; // d.data
 }
 
+// ── 下发面:机器人问「我该装哪些 NATIVE 插件」───────────────────────────────
+//
+// 只回**该装的**:c.enabled ∧ d.active ∧ 壳是 NATIVE ∧ 该版本构建成功。
+// 任一不成立就不该出现在清单里 —— 机器人拿到就会装,而装了就会喂给模型。
+//
+// ⚠️ **清单是全量,不是增量。** 机器人按它对账:多的删、少的下、sha256 不同的换。
+// 增量(只告诉"新增了什么")没法表达撤权与到期 —— 而那两件事恰恰必须传达到:
+// 市场 revoke 删的是服务端的引用行,机器人本地那个 `.so` 不会自己消失。
+message NativePlugin {
+  option (hi.audience) = VIS_SELF;
+  string uuid    = 1 [(hi.visibility) = VIS_SELF]; // 壳 uuid。**落地文件名就是它**(`plugins/<uuid>.so`)
+  string name    = 2 [(hi.visibility) = VIS_SELF]; // 壳名,只用于机器人日志
+  string version = 3 [(hi.visibility) = VIS_SELF];
+  // 壳前缀。机器人**上报 tools 时要拼在方法名前**(`<fn_prefix>_<原名>`),
+  // 分发时切第一个 `_` 切掉。
+  //
+  // ⚠️ 这个字段原本是 hiai 的内部实现细节(见 PluginVersion.description 那段注释),
+  // 现在必须过线 —— 因为 `.so` 里编进去的 manifest 是**原始名**,
+  // 而 py 插件那侧的改名是在发版预读时做掉的,`.so` 没有对应的时机。
+  // 不给机器人前缀的话,两个厂商各卖一个提供 `search` 的插件,买家两个都买 →
+  // 机器人本地撞名 → 整个插件拒绝加载,而失败原因只在机器人的本地日志里。
+  string fn_prefix = 4 [(hi.visibility) = VIS_SELF];
+  // `.so` 的下载地址。私有桶,**每次拉清单现签**(限期),不存库。
+  string url       = 5 [(hi.visibility) = VIS_SELF];
+  string sha256    = 6 [(hi.visibility) = VIS_SELF]; // 下完必须核对;对不上就是没下全或被改过
+  uint32 abi_version = 7 [(hi.visibility) = VIS_SELF]; // 机器人可据此先筛掉对不上的,省一次下载
+}
+
+message ListNativeReq { string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"]; }
+message ListNativeResp {
+  option (hi.audience) = VIS_SELF;
+  repeated NativePlugin list = 1 [(hi.visibility) = VIS_SELF];
+}
+
+// 重编一版。编译失败(网络抖、依赖源挂了)后不必删版本重发一遍 ——
+// 版本本体是冻结的,重编的是**产物**,不是版本。
+message RetryBuildReq {
+  string agent   = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string uuid    = 2 [(buf.validate.field).string.pattern="^\\S+$"];
+  string version = 3 [(buf.validate.field).string.pattern="^\\S+$"];
+}
+
 // 插件管理(主体=插件)。商户档:hiai web 与三方商户后台(club)都会调。
 service Plugin {
   rpc CreateShell (CreateShellReq) returns (CreateShellResp) { option (hi.auth) = AUTH_MERCHANT; }           // 建空壳(后台分配 uuid)
@@ -258,6 +335,8 @@ service Plugin {
   rpc DeleteByAgents (DeletePluginByAgentsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 内部级联(仅 grpc,不配 http):club 撤"插件权限"时经 aiapi 调,清某些机器人全部插件;非前端接口
   rpc SetActive (SetActiveReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }         // 激活某版本(d.active 互斥)
   rpc SetEnabled (SetEnabledReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 插件开关(c.enabled)
+  rpc ListNative (ListNativeReq) returns (ListNativeResp) { option (hi.auth) = AUTH_MERCHANT; }              // 下发清单:某机器人该装哪些 NATIVE 插件(club 经此穿透)
+  rpc RetryBuild (RetryBuildReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 重编一版(仅创建者;版本本体不动,重来的是产物)
 }
 
 // ── py-docker 执行契约已迁至子服务内部面 `hi/ai/plugin/base.proto`(package hi.ai.plugin)──

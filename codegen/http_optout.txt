@@ -12,6 +12,7 @@ service:hi.club.trade.Trade
 service:hi.club.trade.TradeManage
 service:hi.club.trade.Order
 service:hi.ai.plugin.Runner
+service:hi.ai.plugin.Builder
 
 # hi.club.Base 的唯一 http 路由(LatestVersion)随该接口一起删了 —— 剩下的 ListCoins/ServerVersion
 # 本就只走 grpc(app 用 grpc 直连),故整体声明不导出。
@@ -102,3 +103,12 @@ service:hi.club.MarketCallback
 # 内部级联:club 授权成立后经 aiapi 用 grpc 调,给已有壳加一个使用者(插 c/d)。
 # 前端不该够得着 —— 能直接调它就等于绕过整个授权流程白拿插件。
 hi.ai.Plugin.CreateReference
+
+# ── NATIVE 插件下发 ──
+# 下发清单由 club 经 grpc 穿透调用(机器人只够得着 hiclub 通道)。
+# 前端不需要:它是"机器人该装什么",不是给人看的页面数据。
+hi.ai.Plugin.ListNative
+
+# 机器人自用面 —— 主体恒取自凭证,机器人经 core 的 grpc 通道调。
+# 挂到 http 网关上没有意义(没有浏览器会以机器人身份登录),只多一个暴露面。
+service:hi.club.AgentPlugin

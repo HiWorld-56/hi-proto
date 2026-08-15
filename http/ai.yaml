@@ -164,6 +164,9 @@ http:
   - selector: hi.ai.Plugin.SetEnabled
     post: /api/v1/plugin/set_enabled
     body: "*"
+  - selector: hi.ai.Plugin.RetryBuild
+    post: /api/v1/plugin/retry_build
+    body: "*"
 # Training
   - selector: hi.ai.Training.Start
     post: /api/v1/training/start
