@@ -299,6 +299,89 @@ message ApplyReq {
 //
 // ⚠️ **club 全程只需要验签/验交易的能力,不需要签名。** 这条链路上持私钥的是用户的
 //    hidid app —— 与登录、授权登录用的是同一套现成流程。
+// ── 订单 ────────────────────────────────────────────────────────────────────
+//
+// **购买与续期共用同一个东西。** 两者的业务流程本来就是一样的:
+// 市场开一张账单 → 有人把钱付到账单指定的地址 → 市场核验 → 履行。
+// 差别只在"履行"那一步(装载 vs 延期),不该是两条链路。
+//
+// ## 为什么必须有订单号,而不是拿 (付款方,收款方,金额,币种) 去认款
+//
+// 原来没有订单实体:`ConfirmPayment(grant_uuid, tx_hash)` 直接拿这四元组去链上比对,
+// 于是"这笔钱是谁付的"变成了判据 —— 一旦机器人替自己付款(自动续费),
+// 判据就对不上了,只能去放宽"付款方必须是谁",越改越歪。
+//
+// 有了订单号,判据回到本来该有的样子:**订单要的钱到账了就履行,付款方是谁不重要**。
+// 于是 master 付、机器人自己付、将来某台机器人替别的机器人付,都是同一条路。
+//
+// ## target_agent 是给扩展性留的
+//
+// 购买时它是受让方;续期时它是"被续的那台机器人"。今天发起方总是 master 或机器人自己,
+// 但**订单里写清楚了给谁**,所以"机器人给别的机器人续期"将来只是换个值,不动结构。
+enum MarketOrderKind {
+  MARKET_ORDER_KIND_PURCHASE = 0; // 购买:履行=装载
+  MARKET_ORDER_KIND_RENEW    = 1; // 续期:履行=延长到期时刻
+}
+
+enum MarketOrderStatus {
+  MARKET_ORDER_STATUS_OPEN     = 0; // 待付款
+  MARKET_ORDER_STATUS_PAID     = 1; // 已付款并履行完毕
+  MARKET_ORDER_STATUS_EXPIRED  = 2; // 订单过期作废(**不是授权到期**)
+  MARKET_ORDER_STATUS_CANCELED = 3;
+}
+
+message MarketOrder {
+  option (hi.audience) = VIS_SELF;
+  string            order_id     = 1 [(hi.visibility) = VIS_SELF]; // 付款回报时的唯一凭据
+  string            grant_uuid   = 2 [(hi.visibility) = VIS_SELF]; // 履行到哪笔授权上
+  string            target_agent = 3 [(hi.visibility) = VIS_SELF]; // 给**哪台机器人**
+  MarketOrderKind   kind         = 4 [(hi.visibility) = VIS_SELF];
+  MarketOrderStatus status       = 5 [(hi.visibility) = VIS_SELF];
+  // 收款方 DID。**后端推导,不接受前端指定** —— 让前端传就等于把"钱打给谁"变成可篡改入参。
+  string            payee        = 6 [(hi.visibility) = VIS_SELF];
+  string            amount       = 7 [(hi.visibility) = VIS_SELF]; // 人类可读金额,如 "9.9"
+  string            coin         = 8 [(hi.visibility) = VIS_SELF];
+  // 订单自己的有效期(秒)。过了就作废重开 —— 价格会变,不能让一张老账单永远能付。
+  int64             expire_at    = 9 [(hi.visibility) = VIS_SELF];
+  int64             created_at   = 10 [(hi.visibility) = VIS_SELF];
+}
+
+// 开一张续期账单。购买的账单由 Apply 顺带开出来,这条是**单独续期**用的。
+//
+// 谁能开:该授权的 master,或**这台机器人自己**(自动续费就是它开给自己的)。
+// grant 决定了 target_agent —— 不接受入参指定,否则就成了"替别人的机器人开单"。
+message CreateRenewOrderReq {
+  string grant_uuid = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
+}
+
+// 付款回报:告诉市场"这张单我付了,钱在这笔转账里"。
+//
+// ## **不看付款方是谁** —— 这是有意的
+//
+// 卖家关心的是"这张单要的钱到账了没有",不是"谁掏的"。订单上写明给 A 续期,
+// 那么谁付的款都一样给 A 续 —— master 付、机器人自己付、将来某台机器人替别的机器人付,
+// 全是同一条路,不需要为每种情况放宽一次判据。
+// (原来那版把"付款方必须是谁"当判据,机器人替自己付款时就对不上,只能一路打补丁。)
+//
+// ## 判据(全部与付款方无关)
+//
+//   ① 订单 OPEN 且未过期        ② 这笔 tx 没被别的单用过(全局唯一)
+//   ③ 链上 success              ④ 收款方/金额/币种与订单一致
+//   ⑤ **链上时间不早于订单创建时间**
+//
+// ⑤ 挡的是"拿一笔早就存在、恰好金额相符的旧转账来认领新订单" ——
+// 它只看时间,不看付款方,所以不违背上面那条原则。
+//
+// ⚠️ 已知且**接受**的残留风险:订单号写不进链上转账(Aptos 的
+//    primary_fungible_store::transfer 没有 memo 字段),所以同一挂牌、同价、
+//    同收款地址的两张单,链上那两笔钱长得一模一样 —— 理论上谁先报谁认走。
+//    这是"不看付款方"的必然代价,已知情采纳。真要堵,得让每张单的金额带一点随机尾数
+//    使其链上唯一,代价是金额变得不好看。
+message MarketPayReport {
+  string order_id = 1; // 认哪张单
+  string tx_hash  = 2; // 链上那笔转账
+}
+
 message MarketPayInfo {
   option (hi.audience) = VIS_SELF;
   // 收款方 DID。**由后端按机器人类型自动定,不接受前端指定**:
@@ -321,6 +404,10 @@ message ApplyResp {
   GrantStatus   status     = 2 [(hi.visibility) = VIS_SELF];
   string        action_url = 3 [(hi.visibility) = VIS_SELF];
   MarketPayInfo pay        = 4 [(hi.visibility) = VIS_SELF];
+  // 付费购买时顺带开出的账单。付款方拿它去付,再用 Market.ReportPayment 认领。
+  // **pay 是它的摘要**(收款方/金额/币种),留着是因为前端唤起 hidid app 只要这三样;
+  // 认领必须用 order_id。
+  MarketOrder   order      = 5 [(hi.visibility) = VIS_SELF];
 }
 
 message DecideGrantReq {
@@ -341,10 +428,11 @@ message DecideGrantReq {
 //   · grant 处于 INSTALLED → 续费,核验通过后 `expire_at += duration`。
 // 续费**延长同一个 grant,不新建** —— 新建要先撤旧的,而撤销会删掉 ai 侧的 c/d 行,
 // 用户在这个插件上攒的使用态配置(d.data)就没了。
-message ConfirmPaymentReq {
-  string grant_uuid = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
-  string tx_hash    = 2 [(buf.validate.field).string.min_len = 1];
-}
+// ⚠️ **已删 ConfirmPaymentReq(grant_uuid, tx_hash)。**
+//    它拿 (付款方,收款方,金额,币种) 去链上认款,于是"谁付的"成了判据 ——
+//    机器人替自己付款时判据就对不上,只能一路放宽"付款方必须是谁"。
+//    改成订单制之后判据是"这张单要的钱到账了没有",付款方是谁不再进判据。
+//    认款走 Market.ReportPayment(hi.SignedData → MarketPayReport)。
 
 message ListGrantsReq {
   GrantStatus   status     = 1; // 可选:按状态筛
@@ -426,7 +514,10 @@ service Market {
   rpc Revoke (DecideGrantReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }            // 撤权:删引用行 + 通知商户
   // ── 购买方 ──
   rpc Apply (ApplyReq) returns (ApplyResp) { option (hi.auth) = AUTH_USER; }
-  rpc ConfirmPayment (ConfirmPaymentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // SETTLE_AGENT:交回 tx_hash
+  // 开一张续期账单(购买的账单由 Apply 顺带开出)。
+  rpc CreateRenewOrder (CreateRenewOrderReq) returns (MarketOrder) { option (hi.auth) = AUTH_USER; }
+  // 认领一笔付款并履约。**不看付款方是谁**,见 MarketPayReport。
+  rpc ReportPayment (MarketPayReport) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
   rpc ListMyGrants (ListGrantsReq) returns (ListGrantsResp) { option (hi.auth) = AUTH_USER; }              // 我买到的
   rpc SetGrantVersion (SetGrantVersionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 切换引用的版本
   rpc SetAutoRenew (SetAutoRenewReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }       // 开/关自动续费(仅硬件机器人)
