@@ -37,6 +37,8 @@ hi.club.Base.ServerVersion
 hi.club.Trade.GetFee
 hi.club.Trade.Add
 hi.club.Trade.UpdateTransHash
+# 取交易明细:设备/后端走 grpc 直连,不上 web 网关(同 service 其它链上查询方法)。
+hi.did.Transfer.TxDetail
 hi.did.Assets.UpdateAddresses
 hi.did.Assets.ListAddresses
 hi.did.Auth.Verify
