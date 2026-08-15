@@ -91,11 +91,7 @@ hi.did.Source.UploadLog     # 端上日志上报,走 grpc
 hi.did.Source.Delete        # **有意不导出**:按 url 删对象且不做归属校验,知道 url 就能删,挂网关上风险不对等
 
 # ── 插件市场 ──
-# MarketProvider 是**契约,不是实现** —— club 只定义,由挂牌商户的后台实现;
-# club 侧根本没有 handler(照 hi.did.LoginCallback/PayCallback 的范式),自然也没有 http 路由。
-service:hi.club.MarketProvider
-
-# MarketCallback 是商户后台**反向调 club** 的回调面(AUTH_WEB3,载荷验签)。
+# MarketCallback 是商户后台调 club 的结算面(AUTH_WEB3,载荷验签):Pull 拉单 / Notify 回传。
 # 商户是服务端、走 grpc 直连;挂到 http gateway 上没有意义,也多一个暴露面。
 service:hi.club.MarketCallback
 
