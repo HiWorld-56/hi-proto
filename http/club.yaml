@@ -91,12 +91,6 @@ http:
 # Chat
   - selector: hi.club.Chat.NewSession
     get: /api/v1/chat/new_session
-  - selector: hi.club.Chat.Complete
-    post: /api/v1/chat/complete
-    body: "*"
-  - selector: hi.club.Chat.CompleteStream
-    post: /api/v1/chat/complete_stream
-    body: "*"
   - selector: hi.club.Chat.ClearHistory
     post: /api/v1/chat/clear_history
     body: "*"
@@ -112,8 +106,14 @@ http:
   - selector: hi.club.Chat.Converse
     post: /api/v1/chat/converse
     body: "*"
+  - selector: hi.club.Chat.ConverseStream
+    post: /api/v1/chat/converse_stream
+    body: "*"
   - selector: hi.club.Chat.Resume
     post: /api/v1/chat/resume
+    body: "*"
+  - selector: hi.club.Chat.ResumeStream
+    post: /api/v1/chat/resume_stream
     body: "*"
 # Plugin
   - selector: hi.club.Plugin.SetEnabled

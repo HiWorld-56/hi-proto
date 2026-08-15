@@ -93,12 +93,6 @@ http:
 # Chat
   - selector: hi.ai.Chat.NewSession
     get: /api/v1/chat/new_session
-  - selector: hi.ai.Chat.Complete
-    post: /api/v1/chat/complete
-    body: "*"
-  - selector: hi.ai.Chat.CompleteStream
-    post: /api/v1/chat/complete_stream
-    body: "*"
   - selector: hi.ai.Chat.GetHistory
     post: /api/v1/chat/get_history
     body: "*"
@@ -108,8 +102,14 @@ http:
   - selector: hi.ai.Chat.Converse
     post: /api/v1/chat/converse
     body: "*"
+  - selector: hi.ai.Chat.ConverseStream
+    post: /api/v1/chat/converse_stream
+    body: "*"
   - selector: hi.ai.Chat.Resume
     post: /api/v1/chat/resume
+    body: "*"
+  - selector: hi.ai.Chat.ResumeStream
+    post: /api/v1/chat/resume_stream
     body: "*"
 # Speech(真 STT/TTS,从 Chat 拆出)
   - selector: hi.ai.Speech.Transcribe
