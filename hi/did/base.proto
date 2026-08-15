@@ -8,11 +8,36 @@ import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/options.proto";
 
+// 一个币种。**`name` 就是它的标识**(全生态用它指代币种:挂牌定价、付款、余额查询),
+// 所以带链后缀 —— `USDT-TRC20` / `USDT-ERC20` / `WHDS-APTOS` 是三个不同的币,
+// 光写 `USDT` 说不清往哪条链上转。
 message Coin {
   option (hi.audience) = VIS_PUBLIC;
   string icon     = 1 [(hi.visibility) = VIS_PUBLIC];
-  string name     = 2 [(hi.visibility) = VIS_PUBLIC];
+  string name     = 2 [(hi.visibility) = VIS_PUBLIC]; // 标识 + 显示名,如 USDT-TRC20 / WHDS-APTOS
   string category = 3 [(hi.visibility) = VIS_PUBLIC]; // public-公共币种, custom-自定义币种
+
+  // ── 下面三个是**转账真正需要的东西**,此前一直没有 ─────────────────────────
+  //
+  // 没有它们,持私钥的一方(app / 硬件机器人)就只能把合约地址和小数位**硬编码在自己那边**
+  // —— 改一次要刷全网设备,而且机器人根本没法自己知道 `WHDS-APTOS` 是哪个合约。
+  // 结果就是机器人只付得了原生币,插件市场用 USDT 定价却收不了款。
+  // 放在这里(公开面)是合适的:合约地址与小数位本就是链上公开事实,不是秘密。
+
+  string chain    = 4 [(hi.visibility) = VIS_PUBLIC]; // btc/eth/trx/sol/aptos,对齐 hidid-core 的 Chain::id()
+  // 合约(FA / token)地址。**空 = 该链的原生币**(BTC/ETH/TRX/SOL/APT)。
+  string contract = 5 [(hi.visibility) = VIS_PUBLIC];
+
+  // 最小单位的小数位。金额换算全程走整数,**不碰 f64** —— 钱经不起浮点误差。
+  //
+  // ⚠️ **必须与链上一致,配错就是金额差几个数量级**,而且不会报错:
+  //    多一位就是少付十倍,少一位就是多付十倍,链上不可撤销。
+  //    **不要照抄同名币种的经验值**(同一个符号在不同链上小数位可以不同)。
+  //    配之前去链上问一次,例如 Aptos:
+  //      POST <fullnode>/v1/view
+  //      {"function":"0x1::fungible_asset::decimals",
+  //       "type_arguments":["0x1::fungible_asset::Metadata"],"arguments":["<合约地址>"]}
+  uint32 decimals = 6 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message ListCoinsResp {
