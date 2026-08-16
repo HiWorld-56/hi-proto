@@ -85,10 +85,16 @@ def load_request_fields():
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
         tmp = f.name
     try:
-        subprocess.run(
-            ["buf", "build", "--as-file-descriptor-set", "--output", tmp],
-            cwd=HIPROTO, check=True, capture_output=True,
-        )
+        try:
+            subprocess.run(
+                ["buf", "build", "--as-file-descriptor-set", "--output", tmp],
+                cwd=HIPROTO, check=True, capture_output=True,
+            )
+        except FileNotFoundError:
+            # 非交互 shell 里 buf 常常不在 PATH(release.sh 自己会设)。
+            # **说清楚跳过了哪半**,别让人以为"没报错=都查过了"。
+            print("[check_web] 找不到 buf,**跳过字段核对**(路由那半照查)")
+            return {}, {}
         fds = json.load(open(tmp, encoding="utf-8"))
     finally:
         os.unlink(tmp)
