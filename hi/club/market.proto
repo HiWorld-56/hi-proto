@@ -376,6 +376,40 @@ message MarketPayment {
   int64               created_at = 6 [(hi.visibility) = VIS_SELF];
   // 作废/失效的原因。不可推导,而它是人工查账退款的依据。
   string              reason     = 7 [(hi.visibility) = VIS_SELF];
+
+  // ── 交易记录用的四样。前两个**落库时快照**,不是查询时现算 ──────────────
+  //
+  // ⚠️ payer/payee 必须是**快照**:机器人转让之后 master 会变,
+  //    现算的话历史交易记录会跟着改归属 —— 一笔一年前的付款,明年查出来
+  //    成了新主人的记录。账本记的是"当时是谁跟谁的交易",不是"现在归谁"。
+  //    (与"派生值不要存两份"不冲突:那条说的是同一时刻的同一事实存两处会漂;
+  //     这里的来源本身会随时间合法地变,快照才是唯一正确的做法。)
+  string              payer      = 8 [(hi.visibility) = VIS_SELF];  // 账单开给谁(受让方 master)
+  string              payee      = 9 [(hi.visibility) = VIS_SELF];  // 收款方
+  // amount/coin 是**读时从订单带出来**的:它们在订单上不可变,不存在漂的问题,
+  // 没必要再存一份。
+  string              amount     = 10 [(hi.visibility) = VIS_SELF];
+  string              coin       = 11 [(hi.visibility) = VIS_SELF];
+}
+
+// 我的交易记录。
+//
+// **不给详情,只给凭据号** —— 用户拿着 pay_id 就能对上一笔入账,而这已经够了。
+// 查询范围靠"你必须是付款人或收款人"限死:两边都不是的人,列不出来、也查不到单笔。
+// 这样就不需要再为"谁能看哪张单"编一套额外的可见性规则。
+message ListTransactionsReq {
+  hi.Pagination pagination = 1;
+}
+
+message ListTransactionsResp {
+  option (hi.audience) = VIS_SELF;
+  repeated MarketPayment list = 1 [(hi.visibility) = VIS_SELF];
+}
+
+// 查单笔 —— 同样只有付款人 / 收款人查得到。
+// 查不到与不属于你**回同一个错**:否则这就成了探测别人交易是否存在的口子。
+message GetTransactionReq {
+  string pay_id = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
 }
 
 message MarketOrder {
@@ -580,6 +614,8 @@ service Market {
   rpc CreateRenewOrder (CreateRenewOrderReq) returns (MarketOrder) { option (hi.auth) = AUTH_USER; }
   rpc IssuePayment (IssuePaymentReq) returns (MarketOrder) { option (hi.auth) = AUTH_USER; }        // 再开一张付款凭据(主订单不动)
   rpc ListPayments (ListPaymentsReq) returns (ListPaymentsResp) { option (hi.auth) = AUTH_USER; }   // 这张单的全部凭据(换号过程)
+  rpc ListTransactions (ListTransactionsReq) returns (ListTransactionsResp) { option (hi.auth) = AUTH_USER; } // 我的交易记录(付款人或收款人是我)
+  rpc GetTransaction (GetTransactionReq) returns (MarketPayment) { option (hi.auth) = AUTH_USER; }   // 查单笔(同样只有当事人查得到)
 
   rpc ListMyGrants (ListGrantsReq) returns (ListGrantsResp) { option (hi.auth) = AUTH_USER; }              // 我买到的
   rpc SetGrantVersion (SetGrantVersionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 切换引用的版本
