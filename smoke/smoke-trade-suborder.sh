@@ -35,6 +35,13 @@ chk(){ [ "$2" = "$3" ] && ok "$1" || bad "$1" "want=$3 got=$2"; }
 command -v mysql >/dev/null || { echo "缺 mysql 客户端 —— 请在 .65 上跑。" >&2; exit 2; }
 [ -x /tmp/didsign ] || { echo "缺 /tmp/didsign(core-mqtt,--features testkit 编)。" >&2; exit 2; }
 [ -x "$GRPCURL" ] && [ -f "$PB" ] || { echo "缺 grpcurl / $PB。" >&2; exit 2; }
+# ⚠️ **助记词不在就直接退出。** 踩过一次:文件在 .66、脚本在 .65 跑,didsign 每次都失败,
+#    于是"什么都没发生" —— 而好几条断言("旧号还在""成功不换号(还是一行)")
+#    在什么都没发生时**照样是绿的**,一眼看过去像是部分通过。
+#    断言要先证明自己的前提成立,否则绿和红都不可信。
+for f in "$PC_MN" "$OTHER_MN"; do
+  [ -f "$f" ] || { echo "缺助记词 $f(在 .66 的 /tmp 下,拷过来)" >&2; exit 2; }
+done
 Q(){ mysql -h$DB -ulo -p568568 hi_club_trade -N -e "$1" 2>/dev/null; }
 
 did_of(){ MN_FILE="$1" /tmp/didsign --did; }
@@ -46,6 +53,9 @@ import json,sys
 print(json.dumps({"did":sys.argv[1],"orders":[{"orderId":sys.argv[2],"status":sys.argv[3],"txHash":sys.argv[4],"timestamp":"0"}]},separators=(",",":"),ensure_ascii=False))
 ' "$2" "$3" "$4" "$5")
   sig=$(MN_FILE="$1" /tmp/didsign "$data")
+  # 签不出来就当场停 —— 签名失败会让后面每一条断言都变成"什么都没发生",
+  # 而那正好能骗过一半的断言。
+  [ -n "$sig" ] || { echo "!! didsign 失败($1),中止" >&2; exit 3; }
   "$GRPCURL" -protoset "$PB" -plaintext \
     -d "$(python3 -c '
 import json,sys,base64
@@ -68,6 +78,8 @@ chk "前置:造出了一条子订单" "$(Q "SELECT COUNT(*) FROM hi_trade_sub_or
 echo
 echo "── 一、闸:别人的子订单动不了 ──"
 R=$(report "$OTHER_MN" "$OTHER" "$S1" "cancel" "")
+# 前提:这一枪**真的打出去了**(服务端受理了请求),否则"状态没变"毫无意义。
+case "$R" in *ERROR*|*"Error"*) bad "负面用例前提不成立" "调用本身失败了:$(echo "$R"|head -c 120)";; *) ok "调用已被服务端受理(拒绝发生在业务层)";; esac
 chk "**别人回报不动我的单**(状态没变)" "$(Q "SELECT status FROM hi_trade_sub_order WHERE sub_order_id='$S1';")" "no_pull"
 chk "也没有因此多出一行" "$(Q "SELECT COUNT(*) FROM hi_trade_sub_order WHERE order_id='$OID';")" "1"
 
