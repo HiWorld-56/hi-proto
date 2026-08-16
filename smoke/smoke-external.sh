@@ -62,7 +62,17 @@ L=$(cjs market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P\",\"settl
 cjs market/set_listing_status "{\"uuid\":\"$L\",\"status\":2}" >/dev/null
 G=$(cjb market/apply "{\"listing_uuid\":\"$L\",\"to_agent\":\"$BB\"}" | g data grantUuid)
 SELLER_DID=$(MN_FILE=$SELLER_MN /tmp/didsign --did)
-echo "  卖方=$SB(master=$SELLER_DID) 买方=$BB 授权=$G"
+# ⚠️ 这一行原来打的是**助记词**的 did,却写成 "master=" —— 把一个假设显示成了事实。
+#    实际的出让方 master 由 SELLER_TOK 决定,库里才是真值。
+REAL_MASTER=$(mysql -h$DB -ulo -p568568 hi_club -N -e "SELECT from_master FROM hi_club_market_grant WHERE uuid='$G';" 2>/dev/null)
+echo "  卖方=$SB(master=$REAL_MASTER) 买方=$BB 授权=$G  签名用=$SELLER_DID"
+# **前提先自证**:卖方 token 与卖方助记词必须是同一个人,否则闸②(签名者必须是收款方)
+# 会拦下正路,而报出来的是"签名者不是这笔授权的收款方" —— 看着像产品坏了,实际是参数配错。
+# 踩过一次:传了另一个用户的 token,一路红到第六条断言才看明白。
+if [ -n "$REAL_MASTER" ] && [ "$REAL_MASTER" != "$SELLER_DID" ]; then
+  echo "卖方 token 的 master 是 $REAL_MASTER,而 SELLER_MN($SELLER_MN)是 $SELLER_DID —— 不是同一个人,换对再跑。" >&2
+  exit 2
+fi
 [ -n "$G" ] && ok "EXTERNAL 申请已受理(待商户处理)" || bad "申请失败" "拿不到 grant_uuid"
 
 echo
