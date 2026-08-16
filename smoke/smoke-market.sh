@@ -151,17 +151,21 @@ A2=$(cj market/apply "{\"listing_uuid\":\"$LID2\",\"to_agent\":\"$BB\"}" "$BUYER
 G2=$(echo "$A2"|g data grantUuid)
 chk "**软件机器人也能卖**(收款方=它的 master)" "$(echo "$A2"|g data pay payee)" "$SELLER_DID"
 chk "回了金额" "$(echo "$A2"|g data pay amount)" "9.9"
-# 订单制之后:付费购买由 Apply **顺带开出账单**,认款走 market/report_payment(带 order_id)。
-# 旧的 market/confirm_payment 已删(404) —— 原来那两条负面用例留着就是必红的死用例。
+# 订单制之后:付费购买由 Apply **顺带开出账单**;认款则**没有客户端入口** ——
+# 付款方只对 hidid 上报,由 hidid 按订单里的商户DID 回调 club(hi.did.PayCallback.Pay)。
+# 旧的 market/confirm_payment 与更旧的 market/report_payment 都已删。
 #
-# ⚠️ **真金白银那部分不在这里验**:smoke-order-onchain.sh 会真转一笔上链,
+# ⚠️ **认款那半边不在这里验**:它要一把私钥去签回执,而本脚本只有 token。
+#    smoke-order-onchain.sh 会真转一笔上链、经 hi.did.Pay.Notify 认款,
 #    把四道闸(tx 唯一 / 金额币种收款方 / 链上时间≥下单时间 / query_count)全走一遍。
-#    这里是不花钱的脚本,只验"账单确实开出来了、认款要认订单号"。
+#    这里只验"账单确实开出来了、字段齐不齐"。
 OID2=$(echo "$A2"|g data order orderId)
 [ -n "$OID2" ] && ok "付费购买**顺带开出账单**(订单号非空)" || bad "没开出账单" "$(echo "$A2"|head -c 160)"
-has "负面:乱填订单号认款被拒" \
-  "$(cj market/report_payment "{\"order_id\":\"NO-SUCH-ORDER\",\"tx_hash\":\"0xfake01\"}" "$BUYER_TOK")" "订单不存在"
-chk "认款没过,授权仍是待处理(1)" "$(q hi_club "SELECT status FROM hi_club_market_grant WHERE uuid='$G2';")" "1"
+case "$OID2" in MKT-*) ok "订单号带 MKT- 前缀(回调靠它与 trade 子单分流)";;
+  *) bad "订单号没有 MKT- 前缀" "got=$OID2 —— 付款回调会被当成 trade 的单";; esac
+OMCH2=$(echo "$A2"|g data order merchant)
+[ -n "$OMCH2" ] && ok "订单带出商户DID(付款方据此知道回执报给谁)" || bad "订单没带 merchant" "付款方将无处上报"
+chk "没人付款,授权仍是待处理(1)" "$(q hi_club "SELECT status FROM hi_club_market_grant WHERE uuid='$G2';")" "1"
 
 echo
 echo "── 清理 ──"

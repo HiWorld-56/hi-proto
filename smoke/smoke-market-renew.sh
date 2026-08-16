@@ -63,14 +63,12 @@ q hi_club "UPDATE hi_club_market_grant SET status=3, installed_at=$NOW, expire_a
 RO=$(cj market/create_renew_order "{\"grant_uuid\":\"$G\"}" "$BT")
 ROID=$(echo "$RO"|g data orderId)
 [ -n "$ROID" ] && ok "已装载的授权能开出**续期单**" || bad "开续期单失败" "$(echo "$RO"|head -c 180)"
-# ⚠️ case 的 glob **不支持 `a|b` 这种或**,写了只当字面量 —— 用多模式版本。
-hasany(){ local w="$1" o="$2"; shift 2
-  for pat in "$@"; do case "$o" in *"$pat"*) ok "$w"; return;; esac; done
-  bad "$w" "都没命中:$(echo "$o"|head -c 180)"; }
-hasany "负面:假 tx 认不了这张续期单" \
-    "$(cj market/report_payment "{\"order_id\":\"$ROID\",\"tx_hash\":\"0xrenewfake01\"}" "$BT")" \
-    "尚未成功" "notfound" "取交易明细失败" "不符"
-chk "到期时刻没被改动(核验没过就不该延长)" "$(q hi_club "SELECT expire_at FROM hi_club_market_grant WHERE uuid='$G';")" "$((NOW+3600))"
+case "$ROID" in MKT-*) ok "续期单也带 MKT- 前缀";;
+  *) bad "续期单号没有 MKT- 前缀" "got=$ROID";; esac
+[ -n "$(echo "$RO"|g data merchant)" ] && ok "续期单带出商户DID" || bad "续期单没带 merchant" "付款方将无处上报"
+# 认款没有客户端入口(付款方只对 hidid 上报),这里验不了 —— 见 smoke-order-onchain.sh。
+# 但"没认款就不许延期"这条必须在这儿钉住:开一张单不该动到期时刻。
+chk "开完单到期时刻没被改动(开单≠已付款)" "$(q hi_club "SELECT expire_at FROM hi_club_market_grant WHERE uuid='$G';")" "$((NOW+3600))"
 
 echo
 echo "── 三、到期扫描:提醒 + 解绑 ──"

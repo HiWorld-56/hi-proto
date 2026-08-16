@@ -7,11 +7,19 @@
 # ⚠️ 最要紧的是**闸③(链上时间 ≥ 下单时间)**:
 #    "不看付款方"之后,它是唯一挡住"捡一笔现成的旧转账来认新单"的东西,
 #    而它从来没被执行过一次。本脚本用一笔**早于下单时刻**的真实旧转账去认新单。
+#
+# ⚠️ 认款**不是 curl 打 club**,而是走 `hi.did.Pay.Notify` ——
+#    付款方只对 hidid 上报,由 hidid 按订单带来的商户DID 回调 club
+#    (`hi.did.PayCallback.Pay`)。曾经有过一个 `Market.ReportPayment` 让客户端直接调 club,
+#    那是条方向反的路,已删。**拿 curl 直接打三方就等于没验这条链路**。
 set -uo pipefail
 CLUB=192.168.1.65:9537; DB=192.168.1.65
 STOK="${1:?卖方token}"; BTOK="${2:?买方master token}"; RTOK="${3:?机器人token}"; PKG="${4:?插件包url}"
 COIN="${COIN:-HWHD-APT}"; PRICE="${PRICE:-2}"
 OLD_TX="${OLD_TX:-}"          # 一笔**早于本次下单**的旧转账(金额/收款方与订单一致),验闸③
+# 认款回执:机器人的助记词签一份 Order{id,did,hash} 交给 hidid。
+# 失败时 hidid 会把三方(club)的拒绝原因顺着 grpc status 带回来,所以 stderr 也要收。
+notify(){ MN_FILE="${ROBOT_MN:?}" /tmp/coin_probe --notify-pay "$1" "$2" "$3" 2>&1; }
 pass=0; fail=0
 ok(){ printf "  \033[32m✓\033[0m %s\n" "$1"; pass=$((pass+1)); }
 bad(){ printf "  \033[31m✗\033[0m %s  (%s)\n" "$1" "$2"; fail=$((fail+1)); }
@@ -50,16 +58,22 @@ A=$(cb market/apply "{\"listing_uuid\":\"$L\",\"to_agent\":\"$RB\"}")
 G=$(echo "$A"|g data grantUuid); OID=$(echo "$A"|g data order orderId)
 OAMT=$(echo "$A"|g data order amount); OCOIN=$(echo "$A"|g data order coin)
 OPAYEE=$(echo "$A"|g data order payee); OTGT=$(echo "$A"|g data order targetAgent)
-echo "  grant=$G order=$OID  $OAMT $OCOIN → $OPAYEE"
+OMCH=$(echo "$A"|g data order merchant)
+echo "  grant=$G order=$OID  $OAMT $OCOIN → $OPAYEE(回执报给 $OMCH)"
 [ -n "$OID" ] && ok "**Apply 返回了订单号**" || bad "没有订单号" "$(echo "$A"|head -c 200)"
 chk "订单币种" "$OCOIN" "$COIN"; chk "订单金额" "$OAMT" "$PRICE"
 chk "**订单写明了给哪台机器人**(扩展性靠它)" "$OTGT" "$RB"
+# merchant 必须由订单带出来 —— 机器人硬编码它就意味着换环境要刷全网设备。
+# 而且它**不等于收款方**:钱给卖家,回执给市场。
+[ -n "$OMCH" ] && ok "**订单带出了商户DID**(回执报给谁)" || bad "订单没带 merchant" "付款方将无处上报"
+[ "$OMCH" != "$OPAYEE" ] && ok "商户DID 与收款方是两个人(钱给卖家,回执给市场)" \
+  || bad "merchant 等于 payee" "多半是拿收款方顶替了商户,回调会打进黑洞"
 
 echo
 echo "── 二、闸③:拿一笔**早于下单**的旧转账去认新单 ──"
 if [ -n "$OLD_TX" ]; then
   hasany "**旧转账认不了新单**(时间早于下单)" \
-    "$(cr market/report_payment "{\"order_id\":\"$OID\",\"tx_hash\":\"$OLD_TX\"}")" \
+    "$(notify "$OID" "$OMCH" "$OLD_TX")" \
     "时序" "早于" "时间" "不符"
   chk "订单仍是待付款(0)" "$(Q hi_club "SELECT status FROM hi_club_market_order WHERE order_id='$OID';")" "0"
 else
@@ -68,7 +82,7 @@ fi
 
 echo
 echo "── 三、负面:链上查不到的 hash ──"
-hasany "假 tx 被挡下" "$(cr market/report_payment "{\"order_id\":\"$OID\",\"tx_hash\":\"0x$(printf '%064d' 7)\"}")" \
+hasany "假 tx 被挡下" "$(notify "$OID" "$OMCH" "0x$(printf '%064d' 7)")" \
   "尚未成功" "notfound" "取交易明细失败"
 
 echo
@@ -79,8 +93,8 @@ PAYEE_ADDR=$(Q hi_did "SELECT address FROM hi_user_wallet WHERE did='$OPAYEE' AN
 TX=$(MN_FILE="${ROBOT_MN:?}" /tmp/coin_probe --pay "$OCOIN" "$PAYEE_ADDR" "$OAMT" 2>&1 | grep -o "tx_hash=0x[0-9a-f]*" | cut -d= -f2)
 [ -n "$TX" ] && ok "真转账 tx=$TX" || { bad "转账失败" "-"; echo "结果:通过 $pass,失败 $((fail+1))"; exit 1; }
 sleep 6
-R=$(cr market/report_payment "{\"order_id\":\"$OID\",\"tx_hash\":\"$TX\"}")
-case "$R" in *'"code":0'*) ok "**认款通过**";; *) bad "认款失败" "$(echo "$R"|head -c 250)";; esac
+R=$(notify "$OID" "$OMCH" "$TX")
+case "$R" in *"回执已交给 hidid"*) ok "**认款通过**(经 hidid 回调 club)";; *) bad "认款失败" "$(echo "$R"|head -c 250)";; esac
 chk "订单置为已付(1)" "$(Q hi_club "SELECT status FROM hi_club_market_order WHERE order_id='$OID';")" "1"
 chk "授权置为已装载(3)" "$(Q hi_club "SELECT status FROM hi_club_market_grant WHERE uuid='$G';")" "3"
 chk "**ai 侧真的插了引用行**" \
@@ -91,7 +105,9 @@ echo "── 五、同一笔 tx 认不了第二张单 ──"
 O2=$(cr market/create_renew_order "{\"grant_uuid\":\"$G\"}")
 OID2=$(echo "$O2"|g data orderId)
 [ -n "$OID2" ] && ok "机器人自己开出续期单(它掏钱,所以它能开)" || bad "开续期单失败" "$(echo "$O2"|head -c 200)"
-hasany "**旧 tx 认不了新单**(全局唯一)" "$(cr market/report_payment "{\"order_id\":\"$OID2\",\"tx_hash\":\"$TX\"}")" \
+OMCH2=$(echo "$O2"|g data merchant)
+chk "续期单带的商户DID 与首购一致" "$OMCH2" "$OMCH"
+hasany "**旧 tx 认不了新单**(全局唯一)" "$(notify "$OID2" "$OMCH" "$TX")" \
   "已经被用过" "用过"
 
 echo
