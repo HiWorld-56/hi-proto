@@ -48,6 +48,13 @@ KEY_RE = re.compile(r"""['"]?([A-Za-z_][A-Za-z0-9_]*)['"]?\s*:""")
 # api 层几乎都是 `export const foo = (data) => { return postRequest('/path', data) }` 透传,
 # 真正的对象字面量在**调用点**(`foo({ bot_did: x })`)。只查 *Request( 的话,
 # 这个仓里几乎一条都查不到 —— 检查会一直绿,而绿得毫无意义。所以再跟一跳。
+# 响应侧:`row.settle_mode` / `record.expire_at` 这类读法。
+# 网关吐的是 **camidCase**,snake_case 一律取到 undefined —— 而且**不报错**,
+# 只是那一格显示成空/默认值。2026-08-16 实测:市场页整页(标题/结算/价格/状态)
+# 和授权页都栽在这上面,而请求侧的字段核对一个都发现不了(那查的是发出去的 key)。
+RESP_RE = re.compile(
+    r"""\b(row|record|item|detail|d)\.([a-z][a-z0-9]*(?:_[a-z0-9]+)+)\b""")
+
 EXPORT_RE = re.compile(
     r"""export\s+const\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*\([^)]*\)\s*=>\s*\{?\s*(?:return\s+)?"""
     r"""(?:post|get|put|delete)Request\(\s*['"](/api/v1/[a-zA-Z0-9_/]+)['"]""",
@@ -151,7 +158,7 @@ def main():
                 for name, path in EXPORT_RE.findall(t):
                     api_fns[name] = path
 
-    dead, bad_fields = [], []
+    dead, bad_fields, snake_reads = [], [], []
     for root, _, files in os.walk(src):
         for fn in files:
             if not fn.endswith((".js", ".vue", ".ts")):
@@ -163,6 +170,11 @@ def main():
             # 而一个总在报已知无害内容的检查,很快就没人看了。
             code = "\n".join(
                 "" if l.lstrip().startswith("//") else l for l in text.splitlines())
+            # .vue 里注释掉的整块是 `<!-- ... -->`,跨行。不挖掉的话,
+            # 一段留着的老写法会**永远**报同一条 —— 而总在报已知无害内容的检查,
+            # 很快就没人看了(这次第一版就误报了一处注释里的 row.bind_apikey)。
+            code = re.sub(r"<!--.*?-->", lambda m: "\n" * m.group(0).count("\n"),
+                          code, flags=re.S)
 
             for i, line in enumerate(text.splitlines(), 1):
                 if line.lstrip().startswith(("//", "*", "#")):
@@ -170,6 +182,10 @@ def main():
                 for path in PATH_RE.findall(line):
                     if path not in routes:
                         dead.append((rel, i, path))
+
+            for i, line in enumerate(code.splitlines(), 1):
+                for var, prop in RESP_RE.findall(line):
+                    snake_reads.append((rel, i, f"{var}.{prop}"))
 
             calls = [(p_, b) for p_, b in CALL_RE.findall(code)]
             # 再跟一跳:api 函数名 → 路径,然后查 `fnName({...})` 的调用点。
@@ -198,7 +214,12 @@ def main():
         print(f"[check_web] ✗ {len(bad_fields)} 处字段名对不上请求消息:")
         for rel, path, key, sample in bad_fields:
             print(f"    {rel}  {path}  传了 '{key}';该消息的字段有 {sample}…")
-    if not dead and not bad_fields:
+    if snake_reads:
+        print(f"[check_web] ✗ {len(snake_reads)} 处按 snake_case 读响应字段"
+              f"(网关吐的是 camelCase,取到的是 undefined,**不报错**):")
+        for rel, i, expr in snake_reads:
+            print(f"    {rel}:{i}  {expr}")
+    if not dead and not bad_fields and not snake_reads:
         print("[check_web] ✓ 路径与字段均对得上")
         return 0
     print("[check_web] 只报不拦 —— 正常工作流是先改 proto 再跟消费方。"
