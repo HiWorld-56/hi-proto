@@ -99,6 +99,7 @@ message BrainToFace {
     MasterEvent           event_master      = 9;  // 所有者绑定状态变化
     hi.club.GroupInfo     event_members     = 10; // 群成员列表（全量）
     hi.ai.PluginView      event_plugin      = 11; // 插件加载完成
+    PluginProgress        event_plugin_progress = 17; // 插件下载/安装进度
     hi.did.Transaction    event_transaction = 12; // 收到转账
 
     // 媒体：uuid="" 时路由到 dialog_voice，否则按 uuid 路由到对应 IM dialog
@@ -161,6 +162,33 @@ message FaceToBrain {
     UpdateAction update_action = 2;//更新动作
   }
 }
+// 插件下载/安装进度。
+//
+// NATIVE 插件是**云端交叉编译好的 .so,机器人自己去取** —— 几百 KB 到几 MB,
+// 机器人的网可能很差。没有进度的话,用户在市场点了"购买"之后,face 上什么都不会变,
+// 直到某一刻插件突然出现;中间那段沉默里,用户只会以为没买成、然后再点一次。
+//
+// 字段有意与固件更新(UpdaterStatus)同形:state / progress / 已下/共多少字节。
+// **face 那边不该为"插件"和"固件"学两套进度模型。**
+message PluginProgress {
+  enum State {
+    STATE_UNKNOWN     = 0;
+    STATE_DOWNLOADING = 1; // 正在下载
+    STATE_INSTALLING  = 2; // 已下完,正在落盘/加载
+    STATE_DONE        = 3; // 装好了(已热加载,可以用了)
+    STATE_FAILED      = 4; // 这一个失败了 —— **不影响其它插件**
+  }
+  string uuid   = 1;
+  string title  = 2; // 给用户看的名字;取不到就退回 uuid
+  State  state  = 3;
+  // 0-100。**总长度未知时恒为 0** —— 服务端不给 Content-Length 是有可能的,
+  // 那时候宁可不显示百分比,也别编一个会往回跳的数字。
+  uint32 progress        = 4;
+  uint64 downloaded_bytes = 5;
+  uint64 total_bytes      = 6; // 0 = 未知
+  string message          = 7; // 失败原因(state=FAILED 时)
+}
+
 //更新动作
 message UpdateAction {
   enum Action {
