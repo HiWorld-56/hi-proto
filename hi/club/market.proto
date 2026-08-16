@@ -363,33 +363,19 @@ message CreateRenewOrderReq {
   string grant_uuid = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
 }
 
-// 付款回报:告诉市场"这张单我付了,钱在这笔转账里"。
+// ⚠️ **已删 MarketPayReport / Market.ReportPayment。**
 //
-// ## **不看付款方是谁** —— 这是有意的
+// 它让**付款方直接调 club** 认款。那是错的:hidid 是银行,银行 app 不会去调美团的接口。
+// 付款方(hidid app / 机器人里的 hidid 模块)只对**自己的后台**上报
+// (`hi.did.Pay.Notify`),hidid 再按商户 DID 查到 endpoint,回调三方的
+// `hi.did.PayCallback.Pay`。club 本来就有这条链路(trade 一直走它),
+// 是做订单制时没查"付款结果现在怎么回来的"就自己造了一条方向反的。
 //
-// 卖家关心的是"这张单要的钱到账了没有",不是"谁掏的"。订单上写明给 A 续期,
-// 那么谁付的款都一样给 A 续 —— master 付、机器人自己付、将来某台机器人替别的机器人付,
-// 全是同一条路,不需要为每种情况放宽一次判据。
-// (原来那版把"付款方必须是谁"当判据,机器人替自己付款时就对不上,只能一路打补丁。)
+// 于是市场的认款入口不在本文件里,而在 PayCallback:回调进来按订单号前缀 `MKT-` 分流
+// (hidid 只给 `Order{id, did, hash}`,不带"这是哪种单",而 club 同时挂着
+//  trade 子单和市场订单),再走四道闸履约。
 //
-// ## 判据(全部与付款方无关)
-//
-//   ① 订单 OPEN 且未过期        ② 这笔 tx 没被别的单用过(全局唯一)
-//   ③ 链上 success              ④ 收款方/金额/币种与订单一致
-//   ⑤ **链上时间不早于订单创建时间**
-//
-// ⑤ 挡的是"拿一笔早就存在、恰好金额相符的旧转账来认领新订单" ——
-// 它只看时间,不看付款方,所以不违背上面那条原则。
-//
-// ⚠️ 已知且**接受**的残留风险:订单号写不进链上转账(Aptos 的
-//    primary_fungible_store::transfer 没有 memo 字段),所以同一挂牌、同价、
-//    同收款地址的两张单,链上那两笔钱长得一模一样 —— 理论上谁先报谁认走。
-//    这是"不看付款方"的必然代价,已知情采纳。真要堵,得让每张单的金额带一点随机尾数
-//    使其链上唯一,代价是金额变得不好看。
-message MarketPayReport {
-  string order_id = 1; // 认哪张单
-  string tx_hash  = 2; // 链上那笔转账
-}
+// 判据仍然与付款方无关 —— 回调的签名者只留痕、不参与判断。
 
 message MarketPayInfo {
   option (hi.audience) = VIS_SELF;
@@ -520,8 +506,7 @@ service Market {
   rpc Apply (ApplyReq) returns (ApplyResp) { option (hi.auth) = AUTH_USER; }
   // 开一张续期账单(购买的账单由 Apply 顺带开出)。
   rpc CreateRenewOrder (CreateRenewOrderReq) returns (MarketOrder) { option (hi.auth) = AUTH_USER; }
-  // 认领一笔付款并履约。**不看付款方是谁**,见 MarketPayReport。
-  rpc ReportPayment (MarketPayReport) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
+
   rpc ListMyGrants (ListGrantsReq) returns (ListGrantsResp) { option (hi.auth) = AUTH_USER; }              // 我买到的
   rpc SetGrantVersion (SetGrantVersionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 切换引用的版本
   rpc SetAutoRenew (SetAutoRenewReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }       // 开/关自动续费(仅硬件机器人)
