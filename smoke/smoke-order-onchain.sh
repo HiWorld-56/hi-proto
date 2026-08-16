@@ -136,6 +136,22 @@ hasany "**旧 tx 认不了新单**(全局唯一)" "$(notify "$PID2" "$OMCH" "$TX
   "已经被用过" "用过"
 
 echo
+echo "── 六、交易记录:范围靠当事人限死 ──"
+# 机器人自己掏钱付的(payer = 机器人 did),**主人要查得到那笔账** ——
+# 这正是 ListTransactions 收 did 的理由。
+TXM=$(cr market/list_transactions "{\"did\":\"$RB\"}")
+case "$TXM" in *"$PID"*) ok "**主人查得到仆从机器人的交易**(凭据号在列表里)";;
+  *) bad "主人查不到机器人的交易" "$(echo "$TXM"|head -c 200)";; esac
+# 卖家是收款方,同一笔也应该查得到 —— 一笔交易两头都是当事人。
+case "$(cs market/list_transactions '{}')" in *"$PID"*) ok "收款方(卖家)也查得到同一笔";;
+  *) bad "卖家查不到" "收款方本该是当事人";; esac
+# 负面两条:范围是这个接口唯一在守的东西,守不住就等于没有。
+hasany "负面:拿别人的 did 当主体被拒" "$(cs market/list_transactions "{\"did\":\"$RB\"}")" \
+  "不是你的机器人"
+hasany "负面:不相干的凭据号查不到" "$(cb market/get_transaction '{"pay_id":"MKP-not-mine"}')" \
+  "不存在或与你无关"
+
+echo
 echo "── 清理 ──"
 cs market/revoke "{\"grant_uuid\":\"$G\",\"reason\":\"test\"}" >/dev/null
 Q hi_club "DELETE FROM hi_club_market_payment WHERE order_id IN (SELECT order_id FROM hi_club_market_order WHERE grant_uuid='$G'); DELETE FROM hi_club_market_order WHERE grant_uuid='$G'; DELETE FROM hi_club_market_flow WHERE grant_uuid='$G'; DELETE FROM hi_club_market_grant WHERE uuid='$G'; DELETE FROM hi_club_market_listing WHERE uuid='$L';"
