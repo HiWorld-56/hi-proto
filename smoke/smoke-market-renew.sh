@@ -53,7 +53,7 @@ has "负面:别人的授权改不了" \
     "$(cj market/set_auto_renew "{\"grant_uuid\":\"$G\",\"enabled\":false}" "$ST")" "不属于你"
 
 echo
-echo "── 二、续费:首购与续费共用 ConfirmPayment ──"
+echo "── 二、续费:开单 + 付款凭据 ──"
 # 手工把这笔置成已装载 + 快到期,模拟"买过了、要续了"
 NOW=$(date +%s)
 q hi_club "UPDATE hi_club_market_grant SET status=3, installed_at=$NOW, expire_at=$((NOW+3600)) WHERE uuid='$G';"
@@ -66,6 +66,14 @@ ROID=$(echo "$RO"|g data orderId)
 case "$ROID" in MKT-*) ok "续期单也带 MKT- 前缀";;
   *) bad "续期单号没有 MKT- 前缀" "got=$ROID";; esac
 [ -n "$(echo "$RO"|g data merchant)" ] && ok "续期单带出商户DID" || bad "续期单没带 merchant" "付款方将无处上报"
+RPID=$(echo "$RO"|g data payment payId)
+case "$RPID" in MKP-*) ok "续期单带出付款凭据号";; *) bad "续期单没带凭据号" "got=$RPID";; esac
+# **凭据可换、业务单不动** —— 这就是主/子拆开的意义。
+R2=$(cj market/issue_payment "{\"order_id\":\"$ROID\"}" "$BT")
+chk "再开凭据拿回的还是同一张业务单" "$(echo "$R2"|g data orderId)" "$ROID"
+chk "凭据没过期时幂等(不会开出一堆)" "$(echo "$R2"|g data payment payId)" "$RPID"
+# 全部凭据列得出来 —— 人工查账退款看的就是它。
+[ -n "$(cj market/list_payments "{\"order_id\":\"$ROID\"}" "$BT"|g data list)" ] && ok "列得出这张单的全部凭据" || bad "列不出凭据" "人工查账没有抓手"
 # 认款没有客户端入口(付款方只对 hidid 上报),这里验不了 —— 见 smoke-order-onchain.sh。
 # 但"没认款就不许延期"这条必须在这儿钉住:开一张单不该动到期时刻。
 chk "开完单到期时刻没被改动(开单≠已付款)" "$(q hi_club "SELECT expire_at FROM hi_club_market_grant WHERE uuid='$G';")" "$((NOW+3600))"

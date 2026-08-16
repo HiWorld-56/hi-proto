@@ -67,8 +67,12 @@ G=$(echo "$A"|g data grantUuid); OID=$(echo "$A"|g data order orderId)
 OAMT=$(echo "$A"|g data order amount); OCOIN=$(echo "$A"|g data order coin)
 OPAYEE=$(echo "$A"|g data order payee); OTGT=$(echo "$A"|g data order targetAgent)
 OMCH=$(echo "$A"|g data order merchant)
+# **对外给出去的是付款凭据号**,不是主订单号 —— 付款、回调、人工查账用的都是它。
+PID=$(echo "$A"|g data order payment payId)
 echo "  grant=$G order=$OID  $OAMT $OCOIN → $OPAYEE(回执报给 $OMCH)"
 [ -n "$OID" ] && ok "**Apply 返回了订单号**" || bad "没有订单号" "$(echo "$A"|head -c 200)"
+[ -n "$PID" ] && ok "**订单带出了付款凭据号**(对外给的是它)" || bad "订单没带凭据" "$(echo "$A"|head -c 250)"
+case "$PID" in MKP-*) ok "凭据号带 MKP- 前缀(回调靠它分流)";; *) bad "凭据号前缀不对" "got=$PID";; esac
 chk "订单币种" "$OCOIN" "$COIN"; chk "订单金额" "$OAMT" "$PRICE"
 chk "**订单写明了给哪台机器人**(扩展性靠它)" "$OTGT" "$RB"
 # merchant 必须由订单带出来 —— 机器人硬编码它就意味着换环境要刷全网设备。
@@ -91,9 +95,9 @@ if [ -n "$OLD_TX" ]; then
   else
     ok "诱饵够旧(比现在早 $(( ONOW - OT/1000 ))s,超过 ${SKEW}s 容差)"
     hasany "**旧转账认不了新单**(时间早于下单)" \
-      "$(notify "$OID" "$OMCH" "$OLD_TX")" \
+      "$(notify "$PID" "$OMCH" "$OLD_TX")" \
       "时序" "早于" "时间" "不符"
-    chk "订单仍是待付款(0)" "$(Q hi_club "SELECT status FROM hi_club_market_order WHERE order_id='$OID';")" "0"
+    chk "凭据仍是待付款(0)" "$(Q hi_club "SELECT status FROM hi_club_market_payment WHERE pay_id='$PID';")" "0"
   fi
 else
   bad "闸③没验" "没给 OLD_TX —— 这是本脚本最该验的一条,别跳过"
@@ -101,7 +105,7 @@ fi
 
 echo
 echo "── 三、负面:链上查不到的 hash ──"
-hasany "假 tx 被挡下" "$(notify "$OID" "$OMCH" "0x$(printf '%064d' 7)")" \
+hasany "假 tx 被挡下" "$(notify "$PID" "$OMCH" "0x$(printf '%064d' 7)")" \
   "尚未成功" "notfound" "取交易明细失败"
 
 echo
@@ -112,9 +116,10 @@ PAYEE_ADDR=$(Q hi_did "SELECT address FROM hi_user_wallet WHERE did='$OPAYEE' AN
 TX=$(MN_FILE="${ROBOT_MN:?}" /tmp/coin_probe --pay "$OCOIN" "$PAYEE_ADDR" "$OAMT" 2>&1 | grep -o "tx_hash=0x[0-9a-f]*" | cut -d= -f2)
 [ -n "$TX" ] && ok "真转账 tx=$TX" || { bad "转账失败" "-"; echo "结果:通过 $pass,失败 $((fail+1))"; exit 1; }
 sleep 6
-R=$(notify "$OID" "$OMCH" "$TX")
+R=$(notify "$PID" "$OMCH" "$TX")
 case "$R" in *"回执已交给 hidid"*) ok "**认款通过**(经 hidid 回调 club)";; *) bad "认款失败" "$(echo "$R"|head -c 250)";; esac
-chk "订单置为已付(1)" "$(Q hi_club "SELECT status FROM hi_club_market_order WHERE order_id='$OID';")" "1"
+chk "凭据置为已认款(1)" "$(Q hi_club "SELECT status FROM hi_club_market_payment WHERE pay_id='$PID';")" "1"
+chk "业务单置为已付(1)" "$(Q hi_club "SELECT status FROM hi_club_market_order WHERE order_id='$OID';")" "1"
 chk "授权置为已装载(3)" "$(Q hi_club "SELECT status FROM hi_club_market_grant WHERE uuid='$G';")" "3"
 chk "**ai 侧真的插了引用行**" \
   "$(Q hi_ai "SELECT COUNT(*) FROM hi_ai_plugin_using WHERE agent_did='$RB' AND uuid='$P' AND source='reference' AND deleted_at IS NULL;")" "1"
@@ -122,17 +127,18 @@ chk "**ai 侧真的插了引用行**" \
 echo
 echo "── 五、同一笔 tx 认不了第二张单 ──"
 O2=$(cr market/create_renew_order "{\"grant_uuid\":\"$G\"}")
-OID2=$(echo "$O2"|g data orderId)
+OID2=$(echo "$O2"|g data orderId); PID2=$(echo "$O2"|g data payment payId)
 [ -n "$OID2" ] && ok "机器人自己开出续期单(它掏钱,所以它能开)" || bad "开续期单失败" "$(echo "$O2"|head -c 200)"
 OMCH2=$(echo "$O2"|g data merchant)
+[ "$PID2" != "$PID" ] && ok "**续期是另一张凭据**(号不复用)" || bad "凭据号复用了" "got=$PID2"
 chk "续期单带的商户DID 与首购一致" "$OMCH2" "$OMCH"
-hasany "**旧 tx 认不了新单**(全局唯一)" "$(notify "$OID2" "$OMCH" "$TX")" \
+hasany "**旧 tx 认不了新单**(全局唯一)" "$(notify "$PID2" "$OMCH" "$TX")" \
   "已经被用过" "用过"
 
 echo
 echo "── 清理 ──"
 cs market/revoke "{\"grant_uuid\":\"$G\",\"reason\":\"test\"}" >/dev/null
-Q hi_club "DELETE FROM hi_club_market_order WHERE grant_uuid='$G'; DELETE FROM hi_club_market_flow WHERE grant_uuid='$G'; DELETE FROM hi_club_market_grant WHERE uuid='$G'; DELETE FROM hi_club_market_listing WHERE uuid='$L';"
+Q hi_club "DELETE FROM hi_club_market_payment WHERE order_id IN (SELECT order_id FROM hi_club_market_order WHERE grant_uuid='$G'); DELETE FROM hi_club_market_order WHERE grant_uuid='$G'; DELETE FROM hi_club_market_flow WHERE grant_uuid='$G'; DELETE FROM hi_club_market_grant WHERE uuid='$G'; DELETE FROM hi_club_market_listing WHERE uuid='$L';"
 cs plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P\"}" >/dev/null
 cs agent/delete "{\"agent\":\"$SB\"}" >/dev/null
 echo

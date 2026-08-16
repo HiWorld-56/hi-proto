@@ -165,6 +165,9 @@ case "$OID2" in MKT-*) ok "订单号带 MKT- 前缀(回调靠它与 trade 子单
   *) bad "订单号没有 MKT- 前缀" "got=$OID2 —— 付款回调会被当成 trade 的单";; esac
 OMCH2=$(echo "$A2"|g data order merchant)
 [ -n "$OMCH2" ] && ok "订单带出商户DID(付款方据此知道回执报给谁)" || bad "订单没带 merchant" "付款方将无处上报"
+# 对外给出去的是**付款凭据号**;业务单号不出系统。
+PAYID=$(echo "$A2"|g data order payment payId)
+case "$PAYID" in MKP-*) ok "订单带出付款凭据号(MKP- 前缀)";; *) bad "订单没带凭据号" "got=$PAYID";; esac
 chk "没人付款,授权仍是待处理(1)" "$(q hi_club "SELECT status FROM hi_club_market_grant WHERE uuid='$G2';")" "1"
 
 echo
