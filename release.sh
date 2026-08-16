@@ -38,6 +38,13 @@ python3 "$HIPROTO/codegen/check_lockstep.py" --warn /home/lo/wip/backend-hi-* ||
 # **只报不拦** —— 正常工作流是先改 proto 再跟后端,硬失败会卡死每次改名的第一次推送。
 python3 "$HIPROTO/codegen/check_impl.py" /home/lo/wip --warn || true
 
+# hiclub-web:路由 + **字段名**核对。
+# 它是唯一手写 HTTP 客户端的消费方(Go/Rust/Dart 都是生成的),于是 proto 一改名,
+# 别人编译期就炸、它却只是请求照发、字段静默变空 —— 这一类**探测路由发现不了**。
+# 只报不拦,理由同 check_impl;而且字段那半用的是正则,宁可漏报也不要误拦
+# (一个会误拦的检查,第一次误拦之后就会被人绕过去)。
+python3 "$HIPROTO/codegen/check_web_routes.py" /home/lo/ci/hiclub-web --warn || true
+
 # 接口清单随发布重生成 —— 上一版是手写的,内容停在重构前(档位名/rpc 数/方法名全过时),
 # 当成当前清单会被误导。生成物入库,便于 review 时直接看接口面变化。
 python3 "$HIPROTO/codegen/gen_api_surface.py"
