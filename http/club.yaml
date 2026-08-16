@@ -155,6 +155,12 @@ http:
   - selector: hi.club.Market.CreateRenewOrder
     post: /api/v1/market/create_renew_order
     body: "*"
+  - selector: hi.club.Market.IssuePayment
+    post: /api/v1/market/issue_payment
+    body: "*"
+  - selector: hi.club.Market.ListPayments
+    post: /api/v1/market/list_payments
+    body: "*"
   - selector: hi.club.Market.ListMyGrants
     post: /api/v1/market/list_my_grants
     body: "*"
