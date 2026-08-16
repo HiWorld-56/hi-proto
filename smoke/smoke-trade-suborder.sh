@@ -104,7 +104,7 @@ chk "新行也没被这条迟到的回报动到" "$(Q "SELECT status FROM hi_tra
 
 echo
 echo "── 四、重试次数按**行数**算,试满判死 ──"
-# 已经 2 行了,再失败 3 次就到 5 行(maxPayAttempts=5),第 5 次不再换号。
+# 已经 2 行了,再失败 3 次到 5 行 —— 这三次每次都还在上限内,所以都会换号。
 CUR="$S2"
 for i in 3 4 5; do
   report "$PC_MN" "$PC" "$CUR" "cancel" "" >/dev/null
@@ -112,8 +112,13 @@ for i in 3 4 5; do
   NEXT=$(Q "SELECT sub_order_id FROM hi_trade_sub_order WHERE order_id='$OID' AND status='no_pull' ORDER BY id DESC LIMIT 1;")
   [ -n "$NEXT" ] && CUR="$NEXT"
 done
-N=$(Q "SELECT COUNT(*) FROM hi_trade_sub_order WHERE order_id='$OID';")
-chk "试满之后不再换号(行数停在 5)" "$N" "5"
+chk "前提:已经攒到 5 行(第 5 张还没被回报过)" "$(Q "SELECT COUNT(*) FROM hi_trade_sub_order WHERE order_id='$OID';")" "5"
+# ⚠️ **上限要靠"再失败一次"才触发**,不是靠行数自己停下来。
+#    写这条时想当然地以为循环跑完就到顶了 —— 结果"行数停在 5"是因为循环结束,
+#    而不是因为 maxPayAttempts 生效,那条断言当时是**碰巧绿的**。
+report "$PC_MN" "$PC" "$CUR" "cancel" "" >/dev/null
+sleep 1
+chk "试满之后**不再换号**(行数仍是 5)" "$(Q "SELECT COUNT(*) FROM hi_trade_sub_order WHERE order_id='$OID';")" "5"
 chk "最后一行判死 failed(等人工,不是无限换号)" "$(Q "SELECT status FROM hi_trade_sub_order WHERE sub_order_id='$CUR';")" "failed"
 chk "换号过程全部留档(4 行 superseded)" "$(Q "SELECT COUNT(*) FROM hi_trade_sub_order WHERE order_id='$OID' AND status='superseded';")" "4"
 
