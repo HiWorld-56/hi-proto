@@ -39,6 +39,14 @@ magic 值,答复里出现了才算数。
 `seed_coins.py` / `coin_sync.py`(币种表,**decimals 从链上读回来写,不手填**)、
 `mock_merchant.py`(mock 商户后台)。
 
+## 收进仓当天就抓到的一件事
+
+收编后第一次全套跑,`smoke-market.sh` 从 25/0 变成 23/2 —— **回归网自己落后于代码**:
+订单制删掉了 `market/confirm_payment`,而这里还留着两条打那个路由的负面用例
+(`smoke-market-renew.sh` 里还有第三条)。它们不是"测出了 bug",是**死用例**。
+
+散在 `~/ci` 里没版本控制时,这种落后没人会发现 —— 因为没人会 diff 一个没有历史的目录。
+
 ## 已删
 
 `smoke-paid-onchain.sh` —— 订单制之前的版本,打的 `market/confirm_payment` 已经 404。

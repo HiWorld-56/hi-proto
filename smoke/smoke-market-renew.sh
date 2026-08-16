@@ -57,8 +57,19 @@ echo "── 二、续费:首购与续费共用 ConfirmPayment ──"
 # 手工把这笔置成已装载 + 快到期,模拟"买过了、要续了"
 NOW=$(date +%s)
 q hi_club "UPDATE hi_club_market_grant SET status=3, installed_at=$NOW, expire_at=$((NOW+3600)) WHERE uuid='$G';"
-has "已装载状态下交假 tx_hash → 走的是**续费**分支且被链上核验挡下" \
-    "$(cj market/confirm_payment "{\"grant_uuid\":\"$G\",\"tx_hash\":\"0xrenewfake000000000000000000000000000000000000000000000000000001\"}" "$BT")" "交易尚未成功"
+# 订单制之后:续期要**先开单**(CreateRenewOrder),再拿 order_id 认款。
+# 旧的 confirm_payment 已删。这里验"已装载的授权能开出续期单",
+# 真付款那条在 smoke-order-onchain.sh。
+RO=$(cj market/create_renew_order "{\"grant_uuid\":\"$G\"}" "$BT")
+ROID=$(echo "$RO"|g data orderId)
+[ -n "$ROID" ] && ok "已装载的授权能开出**续期单**" || bad "开续期单失败" "$(echo "$RO"|head -c 180)"
+# ⚠️ case 的 glob **不支持 `a|b` 这种或**,写了只当字面量 —— 用多模式版本。
+hasany(){ local w="$1" o="$2"; shift 2
+  for pat in "$@"; do case "$o" in *"$pat"*) ok "$w"; return;; esac; done
+  bad "$w" "都没命中:$(echo "$o"|head -c 180)"; }
+hasany "负面:假 tx 认不了这张续期单" \
+    "$(cj market/report_payment "{\"order_id\":\"$ROID\",\"tx_hash\":\"0xrenewfake01\"}" "$BT")" \
+    "尚未成功" "notfound" "取交易明细失败" "不符"
 chk "到期时刻没被改动(核验没过就不该延长)" "$(q hi_club "SELECT expire_at FROM hi_club_market_grant WHERE uuid='$G';")" "$((NOW+3600))"
 
 echo

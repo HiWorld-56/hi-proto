@@ -151,9 +151,17 @@ A2=$(cj market/apply "{\"listing_uuid\":\"$LID2\",\"to_agent\":\"$BB\"}" "$BUYER
 G2=$(echo "$A2"|g data grantUuid)
 chk "**软件机器人也能卖**(收款方=它的 master)" "$(echo "$A2"|g data pay payee)" "$SELLER_DID"
 chk "回了金额" "$(echo "$A2"|g data pay amount)" "9.9"
-has "负面:假 tx_hash 被链上核验挡下" "$(cj market/confirm_payment "{\"grant_uuid\":\"$G2\",\"tx_hash\":\"0xfake0000000000000000000000000000000000000000000000000000000001\"}" "$BUYER_TOK")" "交易尚未成功"
-has "负面:拿别人的单子确认被拒" "$(cj market/confirm_payment "{\"grant_uuid\":\"$G2\",\"tx_hash\":\"0xfake0000000000000000000000000000000000000000000000000000000002\"}" "$SELLER_TOK")" "不属于你"
-chk "两次失败后仍是待处理(1),没被放行" "$(q hi_club "SELECT status FROM hi_club_market_grant WHERE uuid='$G2';")" "1"
+# 订单制之后:付费购买由 Apply **顺带开出账单**,认款走 market/report_payment(带 order_id)。
+# 旧的 market/confirm_payment 已删(404) —— 原来那两条负面用例留着就是必红的死用例。
+#
+# ⚠️ **真金白银那部分不在这里验**:smoke-order-onchain.sh 会真转一笔上链,
+#    把四道闸(tx 唯一 / 金额币种收款方 / 链上时间≥下单时间 / query_count)全走一遍。
+#    这里是不花钱的脚本,只验"账单确实开出来了、认款要认订单号"。
+OID2=$(echo "$A2"|g data order orderId)
+[ -n "$OID2" ] && ok "付费购买**顺带开出账单**(订单号非空)" || bad "没开出账单" "$(echo "$A2"|head -c 160)"
+has "负面:乱填订单号认款被拒" \
+  "$(cj market/report_payment "{\"order_id\":\"NO-SUCH-ORDER\",\"tx_hash\":\"0xfake01\"}" "$BUYER_TOK")" "订单不存在"
+chk "认款没过,授权仍是待处理(1)" "$(q hi_club "SELECT status FROM hi_club_market_grant WHERE uuid='$G2';")" "1"
 
 echo
 echo "── 清理 ──"
