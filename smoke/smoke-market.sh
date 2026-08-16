@@ -161,7 +161,7 @@ chk "回了金额" "$(echo "$A2"|g data pay amount)" "9.9"
 #    这里只验"账单确实开出来了、字段齐不齐"。
 OID2=$(echo "$A2"|g data order orderId)
 [ -n "$OID2" ] && ok "付费购买**顺带开出账单**(订单号非空)" || bad "没开出账单" "$(echo "$A2"|head -c 160)"
-case "$OID2" in MKT-*) ok "订单号带 MKT- 前缀(回调靠它与 trade 子单分流)";;
+case "$OID2" in MKT-*) ok "业务单号带 MKT- 前缀";;
   *) bad "订单号没有 MKT- 前缀" "got=$OID2 —— 付款回调会被当成 trade 的单";; esac
 OMCH2=$(echo "$A2"|g data order merchant)
 [ -n "$OMCH2" ] && ok "订单带出商户DID(付款方据此知道回执报给谁)" || bad "订单没带 merchant" "付款方将无处上报"
