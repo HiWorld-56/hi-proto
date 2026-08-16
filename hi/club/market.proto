@@ -353,6 +353,16 @@ message MarketOrder {
   // 订单自己的有效期(秒)。过了就作废重开 —— 价格会变,不能让一张老账单永远能付。
   int64             expire_at    = 9 [(hi.visibility) = VIS_SELF];
   int64             created_at   = 10 [(hi.visibility) = VIS_SELF];
+  // 把付款结果**报给哪个商户** —— 即图示里唤起 hidid 时要带的「商户DID」。
+  //
+  // 付款方(hidid app / 机器人里的 hidid 模块)付完款调 `hi.did.Pay.Notify`,
+  // 载荷 `Order{id=order_id, did=merchant, hash=tx_hash}`;hidid 按这个 did 查到
+  // 商户注册的 endpoint,回调过去。**付款方全程不需要认识插件市场的任何接口** ——
+  // 银行 app 不该知道美团的 API 长什么样。
+  //
+  // ⚠️ 由订单带出来,**不让机器人硬编码**:它随环境变(dev/prod 是两个商户),
+  //    写死在设备里就意味着换环境要刷全网机器人。
+  string            merchant     = 11 [(hi.visibility) = VIS_SELF];
 }
 
 // 开一张续期账单。购买的账单由 Apply 顺带开出来,这条是**单独续期**用的。
