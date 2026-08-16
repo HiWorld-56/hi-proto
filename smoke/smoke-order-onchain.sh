@@ -16,10 +16,18 @@ set -uo pipefail
 CLUB=192.168.1.65:9537; DB=192.168.1.65
 STOK="${1:?卖方token}"; BTOK="${2:?买方master token}"; RTOK="${3:?机器人token}"; PKG="${4:?插件包url}"
 COIN="${COIN:-HWHD-APT}"; PRICE="${PRICE:-2}"
-OLD_TX="${OLD_TX:-}"          # 一笔**早于本次下单**的旧转账(金额/收款方与订单一致),验闸③
+# 一笔**早于本次下单**的旧转账(金额/收款方与订单一致),验闸③。
+# ⚠️ 必须比下单时刻早**超过 5 分钟** —— club 的闸③给了 5 分钟时钟容差
+#    (它挡的是早几小时几天的旧转账,而两边的钟本来就不同步)。
+#    拿一笔两分钟前的转账来试,**它本来就该被放行**,那不叫闸失效,叫用例没搭对。
+#    下面会先查它的链上时间并硬性核对,不合格直接停,免得又误判成产品有问题。
+OLD_TX="${OLD_TX:-}"
 # 认款回执:机器人的助记词签一份 Order{id,did,hash} 交给 hidid。
 # 失败时 hidid 会把三方(club)的拒绝原因顺着 grpc status 带回来,所以 stderr 也要收。
 notify(){ MN_FILE="${ROBOT_MN:?}" /tmp/coin_probe --notify-pay "$1" "$2" "$3" 2>&1; }
+# 链上事实(Transfer.TxDetail,只报事实)。用来核对诱饵够不够旧。
+txtime(){ MN_FILE="${ROBOT_MN:?}" /tmp/coin_probe --tx-detail "$1" "$2" 2>/dev/null | sed -n "s/^timestamp=//p"; }
+SKEW=300   # 与 club 的 orderClockSkew 一致(5 分钟)
 pass=0; fail=0
 ok(){ printf "  \033[32m✓\033[0m %s\n" "$1"; pass=$((pass+1)); }
 bad(){ printf "  \033[31m✗\033[0m %s  (%s)\n" "$1" "$2"; fail=$((fail+1)); }
@@ -72,10 +80,21 @@ chk "**订单写明了给哪台机器人**(扩展性靠它)" "$OTGT" "$RB"
 echo
 echo "── 二、闸③:拿一笔**早于下单**的旧转账去认新单 ──"
 if [ -n "$OLD_TX" ]; then
-  hasany "**旧转账认不了新单**(时间早于下单)" \
-    "$(notify "$OID" "$OMCH" "$OLD_TX")" \
-    "时序" "早于" "时间" "不符"
-  chk "订单仍是待付款(0)" "$(Q hi_club "SELECT status FROM hi_club_market_order WHERE order_id='$OID';")" "0"
+  # 先证明这个诱饵**确实够旧**。不核对的话,一笔刚转的钱会被闸③正常放行,
+  # 而输出看起来就像"闸③失效了" —— 踩过一次,白白多花了两笔钱才看明白。
+  OT=$(txtime "$OCOIN" "$OLD_TX")
+  ONOW=$(date +%s)
+  if [ -z "$OT" ] || [ "$OT" = "0" ]; then
+    bad "闸③没验" "取不到 OLD_TX 的链上时间(state 可能不是 success)"
+  elif [ $(( ONOW - OT/1000 )) -le $SKEW ]; then
+    bad "闸③没验" "OLD_TX 只比现在早 $(( ONOW - OT/1000 ))s,没超过 ${SKEW}s 容差 —— 它本来就该被放行,换一笔更早的"
+  else
+    ok "诱饵够旧(比现在早 $(( ONOW - OT/1000 ))s,超过 ${SKEW}s 容差)"
+    hasany "**旧转账认不了新单**(时间早于下单)" \
+      "$(notify "$OID" "$OMCH" "$OLD_TX")" \
+      "时序" "早于" "时间" "不符"
+    chk "订单仍是待付款(0)" "$(Q hi_club "SELECT status FROM hi_club_market_order WHERE order_id='$OID';")" "0"
+  fi
 else
   bad "闸③没验" "没给 OLD_TX —— 这是本脚本最该验的一条,别跳过"
 fi
