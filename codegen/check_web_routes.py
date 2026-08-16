@@ -90,10 +90,14 @@ def load_request_fields():
                 ["buf", "build", "--as-file-descriptor-set", "--output", tmp],
                 cwd=HIPROTO, check=True, capture_output=True,
             )
-        except FileNotFoundError:
+        except (FileNotFoundError, subprocess.CalledProcessError):
             # 非交互 shell 里 buf 常常不在 PATH(release.sh 自己会设)。
             # **说清楚跳过了哪半**,别让人以为"没报错=都查过了"。
-            print("[check_web] 找不到 buf,**跳过字段核对**(路由那半照查)")
+            # buf 起不来 or proto 本身编不过(字段号撞了之类)——都不是本检查的事,
+            # 但**必须说清楚跳过了哪半**,否则"没报错"会被当成"都查过了"。
+            # 而且不能抛栈:release.sh 里它是 `|| true` 兜着的,抛栈只会在日志里刷一屏,
+            # 把真正的失败原因(proto 编不过)挤到看不见的地方——这次就是这么绕了一圈。
+            print("[check_web] buf 不可用或 proto 当前编不过,**跳过字段核对**(路由那半照查)")
             return {}, {}
         fds = json.load(open(tmp, encoding="utf-8"))
     finally:
