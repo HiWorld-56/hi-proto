@@ -20,9 +20,13 @@
 #   $GRPCURL $(tp $CLUB_GRPC) -protoset $PB -d "$body" $CLUB_GRPC hi.club.Order/Report
 
 # ── 对外(前端可达)→ 域名 TLS ────────────────────────────────────────────
-CLUB_API=${CLUB_API:-https://hiclub.hi.lan/api/v1}      # hi-club HTTP 网关(同源挂在后台站上)
-AI_API=${AI_API:-https://hiai.hi.lan/api/v1}            # hi-ai   HTTP 网关(同上)
-DID_API=${DID_API:-https://hisrv.hi.lan/api/v1}         # hi-did  HTTP 网关(商户后台同源)
+# ⚠️ 走**专用 API 域名**,不要用 `hiclub.hi.lan/api/v1` 那种后台站的同源路径。
+# 同源路径只在开发存在 —— 生产的 hiclub.mados.net 根本没有 /api/(只有 /dl/、
+# /download 和静态站)。拿一条生产不存在的路径去冒烟,等于没在模拟真实环境。
+# 同源那几条留给**浏览器里的后台页面**;非浏览器客户端一律走 *-http-api。
+CLUB_API=${CLUB_API:-https://hiclub-http-api.hi.lan/api/v1}   # → hi-club 9537
+AI_API=${AI_API:-https://hiai-http-api.hi.lan/api/v1}         # → hi-ai   9535
+DID_API=${DID_API:-https://hidid-http-api.hi.lan/api/v1}      # → hi-did  9533
 CLUB_GRPC=${CLUB_GRPC:-hiclub-grpc-api.hi.lan:443}
 DID_GRPC=${DID_GRPC:-hidid-grpc-api.hi.lan:443}
 SRC=${SRC:-https://hisource.hi.lan}                     # 资源域名 —— 客户端看到的就是它
