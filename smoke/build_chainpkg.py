@@ -22,6 +22,8 @@ AK = "fnYMEbIv5wiz0SzuH42s"
 SK = "NyoDifhqrDB7L9jrEE5K6eVM7pwSEueQKIQ8Vjht"
 HOST = "127.0.0.1:9000"
 BUCKET = "hiai"
+# 对外资源前缀,与 hi-source 的 download_api.base 同源(见其 config.yaml)。
+PUBLIC_BASE = "https://hisource.hi.lan/"
 REGION, SVC = "us-east-1", "s3"
 
 MAIN_PY = '''from impl import get_vault_code, open_vault   # noqa: F401
@@ -112,4 +114,7 @@ def put(key, body):
 if __name__ == "__main__":
     key = "plugin/" + uuid.uuid4().hex + ".zip"
     put(key, build_zip())
-    print("http://192.168.1.65:9000/" + BUCKET + "/" + key)
+    # 打印出去的这条 url 会被当成插件包地址存进订单,最终由**机器人**去取 ——
+    # 那是用户手里的设备,只可能走域名。上面 PUT 用 127.0.0.1:9000 是本机写 minio
+    # (带 minio 凭据的后端动作),两者不是一回事,别顺手统一。
+    print(PUBLIC_BASE + BUCKET + "/" + key)

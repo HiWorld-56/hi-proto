@@ -10,8 +10,7 @@
 #    验签、签名者必须是收款方、幂等键、重复回调不能重复放行。
 #    闸漏一道,任何持私钥的人就能把别人的订单标成已支付。
 set -uo pipefail
-CLUB_HTTP=192.168.1.65:9537
-CLUB_GRPC=192.168.1.65:9536
+source "$(dirname "$0")/_endpoints.sh"   # 端点/CA 统一约定(前端可达→域名 TLS,内部→内网 IP)
 GRPCURL=/tmp/grpcurl
 PB=/tmp/hi.protoset
 DB=192.168.1.65
@@ -28,8 +27,8 @@ chk(){ [ "$2" = "$3" ] && ok "$1" || bad "$1" "want=$3 got=$2"; }
 command -v mysql >/dev/null || { echo "缺 mysql 客户端 —— 请在 .65 上跑。" >&2; exit 2; }
 [ -x /tmp/didsign ] || { echo "缺 /tmp/didsign(core-mqtt 的 didsign,--features testkit 编)。" >&2; exit 2; }
 Q(){ mysql -h$DB -ulo -p568568 "$1" -N -e "$2" 2>/dev/null; }
-cjs(){ curl -s -m 60 -X POST "http://$CLUB_HTTP/api/v1/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $STOK" -d "$2"; }
-cjb(){ curl -s -m 60 -X POST "http://$CLUB_HTTP/api/v1/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $BTOK" -d "$2"; }
+cjs(){ curl -s $CAC -m 60 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $STOK" -d "$2"; }
+cjb(){ curl -s $CAC -m 60 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $BTOK" -d "$2"; }
 g(){ python3 -c '
 import sys,json
 try:
@@ -49,7 +48,7 @@ sig = subprocess.run(["/tmp/didsign", raw], capture_output=True, text=True,
 print(json.dumps({"data": base64.b64encode(raw.encode()).decode(), "signature": sig}))
 PYEOF
 }
-rpc(){ $GRPCURL -plaintext -protoset $PB -max-time 30 -d "$2" $CLUB_GRPC "$1" 2>&1; }
+rpc(){ $GRPCURL $(tp $CLUB_GRPC) -protoset $PB -max-time 30 -d "$2" $CLUB_GRPC "$1" 2>&1; }
 
 echo "── 准备:EXTERNAL 挂牌 + 买方申请 ──"
 SB=$(cjs agent/create_assistant '{"name":"ext-seller"}' | g data base did)

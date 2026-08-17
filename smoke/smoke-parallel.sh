@@ -18,7 +18,7 @@
 #     以及 NATIVE 那条"进喂模型的数组、不进服务端执行名单"。
 #     那条轴上,机器人执行的方法本来就不会在服务端跑,反之亦然。
 set -uo pipefail
-CLUB=192.168.1.65:9537; DB=192.168.1.65
+source "$(dirname "$0")/_endpoints.sh"   # 端点/CA 统一约定(前端可达→域名 TLS,内部→内网 IP)
 TOK="${1:?用法: smoke-parallel.sh <用户token> <插件包url>}"; PKG="${2:?需要测试插件包 url}"
 MAGIC="HI-MKT-7Q3XZ9"; SUM="623"
 pass=0; fail=0
@@ -26,7 +26,7 @@ ok(){ printf "  \033[32m✓\033[0m %s\n" "$1"; pass=$((pass+1)); }
 bad(){ printf "  \033[31m✗\033[0m %s  (%s)\n" "$1" "$2"; fail=$((fail+1)); }
 command -v mysql >/dev/null || { echo "缺 mysql 客户端 —— 请在 .65 上跑。" >&2; exit 2; }
 Q(){ mysql -h$DB -ulo -p568568 hi_ai -N -e "$1" 2>/dev/null; }
-cj(){ curl -s -m 240 -X POST "http://$CLUB/api/v1/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $TOK" -d "$2"; }
+cj(){ curl -s $CAC -m 240 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $TOK" -d "$2"; }
 g(){ python3 -c '
 import sys,json
 try:
@@ -59,7 +59,7 @@ run_one(){   # $1=模型名(空=默认)  $2=标签
   # ⚠️ "两个都跑了" **不等于** "在同一轮并行发出" —— 分两轮跑也能得到同样的答复。
   # 用流式的回显帧坐实:一次 echoToolCalls 帧里若有 2 条 tool_call,那就是同一轮。
   local S N
-  S=$(curl -sN -m 240 -X POST "http://$CLUB/api/v1/chat/converse_stream" -H 'Content-Type: application/json' \
+  S=$(curl -sN $CAC -m 240 -X POST "$CLUB_API/chat/converse_stream" -H 'Content-Type: application/json' \
       -H "Authorization: Bearer $TOK" \
       -d "{\"agent\":\"$B\",\"cid\":\"parx-$TAG-$$\",\"conts\":[{\"type\":\"text\",\"chat\":{\"content\":\"再来一次:取校验令牌,并算 137 加 486。两个都要用工具。\"}}],\"echo_tool_calls\":true}")
   N=$(echo "$S" | python3 -c '

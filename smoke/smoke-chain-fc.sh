@@ -1,7 +1,7 @@
 #!/bin/bash
 # 链式 function call 端到端:第二步的产物只有拿到第一步的返回值才可能得到。
 set -uo pipefail
-CLUB=192.168.1.65:9537
+source "$(dirname "$0")/_endpoints.sh"   # 端点/CA 统一约定(前端可达→域名 TLS,内部→内网 IP)
 TOK="$1"; PKG="$2"
 MAGIC="HI-CHAIN-4M2WQ"     # open_vault 在 code 对上时才吐的值
 CODE="K7X-QF3"             # get_vault_code 的返回值
@@ -9,7 +9,7 @@ pass=0; fail=0
 ok(){ printf "  \033[32m✓\033[0m %s\n" "$1"; pass=$((pass+1)); }
 bad(){ printf "  \033[31m✗\033[0m %s  (%s)\n" "$1" "$2"; fail=$((fail+1)); }
 has(){ case "$2" in *"$3"*) ok "$1";; *) bad "$1" "没有 '$3': $(echo "$2"|head -c 200)";; esac; }
-cj(){ curl -s -m 180 -X POST "http://$CLUB/api/v1/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $TOK" -d "$2"; }
+cj(){ curl -s $CAC -m 180 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $TOK" -d "$2"; }
 g(){ python3 -c '
 import sys,json
 try:

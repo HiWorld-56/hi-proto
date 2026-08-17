@@ -6,16 +6,16 @@
 # 合了的话,一个本该可关的调试开关会把流程必需的信号一起关掉,
 # 而症状是"关掉回显后机器人不动了",没人会往调试开关上想。
 set -uo pipefail
-CLUB=192.168.1.65:9537
+source "$(dirname "$0")/_endpoints.sh"   # 端点/CA 统一约定(前端可达→域名 TLS,内部→内网 IP)
 TOK="${1:?用法: smoke-stream.sh <用户token>}"
 pass=0; fail=0
 ok(){ printf "  \033[32m✓\033[0m %s\n" "$1"; pass=$((pass+1)); }
 bad(){ printf "  \033[31m✗\033[0m %s  (%s)\n" "$1" "$2"; fail=$((fail+1)); }
 has(){ case "$2" in *"$3"*) ok "$1";; *) bad "$1" "流里没有 '$3'";; esac; }
 no(){  case "$2" in *"$3"*) bad "$1" "流里不该有 '$3'";; *) ok "$1";; esac; }
-cj(){ curl -s -m 120 -X POST "http://$CLUB/api/v1/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $TOK" -d "$2"; }
+cj(){ curl -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $TOK" -d "$2"; }
 # 流式:grpc-gateway 把 server-streaming 吐成一行一个 JSON
-st(){ curl -sN -m 180 -X POST "http://$CLUB/api/v1/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $TOK" -d "$2"; }
+st(){ curl -sN $CAC -m 180 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $TOK" -d "$2"; }
 g(){ python3 -c '
 import sys,json
 try:

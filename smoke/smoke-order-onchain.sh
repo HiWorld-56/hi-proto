@@ -13,7 +13,7 @@
 #    (`hi.did.PayCallback.Pay`)。曾经有过一个 `Market.ReportPayment` 让客户端直接调 club,
 #    那是条方向反的路,已删。**拿 curl 直接打三方就等于没验这条链路**。
 set -uo pipefail
-CLUB=192.168.1.65:9537; DB=192.168.1.65
+source "$(dirname "$0")/_endpoints.sh"   # 端点/CA 统一约定(前端可达→域名 TLS,内部→内网 IP)
 STOK="${1:?卖方token}"; BTOK="${2:?买方master token}"; RTOK="${3:?机器人token}"; PKG="${4:?插件包url}"
 COIN="${COIN:-HWHD-APT}"; PRICE="${PRICE:-2}"
 # 一笔**早于本次下单**的旧转账(金额/收款方与订单一致),验闸③。
@@ -38,9 +38,9 @@ hasany(){ local w="$1" o="$2"; shift 2
 command -v mysql >/dev/null || { echo "缺 mysql —— 请在 .65 跑" >&2; exit 2; }
 [ -x /tmp/coin_probe ] || { echo "缺 /tmp/coin_probe(core-mqtt,--features testkit)" >&2; exit 2; }
 Q(){ mysql -h$DB -ulo -p568568 "$1" -N -e "$2" 2>/dev/null; }
-cs(){ curl -s -m 120 -X POST "http://$CLUB/api/v1/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $STOK" -d "$2"; }
-cb(){ curl -s -m 120 -X POST "http://$CLUB/api/v1/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $BTOK" -d "$2"; }
-cr(){ curl -s -m 120 -X POST "http://$CLUB/api/v1/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $RTOK" -d "$2"; }
+cs(){ curl -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $STOK" -d "$2"; }
+cb(){ curl -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $BTOK" -d "$2"; }
+cr(){ curl -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $RTOK" -d "$2"; }
 g(){ python3 -c '
 import sys,json
 try:

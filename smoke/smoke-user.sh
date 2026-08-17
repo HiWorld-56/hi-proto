@@ -17,8 +17,8 @@
 #
 # 用法:bash smoke-user.sh      非 0 退出 = 有失败项
 set -uo pipefail
-H=192.168.1.65
-API=http://$H:9537/api/v1
+source "$(dirname "$0")/_endpoints.sh"   # 端点/CA 统一约定(前端可达→域名 TLS,内部→内网 IP)
+API=$CLUB_API
 pass=0; fail=0
 
 ok()  { printf "  \033[32m✓\033[0m %s\n" "$1"; pass=$((pass+1)); }
@@ -47,11 +47,11 @@ fi
 ok "机器人身份登录 did=$DID"
 ok "人用户身份登录 did=$DID_U"
 
-U() { curl -s -H "Authorization: Bearer $TOK_U" "$@"; }
-PU() { curl -s -X POST -H "Authorization: Bearer $TOK_U" -H 'Content-Type: application/json' -d "$2" "$1"; }
+U() { curl -s $CAC -H "Authorization: Bearer $TOK_U" "$@"; }
+PU() { curl -s $CAC -X POST -H "Authorization: Bearer $TOK_U" -H 'Content-Type: application/json' -d "$2" "$1"; }
 
-A() { curl -s -H "Authorization: Bearer $TOK" "$@"; }             # 带 token 的 GET
-P() { curl -s -X POST -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' -d "$2" "$1"; }
+A() { curl -s $CAC -H "Authorization: Bearer $TOK" "$@"; }             # 带 token 的 GET
+P() { curl -s $CAC -X POST -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' -d "$2" "$1"; }
 
 echo "── 归属校验链路(v_master 那个 bug 的原发地)──"
 CREATED=$(P $API/agent/create_assistant '{"name":"smoke-ownership","avatar":""}')

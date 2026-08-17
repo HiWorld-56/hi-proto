@@ -15,6 +15,7 @@
 import argparse
 import base64
 import json
+import os
 import subprocess
 import sys
 import time
@@ -22,7 +23,12 @@ import uuid
 
 GRPCURL = "/home/lo/go/bin/grpcurl"
 PB = "/home/lo/ci/hi-proto-code/lua/hi.pb"
-CLUB_GRPC = "192.168.1.65:9536"
+# 本脚本扮的是**三方商户**(外部调用方),只可能走域名 TLS —— 判据同 smoke/_endpoints.sh。
+CLUB_GRPC = "hiclub-grpc-api.hi.lan:443"
+# hi.lan 是私有 CA 自签。.64 已装进系统信任库,.65 没装 —— 自动找一份,找不到就退回系统库。
+CA = next((c for c in (os.environ.get("HI_LAN_CA"), "/home/lo/wip/hi.lan.crt",
+                       "/home/lo/hi_lan_ca/hi.lan.crt") if c and os.path.isfile(c)), None)
+TLS = ["-cacert", CA] if CA else []
 
 
 def sign(payload: dict, signer: str) -> dict:
@@ -38,7 +44,7 @@ def sign(payload: dict, signer: str) -> dict:
 
 def call(method: str, body: dict):
     p = subprocess.run(
-        [GRPCURL, "-plaintext", "-protoset", PB, "-d", json.dumps(body), CLUB_GRPC, method],
+        [GRPCURL, *TLS, "-protoset", PB, "-d", json.dumps(body), CLUB_GRPC, method],
         capture_output=True, text=True)
     return p.returncode, p.stdout.strip(), p.stderr.strip()
 

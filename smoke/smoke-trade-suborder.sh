@@ -19,7 +19,7 @@
 # ⚠️ 也不走 Order.Pull:拉单要一个由 SSE 下发给 PC 端的 nonce,脚本拿不到。
 #    Pull 那侧这次的改动是"重复拉不再换号",在 ④ 用库里的行数间接钉住。
 set -uo pipefail
-CLUB_GRPC=192.168.1.65:9536
+source "$(dirname "$0")/_endpoints.sh"   # 端点/CA 统一约定(前端可达→域名 TLS,内部→内网 IP)
 GRPCURL=/tmp/grpcurl
 PB=/tmp/hi.protoset
 DB=192.168.1.65
@@ -56,7 +56,7 @@ print(json.dumps({"did":sys.argv[1],"orders":[{"orderId":sys.argv[2],"status":sy
   # 签不出来就当场停 —— 签名失败会让后面每一条断言都变成"什么都没发生",
   # 而那正好能骗过一半的断言。
   [ -n "$sig" ] || { echo "!! didsign 失败($1),中止" >&2; exit 3; }
-  "$GRPCURL" -protoset "$PB" -plaintext \
+  "$GRPCURL" -protoset "$PB" $(tp $CLUB_GRPC) \
     -d "$(python3 -c '
 import json,sys,base64
 print(json.dumps({"data":base64.b64encode(sys.argv[1].encode()).decode(),"signature":sys.argv[2]}))

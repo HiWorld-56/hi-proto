@@ -1,7 +1,7 @@
 #!/bin/bash
 # 阶段 5:到期 / 续费 / 自动续费 / follow_latest。
 set -uo pipefail
-H=127.0.0.1:9537
+source "$(dirname "$0")/_endpoints.sh"   # 端点/CA 统一约定(前端可达→域名 TLS,内部→内网 IP)
 ST="$1"; BT="$2"; PKG="$3"
 # ⚠️ **没有 mysql 客户端就直接退出,不要硬着头皮往下跑。**
 #    库里那些断言会全部变成 "want=1 got=",看上去像产品坏了 ——
@@ -17,7 +17,7 @@ ok(){ printf "  \033[32m✓\033[0m %s\n" "$1"; pass=$((pass+1)); }
 bad(){ printf "  \033[31m✗\033[0m %s  (%s)\n" "$1" "$2"; fail=$((fail+1)); }
 chk(){ [ "$2" = "$3" ] && ok "$1" || bad "$1" "want=$3 got=$2"; }
 has(){ case "$2" in *"$3"*) ok "$1";; *) bad "$1" "没有 '$3':$(echo "$2"|head -c 150)";; esac; }
-cj(){ curl -s -m 120 -X POST "http://$H/api/v1/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $3" -d "$2"; }
+cj(){ curl -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $3" -d "$2"; }
 q(){ mysql -h127.0.0.1 -ulo -p568568 "$1" -N -e "$2" 2>/dev/null; }
 g(){ python3 -c '
 import sys, json

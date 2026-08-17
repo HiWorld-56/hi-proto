@@ -14,9 +14,7 @@
 #      SKIP_CHAT=1 bash smoke-market.sh   跳过耗时的对话用例
 set -uo pipefail
 
-CLUB=192.168.1.65:9537
-AI=192.168.1.65:9535
-DB=192.168.1.65
+source "$(dirname "$0")/_endpoints.sh"   # 端点/CA 统一约定(前端可达→域名 TLS,内部→内网 IP)
 MAGIC="HI-MKT-7Q3XZ9"     # 测试插件 secret_token() 的返回值
 # ⚠️ **没有 mysql 客户端就直接退出,不要硬着头皮往下跑。**
 #    库里那些断言会全部变成 "want=1 got=",看上去像产品坏了 ——
@@ -35,12 +33,12 @@ chk() { [ "$2" = "$3" ] && ok "$1" || bad "$1" "want=$3 got=$2"; }
 has() { case "$2" in *"$3"*) ok "$1";; *) bad "$1" "输出里没有 '$3':$(echo "$2"|head -c 160)";; esac; }
 no()  { case "$2" in *"$3"*) bad "$1" "不该出现 '$3'";; *) ok "$1";; esac; }
 
-cj()  { curl -s -m 120 -X POST "http://$CLUB/api/v1/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $3" -d "$2"; }
+cj()  { curl -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $3" -d "$2"; }
 # ⚠️ 对话一律走 **club**,不打 hi-ai 直连:机器人的 apikey 是 club 原生的
 #    (hi_chat_api_key),hi-ai 有它自己的一套,两边不通用;而且 app→club→ai 才是真实链路。
 #    只有"老路由还在不在"这类探针才直接打 ai。
-ai_probe() { curl -s -m 30 -X POST "http://$AI/api/v1/$1" -H 'Content-Type: application/json' -d '{}'; }
-pub() { curl -s -m 60 -X POST "http://$CLUB/api/v1/$1" -H 'Content-Type: application/json' -d "$2"; }
+ai_probe() { curl -s $CAC -m 30 -X POST "$AI_API/$1" -H 'Content-Type: application/json' -d '{}'; }
+pub() { curl -s $CAC -m 60 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -d "$2"; }
 q()   { mysql -h$DB -ulo -p568568 "$1" -N -e "$2" 2>/dev/null; }
 g()   { python3 -c '
 import sys, json

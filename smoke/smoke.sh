@@ -7,7 +7,8 @@
 #
 # 用法:bash smoke.sh          非 0 退出 = 有失败项
 set -uo pipefail
-H=192.168.1.65
+# 端点/CA 的统一约定见 _endpoints.sh(前端可达→域名 TLS,内部服务→内网 IP)。
+source "$(dirname "$0")/_endpoints.sh"
 G=/home/lo/go/bin/grpcurl
 PS=/home/lo/ci/hi-proto-code/lua/hi.pb
 pass=0; fail=0
@@ -17,22 +18,24 @@ bad()  { printf "  \033[31m✗\033[0m %s  (%s)\n" "$1" "$2"; fail=$((fail+1)); }
 chk()  { [ "$2" = "$3" ] && ok "$1" || bad "$1" "want=$3 got=$2"; }
 
 echo "── 存储策略(靠 bucket 隔离,不靠代码记得)──"
+# 走对外域名,不走 minio 内网口 —— 这几条问的是"**客户端**能不能读/枚举/写",
+# 那就得站在客户端的位置上问。打 $H:9000 是绕过 nginx 从内网问,
+# 少验了整条对外链路(TLS + nginx 那一跳),而权限判据本身还照样绿。
+cs() { curl -s $CAC -o /dev/null -w '%{http_code}' "$@"; }
 for b in hidid hiclub temp; do
-  chk "$b 公开可读(对象不存在应 404 而非 403)" \
-      "$(curl -s -o /dev/null -w '%{http_code}' http://$H:9000/$b/_nope)" 404
+  chk "$b 公开可读(对象不存在应 404 而非 403)" "$(cs $SRC/$b/_nope)" 404
 done
 for b in hiai log; do
-  chk "$b 私有(匿名 GET 应 403)" \
-      "$(curl -s -o /dev/null -w '%{http_code}' http://$H:9000/$b/_nope)" 403
+  chk "$b 私有(匿名 GET 应 403)" "$(cs $SRC/$b/_nope)" 403
 done
 for b in hidid hiclub temp hiai; do
-  chk "$b 不可枚举(LIST 403)" "$(curl -s -o /dev/null -w '%{http_code}' http://$H:9000/$b/)" 403
-  chk "$b 拒匿名写(PUT 403)"  "$(curl -s -o /dev/null -w '%{http_code}' -X PUT --data x http://$H:9000/$b/_probe)" 403
+  chk "$b 不可枚举(LIST 403)" "$(cs $SRC/$b/)" 403
+  chk "$b 拒匿名写(PUT 403)"  "$(cs -X PUT --data x $SRC/$b/_probe)" 403
 done
 
 echo "── hi-source:三种命名模式 + 新老 url 通吃 ──"
 C=$(echo -n smoke | base64)
-put() { $G -plaintext -protoset $PS -d "$1" $H:9530 hi.source.File/Put 2>&1 | grep -oE 'http[^"]+'; }
+put() { $G $(tp $SRC_GRPC) -protoset $PS -d "$1" $SRC_GRPC hi.source.File/Put 2>&1 | grep -oE 'http[^"]+'; }
 u_rand=$(put "{\"bucket\":\"temp\",\"dir\":\"_smoke\",\"name\":\"a.txt\",\"content\":\"$C\"}")
 u_ts=$(  put "{\"bucket\":\"log\",\"dir\":\"_smoke\",\"name\":\"a.log\",\"content\":\"$C\",\"nameMode\":\"NAME_TIMESTAMP\"}")
 u_keep=$(put "{\"bucket\":\"log\",\"dir\":\"_smoke\",\"name\":\"keep.log\",\"content\":\"$C\",\"nameMode\":\"NAME_KEEP\"}")
@@ -40,29 +43,36 @@ u_keep=$(put "{\"bucket\":\"log\",\"dir\":\"_smoke\",\"name\":\"keep.log\",\"con
 [[ $u_ts   =~ /log/_smoke/a_[0-9]{8}T[0-9]{6}\.[0-9]{9}Z\.log$ ]] && ok "TIMESTAMP:可读且字典序即时序" || bad "TIMESTAMP 命名" "$u_ts"
 [[ $u_keep =~ /log/_smoke/keep\.log$ ]] && ok "KEEP:原样可覆盖" || bad "KEEP 命名" "$u_keep"
 
-dl() { $G -plaintext -protoset $PS -d "{\"url\":\"$1\"}" $H:9530 hi.source.File/Download 2>&1 | grep -c '"content"'; }
+dl() { $G $(tp $SRC_GRPC) -protoset $PS -d "{\"url\":\"$1\"}" $SRC_GRPC hi.source.File/Download 2>&1 | grep -c '"content"'; }
 chk "私有桶经 Download 能取(匿名取不到)" "$(dl "$u_ts")" 1
+# ⚠️ 这条**故意**用内网 IP 前缀,不要"顺手统一成域名"。
+# 它验的是 parseURL 认不认存量数据:库里的老 url 和别的服务传来的 url 都是
+# `http://<ip>:9000/` 形式。只认域名的那一刻,历史 url 全报"跨环境数据",
+# 插件包取不到、CreateVersion 整条挂掉(踩过:冒烟从 21/0 掉到 13/8)。
+# 这里的 IP 是**入参数据**,不是"前端拿 IP 访问服务" —— 两回事。
 chk "老 upload url 仍可下(存量不受影响)" \
     "$(dl "http://$H:9000/upload/2026_04/bc52deaa4b554fffb208c9a1e2178a8f_test_pic.jpg")" 1
 
 echo "── 鉴权边界:操作对象只能来自 token ──"
-code() { $G -plaintext -protoset $PS -d '{}' $H:$1 $2 2>&1 | grep -oE 'Unauthenticated|Unimplemented|does not include a method|does not expose service' | head -1; }
-chk "OrderEvent.Sub 需 token(已不收 did 入参)" "$(code 9532 hi.did.OrderEvent/Sub)" Unauthenticated
-chk "club.Source.UploadLog 需 token"           "$(code 9536 hi.club.Source/UploadLog)"   Unauthenticated
-chk "ai.Source.DownloadScript 需鉴权"          "$(code 9534 hi.ai.Source/DownloadScript)" Unauthenticated
-chk "did.Source.UploadAvatar 需 token"         "$(code 9532 hi.did.Source/UploadAvatar)"  Unauthenticated
-chk "club.Source.UploadTrainingFile 需 token"  "$(code 9536 hi.club.Source/UploadTrainingFile)" Unauthenticated
+# 第一个参数改成**端点**(原来是端口号):前端可达的两个网关走域名 TLS,
+# hi-ai / hi-source 这两个纯内部的仍走内网 IP。判据是"前端够不够得着",不是"谁在调"。
+code() { $G $(tp $1) -protoset $PS -d '{}' $1 $2 2>&1 | grep -oE 'Unauthenticated|Unimplemented|does not include a method|does not expose service' | head -1; }
+chk "OrderEvent.Sub 需 token(已不收 did 入参)" "$(code $DID_GRPC hi.did.OrderEvent/Sub)" Unauthenticated
+chk "club.Source.UploadLog 需 token"           "$(code $CLUB_GRPC hi.club.Source/UploadLog)"   Unauthenticated
+chk "ai.Source.DownloadScript 需鉴权"          "$(code $AI_GRPC hi.ai.Source/DownloadScript)" Unauthenticated
+chk "did.Source.UploadAvatar 需 token"         "$(code $DID_GRPC hi.did.Source/UploadAvatar)"  Unauthenticated
+chk "club.Source.UploadTrainingFile 需 token"  "$(code $CLUB_GRPC hi.club.Source/UploadTrainingFile)" Unauthenticated
 
 echo "── 已删接口不得复活 ──"
-chk "hi-source 旧 Upload 已删"       "$(code 9530 hi.source.File/Upload)"    "does not include a method"
-chk "Wallet.ListAddresses 已迁走"    "$(code 9532 hi.did.Wallet/ListAddresses)" "does not include a method"
-chk "club.UserExtension 已删"        "$(code 9536 hi.club.UserExtension/Get)"   "does not expose service"
-chk "ai.Agent.Create 已拆(不得合并回来)" "$(code 9534 hi.ai.Agent/Create)"  "does not include a method"
-chk "ai.Agent.RegisterRobot 存在"    "$(code 9534 hi.ai.Agent/RegisterRobot)"   Unauthenticated
-chk "ai.Agent.CreateAssistant 存在"  "$(code 9534 hi.ai.Agent/CreateAssistant)" Unauthenticated
+chk "hi-source 旧 Upload 已删"       "$(code $SRC_GRPC hi.source.File/Upload)"    "does not include a method"
+chk "Wallet.ListAddresses 已迁走"    "$(code $DID_GRPC hi.did.Wallet/ListAddresses)" "does not include a method"
+chk "club.UserExtension 已删"        "$(code $CLUB_GRPC hi.club.UserExtension/Get)"   "does not expose service"
+chk "ai.Agent.Create 已拆(不得合并回来)" "$(code $AI_GRPC hi.ai.Agent/Create)"  "does not include a method"
+chk "ai.Agent.RegisterRobot 存在"    "$(code $AI_GRPC hi.ai.Agent/RegisterRobot)"   Unauthenticated
+chk "ai.Agent.CreateAssistant 存在"  "$(code $AI_GRPC hi.ai.Agent/CreateAssistant)" Unauthenticated
 
 echo "── 公开查询确实免鉴权 ──"
-n=$($G -plaintext -protoset $PS -d '{"list":[{"did":"zYJZirMcNx3FjFmhMQyXAAemADUy8BPBPz"}]}' $H:9532 hi.did.Assets/ListAddresses 2>&1 | grep -c 'Unauthenticated')
+n=$($G $(tp $DID_GRPC) -protoset $PS -d '{"list":[{"did":"zYJZirMcNx3FjFmhMQyXAAemADUy8BPBPz"}]}' $DID_GRPC hi.did.Assets/ListAddresses 2>&1 | grep -c 'Unauthenticated')
 chk "Assets.ListAddresses 公开可调" "$n" 0
 
 echo "── 实现覆盖(proto 改名后 handler 没跟 → 静默 Unimplemented)──"
