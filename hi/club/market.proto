@@ -67,6 +67,31 @@ enum ListingStatus {
   LISTING_STATUS_DELISTED = 4; // 已下架:不再接新申请
 }
 
+// MarketListingKind 挂牌类型 —— 这一摊是谁的货。
+//
+// **只有平台自己那个用户能设 OFFICIAL / BUILTIN**（club 配置里那一个 did，见
+// backend-hi-club 的 `Market.OFFICIAL_DID`）。别人传了直接拒 ——
+// 否则任何商户都能给自己的插件贴个"官方"，而"官方"这两个字的全部价值就是没人能自封。
+//
+// ## BUILTIN 是「每台硬件机器人都该有」的那一档
+//
+// 它不是一个更醒目的 OFFICIAL，而是多了两条**机制**：
+//
+//   · 新硬件机器人在 club 注册时**自动引用**它（不走申请，不需要主人点头）；
+//   · 发新版时**全网一起切**（`hi.ai.Plugin.SetActiveAll`），不看 follow_latest ——
+//     内置能力跟 brain 的 ABI 绑在一起，一台机器人停在老版就是设备能力与固件对不上。
+//
+// 所以 BUILTIN 强制：免费、永久、免审。收费的"内置"是自相矛盾的 ——
+// 出厂就该有的能力，不能等用户付款。
+//
+// ⚠️ **它照样挂在市场里**，而不是藏在系统里：主人把内置插件关了/删了之后，
+// 得有个地方让他自己拿回来（0 元购）。藏起来的东西找不回来。
+enum MarketListingKind {
+  MARKET_LISTING_KIND_UNSPECIFIED = 0; // = NORMAL,三方商户的货
+  MARKET_LISTING_KIND_OFFICIAL    = 1; // 官方出品(可以收费、走正常申请流程)
+  MARKET_LISTING_KIND_BUILTIN     = 2; // 内置:每台硬件机器人自动引用 + 全网跟版 + 免费永久免审
+}
+
 // GrantStatus 授权状态机。
 //
 // ⚠️ **`APPROVED` 与 `INSTALLED` 必须分开。** 前者是"授权成立"(club 的事实),
@@ -104,6 +129,9 @@ message MarketListingBrief {
   string        coin    = 9 [(hi.visibility) = VIS_PUBLIC];
   int64         duration = 10 [(hi.visibility) = VIS_PUBLIC]; // 商品规格:买一次能用多久(秒);0 = 永久
   int32         install_count = 11 [(hi.visibility) = VIS_PUBLIC]; // 装机数
+  // 这一摊是谁的货(普通 / 官方 / 内置)。公开 —— 买家要能看出哪个是官方出品,
+  // 那正是这个字段存在的意义;藏起来等于白设。
+  MarketListingKind kind = 12 [(hi.visibility) = VIS_PUBLIC];
 }
 
 // MarketListingDetail 挂牌详情。
@@ -243,6 +271,10 @@ message CreateListingReq {
   // 为什么是静态的:商户不再同步返回 action_url 了(它是"来拉"的一方,不在申请这条链路上)。
   // 一个商户的收款页本来就固定,每次 RPC 去要一遍是白跑。
   string          action_url  = 12;
+  // 挂牌类型。**只有平台那个 did 能设 OFFICIAL / BUILTIN**,别人传了直接拒。
+  // BUILTIN 会被强制成免费 / 永久 / 免审(见 MarketListingKind) ——
+  // 不是"帮你改一下",是那三个值与"内置"这件事互相矛盾时,以内置为准并如实报错。
+  MarketListingKind kind = 13;
 }
 
 // EditListingReq 改挂牌。**没有 settle_mode** —— 定价三元组可改,结算方式不可改。

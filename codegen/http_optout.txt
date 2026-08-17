@@ -114,3 +114,9 @@ hi.ai.Plugin.ListNative
 # 机器人自用面 —— 主体恒取自凭证,机器人经 core 的 grpc 通道调。
 # 挂到 http 网关上没有意义(没有浏览器会以机器人身份登录),只多一个暴露面。
 service:hi.club.AgentPlugin
+
+# 官方/内置插件发新版时,把**所有使用方**一起切到那一版(内置能力的版本必须全网统一,
+# 它跟 brain 的 ABI 绑在一起)。由 club 在 CreateVersion 之后经 grpc 调 ——
+# 触发点是"发了新版"这个事实,不是页面上的一个按钮;挂到 http 上等于给了一个
+# "把全网机器人的插件版本推过去"的公开入口。
+hi.ai.Plugin.SetActiveAll

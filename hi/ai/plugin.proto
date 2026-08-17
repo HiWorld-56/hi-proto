@@ -206,6 +206,27 @@ message EditPluginReq {
 message SetEnabledReq { string agent = 1; string uuid = 2; bool enabled = 3; }             // 改 c.enabled
 message SetActiveReq  { string agent = 1; string uuid = 2; string version = 3; }           // 改 d.active(事务内互斥)
 
+// SetActiveAll 把**所有使用方**切到同一版 —— 官方/内置插件发新版时用。
+//
+// 为什么需要它:激活版是**每个使用方各一行**(d),发新版不会动别人那行。对普通插件这是
+// 对的(作者发新版可能改坏,不该自动打穿所有引用方,所以有 follow_latest 这个开关);
+// 但**内置插件的版本必须全网统一** —— 它是平台能力,还跟 brain 的 ABI 绑在一起,
+// 一台机器人停在老版就是一台设备的能力与固件对不上。
+//
+// ⚠️ **没有 agent 参数**,也没有"要切哪些"的名单:主体就是"这个壳的所有使用方"。
+//    给了名单就等于让调用方去枚举几千个 did,而那份名单迟早与事实不符。
+//
+// ⚠️ 与 SetActive 同一套语义(没有 d 行就以当前激活版的 d.data 为模板补一行再激活),
+//    所以引用方不必发过版也切得动。
+message SetActiveAllReq {
+  string uuid    = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string version = 2 [(buf.validate.field).string.pattern="^\\S+$"];
+}
+message SetActiveAllResp {
+  option (hi.audience) = VIS_SELF;
+  int32 switched = 1 [(hi.visibility) = VIS_SELF]; // 切过去的使用方个数(日志/回显用)
+}
+
 message DownloadScriptReq { string agent = 1; string uuid = 2; string version = 3; }
 message DownloadScriptResp {
   option (hi.audience) = VIS_SELF;
@@ -346,6 +367,7 @@ service Plugin {
   rpc CreateReference (CreateReferenceReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 按授权建引用(市场装载;插 c=REFERENCE + d,不碰 a/b,幂等)
   rpc DeleteByAgents (DeletePluginByAgentsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 内部级联(仅 grpc,不配 http):club 撤"插件权限"时经 aiapi 调,清某些机器人全部插件;非前端接口
   rpc SetActive (SetActiveReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }         // 激活某版本(d.active 互斥)
+  rpc SetActiveAll (SetActiveAllReq) returns (SetActiveAllResp) { option (hi.auth) = AUTH_MERCHANT; }        // 所有使用方一起切到某版(官方/内置插件发新版)
   rpc SetEnabled (SetEnabledReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 插件开关(c.enabled)
   rpc ListNative (ListNativeReq) returns (ListNativeResp) { option (hi.auth) = AUTH_MERCHANT; }              // 下发清单:某机器人该装哪些 NATIVE 插件(club 经此穿透)
   rpc RetryBuild (RetryBuildReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 重编一版(仅创建者;版本本体不动,重来的是产物)
