@@ -13,9 +13,22 @@ web 那边是人肉 `postRequest('/api/v1/xxx', { a, b })`,于是:
     字段维度一大片(`bot_did`/`file_ids`/`id` → `agent`/`uuids`/`uuid`),
     而且同一个仓里 `memory` 页早改了、`train` 页没改,并存了很久没人发现。
 
-所以这个脚本把两件事都查:
-  1. web 里出现的 `/api/v1/...` 字面量,在 http/*.yaml 里存不存在;
-  2. 调用点传的对象字面量,key 在对应请求消息里存不存在。
+所以这个脚本把这几件事都查:
+  1. web 里出现的 `/api/v1/...` 字面量,在**本工程连的那个服务**的 yaml 里存不存在;
+  2. 路径存在、但在**别的服务**(连错网关 —— 网关只会回 code:5,前端看到的是一片空);
+  3. 少了前导 `/` 的写法(能跑,但这类曾经整片逃过本检查);
+  4. 调用点传的对象字面量,key 在对应请求消息里存不存在。
+
+## 为什么要分服务(2026-08-17 加)
+
+一个 web 工程只连一个网关,而 **70 条路径在 ai/club/did 里同名**。
+原来三份 yaml 合成一张表查,两头都出错:
+  · hidid-web 调 `agent/list` —— ai.yaml 里有,放过;而 hi-did 网关根本没有 agent
+    这个 service,实测 code:5。hiai-web 的 `trade_manage/list` 同理(那在 club)。
+  · hiai-web 的 `api_key/list` 被拿 **club 的**消息去比,报「传了 user」;
+    真问题却是 hi.ai 的 ApiKey.List 收扁平 `hi.Pagination`、没有 agent 这一维。
+服务由目录名(hiai-web / hiclub-web / hidid-web)或 `.env*` 里的 VUE_APP_URL 端口推断,
+也可以 `--service=ai|club|did` 显式指定。认不出来会**明确说自己退回了合表查**。
 
 ## 只报不拦
 
@@ -25,7 +38,7 @@ web 那边是人肉 `postRequest('/api/v1/xxx', { a, b })`,于是:
 那它就彻底没用了。
 
 用法:
-    python3 codegen/check_web_routes.py <hiclub-web 检出目录> [--warn]
+    python3 codegen/check_web_routes.py <web 工程检出目录> [--service=ai|club|did] [--warn]
 """
 import json
 import os
@@ -37,11 +50,16 @@ import tempfile
 HIPROTO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # 路径字面量:'/api/v1/xxx/yyy'
-PATH_RE = re.compile(r"""['"](/api/v1/[a-zA-Z0-9_/]+)['"]""")
+# ⚠️ 前导 `/` 必须是**可选**的。axios 的 baseURL 会把 'api/v1/x' 和 '/api/v1/x' 拼成
+#    同一个地址,两种写法都能跑;但原来的正则只认带斜杠的那种,于是不带斜杠的调用
+#    **一条都查不到,检查还一直报绿**。2026-08-17 实测:hiai-web 有 5 条这么写的,
+#    其中 plugin_endpoint/get|set 那组接口在三份 yaml 里压根不存在,一直没被发现。
+#    统一按 /api/v1/... 归一后再去查表,并单独提示把斜杠补上(见 no_slash)。
+PATH_RE = re.compile(r"""['"](/?api/v1/[a-zA-Z0-9_/]+)['"]""")
 # 调用点:postRequest('/api/v1/x', { a: 1, 'b': 2, c })  —— 只吃**同一行**的对象字面量,
 # 跨行的放过(见上面"宁可漏报")。
 CALL_RE = re.compile(
-    r"""(?:post|get|put|delete)Request\(\s*['"](/api/v1/[a-zA-Z0-9_/]+)['"]\s*,\s*\{([^{}]*)\}""",
+    r"""(?:post|get|put|delete)Request\(\s*['"](/?api/v1/[a-zA-Z0-9_/]+)['"]\s*,\s*\{([^{}]*)\}""",
     re.IGNORECASE,
 )
 KEY_RE = re.compile(r"""['"]?([A-Za-z_][A-Za-z0-9_]*)['"]?\s*:""")
@@ -57,17 +75,70 @@ RESP_RE = re.compile(
 
 EXPORT_RE = re.compile(
     r"""export\s+const\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*\([^)]*\)\s*=>\s*\{?\s*(?:return\s+)?"""
-    r"""(?:post|get|put|delete)Request\(\s*['"](/api/v1/[a-zA-Z0-9_/]+)['"]""",
+    r"""(?:post|get|put|delete)Request\(\s*['"](/?api/v1/[a-zA-Z0-9_/]+)['"]""",
     re.IGNORECASE,
 )
 
 
-def load_routes():
-    """http/*.yaml → {path: selector}。不用 yaml 库,格式是我们自己写的,固定两行一条。"""
+def norm(path):
+    """'api/v1/x' 与 '/api/v1/x' 归一 —— axios 拼出来是同一个地址。"""
+    return path if path.startswith("/") else "/" + path
+
+
+# ── 一个 web 工程只连**一个**网关 ────────────────────────────────────────────
+# 原来这里把 ai/club/did 三份 yaml 合成一张表查,而 **70 条路径跨服务同名**
+# (agent/*、api_key/*、chat/*、plugin/*、training/*、merchant/list …)。
+# 后果两头都有,2026-08-17 两头都踩到了:
+#   · **漏报** —— hidid-web 调 agent/list,ai.yaml 里有 → 放过;
+#     可 hi-did 网关根本没有 agent 这个 service,实测 code:5。
+#     hiai-web 的 trade_manage/list 同理(那在 club)。
+#   · **查错消息** —— hiai-web 的 api_key/list 被拿 **club 的** ListApiKeysReq 去比,
+#     报「传了 user」;而真问题是 hi.ai 的 ApiKey.List 收的是扁平 hi.Pagination,
+#     压根没有 agent 这一维。报出来的和真问题不是一回事。
+# 所以必须先定"这个仓连哪个服务",再只拿那一份 yaml 查。
+SERVICE_OF_DIR = {"hiai": "ai", "hiclub": "club", "hidid": "did", "hisrv": "did"}
+# 兜底:从 .env* 的 VUE_APP_URL 认端口/域名。dev 端口见 hi-prj.md 的部署一节。
+SERVICE_OF_HINT = [
+    ("9535", "ai"), ("hiai", "ai"),
+    ("9537", "club"), ("9536", "club"), ("hiclub", "club"),
+    ("9533", "did"), ("9532", "did"), ("hidid", "did"),
+]
+
+
+def guess_service(web):
+    """判定这个 web 工程连的是哪个服务:目录名优先,其次 .env 里的 VUE_APP_URL。"""
+    base = os.path.basename(os.path.abspath(web)).lower()
+    for key, svc in SERVICE_OF_DIR.items():
+        if base.startswith(key):
+            return svc, f"目录名 {base}"
+    for fn in (".env.development", ".env.production", ".env"):
+        p = os.path.join(web, fn)
+        if not os.path.exists(p):
+            continue
+        text = open(p, encoding="utf-8", errors="ignore").read()
+        m = re.search(r"VUE_APP_URL\s*=\s*['\"]([^'\"]*)['\"]", text)
+        if not m or not m.group(1):
+            continue
+        url = m.group(1).lower()
+        for hint, svc in SERVICE_OF_HINT:
+            if hint in url:
+                return svc, f"{fn} 里的 VUE_APP_URL={m.group(1)}"
+    return None, None
+
+
+def load_routes(service=None):
+    """http/*.yaml → {path: (selector, service)}。不用 yaml 库,格式是我们自己写的,固定两行一条。
+
+    service 非空时**只**收那一份(ai/club/did);为 None 时收全部,
+    此时同名路径以先读到的为准 —— 那正是原来会查错消息的情形,调用方要负责说明。
+    """
     routes = {}
     http_dir = os.path.join(HIPROTO, "http")
     for fn in sorted(os.listdir(http_dir)):
         if not fn.endswith(".yaml") or fn == "merged.yaml":
+            continue
+        svc = fn[:-len(".yaml")]
+        if service and svc != service:
             continue
         sel = None
         for line in open(os.path.join(http_dir, fn), encoding="utf-8"):
@@ -77,7 +148,7 @@ def load_routes():
                 continue
             m = re.match(r"\s*(get|post|put|delete):\s*(\S+)", line)
             if m and sel:
-                routes[m.group(2)] = sel
+                routes.setdefault(m.group(2), (sel, svc))
     return routes
 
 
@@ -137,6 +208,10 @@ def load_request_fields():
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     warn = "--warn" in sys.argv
+    service = None
+    for a in sys.argv[1:]:
+        if a.startswith("--service="):
+            service = a.split("=", 1)[1]
     if not args:
         print(__doc__)
         return 2
@@ -146,7 +221,26 @@ def main():
         print(f"[check_web] 找不到 {src},跳过")
         return 0
 
-    routes = load_routes()
+    if service:
+        why = "--service"
+    else:
+        service, why = guess_service(web)
+    if service:
+        print(f"[check_web] 按 **{service}** 服务核对(依据:{why})")
+    else:
+        # 认不出来就退回合表查,但**必须说出来** —— 合表查会漏掉「路径存在但在别的服务」
+        # 这一类,而那正是最难自己发现的一类(网关回 code:5,前端只看到一片空)。
+        print("[check_web] ⚠ 认不出这个仓连哪个服务,退回三份 yaml 合表查 —— "
+              "**跨服务同名的路径查不出来**。用 --service=ai|club|did 指定。")
+
+    routes = load_routes(service)
+    # 另外两份留着,用来把「路径存在,但在别的服务」单独报出来 —— 只说"不存在"会让人
+    # 以为是改名,实际是**连错了网关**,两者的修法完全不同。
+    elsewhere = {}
+    if service:
+        for path, (sel, svc) in load_routes(None).items():
+            if path not in routes:
+                elsewhere[path] = (sel, svc)
     rpc_req, msg_fields = load_request_fields()
 
     # 先把 api 层的 函数名 → 路径 建出来(调用点在别的文件里)。
@@ -156,9 +250,9 @@ def main():
             if fn.endswith((".js", ".ts")):
                 t = open(os.path.join(root, fn), encoding="utf-8", errors="ignore").read()
                 for name, path in EXPORT_RE.findall(t):
-                    api_fns[name] = path
+                    api_fns[name] = norm(path)
 
-    dead, bad_fields, snake_reads = [], [], []
+    dead, wrong_svc, no_slash, bad_fields, snake_reads = [], [], [], [], []
     for root, _, files in os.walk(src):
         for fn in files:
             if not fn.endswith((".js", ".vue", ".ts")):
@@ -179,15 +273,22 @@ def main():
             for i, line in enumerate(text.splitlines(), 1):
                 if line.lstrip().startswith(("//", "*", "#")):
                     continue  # 注释里的路径不算
-                for path in PATH_RE.findall(line):
-                    if path not in routes:
+                for raw in PATH_RE.findall(line):
+                    if not raw.startswith("/"):
+                        no_slash.append((rel, i, raw))
+                    path = norm(raw)
+                    if path in routes:
+                        continue
+                    if path in elsewhere:
+                        wrong_svc.append((rel, i, path, elsewhere[path][1]))
+                    else:
                         dead.append((rel, i, path))
 
             for i, line in enumerate(code.splitlines(), 1):
                 for var, prop in RESP_RE.findall(line):
                     snake_reads.append((rel, i, f"{var}.{prop}"))
 
-            calls = [(p_, b) for p_, b in CALL_RE.findall(code)]
+            calls = [(norm(p_), b) for p_, b in CALL_RE.findall(code)]
             # 再跟一跳:api 函数名 → 路径,然后查 `fnName({...})` 的调用点。
             for fn_name, p_ in api_fns.items():
                 for b in re.findall(
@@ -195,9 +296,10 @@ def main():
                     calls.append((p_, b))
 
             for path, body in calls:
-                sel = routes.get(path)
-                if not sel:
-                    continue
+                hit = routes.get(path)
+                if not hit:
+                    continue  # 路径本身的问题上面已经报过,这里只管字段
+                sel = hit[0]
                 req = rpc_req.get(sel)
                 fields = msg_fields.get(req) if req else None
                 if not fields:
@@ -210,6 +312,16 @@ def main():
         print(f"[check_web] ✗ {len(dead)} 处路径在 http/*.yaml 里不存在:")
         for rel, i, path in dead:
             print(f"    {rel}:{i}  {path}")
+    if wrong_svc:
+        print(f"[check_web] ✗ {len(wrong_svc)} 处路径**存在,但在别的服务** —— "
+              f"本工程连的是 {service},请求打过去网关只会回 code:5:")
+        for rel, i, path, svc in wrong_svc:
+            print(f"    {rel}:{i}  {path}  (它在 {svc})")
+    if no_slash:
+        print(f"[check_web] ✗ {len(no_slash)} 处路径少了前导 `/` —— "
+              f"axios 拼得起来、跑得通,但这类写法**曾经整片逃过本检查**,请补上:")
+        for rel, i, raw in no_slash:
+            print(f"    {rel}:{i}  '{raw}'  →  '/{raw}'")
     if bad_fields:
         print(f"[check_web] ✗ {len(bad_fields)} 处字段名对不上请求消息:")
         for rel, path, key, sample in bad_fields:
@@ -219,7 +331,7 @@ def main():
               f"(网关吐的是 camelCase,取到的是 undefined,**不报错**):")
         for rel, i, expr in snake_reads:
             print(f"    {rel}:{i}  {expr}")
-    if not dead and not bad_fields and not snake_reads:
+    if not (dead or wrong_svc or no_slash or bad_fields or snake_reads):
         print("[check_web] ✓ 路径与字段均对得上")
         return 0
     print("[check_web] 只报不拦 —— 正常工作流是先改 proto 再跟消费方。"

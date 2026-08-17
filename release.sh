@@ -38,12 +38,23 @@ python3 "$HIPROTO/codegen/check_lockstep.py" --warn /home/lo/wip/backend-hi-* ||
 # **只报不拦** —— 正常工作流是先改 proto 再跟后端,硬失败会卡死每次改名的第一次推送。
 python3 "$HIPROTO/codegen/check_impl.py" /home/lo/wip --warn || true
 
-# hiclub-web:路由 + **字段名**核对。
-# 它是唯一手写 HTTP 客户端的消费方(Go/Rust/Dart 都是生成的),于是 proto 一改名,
-# 别人编译期就炸、它却只是请求照发、字段静默变空 —— 这一类**探测路由发现不了**。
+# web 工程:路由 + **字段名**核对。
+# 它们是仅有的手写 HTTP 客户端消费方(Go/Rust/Dart 都是生成的),于是 proto 一改名,
+# 别人编译期就炸、它们却只是请求照发、字段静默变空 —— 这一类**探测路由发现不了**。
 # 只报不拦,理由同 check_impl;而且字段那半用的是正则,宁可漏报也不要误拦
 # (一个会误拦的检查,第一次误拦之后就会被人绕过去)。
-python3 "$HIPROTO/codegen/check_web_routes.py" /home/lo/ci/hiclub-web --warn || true
+#
+# ⚠️ 原来只查 hiclub-web。2026-08-17 审出来:hidid-web 与 hiai-web 各自漂了一大截
+#    (对话流式整条打不通、三个页面无后端),**因为从来没进过这个循环**。
+#    checker 会按目录名自己判断连的是哪个服务(见 check_web_routes.py 开头那段说明)。
+#    仓没检出就跳过 —— CI 机器上缺哪个都不该让发布失败。
+for w in hiclub-web hidid-web hiai-web; do
+    if [ -d "/home/lo/ci/$w/src" ]; then
+        python3 "$HIPROTO/codegen/check_web_routes.py" "/home/lo/ci/$w" --warn || true
+    else
+        echo "[check_web] /home/lo/ci/$w 未检出,跳过(**没查过,不等于没问题**)"
+    fi
+done
 
 # 接口清单随发布重生成 —— 上一版是手写的,内容停在重构前(档位名/rpc 数/方法名全过时),
 # 当成当前清单会被误导。生成物入库,便于 review 时直接看接口面变化。
