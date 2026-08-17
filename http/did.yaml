@@ -5,40 +5,40 @@ http:
   rules:
 # InviteCode
   - selector: hi.did.InviteCode.Create
-    post: /api/v1/invitecode/create
+    post: /api/v1/invite_code/create
   - selector: hi.did.InviteCode.Edit
-    post: /api/v1/invitecode/edit
+    post: /api/v1/invite_code/edit
     body: "*"
   - selector: hi.did.InviteCode.List
-    post: /api/v1/invitecode/list
+    post: /api/v1/invite_code/list
     body: "*"
   - selector: hi.did.InviteCode.Delete
-    post: /api/v1/invitecode/delete
+    post: /api/v1/invite_code/delete
     body: "*"
-  - selector: hi.did.InviteCode.Verify
-    post: /api/v1/invitecode/verify
+  - selector: hi.did.Register.Verify
+    post: /api/v1/register/verify
     body: "*"
 # DApp
   - selector: hi.did.DApp.ListByClass
-    get: /api/v1/dapp/list_by_class
+    get: /api/v1/d_app/list_by_class
   - selector: hi.did.DApp.GetRWA
-    get: /api/v1/dapp/get_rwa
+    get: /api/v1/d_app/get_rwa
   - selector: hi.did.DApp.GetTop
-    get: /api/v1/dapp/list_top
-  - selector: hi.did.DApp.UpdateTop
-    post: /api/v1/dapp/update_top
+    get: /api/v1/d_app/get_top
+  - selector: hi.did.DAppAdmin.UpdateTop
+    post: /api/v1/d_app_admin/update_top
     body: "*"
-  - selector: hi.did.DApp.Create
-    post: /api/v1/dapp/create
+  - selector: hi.did.DAppAdmin.Create
+    post: /api/v1/d_app_admin/create
     body: "*"
-  - selector: hi.did.DApp.Edit
-    post: /api/v1/dapp/edit
+  - selector: hi.did.DAppAdmin.Edit
+    post: /api/v1/d_app_admin/edit
     body: "*"
-  - selector: hi.did.DApp.UpdateOrder
-    post: /api/v1/dapp/update_order
+  - selector: hi.did.DAppAdmin.UpdateOrder
+    post: /api/v1/d_app_admin/update_order
     body: "*"
-  - selector: hi.did.DApp.Delete
-    post: /api/v1/dapp/delete
+  - selector: hi.did.DAppAdmin.Delete
+    post: /api/v1/d_app_admin/delete
     body: "*"
 # MerchantManage
   - selector: hi.did.MerchantManage.List
@@ -50,25 +50,53 @@ http:
   - selector: hi.did.MerchantManage.Edit
     post: /api/v1/merchant_manage/edit
     body: "*"
+  - selector: hi.did.MerchantManage.SetPermission
+    post: /api/v1/merchant_manage/set_permission
+    body: "*"
 # Base
-  - selector: hi.did.Base.ListSuperAdminUsers
-    get: /api/v1/base/list_superadminusers
-  - selector: hi.did.Base.LatestVersion
-    get: /api/v1/base/latest_version
-# UserExtensionSettings
-  - selector: hi.did.UserExtensionSettings.Update
-    post: /api/v1/user_extension_settings/update
-  - selector: hi.did.UserExtensionSettings.Get
-    get: /api/v1/user_extension_settings/get
-# UserExtension
-  - selector: hi.did.UserExtension.Update
-    post: /api/v1/user_extension/update
+  - selector: hi.did.SuperAdmin.List
+    get: /api/v1/super_admin/list
+# Release(产品发布;两个流式方法配不了 http,见 codegen/http_optout.txt)
+  - selector: hi.did.Release.Latest
+    get: /api/v1/release/latest
+  - selector: hi.did.ReleaseManage.Publish
+    post: /api/v1/release_manage/publish
     body: "*"
-  - selector: hi.did.UserExtension.List
-    post: /api/v1/user_extension/list
+# MerchantOwner(原 MerchantExDB;商户主人主体,登录 token)
+  - selector: hi.did.MerchantOwner.RefreshExDB
+    post: /api/v1/merchant_owner/refresh_ex_db
+  - selector: hi.did.MerchantOwner.GetExDB
+    get: /api/v1/merchant_owner/get_ex_db
+  - selector: hi.did.MerchantOwner.SetServer
+    post: /api/v1/merchant_owner/set_server
     body: "*"
-  - selector: hi.did.UserExtension.Delete
-    post: /api/v1/user_extension/delete
+  - selector: hi.did.Merchant.SetUsers
+    post: /api/v1/merchant/set_users
+    body: "*"
+  - selector: hi.did.Merchant.SetUserCard
+    post: /api/v1/merchant/set_user_card
+    body: "*"
+  - selector: hi.did.Source.UploadPub
+    post: /api/v1/source/upload_pub
+    body: "*"
+  - selector: hi.did.Merchant.ListUsers
+    post: /api/v1/merchant/list_users
+    body: "*"
+  - selector: hi.did.Merchant.ListGreeters
+    post: /api/v1/merchant/list_greeters
+    body: "*"
+# MerchantGranted(跨商户读,整个 service 走 requireGrant)
+  - selector: hi.did.MerchantGranted.GetUser
+    post: /api/v1/merchant_granted/get_user
+    body: "*"
+  - selector: hi.did.MerchantGranted.ListUsers
+    post: /api/v1/merchant_granted/list_users
+    body: "*"
+  - selector: hi.did.MerchantGranted.ListGreeters
+    post: /api/v1/merchant_granted/list_greeters
+    body: "*"
+  - selector: hi.did.Merchant.RemoveUsers
+    post: /api/v1/merchant/remove_users
     body: "*"
 # Auth
   - selector: hi.did.Auth.GenerateReqId
@@ -83,44 +111,42 @@ http:
 # Merchant
   - selector: hi.did.Merchant.Get
     get: /api/v1/merchant/get
-  - selector: hi.did.Merchant.Set
-    post: /api/v1/merchant/set
+  - selector: hi.did.Merchant.Update
+    post: /api/v1/merchant/update
     body: "*"
   - selector: hi.did.Merchant.List
     post: /api/v1/merchant/list
     body: "*"
-  - selector: hi.did.Merchant.SaveUesrs
-    post: /api/v1/merchant/save_uesrs
-    body: "*"
-  - selector: hi.did.Merchant.DeleteUesrs
-    post: /api/v1/merchant/delete_uesrs
+  - selector: hi.did.Merchant.AddUsers
+    post: /api/v1/merchant/add_users
     body: "*"
 # Wallet
-  - selector: hi.did.Wallet.ListUsersAssets
-    post: /api/v1/wallet/list_user_assets
+  - selector: hi.did.Assets.List
+    post: /api/v1/assets/list
     body: "*"
-  - selector: hi.did.Wallet.GetUserAssets
-    post: /api/v1/wallet/get_user_assets
+  - selector: hi.did.Assets.Get
+    post: /api/v1/assets/get
     body: "*"
-  - selector: hi.did.Wallet.TotalAssets
-    post: /api/v1/wallet/total_assets
-    body: "*"
-# AgentMarket
-  - selector: hi.did.AgentMarket.List
-    post: /api/v1/agent_market/list
-    body: "*"
-  - selector: hi.did.AgentMarket.Create
-    post: /api/v1/agent_market/create
-    body: "*"
-  - selector: hi.did.AgentMarket.Edit
-    post: /api/v1/agent_market/edit
-    body: "*"
-  - selector: hi.did.AgentMarket.Delete
-    post: /api/v1/agent_market/delete
-    body: "*"
-  - selector: hi.did.AgentMarket.UpdateOrder
-    post: /api/v1/agent_market/update_order
+  - selector: hi.did.Assets.Total
+    post: /api/v1/assets/total
     body: "*"
 # User
-  - selector: hi.did.User.Total
-    get: /api/v1/user/total
+  - selector: hi.did.Base.UserTotal
+    get: /api/v1/base/user_total
+# MerchantPub —— 商户公开信息(免鉴权,只吐 scheme)
+  - selector: hi.did.MerchantPub.Scheme
+    post: /api/v1/merchant_pub/scheme
+    body: "*"
+  - selector: hi.did.MerchantPub.Server
+    post: /api/v1/merchant_pub/server
+    body: "*"
+# Gateway(读)/ GatewayAdmin(写) —— URL 保持不变,前端无需改动
+  - selector: hi.did.Gateway.List
+    get: /api/v1/gateway/list
+  - selector: hi.did.GatewayAdmin.Set
+    post: /api/v1/gateway_admin/set
+    body: "*"
+# Broadcast(超管系统广播)—— web 调用,系统用 root 代发 mqtt
+  - selector: hi.did.Broadcast.AppUpdate
+    post: /api/v1/broadcast/app_update
+    body: "*"

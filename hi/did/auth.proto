@@ -2,52 +2,59 @@ syntax = "proto3";
 
 package hi.did;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
-
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "hi/options.proto";
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 
 message RefreshTokenReq {
-  hi.ClientInfo node          = 1;
-  string        did           = 2;
-  string        refresh_token = 3;
+  hi.ClientInfo node = 1;
+  string did = 2;
+  string refresh_token = 3;
 }
 
 // hidid web/app/pc登录
 message LoginReq {
-  hi.DID        did    = 1;
-  hi.ClientInfo node   = 2;
-  hi.RequestId  req_id = 3;
+  string req_id = 1;
+  string did = 2;
+  hi.ClientInfo node = 3;
 }
 
 message LoginResp {
-  hi.Entity          user  = 1;
-  hi.AuthToken       token = 2;
-  hi.MqttCredentials mqtt  = 3;
+  option (hi.audience) = VIS_SELF;
+  hi.Entity user = 1 [(hi.visibility) = VIS_PUBLIC];
+  hi.AuthToken token = 2 [(hi.visibility) = VIS_SELF];
+  hi.MqttCredentials mqtt = 3 [(hi.visibility) = VIS_SELF];
 }
 
 message GenerateReqIdReq {
-  string        did  = 1;
+  string did = 1;
   hi.ClientInfo node = 2;
 }
 
 message ReqStatusResp {
-  hi.Entity          base   = 1;
-  string             status = 2;
-  hi.AuthToken       token  = 3;
-  hi.MqttCredentials mqtt   = 4;
+  option (hi.audience) = VIS_SELF;
+  hi.Entity base = 1 [(hi.visibility) = VIS_PUBLIC];
+  string status = 2 [(hi.visibility) = VIS_SELF];
+  hi.AuthToken token = 3 [(hi.visibility) = VIS_SELF];
+  hi.MqttCredentials mqtt = 4 [(hi.visibility) = VIS_SELF];
 }
 
+// web3 载荷 schema(不是 rpc 参数):Auth.Logout 把 SignedData.Data 反序列化进它。
+// ⚠️ 只被后端 Go 引用、proto 里无 rpc 引用 —— 勿按"无 rpc 引用"当死 message 删。
 message LogoutReq {
   hi.DID did = 1;
 }
 
+// Auth —— 登录/登出。握手类是公开的(此时还没 token),身份确认类是 web3 验签(载荷带签名)。
+// 公开 与 web3验签 同处一个 service 是允许的(web3 本质是数据校验,不是方法鉴权)。
 service Auth {
-  rpc RefreshToken (RefreshTokenReq) returns (hi.AuthToken); // 不鉴权
-  rpc Verify (hi.SignedData) returns (LoginResp); // LoginReq // Web3鉴权
-  rpc VerifyOffline (hi.SignedData) returns (LoginResp); // 内部服务使用 Web3鉴权
-  rpc GenerateReqId (GenerateReqIdReq) returns (hi.RequestId); // 不鉴权
-  rpc GetReqStatus (hi.RequestId) returns (ReqStatusResp); // 不鉴权
-  rpc Notify (hi.SignedData) returns (google.protobuf.Empty); // LoginReq // Web3鉴权
-  rpc Logout (hi.SignedData) returns (google.protobuf.Empty); // Web3鉴权
+  rpc RefreshToken (RefreshTokenReq) returns (hi.AuthToken) { option (hi.auth) = AUTH_NONE; }      // 公开:用 refresh token 换新 token(内部自校验)
+  rpc Verify (hi.SignedData) returns (LoginResp) { option (hi.auth) = AUTH_WEB3; }                 // 验签:助记词/硬件登录,验签后签发 token
+  rpc VerifyOffline (hi.SignedData) returns (LoginResp) { option (hi.auth) = AUTH_WEB3; }          // 验签:离线登录变体(内部服务用)
+  rpc GenerateReqId (GenerateReqIdReq) returns (hi.RequestId) { option (hi.auth) = AUTH_NONE; }    // 公开:生成扫码登录的 reqId
+  rpc GetReqStatus (hi.RequestId) returns (ReqStatusResp) { option (hi.auth) = AUTH_NONE; }        // 公开:轮询扫码登录状态
+  rpc Notify (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_WEB3; }     // 验签:登录事件通知
+  rpc Logout (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_WEB3; }     // 验签:登出
 }

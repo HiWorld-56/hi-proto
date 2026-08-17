@@ -2,85 +2,423 @@ syntax = "proto3";
 
 package hi.did;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
-
+import "buf/validate/validate.proto";
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/did/base.proto";
+import "hi/options.proto";
 
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
+
+// 商户节点信息。
+//
+// ⚠️ **绝不要把 extension_token(商户 API 凭证)加回这个结构。**
+//    原来它是字段 9,导致三条泄露路径:Merchant.Get(可传别人 did)、ListMerchants(批量返回)、
+//    MerchantManage.List —— 全靠"handler 记得别填"来保平安,而 Get 和 ListMerchants 都没记得。
+//    商户取自己的 ExtendToken 只有一条正道:**MerchantExDB.Get**(token 档,拿票窗口)。
+//    凭证只从那一个窄口子出,这里物理上带不出去。核实过:无任何消费方读取本字段。
 message MerchantInfo {
-  hi.Entity     master          = 1;
-  hi.Entity     server          = 2;
-  string        name            = 3;
-  string        logo            = 4;
-  repeated Coin public_coins    = 5; // 公共币种
-  repeated Coin custom_tokens   = 6; // 自定义币种
-  string        endpoint        = 7;
-  string        scheme          = 8;
-  string        extension_token = 9;
-  int64         created_at      = 10;
+  option (hi.audience) = VIS_PARTICIPANT;
+  hi.Entity master = 1 [(hi.visibility) = VIS_PUBLIC];
+  hi.Entity server = 2 [(hi.visibility) = VIS_PUBLIC];
+  string name = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  string logo = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  repeated Coin public_coins = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 公共币种
+  repeated Coin custom_tokens = 6 [(hi.visibility) = VIS_PARTICIPANT]; // 自定义币种
+  string endpoint = 7 [(hi.visibility) = VIS_PARTICIPANT];
+  string scheme = 8 [(hi.visibility) = VIS_PARTICIPANT];
+  int64 created_at = 9 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 message MerchantGetResp {
-  MerchantInfo info = 1;
+  option (hi.audience) = VIS_PARTICIPANT;
+  MerchantInfo info = 1 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
+// 商户改自己的配置(主体 = 服务持 ExtendToken)。
+//
+// ⚠️ **不含 server** —— 它是**资金流向**字段(落库 server_did:收款/付款实体),改它 = 改钱打给谁。
+//    ExtendToken 常驻商户后台、是最易泄露的那个凭证,故资金字段必须与它解耦:
+//    改 server 走 **MerchantOwner.SetServer**(登录 token 档,商户主人主体)。
+//    这样 extoken 即使泄露,攻击者也改不动资金去向。
+//    (旧注释说"冗余/越权"是错的:server 是**值**不是**键**,传进来也只能改自己那行,
+//     够不着别人;真正的理由是资金字段需要比展示配置更强的保护。)
+//
+// comment 是超管备注(见 MerchantManage.Edit),商户自服务不该能写。
 message MerchantSetReq {
-  string          server   = 1;
-  string          name     = 2;
-  string          logo     = 3;
-  repeated string coins    = 4;
-  string          endpoint = 5;
-  string          scheme   = 6;
-  string          comment  = 7;
+  string          name     = 1;
+  string          logo     = 2;
+  repeated string coins    = 3;
+  string          endpoint = 4;
+  string          scheme   = 5;
 }
 
 message MerchantListResp {
-  int32                 total = 1;
-  repeated MerchantInfo list  = 2;
+  option (hi.audience) = VIS_PARTICIPANT;
+  int32 total = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  repeated MerchantInfo list = 2 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
-message UserProfileGetResp {
-  hi.Entity          base = 1;
-  hi.MqttCredentials mqtt = 2;
+// ── 用户扩展的数据形状 ───────────────────────────────────────────────
+// 商户给自己名下用户挂的扩展信息(金标/等级/名片等)。
+// 从 base.proto 迁来:归位后只有 Merchant(商户主体)读写扩展,放这里最贴切,
+// 且 merchant.proto 不 import user_extension.proto,不会成环。
+message UserExtensionInfo {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string logo = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int32 level = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  // card 存的是**卡片 json 正文本身**,不是文件 url。
+  // 卡片是结构化数据,不是媒体:读的人要的是里面的字段,存成文件就得多一跳 http 去取
+  // (还得管桶的可见性、失效、跨环境地址),而落库之后 GetUser/ListUsers 顺手就带出来了。
+  // 写入走 Merchant.SetUserCard(传 .json 文件,后端读正文入库,文件不留);清空走 SetUsers。
+  optional string card = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string extend = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string note = 5 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
-message UserProfileSetReq {
-  string did    = 1;
-  string name   = 2;
-  string avatar = 3;
+// 商户给**自己名下**用户设置扩展卡片:前端传 .json 文件,后端读出正文直接落库,文件丢弃。
+//
+// 为什么单开一个方法而不是让前端把 json 塞进 SetUsers.card:
+// 卡片是**编辑好的文件**,前端的动作就是"选个文件传上去" —— 让它先把文件读成字符串再塞字段,
+// 等于把"文件怎么读、编码怎么定、多大算大"这些事推给每个调用端各写一遍。
+// (同样的理由见 hi-ai 的插件 description.json:也是后端读、前端只管传。)
+message SetUserCardReq {
+  string user    = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}]; // 目标用户 did,**必须在调用者名下**
+  bytes  content = 2 [(buf.validate.field).bytes.min_len = 1];            // .json 文件正文;服务端校验是合法 json 才入库
 }
 
-message MerchantUsersSaveReq {
-  repeated string users = 1; // 用户did
+message UserExtensionUnit {
+  option (hi.audience) = VIS_PARTICIPANT;
+  hi.Entity user = 1 [(hi.visibility) = VIS_PUBLIC]; // 用户实体(name/avatar);handler 须始终填,即使无扩展行
+  UserExtensionInfo info = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 扩展信息(该商户维护)
 }
 
-message MerchantUsersDeleteReq {
-  repeated string users = 1; // 用户did
+// ── 商户互授权 ───────────────────────────────────────────────────────
+// 我(=ExtendToken 认出的商户)允许 grantee 访问我的数据。
+// ⚠️ 入参里**没有授权方 did** —— 授权方永远取自 token,故商户只能改自己的授权列表。
+message GrantReq {
+  string grantee = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}]; // 被授权方商户 did
+  string note = 2; // 备注,给人看的
 }
 
+message GrantUnit {
+  option (hi.audience) = VIS_SELF;
+  hi.Entity grantee = 1 [(hi.visibility) = VIS_PUBLIC]; // 被授权方
+  string note = 2 [(hi.visibility) = VIS_SELF];
+  int64 created_at = 3 [(hi.visibility) = VIS_SELF]; // ms
+}
+
+message ListGrantsResp {
+  option (hi.audience) = VIS_SELF;
+  repeated GrantUnit grants = 1 [(hi.visibility) = VIS_SELF]; // 我授权给了哪些商户
+}
+
+// ── 商户管理用户(扩展数据)的入参 ───────────────────────────────────
+// merchant 空=自己(取 ExtendToken);非空=指定商户(须先获该商户授权,requireGrant)。
+// ── 读自己名下的用户(Merchant,免 grant)──
+// **没有 merchant 字段** —— 商户身份恒取自 ExtendToken。
+//
+// ⚠️ 原先这三个入参都有 `merchant`,注释写「空=自己;非空=指定商户,须先获授权」。
+//    那不是同一根轴上的"筛/不筛",而是**空/非空走两条不同的鉴权分支** ——
+//    一旦 handler 里 `if merchant == ""` 与 requireGrant 的分支写岔,就是静默跨商户读。
+//    按既有范式(Merchant/MerchantManage、Gateway/GatewayAdmin)拆成两个 service:
+//    读自己的在这里,跨商户的在 MerchantGranted(整个 service 走 requireGrant)。
+message GetUserReq {
+  string user = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 用户 did
+}
+
+message ListUsersReq {
+  string        user       = 1; // 可选:按用户 did 过滤
+  hi.Pagination pagination = 2;
+}
+
+// ── 读**别家商户**名下的用户(MerchantGranted,整个 service 走 requireGrant)──
+// merchant 必填 —— 这个 service 存在的意义就是跨商户,省掉它就没得跨。
+message GrantedGetUserReq {
+  string merchant = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 目标商户(须先授权给我)
+  string user     = 2 [(buf.validate.field).string.pattern="^\\S+$"];
+}
+
+message GrantedListUsersReq {
+  string        merchant   = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string        user       = 2; // 可选:按用户 did 过滤
+  hi.Pagination pagination = 3;
+}
+
+message GrantedListGreetersReq {
+  string        merchant   = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  hi.Pagination pagination = 2;
+}
+
+// 列某商户名下的 greeter —— 即扩展表里 level >= 8 的用户。
+// level 由商户自己在扩展信息(UserExtensionInfo.level)里打;未设(NULL)或低于门槛 = 普通用户。
+// 门槛在服务端是常量(repo.GreeterMinLevel),不由调用方传 —— greeter 是一类固定人群,
+// 让调用方自选门槛就变成了通用筛选,那是 ListUsers 的活。
+//
+// 与 ListUsers 分开而不是加个 level 过滤参数:这是一类**有业务含义的固定人群**
+// (club 用来展示可接待的人),不是通用筛选。合成一个方法就又要靠"参数传没传"分支。
+message ListGreetersReq {
+  hi.Pagination pagination = 1; // 列**自己**名下的 greeter;跨商户走 MerchantGranted.ListGreeters
+}
+
+message ListUsersResp {
+  option (hi.audience) = VIS_PARTICIPANT;
+  int32 total = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  repeated UserExtensionUnit units = 2 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+
+// 批量写用户的资料与扩展。
+//
+// ⚠️ **入参不复用 UserExtensionUnit** —— 那是**返回类型**(GetUser/ListUsers 用),
+//    里面的 hi.Entity 带 type/update 等服务端产物。入参只放调用方真正该给的:
+//    改哪个用户(user)+ 要写的值。
+message SetUserUnit {
+  string            user   = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 用户 did
+  string            name   = 2; // 昵称(空=不改)
+  string            avatar = 3; // 头像 url(空=不改)
+  UserExtensionInfo info   = 4; // 该商户维护的扩展信息
+}
+
+message SetUsersReq {
+  repeated SetUserUnit units = 1; // 批量写自己名下用户的资料/扩展
+}
+
+// SetUsers 的返回:每个被改用户改完之后的**权威 Entity**。
+// Entity.update 是资料惰性传播的唯一依据(见 hi/club/messaging.proto),
+// 时间戳的权威在服务端 —— 回给调用方,它才能把自己的缓存对齐,不必再逐个 GetUser。
+message SetUsersResp {
+  option (hi.audience) = VIS_PARTICIPANT;
+  repeated hi.Entity users = 1 [(hi.visibility) = VIS_PUBLIC];
+}
+
+message AddUsersReq {
+  repeated string users = 1; // 用户 did:加到自己名下
+}
+
+message RemoveUsersReq {
+  repeated string users = 1; // 用户 did:从自己名下删
+}
+
+// 列某用户所属的所有商户(某商户查:这个用户挂在哪些商户下)。不返回扩展数据本身。
+message ListMerchantsReq {
+  string user_did = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}]; // 用户 did(注意:不是商户 did)
+  hi.Pagination pagination = 2;
+}
+
+message GetUserMqttReq {
+  string user = 1; // 用户 did
+}
+
+// mqtt 凭证。**无 client_id** —— client_id 各服务自管(did/club 同时登 mqtt 时不互踢);
+// username/password 设计上穿透(为将来动态密码留口)。商户可见 OK(邀请码注册可追责)。
+message GetUserMqttResp {
+  option (hi.audience) = VIS_PARTICIPANT;
+  string username = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  string password = 2 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+// 商户(主体=商户,ExtendToken)。按主体归位:商户自身配置、对用户扩展数据的读写、授权,全在这。
+// 用户不能读自己的扩展(扩展是商户的地盘)。
+//
+// (原 UserMerchant service 已删 —— 那个名字看不懂,且 Get 与本服务的 Get 逻辑完全重复
+//  [都是 FindOne(did)];Set 就是商户改自己配置,归 Merchant.Update。草民无 ExtendToken 调不到,
+//  正好修掉原 handler 里"草民查返回空"的 TODO。)
+//
+// 授权机制(裁决 #4,定稿):商户 X 操作商户 A 的数据时 —— 从 X 的 ExtendToken 解出 didx,
+//   若 didx 在 A 的授权列表里则直接操作,**不回取 A 的 ExtendToken**。
 service Merchant {
-  rpc Get (google.protobuf.Empty) returns (MerchantGetResp); // Token鉴权
-  rpc Set (MerchantSetReq) returns (google.protobuf.Empty); // Token鉴权
-  rpc List (hi.DID) returns (MerchantListResp); // Token鉴权
-  rpc GetUserProfile (hi.DID) returns (UserProfileGetResp); // ExtendToken鉴权
-  rpc SetUserProfile (UserProfileSetReq) returns (google.protobuf.Empty); // ExtendToken鉴权
-  rpc GetMerchant (hi.DID) returns (MerchantGetResp); // Token鉴权
-  rpc SaveUesrs (MerchantUsersSaveReq) returns (google.protobuf.Empty); // ExtendToken鉴权, 批量添加商户的用户
-  rpc DeleteUesrs (MerchantUsersDeleteReq) returns (google.protobuf.Empty); // ExtendToken鉴权，批量删除商户的用户
+  // ── 商户自身配置 ──
+  // Get:**只能查自己**,入参为空 —— 调用者身份由 ExtendToken 解出(merchant_did)。
+  //
+  // ⚠️ 历史漏洞(已修):原签名是 `Get(hi.DID)`,"did 非空=查指定商户"。但 MerchantInfo 里带
+  //    **extension_token(商户 API 凭证)** —— 于是任何持有效 ExtendToken 的商户,都能传别人的
+  //    did 把别人的凭证捞走。**越权**。别再把参数加回来:身份必须只来自 token,不能来自入参。
+  //    若确需看别的商户的公开信息(name/logo/scheme 等),走 MerchantPub(只吐安全字段)。
+  rpc Get(google.protobuf.Empty) returns (MerchantGetResp) {
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 查自己的商户节点信息
+  rpc Update(MerchantSetReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 改自己的商户配置(原 UserMerchant.Set)
+  // ── 管理**自己名下**用户的扩展信息(免 grant)──
+  // 跨商户读走 MerchantGranted,那边整个 service 都要 requireGrant。
+  // GetUser 的 resp.user 须始终有 name/avatar(取自全局 user 表),即使无扩展行 —— club 靠它显示。
+  rpc GetUser(GetUserReq) returns (UserExtensionUnit) {
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 拿自己名下某用户的扩展信息
+  rpc ListUsers(ListUsersReq) returns (ListUsersResp) {
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 列自己名下的用户
+  // 返回体复用 ListUsersResp —— 同样是 List<Entity + 扩展字段>,没有一个字段不同。
+  // (复用的是**返回**类型;入参另立 ListGreetersReq,不与 ListUsersReq 混。)
+  rpc ListGreeters(ListGreetersReq) returns (ListUsersResp) {
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 列自己名下的 greeter(扩展表 level >= 8)
+  // ⚠️ 守卫:**user 必须在调用者名下**。否则任一商户传任意 did 即可枚举"这个人挂在
+  //    哪些商户下",既泄露用户的商业关系图,也泄露其他商户的 endpoint/master。
+  //    真实用法是 club 替自己的用户查(用户登录 club,club 列出他的全部商户归属),
+  //    那个前提下这条守卫天然满足。
+  rpc List(ListMerchantsReq) returns (MerchantListResp) {
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 查某用户所属的所有商户(hiclub 作为商户调)
+  // 回**每个被改用户的权威 Entity**(原先返 Empty):这个接口会穿透写全局 user 表的
+  // name/avatar,而 `Entity.update` 是资料惰性传播的唯一依据 —— 调用方(club)拿到权威
+  // 时间戳才能把自己的缓存对齐,不必再逐个 GetUser。只改 Info 不改 Entity 的那些 unit 也照回。
+  rpc SetUsers(SetUsersReq) returns (SetUsersResp) {
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 批量写自己名下用户的扩展信息
+  rpc SetUserCard(SetUserCardReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 传 .json 文件设置某用户的扩展卡片(读正文入库,不落文件;清空走 SetUsers)
+  rpc AddUsers(AddUsersReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 加用户到自己名下
+  rpc RemoveUsers(RemoveUsersReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 从自己名下删用户
+  // ── 用户 mqtt 凭证(基础信息,商户可见)──
+  rpc GetUserMqtt(GetUserMqttReq) returns (GetUserMqttResp) {
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 拿用户 mqtt 用户名/密码(供 club 管 ACL)
+  // ── 商户互授权 ──
+  rpc ListGrants(google.protobuf.Empty) returns (ListGrantsResp) {
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 我授权了哪些商户
+  rpc AddGrant(GrantReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 授权某商户访问我的数据
+  rpc RemoveGrant(GrantReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 取消授权
+}
+
+// ── 商户公开信息 ─────────────────────────────────────────────────────
+// 只放**能给前端看的**商户字段。目前只有 scheme。
+//
+// ⚠️ 为什么不能复用 Merchant.Get:它返回整个 MerchantInfo,里面有 **extension_token
+//    (商户的 API 凭证)**、master、endpoint 等 —— 一个都不能给 app。
+//    单开这个门面,以后要开放别的公开字段也有地方放,且物理上不可能带出敏感字段。
+message MerchantPubSchemeResp {
+  option (hi.audience) = VIS_PUBLIC;
+  string scheme = 1 [(hi.visibility) = VIS_PUBLIC]; // 商户业务 app 的回调 scheme;只有 scheme,别的一概不给
+}
+
+message MerchantPubServerResp {
+  option (hi.audience) = VIS_PUBLIC;
+  hi.Entity server = 1 [(hi.visibility) = VIS_PUBLIC]; // 收款/付款 server(默认 = master);涉及转账时按 master did 取此作目标/源头
+}
+
+// 商户公开信息(免鉴权)。主体=商户对外可见的那部分。
+//
+// 用途:hidid app 被三方业务 app 唤起做签名认证时,按业务侧传来的**商户 did** 查回跳 scheme;
+// 签完名靠这个 scheme 跳回业务 app。
+//
+// 免鉴权的理由:整条唤起→签名→回跳的握手本身就不带 token(走 SignedData),
+// 且 scheme 是 app 在系统里注册的公开信息,本就不是秘密。
+// **安全性由返回体的窄来保证** —— 只吐 scheme,而不是靠鉴权挡。
+service MerchantPub {
+  rpc Scheme(hi.DID) returns (MerchantPubSchemeResp) {
+    option (hi.auth) = AUTH_NONE;
+  } // 公开:按商户 did 查回跳 scheme
+  rpc Server(hi.DID) returns (MerchantPubServerResp) {
+    option (hi.auth) = AUTH_NONE;
+  } // 公开:按 master did 查 server did(转账目标/源头;默认 = master)
+}
+
+// 商户的扩展库访问凭证:extoken(=ExtendToken,商户的 API 凭证)+ extend 表名。
+message MerchantExDBResp {
+  option (hi.audience) = VIS_SELF;
+  string token = 1 [(hi.visibility) = VIS_SELF]; // ExtendToken
+  string table = 2 [(hi.visibility) = VIS_SELF]; // 扩展数据表名
+}
+
+// 改商户的结算实体(收款/付款 server)。
+// server 空 = **恢复默认**(= master 自己);默认值语义见 MerchantPub.Server。
+message SetServerReq {
+  string server = 1; // 结算实体 did;留空=恢复默认(master)
+}
+
+// 商户主人自服务 —— **主体 = 商户主人(登录 token)**,与 Merchant(服务持 ExtendToken 干活)主体不同,
+// 故不与 Merchant 合并。原名 MerchantExDB(只讲 ExDB,装不下商户主人的其他配置);
+// 更早叫 UserExtensionSettings(假名,跟"用户扩展设置"无关,ctx.did 就是商户 did)。
+//
+// ⚠️ 为什么必须是 AUTH_USER、且**不能**收 ExtendToken:
+//    ① **拿票窗口不能查票** —— ExtendToken 是从这里拿到的,本 service 不能要求先有它;
+//    ② **资金面与泄露面解耦** —— SetServer 改的是钱的去向,而 ExtendToken 常驻商户后台服务、
+//       是最易泄露的凭证。两者切开后,extoken 泄露也改不动资金流向。
+//    商户登录 web 本身已做 **web3 验签**,登录 token 即钱包控制权凭据,故无需、也不应再传签名。
+service MerchantOwner {
+  rpc GetExDB(google.protobuf.Empty) returns (MerchantExDBResp) {
+    option (hi.auth) = AUTH_USER;
+  } // 取自己的 ExtendToken + 扩展表名(原 MerchantExDB.Get)
+  rpc RefreshExDB(google.protobuf.Empty) returns (MerchantExDBResp) {
+    option (hi.auth) = AUTH_USER;
+  } // 重发 ExtendToken:**只换 token,不动 extend_table 与扩展数据**(原 MerchantExDB.Refresh)
+  rpc SetServer(SetServerReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_USER;
+  } // 改结算实体(收款/付款);空=恢复默认(master)
 }
 
 message MerchantNotifyReq {
-  string did   = 1;
+  string did = 1;
   string nonce = 2;
 }
 
 message OrderEventResp {
-  string event   = 1;
-  string payload = 2;
+  option (hi.audience) = VIS_SELF; // hidid-pc 订阅**自己**的订单事件流(OrderEvent.Sub AUTH_USER)
+  string event   = 1 [(hi.visibility) = VIS_SELF];
+  string payload = 2 [(hi.visibility) = VIS_SELF];
 }
 
-service SSE {
-  rpc OrderEvents (hi.DID) returns (stream OrderEventResp); // 不鉴权
-  rpc Notify (MerchantNotifyReq) returns (google.protobuf.Empty); // 不鉴权
+// ── 订单通知/事件(web3 自动付款机制,裁决 #10)──────────────────────
+// 架构:PC 端跑 hidid-pc,通过 SSE 长连接(OrderEvent.Sub)与 hidid 后台保持连接(pc 无公网 IP)。
+// 流程:①商户业务系统在**自己的服务上**生成订单 → ②商户调 OrderNotify.Send → hidid 后端把通知
+//       转发给对应 hidid-pc → ③hidid-pc 按用户设置的地址**去拉订单** → ④付款 →
+//       ⑤付款结果通过用户设置的地址回传。
+// 关键:hidid 后端**只负责转发通知**,订单真伪由三方业务系统控制;拉单/回传的 url 都是用户填的,
+//       hidid-pc 直接对接三方、不经 hidid 后台 —— 排除了 hidid 后台伪造订单的可能。
+// 是商户特有的行为,放 merchant.proto。拆两端:主体不同(hidid-pc 订阅 vs 商户发送)、档位不同。
+
+// 订单事件订阅端(hidid-pc 订阅,token)。原 SSE.OrderEvents —— SSE 是传输术语不是主体。
+service OrderEvent {
+  // ⚠️ **只能订阅自己的** —— did 取自 token,入参不给 did。
+  //    原先是 `Sub(hi.DID)` 且 handler 直接用 req.Id:任何登录用户传别人的 did,
+  //    既能收对方订单事件,又会触发下面的"重复登录"逻辑把对方的 hidid-pc 挤下线。
+  //
+  // 重复登录语义(hidid-pc 特有):A 机已登录且未显式登出时,**B 机登录应被挡下**,
+  // 而不是踢掉 A。原实现踢的是 A,方向反了。
+  rpc Sub(google.protobuf.Empty) returns (stream OrderEventResp) {
+    option (hi.auth) = AUTH_USER;
+  } // hidid-pc 订阅**自己的**订单事件流(长连接)
+}
+
+// 订单通知发送端(商户触发,公开):商户业务系统触发一次付款通知,hidid 转发给对应 hidid-pc。
+// 公开=只是转发触发器,订单真伪由三方业务系统 + 用户填的 url 兜底(裁决 #10)。
+// 与订阅端主体不同(商户 vs hidid-pc)、档位不同(公开 vs token),故拆开。
+service OrderNotify {
+  rpc Send(MerchantNotifyReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_NONE;
+  } // 商户触发付款通知
+}
+
+// 跨商户读用户数据(**整个 service 走 requireGrant**)。
+//
+// 与 Merchant 拆开而不是共用一个 `merchant` 字段:那样"空=自己免 grant / 非空=别家走
+// grant"是**两条鉴权分支挤在一个方法里**,handler 里分支写岔就是静默跨商户读。
+// 拆开之后,"要不要 grant"由 service 决定,不由某个字段的空值决定 ——
+// 范式同 Merchant/MerchantManage、Gateway/GatewayAdmin。
+//
+// 授权方向:商户 A 执行 AddGrant(grantee=B) 后,B 才能用这里的方法读 A 名下的用户。
+// 判据是 hi_merchant_grant 里 (merchant=A, grantee=B) 一行,授权方永远取自 token。
+service MerchantGranted {
+  rpc GetUser(GrantedGetUserReq) returns (UserExtensionUnit) {
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 拿别家商户下某用户的扩展信息(须先获授权)
+  rpc ListUsers(GrantedListUsersReq) returns (ListUsersResp) {
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 列别家商户下的用户(须先获授权)
+  rpc ListGreeters(GrantedListGreetersReq) returns (ListUsersResp) {
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 列别家商户下的 greeter(须先获授权)
 }

@@ -2,63 +2,122 @@ syntax = "proto3";
 
 package hi.did;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 
 import "hi/common.proto";
 import "hi/did/base.proto";
+import "hi/options.proto";
 
 message Transaction {
-  string      hash   = 1;
-  string      amount = 2;
-  Coin        coin   = 3;
-  hi.Entity   from   = 4;
-  hi.Entity   to     = 5;
-  string      remark = 6;
+  option (hi.audience) = VIS_PUBLIC;
+  string    hash   = 1 [(hi.visibility) = VIS_PUBLIC];
+  string    amount = 2 [(hi.visibility) = VIS_PUBLIC];
+  Coin      coin   = 3 [(hi.visibility) = VIS_PUBLIC];
+  hi.Entity from   = 4 [(hi.visibility) = VIS_PUBLIC];
+  hi.Entity to     = 5 [(hi.visibility) = VIS_PUBLIC];
+  string    remark = 6 [(hi.visibility) = VIS_PUBLIC];
 }
 
-message InputOutputs {
-  string value   = 1;
+message HistoryReq {
+  string coin    = 1;
   string address = 2;
+  string cursor  = 3; // 分页游标，第一页为空
+  int32  limit   = 4; // 最大返回数
 }
 
-message TransactionExtend {
-  Transaction           trans   = 1;
-  repeated InputOutputs inputs  = 2;
-  repeated InputOutputs outputs = 3;
-}
-
-message ListTransactionsReq {
-  string        coin       = 1;
-  string        address    = 2;
-  hi.Pagination pagination = 3;
-}
-
-message ListTransactionsResp {
+message HistoryResp {
+  option (hi.audience) = VIS_PUBLIC;
   message Unit {
-    TransactionExtend trans     = 1;
-    int32             direction = 2;
-    int32             status    = 3;
-    int64             timestamp = 4;
+    option (hi.audience) = VIS_PUBLIC;
+    Transaction trans     = 1 [(hi.visibility) = VIS_PUBLIC];
+    string      direction = 2 [(hi.visibility) = VIS_PUBLIC]; // in（转入）/ out（转出）/ self（自转）
+    string      status    = 3 [(hi.visibility) = VIS_PUBLIC]; // pending / confirming / success / failed / notfound
+    int64       timestamp = 4 [(hi.visibility) = VIS_PUBLIC];
   }
-  repeated Unit list   = 1;
-  bool          is_end = 2;
+  repeated Unit list        = 1 [(hi.visibility) = VIS_PUBLIC];
+  string        next_cursor = 2 [(hi.visibility) = VIS_PUBLIC]; // 下一页游标
 }
 
-message GetTransactionDetailReq {
-  TransactionExtend trans            = 1;
-  string            verify_hash_dump = 2;
-  string            verify_tran      = 3;
+message TxStatusReq {
+  string coin = 1;
+  string hash = 2;
 }
 
-message GetTransactionDetailResp {
-  TransactionExtend trans            = 1;
-  string            timestamp        = 2;
-  int64             confirmed_blocks = 3;
-  string            status           = 4;
-  string            error            = 5;
+message TxStatusResp {
+  option (hi.audience) = VIS_PUBLIC;
+  string state    = 1 [(hi.visibility) = VIS_PUBLIC]; // pending / confirming / success / failed / notfound
+  uint32 progress = 2 [(hi.visibility) = VIS_PUBLIC]; // 进度，0-100
 }
 
+// 取一笔链上交易的明细。**只报事实,不做判断。**
+//
+// 与 VerifyTransaction 的分工:
+//   · VerifyTransaction —— 你把**完整的**预期(币种/金额/付款方/收款方)交给它,它替你比对。
+//     信息必须完整,它不替调用方做假设。
+//   · TxDetail          —— 你只说"哪条链的哪笔交易",它把链上事实原样给你,
+//     **比对规则由你自己定**。
+//
+// 为什么需要后者:有的业务判据里**没有付款方**这一项。插件市场就是这样 ——
+// 它按**订单**认款(订单号定履约内容),谁掏的钱不进判据。这种业务不该逼着
+// 通用验证器变松(那会让对付款方敏感的业务在漏传字段时无声失去检查),
+// 而应该拿到事实自己比。
+//
+// 返回的都是链上公开数据,故与同 service 的其它方法同档(AUTH_NONE)。
+message TxDetailReq {
+  string coin = 1; // 用来定位链/合约/精度
+  string hash = 2;
+}
+
+message TxDetailResp {
+  option (hi.audience) = VIS_PUBLIC;
+  string state           = 1 [(hi.visibility) = VIS_PUBLIC]; // pending / confirming / success / failed / notfound
+  int64  confirmed_blocks = 2 [(hi.visibility) = VIS_PUBLIC];
+  int64  timestamp       = 3 [(hi.visibility) = VIS_PUBLIC]; // 交易时间(ms)。业务侧据此做时限校验
+  string from            = 4 [(hi.visibility) = VIS_PUBLIC]; // 链上地址(不是 DID)
+  string to              = 5 [(hi.visibility) = VIS_PUBLIC]; // 链上地址(不是 DID)
+  string amount          = 6 [(hi.visibility) = VIS_PUBLIC]; // **人类可读**,已按币种精度换算
+  string contract        = 7 [(hi.visibility) = VIS_PUBLIC]; // 合约地址;空=原生币
+  // 该 hash 在缓存窗口内被**成功且合法地核验**过几次。业务侧据此防伪。
+  // ⚠️ 别拿它当硬闸:响应丢了导致的重试、崩在中途导致的重试,都会让它变大 ——
+  //    早期设计里 >1 是直接报错的,正因为会误杀真实付款才改成返回次数。
+  uint32 query_count     = 8 [(hi.visibility) = VIS_PUBLIC];
+}
+
+message VerifyTransactionReq {
+  string coin   = 1; // 预期币种（did 据此定位链/合约/精度）
+  string hash   = 2; // 链上交易 hash
+  string amount = 3; // 预期金额（**人类可读**，如 "0.101"；did 内部按币种精度换算成链上口径比对）
+  // 预期付款方 **DID**（did 内部按币种链解析成地址比对）。
+  //
+  // ⚠️ **必填,不要改成 optional。** 曾经为了插件市场("按订单认款,不关心谁付的")
+  //    想把它改成"不传即跳过" —— 那是**把业务层的判断塞进通用帮助方法**。
+  //    VerifyTransaction 是给三方用的独立工具,它不该替调用方做假设:
+  //    **既然要验,信息就必须完整**。开了这个口子,对 from 敏感的业务哪天漏传一个字段,
+  //    检查就无声消失了,而这是笔钱的事。
+  //
+  //    不关心付款方的业务应当去查**交易明细**,自己按业务规则比对,
+  //    而不是让公用的验证器变松。
+  string from   = 4;
+  string to     = 5; // 预期收款方 **DID**（同上）
+}
+
+message VerifyTransactionResp {
+  option (hi.audience) = VIS_PUBLIC;
+  string state            = 1 [(hi.visibility) = VIS_PUBLIC]; // pending / confirming / success / failed / notfound
+  bool   passed           = 2 [(hi.visibility) = VIS_PUBLIC]; // 业务校验是否通过（仅 state=success 有意义）
+  string reason           = 3 [(hi.visibility) = VIS_PUBLIC]; // 未过原因：AMOUNT_ERR / FROM_ERR / TO_ERR / CONTRACTADDRESS_ERR
+  int64  confirmed_blocks = 4 [(hi.visibility) = VIS_PUBLIC]; // 链上确认数
+  int64  timestamp        = 5 [(hi.visibility) = VIS_PUBLIC]; // 交易时间（ms）；调用方据此自行做时限校验（业务层解耦）
+  uint32 query_count      = 6 [(hi.visibility) = VIS_PUBLIC]; // 该 hash 在缓存窗口内被查询次数（业务侧据此防伪）
+}
+
+// Transfer —— 一组**helper 方法**:都是查链上数据 / 验签,给三方(尤其没能力自己做
+// 链上查询或 web3 验签的)用。全部公开或 web3(web3 视为无鉴权),档位一致。
 service Transfer {
-  rpc ListTransactions (ListTransactionsReq) returns (ListTransactionsResp); // 不鉴权
-  rpc GetTransactionDetail (GetTransactionDetailReq) returns (GetTransactionDetailResp); // 不鉴权
+  rpc History (HistoryReq) returns (HistoryResp) { option (hi.auth) = AUTH_NONE; }                                // 公开:某地址的转账历史(链上数据)
+  rpc TxStatus (TxStatusReq) returns (TxStatusResp) { option (hi.auth) = AUTH_NONE; }                             // 公开:查交易状态(链上数据)
+  rpc VerifyTransaction (VerifyTransactionReq) returns (VerifyTransactionResp) { option (hi.auth) = AUTH_NONE; }  // 公开:交易校验(收 DID+人类可读金额,did 内部解析地址/精度后比对)
+  rpc TxDetail (TxDetailReq) returns (TxDetailResp) { option (hi.auth) = AUTH_NONE; }                             // 公开:取交易明细(**只报事实,比对规则由调用方定**)
+  rpc VerifySignature (hi.SignedData) returns (hi.DID) { option (hi.auth) = AUTH_WEB3; }                          // web3:验签工具(原 Assist.VerifySignature),给不会自己验签的三方用
+  // 注:handler 里另有 HistoryOld,proto 未声明 —— 死代码,应在后端删除。
 }

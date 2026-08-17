@@ -1,0 +1,14 @@
+name: gen-hi-proto-code
+# 改 hi-proto → 自动重生成 hi-proto-code 并按分支打 tag(dev=预发布 -devN,main=正式)。
+on:
+  push:
+    branches: [dev, main]
+
+jobs:
+  gen:
+    runs-on: hi-build          # .64 host executor(复用工具链+ssh)
+    steps:
+      - name: 重生成 hi-proto-code + 打 tag
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: /home/lo/ci/run-ci.sh

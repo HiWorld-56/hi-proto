@@ -2,18 +2,27 @@ syntax = "proto3";
 
 package hi.did;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "hi/options.proto";
 
+// 付款方付完款交给 hidid 的回执载荷(`Pay.Notify` 的 SignedData.Data 反序列化进它,JSON)。
 message Order {
-  string id   = 1; // req_id
+  // 订单号。**由三方定义,hidid 不解释它** —— GenerateReq 出的 req_id 是一种,
+  // 三方自己的业务单号(如插件市场的 `MKT-xxx`)也是一种,原样转给商户即可。
+  string id   = 1;
+  // **商户DID**,不是付款人 —— 付款人是 SignedData 的签名者。
+  // hidid 按它查出商户注册的 endpoint,回调 `PayCallback.Pay`。
+  // 这正是"付款方不必认识三方接口"的支点:银行 app 不该知道美团的 API 长什么样。
   string did  = 2;
-  string hash = 3;
+  string hash = 3; // 链上交易 hash
 }
 
+// Pay —— 典型账单-支付流程(与 OrderNotify/OrderEvent 的自动付款是两条独立流程):
+// 先 GenerateReq 申请支付号,付款完成后 Notify 后台去核对。
 service Pay {
-  rpc GenerateReq (hi.ClientInfo) returns (hi.RequestId); // 不鉴权
-  rpc Notify (hi.SignedData) returns (google.protobuf.Empty); // Order // Web3鉴权
+  rpc GenerateReq (hi.ClientInfo) returns (hi.RequestId) { option (hi.auth) = AUTH_NONE; }      // 公开:生成支付请求 reqId
+  rpc Notify (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_WEB3; }  // 验签:携带订单的支付通知(载荷签名)
 }

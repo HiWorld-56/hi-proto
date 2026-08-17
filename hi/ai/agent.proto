@@ -2,175 +2,200 @@ syntax = "proto3";
 
 package hi.ai;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/ai";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
 
 import "google/protobuf/empty.proto";
+import "buf/validate/validate.proto";
 import "hi/common.proto";
+import "hi/options.proto";
 
 /////////////////////////////// 智能体 ///////////////////////////////
 message Prompt {
-  string system = 1;
-  string user   = 2;
+  option (hi.audience) = VIS_SELF; // 系统/用户提示词=机器人私有配置,只给 owner 本人
+  string system = 1 [(hi.visibility) = VIS_SELF];
+  string user   = 2 [(hi.visibility) = VIS_SELF];
 }
 
-message Model {
-  string llm       = 1;
-  string stt       = 2;
-  string tts       = 3;
-  string embedding = 4;
+// 一个 agent 选用的一组模型。原名 Model —— 与模型目录 service Model 同包重名,
+// 且它本就不是"一个模型"而是一套选择,故改名 ModelSet。
+message ModelSet {
+  option (hi.audience) = VIS_SELF; // 本 agent 选用的模型=私有配置(模型「目录」在 model.proto 才是 PUBLIC)
+  string llm       = 1 [(hi.visibility) = VIS_SELF];
+  string stt       = 2 [(hi.visibility) = VIS_SELF];
+  string tts       = 3 [(hi.visibility) = VIS_SELF];
+  string embedding = 4 [(hi.visibility) = VIS_SELF];
+  string mem_model = 5 [(hi.visibility) = VIS_SELF]; // 记忆模型:与其它模型配置同处,经 Agent.Edit 设置(原 Training.SetMemModel/GetMemModel 已删,别再开第二条写路径)
 }
 
-// 智能体配置
+// 智能体配置。
+//
+// ⚠️ **插件没有总开关**:有 plugin 权限 = 插件模块就是开的;是否生效由每个脚本自己的 enabled 决定
+//    (原 use_plugin 已删)。故这里只剩 use_mem 一个总开关 —— 记忆模块待重构,重构前暂留。
 message AgentConfig {
-  Prompt         prompt            = 1;
-  optional float freedom           = 2; // 控制模型输出的随机性，值越大越随机
-  Model          model             = 3;
-  optional int32 qa_num            = 4; // 上下文组数
-  bool           use_mem           = 11; // 启用记忆（启用训练数据）
-  bool           use_plugin_search = 12; // 启用搜索插件
-  bool           use_plugin_python = 13; // 启用python插件
-  bool           use_plugin_draw   = 14; // 启用画图插件
+  option (hi.audience) = VIS_SELF; // 机器人配置(提示词/模型/记忆开关)=owner 私产
+  Prompt         prompt  = 1 [(hi.visibility) = VIS_SELF];
+  optional float freedom = 2 [(hi.visibility) = VIS_SELF]; // 控制模型输出的随机性，值越大越随机
+  ModelSet       model   = 3 [(hi.visibility) = VIS_SELF];
+  optional int32 qa_num  = 4 [(hi.visibility) = VIS_SELF]; // 上下文组数
+  optional bool  use_mem = 5 [(hi.visibility) = VIS_SELF]; // 启用记忆（启用训练数据）。optional:Edit 局部更新——不传=不动,避免只改别的字段时把记忆误关。
+                              // 启用需 mem 权限(use-side 判);记忆开关的唯一写入口就是 Agent.Edit(原 SetSwitches 已移除)。
 }
 
+// 用量/计费数据,只发给资源主人本人。
 message TokenUsage {
-  int32 output = 1; // 模型生成输出时消耗的token数。
-  int32 input  = 2; // 模型输入时消耗的token数
-  int32 mem    = 3; // 训练消耗的token数
+  option (hi.audience) = VIS_SELF;
+  int32 output = 1 [(hi.visibility) = VIS_SELF]; // 模型生成输出时消耗的token数。
+  int32 input  = 2 [(hi.visibility) = VIS_SELF]; // 模型输入时消耗的token数
+  int32 mem    = 3 [(hi.visibility) = VIS_SELF]; // 训练消耗的token数
 }
 
+// 机器人本身的信息。
+//
+// ⚠️ 曾经有个 marked 字段(以及配套的 AgentBrief / Mark / ListMarks),用来给机器人打
+//    标记让它在列表里显示靠前。已整体删除:实际没什么用,而且它从一开始就是错位的 ——
+//    标记不是机器人的属性,是观察者挂在机器人上的东西,同一台机器人不同的人看到的
+//    应该不一样,而存储上(唯一键只有 agent_did)根本表达不了这件事。**别再加回来。**
 message AgentInfo {
-  hi.Entity   base       = 1;
-  AgentConfig config     = 2;
-  string      creator    = 3;
-  string      note       = 4;
-  TokenUsage  token      = 5;
-  int64       created_at = 6;
-  bool        favorited  = 7;
+  option (hi.audience) = VIS_SELF; // 含 config/token 私产 → 整条只发给 owner 本人
+  hi.Entity   base       = 1 [(hi.visibility) = VIS_PUBLIC]; // hi.Entity 恒 PUBLIC
+  AgentConfig config     = 2 [(hi.visibility) = VIS_SELF];
+  string      creator    = 3 [(hi.visibility) = VIS_SELF]; // 归属 did
+  string      note       = 4 [(hi.visibility) = VIS_SELF];
+  TokenUsage  token      = 5 [(hi.visibility) = VIS_SELF];
+  int64       created_at = 6 [(hi.visibility) = VIS_SELF];
 }
 
-message AgentConfigResp {
-  AgentConfig config = 1;
+message DefaultConfigResp {
+  option (hi.audience) = VIS_SELF; // 复用 AgentConfig(SELF)→整条随之 SELF
+  AgentConfig config = 1 [(hi.visibility) = VIS_SELF]; // 全局默认配置(建 agent 用的模板,与具体 agent 无关)
 }
 
-message ListLLMResp {
-  repeated string models = 1;
+// 造**软件** assistant:did 由后台生成,type 固定 assistant。
+message CreateAssistantReq {
+  string name   = 1;
+  string avatar = 2;
 }
 
-message ListEmbeddingResp {
-  repeated string models = 1;
-}
-
-message ListSTTResp {
-  repeated string models = 1;
-  repeated string langs  = 2;
-}
-
-message ListTTSResp {
-  repeated string models = 1;
-}
-
-message CreateAgentReq {
-  hi.Entity base = 1;
+// 为**硬件** robot 建 agent 记录。
+//
+// did **不是这里生成的** —— 硬件先在 hidid 完成注册拿到 did,club 在它登录时
+// 把它分别登记到 hidid / hiai,这个方法就是 hiai 那一步。故 did 必填。
+// type 由服务端固定为 robot,**不收调用方传的 type**。
+message RegisterRobotReq {
+  string did    = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 硬件机器人已注册的 did
+  string name   = 2;
+  string avatar = 3;
 }
 
 message CreateAgentResp {
-  hi.Entity   base    = 1;
-  AgentConfig config  = 2;
-  hi.Entity   creator = 3;
+  option (hi.audience) = VIS_SELF; // 含 AgentConfig 私产 → SELF
+  hi.Entity   base    = 1 [(hi.visibility) = VIS_PUBLIC]; // hi.Entity 恒 PUBLIC
+  AgentConfig config  = 2 [(hi.visibility) = VIS_SELF];
+  hi.Entity   creator = 3 [(hi.visibility) = VIS_PUBLIC]; // hi.Entity 恒 PUBLIC
 }
 
+// 改机器人。agent 是**定位**参数(改哪个),归属由后端校验;name/avatar 才是可改的内容。
 message EditAgentReq {
-  hi.Entity   base   = 1;
+  string      agent  = 1; // 机器人 did(定位)
+  string      name   = 4;
+  string      avatar = 5;
   AgentConfig config = 2;
   string      note   = 3;
 }
 
-message ListAgentResp {
-  int32               total = 1;
-  repeated AgentInfo  infos = 2;
+// 商户档的列表:**不带 marked**。标记是超管的概念(见 AgentBrief),
+// 商户看自己的机器人不需要、也拿不到别人的标记。
+message ListAgentsResp {
+  option (hi.audience) = VIS_SELF; // 列 owner 自己的机器人(含 config)→ SELF
+  int32              total = 1 [(hi.visibility) = VIS_SELF];
+  repeated AgentInfo agents = 2 [(hi.visibility) = VIS_SELF]; // 与 hi.club.ListAgentsResp 对齐(原 infos)
 }
 
-message ListAgentByDidsReq {
-  repeated string dids       = 1;
+// 列**调用者名下**的机器人。范围恒是自己名下,agents 只是在这个范围内再筛。
+//
+// ⚠️ agents 是**过滤条件**:空=不筛(名下全部),非空=只要这几个。这与"空=换一种
+//    语义"不同 —— 两种情况是同一根轴上的"筛/不筛",所以合并成一个方法是对的。
+//
+// ⚠️ 这个字段曾叫 creators(按主人筛),那是**另一根轴**且没有归属校验:
+//    任一商户传别人的 did 就能拿走对方机器人的完整 AgentInfo(含 prompt)。已删。
+//    跨商户列是超管的活,走 AgentManage.List。**别再把 creators 加回来。**
+//
+// 也曾另有一个按 did 批量取的方法与本方法并存 —— 加上归属校验后两者范围完全相同
+// (都是"自己名下"),只剩筛不筛之别,是同一个方法,已合并至此。
+message ListAgentsReq {
+  repeated string agents     = 1; // 可选:按机器人 did 筛;空=名下全部
   hi.Pagination   pagination = 2;
-}
-
-message ListAgentByDidsResp {
-  int32               total = 1;
-  repeated AgentInfo  infos = 2;
 }
 
 message DeleteAgentReq {
-  string did = 1;
-}
-
-message FindAgentReq {
-  string did = 1;
-}
-
-message FindAgentResp {
-  AgentInfo info = 1;
-}
-
-message FindAgentCountReq {
-  string did = 1;
-}
-
-message FindAgentCountResp {
-  int32      message_count = 1;
-  TokenUsage token         = 2;
-}
-
-message TransferReq {
   string agent = 1;
-  string to    = 2;
 }
 
-message UpdatesToDefaultReq {
-  repeated string dids = 1;
+message GetAgentReq {
+  string agent = 1;
 }
 
-message FavoriteAgentReq {
-  string did = 1;
-  string opt = 2;
+message GetAgentResp {
+  option (hi.audience) = VIS_SELF; // AgentInfo(SELF)
+  AgentInfo info = 1 [(hi.visibility) = VIS_SELF];
 }
 
-message ListFavoriteAgentReq {
-  hi.Pagination pagination = 1;
+message AgentUsageReq {
+  string agent = 1;
 }
 
-message ListFavoriteAgentResp {
-  int32               total = 1;
-  repeated AgentInfo  infos = 2;
+// 机器人用量。原 FindAgentCountResp —— 它不是"count",而是消息数 + token 三件套。
+message AgentUsageResp {
+  option (hi.audience) = VIS_SELF;
+  int32      message_count = 1 [(hi.visibility) = VIS_SELF];
+  TokenUsage token         = 2 [(hi.visibility) = VIS_SELF];
 }
 
-message ListFavoriteAgentByDIDsReq {
-  repeated string dids       = 1;
+message ResetToDefaultReq {
+  repeated string agents = 1;
+}
+
+// 智能体(主体=智能体)。商户档:hiai web(token)与商户后台服务(apikey)都会调,
+// 两者解出同一个商户 did。
+//
+// (原 Transfer 已删 —— 它自称"转让 apikey+agent"但只改了 creator,还会顺带把目标非超级用户的
+//  agent 模型降级;"把软件机器人转给其他用户"这个概念应在 hiclub 侧实现。)
+service Agent {
+  // ⚠️ **软硬件分开**,别再合成一个。合起来必然要问"type 信谁":
+  //    原先是 `Create(did, type)` 靠 did 空不空隐式分支,而实现里把 type 硬编码成
+  //    assistant —— 硬件机器人登录后被记成软件 assistant,club 拿着这个响应又把
+  //    mqtt 配置走错分支(该 setupSelfReceiveMqtt 的走了 AddMqttUserWAcl)。
+  //    拆开后各自的 type 由服务端固定,调用方无从传错。
+  rpc CreateAssistant (CreateAssistantReq) returns (CreateAgentResp) { option (hi.auth) = AUTH_MERCHANT; } // 造软件 assistant(did 后台生成,type 固定 assistant)
+  rpc RegisterRobot (RegisterRobotReq) returns (CreateAgentResp) { option (hi.auth) = AUTH_MERCHANT; }       // 为已注册的硬件 robot 建 agent 记录(did 必填,type 固定 robot)
+  // **改完回权威资料**(原先返 Empty)。`base.update` 是资料传播的唯一依据:
+  // 发消息时 message.from / 群通知的 extra 都带着它,收信方按它比时间戳决定要不要刷缓存
+  // (惰性传播,见 hi/club/messaging.proto)。时间戳的权威在服务端,客户端自己造一个就是
+  // 两个时钟,会倒退(实测客户端微秒 vs 服务端整秒差 0.6s)。回权威值,调用方不必再查一次。
+  rpc Edit (EditAgentReq) returns (hi.Entity) { option (hi.auth) = AUTH_MERCHANT; }      // 改智能体
+  rpc Delete (DeleteAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }  // 删智能体(连带删文件+训练数据)
+  rpc Get (GetAgentReq) returns (GetAgentResp) { option (hi.auth) = AUTH_MERCHANT; }                 // 查单个智能体
+  // 列**自己名下**的机器人;agents 非空则在名下再按 did 筛(见 ListAgentsReq 的说明)。
+  // 归属恒取自 apikey 解出的商户 did,守卫下沉在 SQL,不靠 handler 记得过滤。
+  rpc List (ListAgentsReq) returns (ListAgentsResp) { option (hi.auth) = AUTH_MERCHANT; }              // 列名下机器人(agents 可选过滤)
+  rpc GetUsage (AgentUsageReq) returns (AgentUsageResp) { option (hi.auth) = AUTH_MERCHANT; }        // 机器人用量(消息数+token)
+  rpc GetDefaultConfig (google.protobuf.Empty) returns (DefaultConfigResp) { option (hi.auth) = AUTH_MERCHANT; } // 取全局默认配置(原 DefaultConfig,补动词)
+  rpc ResetToDefault (ResetToDefaultReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 批量重置为默认配置
+}
+
+// 超管按归属搜机器人(**可跨商户**)。creators 空 = 不过滤(全部)——
+// 与 Agent.List 的"空=列调用者自己的"不同:超管没有"自己的机器人"这个概念。
+message AgentManageListReq {
+  repeated string creators   = 1; // 主人的 did;空=全部
   hi.Pagination   pagination = 2;
 }
 
-message ListFavoriteAgentByDIDsResp {
-  int32               total = 1;
-  repeated AgentInfo  infos = 2;
-}
-
-// apiKey鉴权
-service Agent {
-  rpc ListLLM (google.protobuf.Empty) returns (ListLLMResp);
-  rpc ListEmbedding (google.protobuf.Empty) returns (ListEmbeddingResp);
-  rpc ListSTT (google.protobuf.Empty) returns (ListSTTResp);
-  rpc ListTTS (google.protobuf.Empty) returns (ListTTSResp);
-  rpc AgentConfig (google.protobuf.Empty) returns (AgentConfigResp);
-  rpc CreateAgent (CreateAgentReq) returns (CreateAgentResp);
-  rpc EditAgent (EditAgentReq) returns (google.protobuf.Empty);
-  rpc ListAgent (hi.Pagination) returns (ListAgentResp);
-  rpc ListAgentByDids (ListAgentByDidsReq) returns (ListAgentByDidsResp);
-  rpc DeleteAgent (DeleteAgentReq) returns (google.protobuf.Empty);
-  rpc FindAgent (FindAgentReq) returns (FindAgentResp);
-  rpc FindAgentCount (FindAgentCountReq) returns (FindAgentCountResp);
-  rpc Transfer (TransferReq) returns (google.protobuf.Empty);
-  rpc UpdatesToDefault (UpdatesToDefaultReq) returns (google.protobuf.Empty);
-  rpc FavoriteAgent (FavoriteAgentReq) returns (google.protobuf.Empty);
-  rpc ListFavoriteAgent (ListFavoriteAgentReq) returns (ListFavoriteAgentResp);
-  rpc FavoriteAgentListByDIDs (ListFavoriteAgentByDIDsReq) returns (ListFavoriteAgentByDIDsResp);
+// 机器人管理(**超管**)。与 Agent(商户档)**主体不同,故拆 service** ——
+// 范式见本仓的 Permission/PermissionManage。
+//
+// 为什么不把 Agent 里的方法直接提档:那几个是商户对**自己名下**机器人的操作,
+// 超管是**跨商户**的另一个主体。混在一个 service 里,就只能靠"入参空不空"或
+// "运行时查是不是超管"来分叉 —— 那正是最容易搞混、也最容易漏判的写法。
+service AgentManage {
+  rpc List (AgentManageListReq) returns (ListAgentsResp) { option (hi.auth) = AUTH_SUPERADMIN; }          // 超管:按归属搜(跨商户)
 }

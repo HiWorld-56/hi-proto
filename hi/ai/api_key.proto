@@ -2,22 +2,26 @@ syntax = "proto3";
 
 package hi.ai;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/ai";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "hi/options.proto";
 
+// apikey 是商户机密(value 可鉴权),只发给持有它的商户本人。
 message ApiKeyInfo {
-  string value      = 1;
-  string did        = 2;
-  int32  rate_limit = 3;
-  int32  is_active  = 4;
-  string note       = 5;
-  int64  created_at = 6;
+  option (hi.audience) = VIS_SELF;
+  string value      = 1 [(hi.visibility) = VIS_SELF];
+  string did        = 2 [(hi.visibility) = VIS_SELF];
+  int32  rate_limit = 3 [(hi.visibility) = VIS_SELF];
+  bool   is_active  = 4 [(hi.visibility) = VIS_SELF];
+  string note       = 5 [(hi.visibility) = VIS_SELF];
+  int64  created_at = 6 [(hi.visibility) = VIS_SELF];
 }
 
 message CreateApiKeyResp {
-  ApiKeyInfo info = 1;
+  option (hi.audience) = VIS_SELF;
+  ApiKeyInfo info = 1 [(hi.visibility) = VIS_SELF];
 }
 
 message EditApiKeyReq {
@@ -26,27 +30,32 @@ message EditApiKeyReq {
 }
 
 message EditApiKeyResp {
-  ApiKeyInfo info = 1;
+  option (hi.audience) = VIS_SELF;
+  ApiKeyInfo info = 1 [(hi.visibility) = VIS_SELF];
 }
 
-message ListApiKeyResp {
-  int32               total = 1;
-  repeated ApiKeyInfo infos = 2;
+message ListApiKeysResp {
+  option (hi.audience) = VIS_SELF;
+  int32               total = 1 [(hi.visibility) = VIS_SELF];
+  repeated ApiKeyInfo infos = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message DeleteApiKeyReq {
   string api_key = 1;
 }
 
-message ListAgentReq {
-  string        agent_did  = 1;
-  hi.Pagination pagination = 2;
-}
-
-// 使用token鉴权
+// 商户的 apikey 管理(主体=apikey)。商户档。
+//
+// 商户在 hiai web 后台(token)签发 apikey 给自己的后台服务用;但**商户后台调用时没有登录态**,
+// 直接带 apikey 鉴权 —— 那种情况就用 apikey 反查商户 did(与 token 反查 did 对称)。
+// 故 token 与 apikey 都要收。
+//
+// ⚠️ Edit/Delete 必须校验归属(apikey.did == 当前商户 did)—— 否则任何登录者传别人的
+//    api_key 就能改/删。**已落地**(handler 里比对 apikey 的 did 与调用者),这条留作
+//    约束说明:后续新增按 api_key 定位的方法,同样要带这个守卫。
 service ApiKey {
-  rpc Create (google.protobuf.Empty) returns (CreateApiKeyResp);
-  rpc Edit (EditApiKeyReq) returns (EditApiKeyResp);
-  rpc List (hi.Pagination) returns (ListApiKeyResp);
-  rpc Delete (DeleteApiKeyReq) returns (google.protobuf.Empty);
+  rpc Create (google.protobuf.Empty) returns (CreateApiKeyResp) { option (hi.auth) = AUTH_MERCHANT; }      // 签发 apikey
+  rpc Edit (EditApiKeyReq) returns (EditApiKeyResp) { option (hi.auth) = AUTH_MERCHANT; }                  // 改备注
+  rpc List (hi.Pagination) returns (ListApiKeysResp) { option (hi.auth) = AUTH_MERCHANT; }                 // 列自己的 apikey
+  rpc Delete (DeleteApiKeyReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 删 apikey
 }

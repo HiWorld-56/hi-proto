@@ -2,28 +2,31 @@ syntax = "proto3";
 
 package hi.ai;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/ai";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
 
 import "google/protobuf/empty.proto";
+import "buf/validate/validate.proto";
 import "hi/common.proto";
+import "hi/options.proto";
 
-message TrainingAgentReq {
-  repeated int32 ids   = 1; // 训练文件id列表
-  string         agent = 2; // 智能体did
+message StartReq {
+  repeated string uuids = 1; // 训练文件 uuid 列表(禁用数据表自增 id 跨端流转)
+  string          agent = 2; // 智能体did
 }
 
-message TrainingStatusReq {
+message StatusReq {
   string agent = 1; // 智能体did
 }
 
-message TrainingStatusResp {
-  string status      = 1; // 训练状态,success-训练成功,failed-训练失败
-  int32  mem_count   = 2;
-  int32  slice_count = 3;
-  string message     = 4; // 训练状态描述
+message StatusResp {
+  option (hi.audience) = VIS_SELF; // 机器人训练状态=owner 私有
+  string status      = 1 [(hi.visibility) = VIS_SELF]; // 训练状态,success-训练成功,failed-训练失败
+  int32  mem_count   = 2 [(hi.visibility) = VIS_SELF];
+  int32  slice_count = 3 [(hi.visibility) = VIS_SELF];
+  string message     = 4 [(hi.visibility) = VIS_SELF]; // 训练状态描述
 }
 
-message TrainingClearReq {
+message ClearReq {
   string agent = 1; // 智能体did
 }
 
@@ -33,100 +36,113 @@ message UploadFileReq {
   bytes  content  = 3; // 文件内容
 }
 
-message AgentTrainingFile {
-  int32  id            = 1;  // 训练文件id
-  string content       = 2;  // content（文件内容） / path / url
-  string agent         = 3;  // 智能体did
-  string title         = 4;  // 文件名
-  int32  size          = 5;  // 文件大小
-  string type          = 6;  // 文件类型
-  int32  is_use        = 7;  // 是否已经训练，0-未训练，1-已训练
-  string digest        = 8;  // 文件摘要
-  int64  training_time = 9;  // 训练时间
-  int64  created_at    = 10; // 创建时间
-  int64  updated_at    = 11; // 更新时间
+message TrainingFile {
+  option (hi.audience) = VIS_SELF; // 训练文件是机器人私产、有归属校验 → SELF
+  string uuid          = 1  [(hi.visibility) = VIS_SELF]; // 训练文件稳定标识(uuid;不暴露数据表自增 id)
+  string content       = 2  [(hi.visibility) = VIS_SELF]; // content（文件内容） / path / url
+  string agent         = 3  [(hi.visibility) = VIS_SELF]; // 智能体did
+  string title         = 4  [(hi.visibility) = VIS_SELF]; // 文件名
+  int32  size          = 5  [(hi.visibility) = VIS_SELF]; // 文件大小
+  string type          = 6  [(hi.visibility) = VIS_SELF]; // 文件类型
+  bool   is_use        = 7  [(hi.visibility) = VIS_SELF]; // 是否已经训练
+  string digest        = 8  [(hi.visibility) = VIS_SELF]; // 文件摘要
+  int64  training_time = 9  [(hi.visibility) = VIS_SELF]; // 训练时间
+  int64  created_at    = 10 [(hi.visibility) = VIS_SELF]; // 创建时间
+  int64  updated_at    = 11 [(hi.visibility) = VIS_SELF]; // 更新时间
 }
 
-message ListAgentFileReq {
+message ListFilesReq {
   string        agent      = 1; // 智能体did
   bool          use        = 2; // true-返回已训练的文件, false-返回所有文件
   hi.Pagination pagination = 3;
 }
 
-message ListAgentFileResp {
-  int32                     total = 1;
-  repeated AgentTrainingFile list  = 2;
+message ListFilesResp {
+  option (hi.audience) = VIS_SELF; // TrainingFile(SELF)
+  int32                 total = 1 [(hi.visibility) = VIS_SELF];
+  repeated TrainingFile list  = 2 [(hi.visibility) = VIS_SELF];
 }
 
-message DeleteAgentFileReq {
-  int32 id = 1; // 训练文件id
+message DeleteFilesReq {
+  string          agent = 1; // 智能体did
+  repeated string uuids = 2; // 训练文件 uuid 列表
 }
 
-message DeleteAgentFilesReq {
-  string         agent = 1; // 智能体did
-  repeated int32 ids   = 2; // 训练文件id列表
-}
-
-message DeleteAgentFilesByDidReq {
+message DeleteFilesByAgentsReq {
   repeated string agents = 1; // 智能体did列表
 }
 
-message GetAgentFileReq {
-  int32 id = 1; // 训练文件id
+// 下载训练文件原件。训练资料存**私有桶**(商户私产,不公开读),所以拿不到可直下的 url,
+// 必须经这里带归属校验取字节 —— 与插件脚本的 DownloadScript 同一套路。
+message DownloadFileReq {
+  string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // agent did(校验归属)
+  string uuid  = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 训练文件 uuid
+}
+message DownloadFileResp {
+  option (hi.audience) = VIS_SELF; // 训练资料是 owner 私产
+  bytes  content = 1 [(hi.visibility) = VIS_SELF];
+  string name    = 2 [(hi.visibility) = VIS_SELF]; // 建议的文件名
 }
 
-message GetAgentFileResp {
-  AgentTrainingFile file = 1;
+message GetFileReq {
+  string uuid  = 1; // 训练文件 uuid
+  string agent = 2; // 智能体did(供 club/ai 两级归属校验;club 按 agent 查本方用户是否拥有该 agent)
+}
+
+message GetFileResp {
+  option (hi.audience) = VIS_SELF; // TrainingFile(SELF)
+  TrainingFile file = 1 [(hi.visibility) = VIS_SELF];
 }
 
 message UpdateContentReq {
   string agent   = 1;
-  int32  id      = 2;
+  string uuid    = 2; // 训练文件 uuid
   string content = 3;
 }
 
 message CreateContentReq {
   string agent   = 1;
   string content = 2;
+  // 文件名。**可空** —— 空了后端按内容前 10 字派生一个。
+  //
+  // 为什么要收:文本训练在前端是让用户自己起名的(上传文件那条路天然带文件名),
+  // 而派生出来的"前10字…"在列表里全是一个样,用户根本认不出自己传的是哪份。
+  // 之前这一栏前端一直在传,后端没有这个字段 —— 请求照发、**字段静默丢掉**,
+  // 谁都没发现(这正是 codegen/check_web_routes.py 存在的理由)。
+  string title   = 3;
 }
 
 message CreateContentResp {
-  AgentTrainingFile file = 1;
+  option (hi.audience) = VIS_SELF; // TrainingFile(SELF)
+  TrainingFile file = 1 [(hi.visibility) = VIS_SELF];
 }
 
 message EditDigestReq {
-  int32  id     = 1;
+  string uuid   = 1; // 训练文件 uuid
   string agent  = 2;
   string digest = 3;
 }
 
-message SetMemModelReq {
-  string agent     = 1;
-  string mem_model = 2;
-}
-
-message GetMemModelReq {
-  string agent = 1;
-}
-
-message GetMemModelResp {
-  string mem_model = 1;
-}
-
-// apiKey鉴权
+// 训练/记忆(主体=训练)。商户档:**hiai 自己的 web 与三方商户后台都会调**,
+// 故 token 与 apikey 都要收,两者解出同一个商户 did。
+//
+// 去 stutter:Training.TrainingAgent/TrainingStatus/TrainingClear → Start/Status/Clear;
+//            文件类方法的 "Agent" 是入参不是主体 → ListAgentFiles → ListFiles 等。
+//
+// ⚠️ 后端接线必修(越权):DeleteFile 按 req.id 取到就删,**不校验该文件 UserDid == 调用者**。
 service Training {
-  rpc TrainingAgent (TrainingAgentReq) returns (google.protobuf.Empty);       // 启动训练
-  rpc TrainingStatus (TrainingStatusReq) returns (TrainingStatusResp);        // 获取训练状态
-  rpc TrainingClear (TrainingClearReq) returns (google.protobuf.Empty);       // 清除训练状态
-  rpc UploadFile (UploadFileReq) returns (google.protobuf.Empty);             // 上传训练文件
-  rpc ListAgentFile (ListAgentFileReq) returns (ListAgentFileResp);           // 获取训练文件列表
-  rpc DeleteAgentFile (DeleteAgentFileReq) returns (google.protobuf.Empty);   // 删除训练文件
-  rpc DeleteAgentFiles (DeleteAgentFilesReq) returns (google.protobuf.Empty); // 批量删除训练文件
-  rpc DeleteAgentFilesByDid (DeleteAgentFilesByDidReq) returns (google.protobuf.Empty); // 通过智能体did删除训练文件
-  rpc GetAgentFile (GetAgentFileReq) returns (GetAgentFileResp);
-  rpc UpdateContent (UpdateContentReq) returns (google.protobuf.Empty);
-  rpc CreateContent (CreateContentReq) returns (CreateContentResp);
-  rpc EditDegest (EditDigestReq) returns (google.protobuf.Empty);
-  rpc SetMemModel (SetMemModelReq) returns (google.protobuf.Empty);
-  rpc GetMemModel (GetMemModelReq) returns (GetMemModelResp);
+  // ── 训练任务 ──
+  rpc Start (StartReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }   // 启动训练(原 TrainingAgent)
+  rpc Status (StatusReq) returns (StatusResp) { option (hi.auth) = AUTH_MERCHANT; }    // 训练状态(原 TrainingStatus)
+  rpc Clear (ClearReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }   // 清除记忆/训练(原 TrainingClear)
+  // ── 训练文件 ──
+  rpc ListFiles (ListFilesReq) returns (ListFilesResp) { option (hi.auth) = AUTH_MERCHANT; }                 // 列训练文件(原 ListAgentFiles)
+  rpc GetFile (GetFileReq) returns (GetFileResp) { option (hi.auth) = AUTH_MERCHANT; }                     // 取单个训练文件(原 GetAgentFile)
+  rpc DeleteFiles (DeleteFilesReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }        // 批量删(带 agent 归属;原单删 DeleteFile 无归属校验=越权,已删)
+  rpc DeleteFilesByAgents (DeleteFilesByAgentsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 按智能体清(原 DeleteAgentFilesByDid)
+  // ── 文本记忆条目 ──
+  rpc CreateContent (CreateContentReq) returns (CreateContentResp) { option (hi.auth) = AUTH_MERCHANT; } // 建文本记忆
+  rpc UpdateContent (UpdateContentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 改文本记忆
+  rpc EditDigest (EditDigestReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }   // 改摘要
 }
+// 记忆模型 mem_model 已并入 AgentConfig.ModelSet,经 Agent.Edit 设置(原 SetMemModel/GetMemModel 已删)。

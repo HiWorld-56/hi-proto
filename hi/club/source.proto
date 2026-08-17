@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
+
+import "google/protobuf/empty.proto";
+import "hi/ai/plugin.proto";
+import "hi/ai/training.proto";
+import "buf/validate/validate.proto";
+import "hi/common.proto";
+import "hi/source/source.proto";
+import "hi/options.proto";
+
+// Source —— **所有直接搬运二进制的方法**都收在这里。
+//
+// 分法是**按资源类别**(落哪个桶、留多久、公开还是私有),不是按实体。
+// 原先散在 User/Group/Chat/Plugin/Training 五个 service 里,找一个上传口要翻半天,
+// 每加一种资源就得在某个业务 service 里再塞一个 Upload*。
+//
+// ⚠️ **上传不做归属校验,也不需要**:上传只把字节换成一个 32 位随机 url,
+//    url 本身不构成任何权限。真正决定"这张图能不能挂到这个群上"的仍是
+//    `Group.Update` 的 owner/admin 校验 —— 那层一点没动。
+//    所以这里也**不校验 url 属于哪个桶**:调用方拿临时桶的 url 去设群头像,
+//    顶多是自己的图 14 天后失效,伤不到别人。
+//
+// ⚠️ **club 前端只调 club 的方法** —— 这是硬约束,不是偏好:app 侧的 core 只持有一条
+//    hiclub 通道,`hi.did.*` 它够不着。所以凡是 club 前端要用的搬运口,这里都得有一个,
+//    哪怕实现只是转发。曾经把用户头像"指路"到 `hi.did.Source.UploadAvatar`,
+//    结果是前端根本调不动 —— 别再犯。
+//
+//    命名:`UploadAvatar` = **用户头像**(与 `hi.did.Source.UploadAvatar` 同名同义);
+//    群资源一律带 Group 前缀,`UploadGroupAvatar` / `UploadGroupBackground`。
+service Source {
+  // 用户头像 → **hidid/avatar/**(不是 club 自己的桶)。
+  //
+  // 落别家的桶是有意的:`hi/did/source.proto` 定下"所有身份实体的头像都落 hidid/avatar/"。
+  // 同一个用户从 hidid 端传、还是从 hiclub 端传,该落同一处 —— 否则一份头像两边各存一份,
+  // 而"权威在哪"这个问题会随入口漂移。加载端只认 url,存哪儿对它透明。
+  rpc UploadAvatar (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; } // 用户头像 → hidid/avatar/
+
+  // ── 永久公开:club 自己的桶(hiclub)。只回 url,写进群信息仍走 Group.Update ──
+  rpc UploadGroupAvatar (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }     // 群头像 → hiclub/avatar/
+  rpc UploadGroupBackground (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; } // 群背景 → hiclub/background/
+
+  // Download 按 url 取**公开桶**媒体(聊天/AI 媒体)。给 brain 这类没有浏览器、
+  // 却持有 hiclub grpc 通道的设备端用 —— app/web 直接 http GET 公开 url,不走这里。
+  //
+  // ⚠️ **只放公开桶**(temp/hiclub/hidid):hi-source 的 Download 带 minio 凭据、
+  //    能读私有桶,若在这里无条件转发,任意用户拿个 hiai/… 的脚本 url 就绕过了
+  //    DownloadScript 的 ORIGINAL 门禁。私有资源一律走 DownloadScript /
+  //    DownloadTrainingFile,那里有归属校验。这不是"靠校验保安全",是划定方法边界:
+  //    本方法只对"本就人人可匿名 GET"的对象开放,grpc 只是省掉设备端的 http 栈。
+  rpc Download (DownloadResourceReq) returns (DownloadResourceResp) { option (hi.auth) = AUTH_USER; }
+
+  // DownloadStream 流式取**公开桶**媒体,带 offset/limit 支持 range/断点续传 ——
+  // 语音、视频这类边下边播、可拖动的场景用它,别用 Download 把整包读进内存。
+  // 桶边界与 Download 一致(只放 temp/hiclub/hidid 公开桶),私有资源仍走 DownloadScript / DownloadTrainingFile。
+  // 透传 hi-source 的 File.DownloadStream。
+  rpc DownloadStream (hi.source.DownloadStreamReq) returns (stream hi.source.DownloadStreamResp) { option (hi.auth) = AUTH_USER; }
+
+  // ── 临时:temp 桶,**14 天自动过期**。聊天/AI 媒体,按年月分目录便于人工排查 ──
+  rpc UploadTemp (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }                    // 小文件
+  rpc UploadTempStream (stream hi.UploadStreamReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; } // 大文件分片
+
+  // ── 日志:log 桶(私有),对象名固定为 <did>.log,**同一设备覆盖同一份** ──
+  //    随机改名的话,845 次/48h 的上传频率会瞬间堆出上万个对象。
+  rpc UploadLog (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }
+
+  // ── 永久私有:商户私产,不公开读,取用必须经 Download 带归属校验 ──
+  // 插件脚本 zip。unary 供 web(浏览器发不了 grpc 流式);流式版 UploadScriptStream 给 app/大文件。
+  rpc UploadScript (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }                                  // 小文件整包(web)
+  rpc UploadScriptStream (stream hi.UploadStreamReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }               // 大文件分片(grpc)
+  rpc DownloadScript (hi.ai.DownloadScriptReq) returns (hi.ai.DownloadScriptResp) { option (hi.auth) = AUTH_USER; }          // **仅 ORIGINAL 放行**:引用方(可能是买的)不给源码
+  rpc UploadTrainingFile (hi.ai.UploadFileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }             // 训练资料
+  rpc DownloadTrainingFile (hi.ai.DownloadFileReq) returns (hi.ai.DownloadFileResp) { option (hi.auth) = AUTH_USER; }        // 训练资料原件
+
+  // ── 插件的**展示资源** → hiai/pub/,**公开读**(透传 hi.ai.Source 的同名方法)──
+  // 图标/简介图是网页 <img src> 直接加载的,不公开读就是 403;它们**不是商户私产**。
+  // 曾与脚本 zip 混在 hiai/plugin/ 一个前缀,而那个桶不能整个开公开(开了白送源码),故单开 pub/。
+  rpc UploadLogo (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }    // 插件图标 → hiai/pub/(公开读)
+  rpc UploadSummary (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; } // 插件简介图 → hiai/pub/(公开读)
+
+  // Delete 删掉刚传上去、但**没被任何地方引用**的对象。
+  //
+  // 上传与落库解耦之后必然产生这个缺口:上传成功 → 调设置方法 → 设置失败,
+  // 那个对象就成了无主文件,永久桶又没有 lifecycle 兜底。约定:
+  //
+  //     上传 → 拿 url 调设置方法 → 设置失败 → **立即调 Delete**
+  //
+  // ⚠️ 不做归属校验,和上传对称 —— url 是 32 位随机名,知道 url 本身就是凭据。
+  //    这也意味着**它删得掉任何你知道 url 的对象**,别把 url 泄漏出去。
+  rpc Delete (hi.DeleteResourceReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
+}
+
+message DownloadResourceReq {
+  string url = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+}
+message DownloadResourceResp {
+  option (hi.audience) = VIS_PUBLIC; // 只服务公开桶,内容本就人人可取
+  bytes content = 1 [(hi.visibility) = VIS_PUBLIC];
+}
+

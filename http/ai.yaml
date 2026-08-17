@@ -1,9 +1,15 @@
 type: google.api.Service
 config_version: 3
 
+# hi.ai HTTP 路由。**破坏性改动**:随 proto 重构一并对齐新的 service/方法名,
+# 不再保留 find_agent / training_agent 这类词不达意的旧路径。
+# favorite_agent 更进一步:**收藏功能已整体删除**(连同后来复用它那张表的 mark 标记),
+# 不是改了名字 —— 别照着老前端的调用去找新路径。
+# 规则:/api/v1/<service_snake>/<method_snake>。
 http:
   rules:
-# Auth
+# ── 公开 ──
+# Auth(扫码登录握手,穿透 did)
   - selector: hi.ai.Auth.GenerateReqId
     post: /api/v1/auth/generate_req_id
     body: "*"
@@ -13,6 +19,17 @@ http:
   - selector: hi.ai.Auth.RefreshToken
     post: /api/v1/auth/refresh_token
     body: "*"
+# Register(原 InviteCode.Verify)
+  - selector: hi.ai.Register.Verify
+    post: /api/v1/register/verify
+    body: "*"
+# Base(版本+环境探测;与 did 一致)
+  - selector: hi.ai.Base.ServerVersion
+    get: /api/v1/base/server_version
+  - selector: hi.ai.SuperAdmin.List
+    get: /api/v1/super_admin/list
+
+# ── 商户档(apikey 或 token)──
 # ApiKey
   - selector: hi.ai.ApiKey.Create
     post: /api/v1/api_key/create
@@ -25,221 +42,219 @@ http:
   - selector: hi.ai.ApiKey.Delete
     post: /api/v1/api_key/delete
     body: "*"
-# Base
-  - selector: hi.ai.Base.ListSuperAdminUsers
-    post: /api/v1/base/list_super_admin_users
 # Agent
-  - selector: hi.ai.Agent.ListLLM
-    get: /api/v1/agent/list_llm
-  - selector: hi.ai.Agent.ListEmbedding
-    get: /api/v1/agent/list_embedding
-  - selector: hi.ai.Agent.ListSTT
-    get: /api/v1/agent/list_stt
-  - selector: hi.ai.Agent.ListTTS
-    get: /api/v1/agent/list_tts
-  - selector: hi.ai.Agent.AgentConfig
-    get: /api/v1/agent/agent_config
-  - selector: hi.ai.Agent.CreateAgent
-    post: /api/v1/agent/create_agent
+# Permission(商户档:配置**自己名下**机器人的能力位;权威存储在 ai,club 超管页穿透到这里)
+  - selector: hi.ai.Permission.List
+    post: /api/v1/permission/list
     body: "*"
-  - selector: hi.ai.Agent.EditAgent
-    post: /api/v1/agent/edit_agent
+  - selector: hi.ai.Permission.Add
+    post: /api/v1/permission/add
     body: "*"
-  - selector: hi.ai.Agent.ListAgent
-    post: /api/v1/agent/list_agent
+  - selector: hi.ai.Permission.Delete
+    post: /api/v1/permission/delete
     body: "*"
-  - selector: hi.ai.Agent.ListAgentByDids
-    post: /api/v1/agent/list_agent_by_dids
+  - selector: hi.ai.Permission.Edit
+    post: /api/v1/permission/edit
     body: "*"
-  - selector: hi.ai.Agent.DeleteAgent
-    post: /api/v1/agent/delete_agent
+  - selector: hi.ai.Permission.ListByType
+    post: /api/v1/permission/list_by_type
     body: "*"
-  - selector: hi.ai.Agent.FindAgent
-    get: /api/v1/agent/find_agent
-  - selector: hi.ai.Agent.FindAgentCount
-    post: /api/v1/agent/find_agent_count
+  - selector: hi.ai.Agent.CreateAssistant
+    post: /api/v1/agent/create_assistant
     body: "*"
-  - selector: hi.ai.Agent.Transfer
-    post: /api/v1/agent/transfer
+  - selector: hi.ai.Agent.Edit
+    post: /api/v1/agent/edit
     body: "*"
-  - selector: hi.ai.Agent.UpdatesToDefault
-    post: /api/v1/agent/updates_to_default
+  - selector: hi.ai.Agent.Delete
+    post: /api/v1/agent/delete
     body: "*"
-  - selector: hi.ai.Agent.FavoriteAgent
-    post: /api/v1/agent/favorite_agent
+  - selector: hi.ai.Agent.Get
+    get: /api/v1/agent/get
+  - selector: hi.ai.Agent.List
+    post: /api/v1/agent/list
     body: "*"
-  - selector: hi.ai.Agent.ListFavoriteAgent
-    post: /api/v1/agent/list_favorite_agent
+  - selector: hi.ai.Agent.GetUsage
+    post: /api/v1/agent/get_usage
     body: "*"
-  - selector: hi.ai.Agent.FavoriteAgentListByDIDs
-    post: /api/v1/agent/favorite_agent_list_by_dids
+  - selector: hi.ai.Agent.GetDefaultConfig
+    get: /api/v1/agent/get_default_config
+  - selector: hi.ai.Agent.ResetToDefault
+    post: /api/v1/agent/reset_to_default
     body: "*"
-# Plugin
-  - selector: hi.ai.Plugin.DrawConfig
-    get: /api/v1/plugin/draw_config
-  - selector: hi.ai.Plugin.PluginSwitch
-    post: /api/v1/plugin/plugin_switch
+# Model(模型目录,从 Agent 拆出)
+  - selector: hi.ai.Model.ListLlms
+    get: /api/v1/model/list_llms
+  - selector: hi.ai.Model.ListEmbeddings
+    get: /api/v1/model/list_embeddings
+  - selector: hi.ai.Model.ListStts
+    get: /api/v1/model/list_stts
+  - selector: hi.ai.Model.ListTts
+    get: /api/v1/model/list_tts
+# Chat
+  - selector: hi.ai.Chat.NewSession
+    get: /api/v1/chat/new_session
+  - selector: hi.ai.Chat.GetHistory
+    post: /api/v1/chat/get_history
     body: "*"
-  - selector: hi.ai.Plugin.SearchCreate
-    post: /api/v1/plugin/search_create
+  - selector: hi.ai.Chat.ClearHistory
+    post: /api/v1/chat/clear_history
     body: "*"
-  - selector: hi.ai.Plugin.PythonCreate
-    post: /api/v1/plugin/python_create
+  - selector: hi.ai.Chat.Converse
+    post: /api/v1/chat/converse
     body: "*"
-  - selector: hi.ai.Plugin.DrawCreate
-    post: /api/v1/plugin/draw_create
+  - selector: hi.ai.Chat.ConverseStream
+    post: /api/v1/chat/converse_stream
     body: "*"
-  - selector: hi.ai.Plugin.List
-    post: /api/v1/plugin/list
+  - selector: hi.ai.Chat.Resume
+    post: /api/v1/chat/resume
     body: "*"
-  - selector: hi.ai.Plugin.Delete
-    post: /api/v1/plugin/delete
+  - selector: hi.ai.Chat.ResumeStream
+    post: /api/v1/chat/resume_stream
     body: "*"
-  - selector: hi.ai.Plugin.DeleteByDids
-    post: /api/v1/plugin/delete_by_dids
+# Speech(真 STT/TTS,从 Chat 拆出)
+  - selector: hi.ai.Speech.Transcribe
+    post: /api/v1/speech/transcribe
+    body: "*"
+  - selector: hi.ai.Speech.Synthesize
+    post: /api/v1/speech/synthesize
+    body: "*"
+# AgentBench(延迟统计,从 Chat 拆出):List=每台各一条(概览) / ListHistory=某台的历次记录(明细)
+  - selector: hi.ai.AgentBench.List
+    post: /api/v1/agent_bench/list
+    body: "*"
+  - selector: hi.ai.AgentBench.ListHistory
+    post: /api/v1/agent_bench/list_history
+    body: "*"
+# Plugin(py 脚本一种;search/draw 已砍)
+  - selector: hi.ai.Plugin.CreateShell
+    post: /api/v1/plugin/create_shell
+    body: "*"
+  - selector: hi.ai.Plugin.CreateVersion
+    post: /api/v1/plugin/create_version
     body: "*"
   - selector: hi.ai.Plugin.Edit
     post: /api/v1/plugin/edit
     body: "*"
-  - selector: hi.ai.Plugin.GetDraw
-    get: /api/v1/plugin/get_draw
-  - selector: hi.ai.Plugin.PythonParamsSet
-    post: /api/v1/plugin/python_params_set
+  - selector: hi.ai.Plugin.Get
+    get: /api/v1/plugin/get
+  - selector: hi.ai.Plugin.List
+    post: /api/v1/plugin/list
     body: "*"
-  - selector: hi.ai.Plugin.GetPythonParams
-    get: /api/v1/plugin/get_python_params
+  - selector: hi.ai.Plugin.ListVersions
+    post: /api/v1/plugin/list_versions
+    body: "*"
+  - selector: hi.ai.Plugin.Delete
+    post: /api/v1/plugin/delete
+    body: "*"
+  - selector: hi.ai.Plugin.DeleteVersions
+    post: /api/v1/plugin/delete_versions
+    body: "*"
+  - selector: hi.ai.Plugin.DeleteVersionList
+    post: /api/v1/plugin/delete_version_list
+    body: "*"
+  - selector: hi.ai.Plugin.DeleteShell
+    post: /api/v1/plugin/delete_shell
+    body: "*"
+  - selector: hi.ai.Plugin.DeleteShells
+    post: /api/v1/plugin/delete_shells
+    body: "*"
+  - selector: hi.ai.Plugin.SetActive
+    post: /api/v1/plugin/set_active
+    body: "*"
+  - selector: hi.ai.Plugin.SetEnabled
+    post: /api/v1/plugin/set_enabled
+    body: "*"
+  - selector: hi.ai.Plugin.RetryBuild
+    post: /api/v1/plugin/retry_build
+    body: "*"
 # Training
-  - selector: hi.ai.Training.TrainingAgent
-    post: /api/v1/training/training_agent
+  - selector: hi.ai.Training.Start
+    post: /api/v1/training/start
     body: "*"
-  - selector: hi.ai.Training.TrainingStatus
-    post: /api/v1/training/training_status
+  - selector: hi.ai.Training.Status
+    post: /api/v1/training/status
     body: "*"
-  - selector: hi.ai.Training.TrainingClear
-    post: /api/v1/training/training_clear
+  - selector: hi.ai.Training.Clear
+    post: /api/v1/training/clear
     body: "*"
-  - selector: hi.ai.Training.UploadFile
-    post: /api/v1/training/upload_file
+  - selector: hi.ai.Source.UploadTrainingFile
+    post: /api/v1/source/upload_training_file
     body: "*"
-  - selector: hi.ai.Training.ListAgentFile
-    post: /api/v1/training/list_agent_file
+  - selector: hi.ai.Source.UploadTemp
+    post: /api/v1/source/upload_temp
     body: "*"
-  - selector: hi.ai.Training.DeleteAgentFile
-    post: /api/v1/training/delete_agent_file
+  - selector: hi.ai.Source.UploadScript
+    post: /api/v1/source/upload_script
     body: "*"
-  - selector: hi.ai.Training.DeleteAgentFiles
-    post: /api/v1/training/delete_agent_files
+  - selector: hi.ai.Source.UploadLogo
+    post: /api/v1/source/upload_logo
     body: "*"
-  - selector: hi.ai.Training.DeleteAgentFilesByDid
-    post: /api/v1/training/delete_agent_files_by_did
+  - selector: hi.ai.Source.UploadSummary
+    post: /api/v1/source/upload_summary
     body: "*"
-  - selector: hi.ai.Training.GetAgentFile
-    post: /api/v1/training/get_agent_file
+  - selector: hi.ai.Source.DownloadScript
+    post: /api/v1/source/download_script
     body: "*"
-  - selector: hi.ai.Training.UpdateContent
-    post: /api/v1/training/update_content
+  - selector: hi.ai.Training.ListFiles
+    post: /api/v1/training/list_files
+    body: "*"
+  - selector: hi.ai.Training.GetFile
+    post: /api/v1/training/get_file
+    body: "*"
+  - selector: hi.ai.Source.DownloadTrainingFile
+    post: /api/v1/source/download_training_file
+    body: "*"
+  - selector: hi.ai.Training.DeleteFiles
+    post: /api/v1/training/delete_files
+    body: "*"
+  - selector: hi.ai.Training.DeleteFilesByAgents
+    post: /api/v1/training/delete_files_by_agents
     body: "*"
   - selector: hi.ai.Training.CreateContent
     post: /api/v1/training/create_content
     body: "*"
-  - selector: hi.ai.Training.EditDegest
-    post: /api/v1/training/edit_degest
+  - selector: hi.ai.Training.UpdateContent
+    post: /api/v1/training/update_content
     body: "*"
-  - selector: hi.ai.Training.SetMemModel
-    post: /api/v1/training/set_mem_model
+  - selector: hi.ai.Training.EditDigest
+    post: /api/v1/training/edit_digest
     body: "*"
-  - selector: hi.ai.Training.GetMemModel
-    get: /api/v1/training/get_mem_model
-# UserACL
-  - selector: hi.ai.UserACL.Add
-    post: /api/v1/user_acl/add
+
+# ── 超管档(名单穿透 hidid)──
+# Permission(原 UserACL)—— 查(商户档)
+# PermissionManage —— 管(超管)
+# Merchant(商户目录,承接原 UserACL.List(type=NORMAL))
+  - selector: hi.ai.Merchant.List
+    post: /api/v1/merchant/list
     body: "*"
-  - selector: hi.ai.UserACL.Delete
-    post: /api/v1/user_acl/delete
+  - selector: hi.ai.Merchant.Edit
+    post: /api/v1/merchant/edit
     body: "*"
-  - selector: hi.ai.UserACL.List
-    post: /api/v1/user_acl/list
-    body: "*"
-  - selector: hi.ai.UserACL.ListType
-    get: /api/v1/user_acl/list_type
-  - selector: hi.ai.UserACL.Edit
-    post: /api/v1/user_acl/edit
-    body: "*"
-# Setting
+# Setting(服务级全局配置)
+  - selector: hi.ai.Setting.Get
+    get: /api/v1/setting/get
   - selector: hi.ai.Setting.Edit
     post: /api/v1/setting/edit
     body: "*"
-  - selector: hi.ai.Setting.Get
-    get: /api/v1/setting/get
-# InviteCode
+  - selector: hi.ai.Setting.ResetToDefault
+    post: /api/v1/setting/reset_to_default
+    body: "*"
+# InviteCode(管理;注册见上面 Register)
   - selector: hi.ai.InviteCode.Create
-    post: /api/v1/invitecode/create
+    post: /api/v1/invite_code/create
   - selector: hi.ai.InviteCode.Edit
-    post: /api/v1/invitecode/edit
+    post: /api/v1/invite_code/edit
     body: "*"
   - selector: hi.ai.InviteCode.List
-    post: /api/v1/invitecode/list
+    post: /api/v1/invite_code/list
     body: "*"
   - selector: hi.ai.InviteCode.Delete
-    post: /api/v1/invitecode/delete
+    post: /api/v1/invite_code/delete
     body: "*"
-  - selector: hi.ai.InviteCode.Verify
-    post: /api/v1/invitecode/verify
+# AgentManage(超管)
+  - selector: hi.ai.AgentManage.List
+    post: /api/v1/agent_manage/list
     body: "*"
-# Health
-  - selector: hi.ai.Health.Check
-    get: /api/v1/health/check
-# Chat
-  - selector: hi.ai.Chat.Simple
-    post: /api/v1/chat/simple
+  - selector: hi.ai.Source.Delete
+    post: /api/v1/source/delete
     body: "*"
-  - selector: hi.ai.Chat.GenerateCid
-    get: /api/v1/chat/generate_cid
-  - selector: hi.ai.Chat.Dialog
-    post: /api/v1/chat/dialog
-    body: "*"
-  - selector: hi.ai.Chat.DialogStream
-    post: /api/v1/chat/dialog_stream
-    body: "*"
-  - selector: hi.ai.Chat.ClearContext
-    post: /api/v1/chat/clear_context
-    body: "*"
-  - selector: hi.ai.Chat.GetContext
-    post: /api/v1/chat/get_context
-    body: "*"
-  - selector: hi.ai.Chat.SimpleTextToSpeech
-    post: /api/v1/chat/simple_text_to_speech
-    body: "*"
-  - selector: hi.ai.Chat.SimpleSpeechToText
-    post: /api/v1/chat/simple_speech_to_text
-    body: "*"
-  - selector: hi.ai.Chat.SpeechToSpeech
-    post: /api/v1/chat/speech_to_speech
-    body: "*"
-  - selector: hi.ai.Chat.SpeechToSpeech2
-    post: /api/v1/chat/speech_to_speech2
-    body: "*"
-  - selector: hi.ai.Chat.TextToText
-    post: /api/v1/chat/text_to_text
-    body: "*"
-  - selector: hi.ai.Chat.TextToText2
-    post: /api/v1/chat/text_to_text2
-    body: "*"
-  - selector: hi.ai.Chat.ListAgentDelay
-    post: /api/v1/chat/list_agent_delay
-    body: "*"
-  - selector: hi.ai.Chat.GetAgentDelay
-    post: /api/v1/chat/get_agent_delay
-    body: "*"
-  - selector: hi.ai.Chat.SpeechToText
-    post: /api/v1/chat/speech_to_text
-    body: "*"
-  - selector: hi.ai.Chat.SpeechToText2
-    post: /api/v1/chat/speech_to_text2
-    body: "*"
-# PluginEndpoint
-  - selector: hi.ai.PluginEndpoint.Set
-    post: /api/v1/plugin_endpoint/set
-    body: "*"
-  - selector: hi.ai.PluginEndpoint.Get
-    get: /api/v1/plugin_endpoint/get

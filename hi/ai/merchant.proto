@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package hi.ai;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
+
+import "google/protobuf/empty.proto";
+import "buf/validate/validate.proto";
+import "hi/common.proto";
+import "hi/options.proto";
+
+// 商户目录。**从 permission.proto 搬来** —— 那个文件随「hiai 去掉权限控制」一起删除,
+// 而商户目录与权限无关,是超管面的功能(跨商户看全部机器人、配 openai endpoint 等),
+// 予以保留。
+//
+// ⚠️ **hiai 的商户 ≠ hidid 的商户**:两套是不同的服务机构,各自注册、各自一张表,
+// 只是恰好都叫"商户"。所以备注这类运营数据 hiai 自己存(hi_ai_user.remark),
+// **不要**去复用 `hi.did.MerchantManage.Edit`。
+
+// ── 商户目录 ─────────────────────────────────────────────────────────────
+message MerchantListReq {
+  string        did        = 1; // 可选:按 did 过滤
+  hi.Pagination pagination = 2;
+}
+
+// 只由 AUTH_SUPERADMIN 的方法返回,而且带了**运营内部备注** → 整条 SELF
+// (与 `hi.did.InviteCodeListResp`、`hi.ai.SettingGetResp` 同档:超管后门数据一律最窄)。
+// 原先标 PARTICIPANT,是把它当"商户生态内的目录";加了 remark 之后这个定位就不成立了 ——
+// 私有字段不该靠"反正只有超管调"来兜,受众得写在结构上。
+message MerchantListResp {
+  option (hi.audience) = VIS_SELF;
+  message Unit {
+    option (hi.audience) = VIS_SELF;
+    hi.Entity base       = 1 [(hi.visibility) = VIS_PUBLIC]; // hi.Entity 恒 PUBLIC
+    int64     created_at = 2 [(hi.visibility) = VIS_SELF];
+    string    remark     = 3 [(hi.visibility) = VIS_SELF]; // 超管写的内部备注,商户本人看不到也改不了
+  }
+  int32         total = 1 [(hi.visibility) = VIS_SELF];
+  repeated Unit infos = 2 [(hi.visibility) = VIS_SELF];
+}
+
+// 改某商户的备注(超管)。整段覆盖,传空串即清空。
+message MerchantEditReq {
+  string did    = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string remark = 2 [(buf.validate.field).string.max_len = 255]; // 列宽 255,超了当场拒,别到 DB 才截断
+}
+
+// 商户目录(超管)。承接原 `UserACL.List(type="all")` —— 那查的是**注册用户/商户名录**,
+// 与"授权限"是两件事,混在一个方法里靠 type 分流,读的人看不懂,故拆出来。
+// 与 hi.did.MerchantManage.List 同形对齐(hiai 里没有普通用户,只有商户)。
+service Merchant {
+  rpc List (MerchantListReq) returns (MerchantListResp) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:列注册商户
+  rpc Edit (MerchantEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:改商户备注
+}

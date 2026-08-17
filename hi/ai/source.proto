@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package hi.ai;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
+
+import "google/protobuf/empty.proto";
+import "hi/ai/plugin.proto";
+import "hi/ai/training.proto";
+import "hi/common.proto";
+import "hi/options.proto";
+
+// Source —— hi.ai 侧直接搬运二进制的方法(club 的同名 service 是它的门面)。
+// 分法见 hi/club/source.proto 的说明:按资源类别,不按实体。
+//
+// hi.ai 的资源分两类:
+//   1. **商户私产**(插件脚本、训练资料):落 hiai 私有桶,不公开读,取用经 Download 带归属校验;
+//   2. **临时媒体**(聊天/AI 产出的图等):落共享 temp 桶,14 天自动过期、公开读,与 hiclub 同桶。
+// 桶/目录/命名是 handler 内部封装,对 hi-source 只用其原子 Put(不外泄 hi-source 的接口)。
+service Source {
+  // 插件脚本 zip → hiai/plugin/。unary 供 web(浏览器发不了 grpc 流式);流式 UploadScriptStream 给大文件/grpc。
+  rpc UploadScript (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_MERCHANT; }                           // 小文件整包(web)
+  rpc UploadScriptStream (stream hi.UploadStreamReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_MERCHANT; }        // 大文件分片(grpc)
+  rpc DownloadScript (DownloadScriptReq) returns (DownloadScriptResp) { option (hi.auth) = AUTH_MERCHANT; }               // **仅 ORIGINAL 放行**
+  rpc UploadTrainingFile (UploadFileReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }            // 训练资料 → hiai/training/
+
+  // ── 插件的**展示资源** → hiai/pub/,**公开读** ────────────────────────────
+  // 图标和简介图是网页上 <img src> 直接加载的,不公开读就是 403。它们**不是商户私产**,
+  // 分类的依据是"给谁看",不是"都属于插件" —— 曾经和脚本 zip 混在同一个 hiai/plugin/ 前缀里,
+  // 结果传上去就显示不了;而 hiai 桶又不能整个开公开(开了等于白送脚本源码)。
+  // 于是单开 pub/ 前缀,minio 只对它放匿名 GetObject。**往这个前缀放东西前先问:任何人都能下载它吗?**
+  rpc UploadLogo (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_MERCHANT; }    // 插件图标 → hiai/pub/(公开读)
+  rpc UploadSummary (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_MERCHANT; } // 插件简介图 → hiai/pub/(公开读)
+  rpc DownloadTrainingFile (DownloadFileReq) returns (DownloadFileResp) { option (hi.auth) = AUTH_MERCHANT; }             // 训练资料原件
+  rpc UploadTemp (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_MERCHANT; }                            // 临时媒体(小文件)→ temp 桶(14 天)
+
+  // Delete 删掉刚传上去、但**没被任何地方引用**的对象。
+  //
+  // 上传与落库解耦之后必然产生这个缺口:上传成功 → 调设置方法 → 设置失败,
+  // 那个对象就成了无主文件,永久桶又没有 lifecycle 兜底。约定:
+  //
+  //     上传 → 拿 url 调设置方法 → 设置失败 → **立即调 Delete**
+  //
+  // ⚠️ 不做归属校验,和上传对称 —— url 是 32 位随机名,知道 url 本身就是凭据。
+  //    这也意味着**它删得掉任何你知道 url 的对象**,别把 url 泄漏出去。
+  rpc Delete (hi.DeleteResourceReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }
+}

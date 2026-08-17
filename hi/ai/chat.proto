@@ -4,101 +4,84 @@ package hi.ai;
 
 import "google/protobuf/empty.proto";
 import "google/protobuf/struct.proto";
-import "hi/common.proto";
+import "hi/options.proto";
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/ai";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
 
+// ── AI 对话全链路都是私有:会话/上下文/回复只发给发起对话的本人 ──────────────
 message Content {
-  string type    = 1;
-  string content = 2;
+  option (hi.audience) = VIS_SELF;
+  string type    = 1 [(hi.visibility) = VIS_SELF];
+  string content = 2 [(hi.visibility) = VIS_SELF];
 }
 
-message SimpleReq {
-  repeated Content conts = 1;
+message NewSessionResp {
+  option (hi.audience) = VIS_SELF;
+  string cid = 1 [(hi.visibility) = VIS_SELF]; // 新会话 id;原 GenerateCidResp
 }
 
-message GenerateCidResp {
+message ClearHistoryReq {
   string cid = 1;
 }
 
-message DialogReq {
-  string           did                  = 1;
-  string           cid                  = 2;
-  repeated Content conts                = 3;
-  string           state                = 4;
-  string           custom               = 5;
-  bool             return_plugin_use    = 6;
-  bool             return_training_data = 7;
-  bool             return_context       = 8;
-}
-
-message DialogResp {
-  string reply = 1;
-}
-
-message DialogStreamResp {
-  int32  code    = 1;
-  string type    = 2;
-  string message = 3;
-}
-
-message ClearContextReq {
-  string cid = 1;
-}
-
-message GetContextReq {
-  string cid   = 1;
-  string agent = 2;
+message GetHistoryReq {
+  string cid = 1; // cid 已唯一定位会话,不再带 agent
 }
 
 message QA {
-  string           a = 1; // assistant
-  repeated Content q = 2; // User
+  option (hi.audience) = VIS_SELF;
+  string           a = 1 [(hi.visibility) = VIS_SELF]; // assistant
+  repeated Content q = 2 [(hi.visibility) = VIS_SELF]; // User
 }
 
-message GetContextResp {
-  repeated QA list = 1;
+message GetHistoryResp {
+  option (hi.audience) = VIS_SELF;
+  repeated QA list = 1 [(hi.visibility) = VIS_SELF];
 }
 
-message SimpleTextToSpeechReq {
-  string text  = 1;
-  string model = 2;
-  string style = 3;
-}
-
-message SimpleTextToSpeechResp {
-  string url = 1;
-}
-
-message SimpleSpeechToTextReq {
-  string url   = 1;
-  string model = 2;
-  string lang  = 3;
-}
-
-message SimpleSpeechToTextResp {
-  string text = 1;
-}
-
-message SpeechToSpeechReq {
-  string              did         = 1;
+// ── 对话入参(Converse/ConverseStream;续跑走 Resume/ResumeStream)──────────────
+//
+// 一轮对话 = 服务端一个**循环**:模型要调工具就调、调完把结果喂回去接着问,直到模型给出答复。
+// 循环中若遇到**必须由客户端执行**的工具(客户端在 `tools` 里上报的那些),就中途返回
+// (`final=false`)把它们交出去;客户端执行完调 Resume 交回结果,**进同一个循环**继续。
+//
+// ⚠️ **`tools` 是「我这边能执行哪些工具」,不是「这轮可用的全部工具」。**
+//    服务端会把该 agent 的插件工具**追加**在它后面一起喂给模型;模型返回后按名字分流 ——
+//    服务端插件服务端自己跑,客户端上报的那些才交回客户端。
+//    所以不上报 tools(web/软件机器人)= 全部由服务端跑完 = 一次调用拿到最终答复。
+//
+// 模态(文/语音、输出音色)由 conts + style 决定 —— 合并原 TextToText/SpeechToText/SpeechToSpeech。
+// 命名读作模态转换但**不是字面格式转换**;真 STT/TTS 在 Speech service(Transcribe/Synthesize)。
+message ChatReq {
+  string              agent       = 1;
   string              cid         = 2;
   repeated Content    conts       = 3;
-  repeated ToolSupply tools       = 4;
+  repeated ToolSupply tools       = 4; // **客户端自己能执行的工具**;空 = 全交服务端跑完
   optional string     tool_choice = 5;
   optional string     custom      = 6;
   optional string     state       = 7;
-  optional string     style       = 8;
-}
-
-message TextToTextReq {
-  string              did         = 1;
-  string              cid         = 2;
-  repeated Content    conts       = 3;
-  repeated ToolSupply tools       = 4;
-  optional string     tool_choice = 5;
-  optional string     custom      = 6;
-  optional string     state       = 7;
+  optional string     style       = 8; // 语音出的音色等;纯文本场景留空
+  // ── 过程回显开关:要不要把中间过程一并流给调用方(**只管输出,不管行为**)──────────
+  //
+  // 一律 `echo_` 前缀,对应流式帧 `echoXxx`。**仅流式(ConverseStream/ResumeStream)有意义。**
+  //
+  // ⚠️ 别把它读成"要不要调插件":**调不调是模型决定的**(标准 function call:
+  //    模型看着 tools 自己决定 → 调 → 结果回喂 → 模型接着回复)。这几个开关只决定
+  //    过程数据要不要一并流出去,与行为无关。
+  //
+  // ⚠️ 旧名是 `return_plugin_use` / `return_training_data` / `return_context` ——
+  //    `return_` 读起来像"要不要返回结果",而它们回的是**过程**;`plugin_use` 更是词不达意
+  //    (回的是 function call,不是"插件用量")。已统一改名。
+  //
+  // ⚠️ 这几个字段原属已删除的 `CompleteReq`。它们在 dev45 那次迁移(Stream→CompleteStream)时
+  //    **从请求里漏掉过**,而读它们的代码原样留着 → 恒 false → 回显帧与记忆片段
+  //    从此再没发出去过,**不报错、类型也对,只是值永远是零值**。搬家时别再漏第二次。
+  bool echo_tool_calls = 9;  // 发 type="echoToolCalls" 帧:模型调了哪个函数、传了什么参数、工具返回什么
+  bool echo_memory     = 10; // 发 type="echoMemory" 帧:本轮命中的记忆片段(旧名 return_training_data)
+  // 发 type="echoContext" 帧:**这次真正喂给模型的那份上下文**(系统提示词 + 按 qa_num 截出的历史
+  // + 本轮输入),即 GetCompleteMessage 的产物。调不准的时候要看的就是它 ——
+  // 光看历史列表看不出实际截了几轮、系统提示词长什么样、记忆片段拼没拼进去。
+  bool echo_context    = 11;
 }
 
 message ToolCallResult {
@@ -106,6 +89,7 @@ message ToolCallResult {
   repeated Content conts = 2;
 }
 
+// 工具结果续跑入参(Resume):客户端执行完工具后把结果交回来,接着跑。续跑的模态由原始调用的 id 决定。
 message ToolCallResultsReq {
   string                  id   = 1;
   repeated ToolCallResult list = 2;
@@ -122,89 +106,105 @@ message ToolSupply {
 }
 
 message ToolCall {
+  option (hi.audience) = VIS_SELF; // 本轮对话里待客户端执行的工具,只发给本人
   message Function {
-    string name      = 1;
-    string arguments = 2;
+    option (hi.audience) = VIS_SELF;
+    string name      = 1 [(hi.visibility) = VIS_SELF];
+    string arguments = 2 [(hi.visibility) = VIS_SELF];
   }
-  string   id       = 1;
-  string   type     = 2;
-  Function function = 3;
+  string   id       = 1 [(hi.visibility) = VIS_SELF];
+  string   type     = 2 [(hi.visibility) = VIS_SELF];
+  Function function = 3 [(hi.visibility) = VIS_SELF];
 }
 
-// final == true
-//   result = text / url
-//   tools = null
-// final == false
-//   result = tool_id
-//   tools = tools
+// `final` = **这轮还需不需要你做事**,不是"模型有没有调工具"。
+//
+//   final == true  → 服务端已经跑完(可能内部调过若干轮工具),result = 最终答复 text/url,tools 空
+//   final == false → **轮到你了**:result = 续跑用的 tool_id,tools = 待客户端执行的工具
+//                    客户端执行完调 Resume(带上这个 id)接着跑
+//
+// ⚠️ **判据只能是 `final`,不能是"tools 非空"。**
+//    模型这轮可能只调了服务端插件 —— 那些由服务端自己跑完,`final` 直接是 true;
+//    但也可能出现 tools 为空却 final=false 的边界(工具被过滤掉等),此时仍须调 Resume,
+//    否则整轮对话就停在半路,表现为"机器人不理我了"。
 message ChatResp {
-  bool              final  = 1;
-  string            result = 2;
-  repeated ToolCall tools  = 3;
+  option (hi.audience) = VIS_SELF;
+  bool              final  = 1 [(hi.visibility) = VIS_SELF];
+  string            result = 2 [(hi.visibility) = VIS_SELF];
+  repeated ToolCall tools  = 3 [(hi.visibility) = VIS_SELF];
 }
 
-message ListAgentDelayReq {
-  string        agent      = 1;
-  string        type       = 2;
-  hi.Pagination pagination = 3;
+// 流式帧(ConverseStream / ResumeStream)。
+//
+// `type` 取值 —— **一条指令帧,其余是内容/进度/回显**:
+//   msg           —— 答复。⚠️ **是整段,不是分片**(见下)
+//   end           —— 本条流正常收尾
+//   info          —— 出错了。⚠️ 流式下错误**走帧不走 grpc status** ——
+//                    否则客户端收了半截流再拿到 error,两套错误通道并存反而更难排查
+//   event         —— 进度提示("正在执行插件..."),给人看的,别拿它做流程判断
+//   toolCalls     —— **指令**:轮到客户端执行工具了。见下,不可关
+//   echoToolCalls —— 回显:模型调了哪个函数、传了什么参数、工具返回什么(由 echo_tool_calls 打开)
+//   echoMemory    —— 回显:本轮命中的记忆片段(由 echo_memory 打开)
+//   echoContext   —— 回显:这次真正喂给模型的上下文(由 echo_context 打开)
+//
+// ⚠️ **`msg` 里是完整答复,不是 token 分片。** 服务端跑完整个循环、Finish 之后
+//    一次性发出来 —— 所以现在这条"流式"路的价值在于:错误走帧、进度可见、
+//    以及那条 toolCalls 指令帧,**不在于逐字输出**。想要真正的增量输出,
+//    要改的是 Finish/emit 那一段,不是把这里改个名。
+//
+// ⚠️ 这段原来写的是 `text —— 答复分片`,而实现从来发的是 `msg`,还另有 end/info/event
+//    三种没写进来。**照着这段文档写的客户端会一个字都渲染不出来** ——
+//    是补流式冒烟时当场撞出来的(见 ~/ci/smoke-stream.sh)。契约漂了没人会报错,
+//    只有真去收一次流才看得见。
+//
+// ⚠️ **`toolCalls`(指令)与 `echoToolCalls`(回显)必须是两个 type,别合。**
+//    前者是**指令性**的:要你去执行,是流程的一环,**不可关**;
+//    后者是**信息性**的:只是给你看服务端调了什么,**可关**。
+//    合成一个的话有两个后果:①客户端分不清收到的是"给你看的"还是"要你做的";
+//    ②一个本该可关的调试开关会把流程必需的信号一起关掉。
+//
+// 收到 `toolCalls`:本条流到此结束,客户端执行 `tools`,再调 ResumeStream(带 `id`)续跑。
+message ConverseStreamResp {
+  option (hi.audience) = VIS_SELF;
+  int32  code    = 1 [(hi.visibility) = VIS_SELF];
+  string type    = 2 [(hi.visibility) = VIS_SELF];
+  string message = 3 [(hi.visibility) = VIS_SELF];
+  // 仅 type="toolCalls" 时有值 —— 与 ChatResp 的 result/tools 同义。
+  string            id    = 4 [(hi.visibility) = VIS_SELF]; // 续跑 id(Resume 时带回)
+  repeated ToolCall tools = 5 [(hi.visibility) = VIS_SELF]; // 待客户端执行的工具
 }
 
-message AgentDelayUnit {
-  string agent         = 1;
-  string uuid          = 2;
-  string type          = 3;
-  int32  llm           = 4;
-  int32  llm2          = 5;
-  int32  stt           = 6;
-  int32  tts           = 7;
-  int32  function_call = 8;
-  int64  test_time     = 9;
-}
-
-message ListAgentDelayResp {
-  int32                   total = 1;
-  repeated AgentDelayUnit units = 2;
-}
-
-message GetAgentDelayReq {
-  string        agent      = 1;
-  string        type       = 2;
-  hi.Pagination pagination = 3;
-}
-
-message GetAgentDelayResp {
-  int32                   total = 1;
-  repeated AgentDelayUnit units = 2;
-}
-
-message SpeechToTextReq {
-  string              did         = 1;
-  string              cid         = 2;
-  repeated Content    conts       = 3;
-  repeated ToolSupply tools       = 4;
-  optional string     tool_choice = 5;
-  optional string     custom      = 6;
-  optional string     state       = 7;
-}
-
-// apiKey鉴权
+// 对话(主体=会话)。商户档:hiai web(token)与商户后台服务(apikey)都会调。
+//
+// ── 只有一条对话路 ──────────────────────────────────────────────────────────
+// 服务端跑一个循环:模型要调工具就调、结果喂回去接着问,直到给出答复。
+// 只有遇到**必须由客户端执行**的工具时才中途返回,客户端执行完调 Resume 进同一个循环。
+// 于是「跑不跑得完」是**动态判断**,不是调用方选路:
+//   · web / 软件机器人不上报 tools  → 恒一次调用拿到最终答复
+//   · 硬件机器人只调了服务端插件    → 同样一次拿到,**不多一个来回**
+//   · 硬件机器人要调本地工具        → 中途返回一次,Resume 续跑
+//
+// ⚠️ 曾经这里是**两个方法家族**:`Complete/CompleteStream`(服务端整流程跑完)与
+//    `Converse/Resume`(客户端两阶段)。那不是两种对话方式,而是同一件事的两个特例 ——
+//    前者其实只是"客户端没有工具要执行"这个特例的专用入口(给 web 测试用,web 上全是软件机器人)。
+//    并存的代价有三:
+//      ① 服务端 `Chat()` 要收一个 `types` 参数分岔,两条分支各写一遍装配与回喂;
+//      ② 硬件机器人**即使只调服务端插件也被迫多一个 RTT**(旧 Converse 一律先返回、
+//         真正执行推迟到 Resume);
+//      ③ 两条分支都没有循环概念,只有"第一次/第二次" —— 模型连着调两批工具时,
+//         第二次返回的是 toolcalls 而非文本,`answer = resp.Content` 取到空串,
+//         **不报错,只是答复凭空消失**。
+//    合并成一个循环后这三条一起消失。**别再拆回去。**
+//
+// (原 Simple 已删;真 STT/TTS 已拆去 Speech;延迟统计已拆去 AgentBench。)
 service Chat {
-  rpc Simple(SimpleReq) returns (DialogResp);
-  rpc GenerateCid(google.protobuf.Empty) returns (GenerateCidResp);
-  rpc Dialog(DialogReq) returns (DialogResp);
-  rpc DialogStream(DialogReq) returns (stream DialogStreamResp);
-  rpc ClearContext(ClearContextReq) returns (google.protobuf.Empty);
-  rpc GetContext(GetContextReq) returns (GetContextResp);
-  rpc ListAgentDelay(ListAgentDelayReq) returns (ListAgentDelayResp);
-  rpc GetAgentDelay(GetAgentDelayReq) returns (GetAgentDelayResp);
-
-  rpc SimpleTextToSpeech(SimpleTextToSpeechReq) returns (SimpleTextToSpeechResp);
-  rpc SimpleSpeechToText(SimpleSpeechToTextReq) returns (SimpleSpeechToTextResp);
-
-  rpc SpeechToSpeech(SpeechToSpeechReq) returns (ChatResp);
-  rpc SpeechToSpeech2(ToolCallResultsReq) returns (ChatResp);
-  rpc TextToText(TextToTextReq) returns (ChatResp);
-  rpc TextToText2(ToolCallResultsReq) returns (ChatResp);
-  rpc SpeechToText(SpeechToTextReq) returns (ChatResp);
-  rpc SpeechToText2(ToolCallResultsReq) returns (ChatResp);
+  // ── 会话管理 ──
+  rpc NewSession (google.protobuf.Empty) returns (NewSessionResp) { option (hi.auth) = AUTH_MERCHANT; }   // 建会话(原 GenerateCid)
+  rpc GetHistory (GetHistoryReq) returns (GetHistoryResp) { option (hi.auth) = AUTH_MERCHANT; }            // 取会话上下文(原 GetContext)
+  rpc ClearHistory (ClearHistoryReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 清上下文(原 ClearContext)
+  // ── 对话:一轮 = 一个循环,中途只在"轮到客户端"时返回 ──
+  rpc Converse (ChatReq) returns (ChatResp) { option (hi.auth) = AUTH_MERCHANT; }                          // 一轮对话(原 Complete + 原 Converse)
+  rpc ConverseStream (ChatReq) returns (stream ConverseStreamResp) { option (hi.auth) = AUTH_MERCHANT; }   // 同上,流式(原 CompleteStream)
+  rpc Resume (ToolCallResultsReq) returns (ChatResp) { option (hi.auth) = AUTH_MERCHANT; }                 // 交回客户端工具结果,续跑同一循环
+  rpc ResumeStream (ToolCallResultsReq) returns (stream ConverseStreamResp) { option (hi.auth) = AUTH_MERCHANT; } // 同上,流式
 }

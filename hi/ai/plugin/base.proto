@@ -1,0 +1,143 @@
+syntax = "proto3";
+
+// ai 的**插件执行子服务**内部面(backend-hi-ai-plugin 实现)。
+//
+// 位置即语义:放在 `hi/ai/plugin/` 而不是顶层 —— plugin 是 ai 的子服务,**不是**与 ai/club/did
+// 平级的模块。包名 `hi.ai.plugin` 同理。与 `hi/club/trade/` 一套范式。
+//
+// ## 与对外面 `hi.ai.Plugin` 的分工
+//
+// `hi.ai.Plugin`(AUTH_MERCHANT,backend-hi-ai 实现)是**插件管理**:建壳、发版本、增删改查、
+// 开关与激活 —— 面向 hiai web 与三方商户后台,有明确的主体(商户)。
+// 本文件是**执行契约**:给定脚本包与参数,跑一次、清理产物。它**没有"谁在调"这个概念**,
+// 也不需要有 —— 主体校验在 ai 那一层做完了。
+//
+// ## 为什么单独拆出来
+//
+// 原来 `service AiPlugin` 与对外的 `service Plugin` 挤在同一个文件、同一个包(`hi.ai`)里,
+// 后果有三:
+//   1. **档位标错**:Run/Cleanup 原标 `AUTH_NONE`(= 公开:真·免鉴权),但它只由 ai 转发调用,
+//      是内部面。`AUTH_NONE` 会诱导人把它对外暴露 —— 而它执行的是**任意代码**
+//      (code_archive_url 指哪跑哪),暴露出去后果比一般接口严重得多。现改标 AUTH_INTERNAL。
+//   2. **服务名冗余**:`hi.ai.AiPlugin` 里 "Ai" 重复了一遍。这个别扭名字正是"没地方放"憋出来的
+//      —— 不能叫 Plugin(被对外面占了),只好加前缀。搬到本包后改名 `Runner`,
+//      全名 `hi.ai.plugin.Runner`,同时更准确地描述"跑脚本的那个东西"。
+//   3. **结构不体现从属**:子服务的内部契约混在父服务的对外文件里,看不出谁是谁的子服务。
+//
+// 对外契约**零变化**:`hi.ai.Plugin` 那 14 个管理方法一个不动,前端与 hiai web 无感。
+package hi.ai.plugin;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai/plugin";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/struct.proto";
+import "hi/ai/chat.proto";
+import "hi/options.proto";
+
+// ── py-docker 执行契约(独立 py-docker 服务实现,hiai 只作调用方)──────────────
+//
+// 运行期 plugin_annex = c.data ∪ d.data(激活版),**原样**作字典全局变量注入脚本。
+//
+// ⚠️ **这是一袋不透明的键值,谁都不该认识里面有什么。**
+// api_key 只是其中一个普通键,由 **hiclub** 塞进 c.data(见它的 withApiKey ——
+// 只有它知道哪台机器人对应哪个 apikey);hiai 与 py-docker 都只负责搬运。
+//
+// 曾经这里单列过一个 `api_key` 字段,hiai 为此在 mergeRuntime 里把它从扩展数据中
+// 挖出来(delete(m,"api_key"))。代价有二:hiclub 的约定泄进了 hiai(分层漏了);
+// 脚本侧还得多穿一层 plugin_annex['data'][...]。现在扁平:脚本直接
+// plugin_annex['api_key'] / plugin_annex['其它键']。
+// 原先还有个 `api_key` 字段(号 1),hiai 不该认识它,已并回 data 里的普通键。
+message PluginAnnex {
+  google.protobuf.Struct data = 1; // 扩展数据(c.data ∪ d.data,版本级覆盖插件级)
+}
+
+message RunReq {
+  string          code_archive_url = 1; // = 激活版 b.url
+  string          code_params      = 2; // function-call 的 arguments(JSON 对象),按 ** 展开成关键字实参
+  string          uuid             = 3; // 壳 uuid
+  repeated string envs             = 4;
+  PluginAnnex     annex            = 5; // → 字典全局变量 plugin_annex
+  // 要调包里的哪个方法。**必传**,且是 main.py 里的**原始函数名**(不带壳前缀)。
+  //
+  // 一个包提供 N 个方法:main.py 是 facade,方法就是它顶层暴露的函数,
+  // runner 以非 `__main__` 的名字装载它(所以 `if __name__ == "__main__"` 块不触发),
+  // 再 `getattr(main, function)(**code_params)`。
+  //
+  // ⚠️ **不要把带前缀的名字传进来。** 喂给模型的工具名是 `<壳前缀>_<原名>`
+  // (前缀保证不同插件包的同名方法不撞,见 hi/ai/plugin.proto 的 PluginVersion.description),
+  // 但那是 hiai↔模型之间的事 —— 前缀在 hiai 侧切掉,包里和这里只认原始名。
+  string          function         = 6;
+}
+
+message RunResp {
+  option (hi.audience) = VIS_SELF;
+  repeated hi.ai.Content conts = 1 [(hi.visibility) = VIS_SELF];
+}
+
+message CleanupReq { string code_archive_url = 1; }
+
+// 脚本执行器(内部面)。只由父服务 ai 经 grpc 转发调用;不鉴权、也不认识"调用者"
+// —— 主体(商户/机器人)的校验在 `hi.ai.Plugin` 那一层完成。
+service Runner {
+  rpc Run (RunReq) returns (RunResp) { option (hi.auth) = AUTH_INTERNAL; }
+  rpc Cleanup (CleanupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_INTERNAL; }
+}
+
+// ── NATIVE 构建契约(独立构建服务实现,hiai 只作调用方)────────────────────────
+//
+// NATIVE 插件(`PluginRuntime.PLUGIN_RUNTIME_NATIVE`)传上来的是 **rust 源码**,
+// 要先交叉编译成 arm64 的 `.so` 才谈得上下发。这条契约就是那一步。
+//
+// ## 它是**无状态纯函数**:给源码,还产物
+//
+// 编译要几分钟,但**排队与状态不在这里** —— 全在 hi-ai 的构建表里。
+// Builder 自己发 job id 再让 hi-ai 轮询的话就有了两处状态,两处都能崩、且要对账;
+// 而 Runner 已经证明了「无状态执行器 + 父服务持状态」这个形状够用。
+// 于是 `Build` 是一次**同步长调用**,hi-ai 在 goroutine 里等它。
+//
+// 代价明写在这:hi-ai 重启会丢掉在途的构建,表里留一行 BUILDING。
+// **所以 hi-ai 侧必须有「超时的 BUILDING 重置成 PENDING 重投」的扫描** ——
+// 换成异步 job 模型也一样要有,不是本方案独有的债。
+//
+// ## ABI 由**构建服务**说了算,不由三方的 Cargo.toml 说了算
+//
+// 三方写 `hinj-plugin-sdk = "0.1"`,构建服务强制把它指到自己镜像里的那一份。
+// 否则三方可以引一个改过的 SDK,编出一个**自称 ABI=1、形状却不对**的 `.so` ——
+// 机器人那边先对 ABI 会放行,然后在某次调用时读错内存。
+//
+// ## 编不出来**不是 rpc 错误**
+//
+// 同 Runner 的「脚本层面的错不是 rpc 错误」:编译失败是**业务结果**,要连日志尾部
+// 一起存进构建表给发版的人看。回一个 grpc Internal 的话,用户看到的是"服务器错误",
+// 而他真正需要的是那段 `error[E0432]`。
+message BuildReq {
+  string code_archive_url = 1; // rust 源码包 zip(= 这一版的 b.url)
+  string uuid             = 2; // 壳 uuid(产物命名与日志用)
+  string version          = 3; // 版本号
+}
+
+message BuildResp {
+  option (hi.audience) = VIS_SELF;
+  // 编出来了没有。**false 时 rpc 本身仍是成功的**,理由见上。
+  bool   ok           = 1 [(hi.visibility) = VIS_SELF];
+  string artifact_url = 2 [(hi.visibility) = VIS_SELF]; // 编好的 .so(hiai 私有桶)
+  string sha256       = 3 [(hi.visibility) = VIS_SELF]; // 产物摘要,机器人下完照此核对
+  // 从**编出来的那个 `.so` 里真读出来的** ABI 版本(qemu 跑 aarch64 verifier 得到),
+  // 不是从源码或 Cargo.toml 猜的。x86 上 dlopen 不了 aarch64 的 .so,
+  // 只查 ELF machine + 导出符号是查不出这个值的。
+  uint32 abi_version  = 4 [(hi.visibility) = VIS_SELF];
+  // 同样是从 .so 里真读出来的 manifest(OpenAI tools 数组,**原始名、不带壳前缀**)。
+  // hi-ai 拿它跟包里的 description.json 比对 —— 两者不一致说明作者改了 json 却没改代码
+  // (或反过来),那种插件装到机器人上就是"模型看得见、调不动"。
+  string manifest     = 5 [(hi.visibility) = VIS_SELF];
+  string error        = 6 [(hi.visibility) = VIS_SELF]; // 失败原因(给发版的人看的一句话)
+  string log          = 7 [(hi.visibility) = VIS_SELF]; // 编译日志尾部(失败时才有意义)
+}
+
+// NATIVE 插件构建器(内部面)。只由父服务 ai 经 grpc 转发调用。
+//
+// ⚠️ **它执行的是三方的 `build.rs` 与三方依赖的构建脚本** —— 比 Runner 跑 py 脚本
+// 危险程度只高不低。必须在容器里跑,且容器内不得挂载任何宿主凭证(ssh key / gitea token)。
+service Builder {
+  rpc Build (BuildReq) returns (BuildResp) { option (hi.auth) = AUTH_INTERNAL; }
+}

@@ -2,10 +2,11 @@ syntax = "proto3";
 
 package hi.club;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "hi/options.proto";
 
 message PushRegisterReq {
   hi.ClientInfo node  = 1;
@@ -18,6 +19,6 @@ message PushUnregisterReq {
 
 // Token鉴权
 service PushManager {
-  rpc Register (PushRegisterReq) returns (google.protobuf.Empty);
-  rpc Unregister (PushUnregisterReq) returns (google.protobuf.Empty);
+  rpc Register (PushRegisterReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
+  rpc Unregister (PushUnregisterReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
 }

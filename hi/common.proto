@@ -2,50 +2,71 @@ syntax = "proto3";
 
 package hi;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi";
 
-// Auth: None / Token / Extend-Token
+import "hi/options.proto";
+import "buf/validate/validate.proto";
 
 message SignedData {
-  bytes  data      = 1;
+  bytes data = 1;
   string signature = 2;
 }
 
 message DID {
-  string id = 1;
+  option (hi.audience) = VIS_PUBLIC; // did 是公开身份标识
+  string id = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
+/*
+  Entity 是"可寻址节点"的公开门面(did/code + 名字 + 头像 + 类型)。
+  type: 实体类型(字符串,便于扩展 —— 新增类型只需在此登记一行)
+     人型(好友列表)
+       user       人
+       robot      硬件机器人(有 DID、具身、行为同用户)
+       assistant  软件机器人(对话由后端接管,无私钥、不在 mqtt 上)
+       注:硬件机器人用 robot 而非 agent —— agent 已是 ai 的 AI 机器人子系统统称(hi.ai.Agent),避免撞词。
+     会话型(会话列表)
+       group      群聊
+       single     单聊
+*/
 message Entity {
-  string type   = 1;
-  string did    = 2;
-  string name   = 3;
-  string avatar = 4;
-  int64  update = 5;
+  option (hi.audience) = VIS_PUBLIC; // 身份门面:名字/头像等,全公开
+  string type = 1 [(hi.visibility) = VIS_PUBLIC];
+  string did    = 2 [(hi.visibility) = VIS_PUBLIC];
+  string name   = 3 [(hi.visibility) = VIS_PUBLIC];
+  string avatar = 4 [(hi.visibility) = VIS_PUBLIC];
+  int64  update = 5 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message MqttCredentials {
-  string id       = 1;
-  string username = 2;
-  string password = 3;
+  option (hi.audience) = VIS_SELF; // 连接凭证(含 password),只发给本人
+  string id       = 1 [(hi.visibility) = VIS_SELF];
+  string username = 2 [(hi.visibility) = VIS_SELF];
+  string password = 3 [(hi.visibility) = VIS_SELF];
 }
 
 message AuthToken {
-  string token         = 1;
-  string refresh_token = 2;
+  option (hi.audience) = VIS_SELF; // 会话/刷新令牌,只发给本人
+  string token         = 1 [(hi.visibility) = VIS_SELF];
+  string refresh_token = 2 [(hi.visibility) = VIS_SELF];
 }
 
+// ⚠️ 被后端 Go 引用(pc_order/notify_pull_order 的签名载荷),proto 里无 rpc 引用,勿当死 message 删。
 message Nonce {
   string nonce = 1;
 }
 
 message RequestId {
-  string id = 1;
+  option (hi.audience) = VIS_PUBLIC; // 请求 id,无隐私
+  string id = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
+// ⚠️ 被后端 Go 引用(chat),proto 里无 rpc 引用,勿当死 message 删。
 message State {
   bool state = 1;
 }
 
+// ⚠️ 被后端 Go 引用,proto 里无 rpc 引用,勿当死 message 删。
 message Number {
   int64 n = 1;
 }
@@ -57,6 +78,47 @@ message ClientInfo {
 }
 
 message Pagination {
-  int32 page  = 1;
+  int32 page = 1;
   int32 limit = 2;
+}
+
+// 服务自身版本/环境(所有 Base 服务共用;各服务实现返回自己的 bin 版本与探测到的环境)。
+message ServerVersionResp {
+  option (hi.audience) = VIS_PUBLIC; // 服务版本+环境,Base.ServerVersion 全 AUTH_NONE 公开
+  string version = 1 [(hi.visibility) = VIS_PUBLIC]; // bin 版本(git tag 注入)
+  string env = 2 [(hi.visibility) = VIS_PUBLIC]; // 运行环境:dev/prod(echo 探测得出)
+}
+
+// ── 上传(各模块转发 hi-source 用)──────────────────────────────────────
+// 上传链路:客户端 → **业务模块**(在此鉴权)→ 内部转发 hi-source → 落对应 bucket。
+// hi-source 的上传端口只对内网开放,客户端不再直连。各模块用常量定义自己的 bucket/目录:
+//   hidid  → hidid/avatar、hidid/logo        hiclub → hiclub/avatar、hiclub/background
+//   hiai   → hiai/plugin/<uuid>              聊天/AI 媒体 → temp/<YYYY_MM>(14 天过期)
+message UploadReq {
+  string name    = 1 [(buf.validate.field).string.min_len = 1]; // 原始文件名(允许空格等,仅用于取扩展名;存储侧随机改名)
+  bytes  content = 2 [(buf.validate.field).bytes.min_len = 1];
+}
+
+// 分片上传:首包 meta,后续 chunk(大媒体/脚本包用)。
+message UploadStreamReq {
+  oneof data {
+    UploadMeta meta  = 1;
+    bytes      chunk = 2;
+  }
+}
+
+message UploadMeta {
+  string name = 1 [(buf.validate.field).string.min_len = 1]; // 允许空格等,仅用于取扩展名
+  int64  size = 2 [(buf.validate.field).int64 = { gt: 0 }];
+}
+
+message UploadResp {
+  option (hi.audience) = VIS_PUBLIC; // 回的是可直接 GET 的 url(私有 bucket 除外,需经各模块的 Download)
+  string          url       = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional string thumb_url = 2 [(hi.visibility) = VIS_PUBLIC];
+}
+
+// 删除一个已上传的资源对象。各模块的 Source.Delete 共用。
+message DeleteResourceReq {
+  string url = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 上传时拿到的完整 url
 }

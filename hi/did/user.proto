@@ -2,26 +2,33 @@ syntax = "proto3";
 
 package hi.did;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "hi/options.proto";
 
-message UserListReq {
-  hi.Pagination pagination = 1;
-}
-
-message UserListResp {
-  int32              total = 1;
-  repeated hi.Entity list  = 2;
-}
-
-message UserTotalResp {
-  int32 total = 1;
+// 用户自己的资料(用户主体,token)。Total(用户总数,公开)已并入 Base。
+// 改自己的资料。
+//
+// ⚠️ **入参不用 hi.Entity 整体** —— Entity 里带 did/type/update,而这里一个都不该由调用方决定:
+//    改谁永远取自 token。原先收 Entity、handler 记得忽略 req.did,是"接口形状在撒谎":
+//    调用方有理由以为传 did 管用。换成专用消息后,"不能指定改谁"在**类型上就说不出来**。
+//    通则:**参数用专用消息,返回才用 Entity 这类对象**(各端自取所需)。
+message EditProfileReq {
+  string name   = 1; // 昵称
+  string avatar = 2; // 头像 url
 }
 
 service User {
-  rpc Edit (hi.Entity) returns (google.protobuf.Empty);  // Token鉴权
-  rpc Query (google.protobuf.Empty) returns (hi.Entity); // Token鉴权
-  rpc Total (google.protobuf.Empty) returns (UserTotalResp); // 不鉴权
+  // 传用户头像 → hidid bucket 的 avatar/。**头像归 hidid 管**,club/ai 要传头像都内部转到这里,
+  // 免得同一份资源散落在各家 bucket(以前不分家,出过批量误删头像的事故)。
+  // 只回 url,不改资料 —— 改资料仍走 Edit,上传与落库解耦。
+  // **改完回权威资料**(原先返 Empty)。`base.update` 是资料传播的唯一依据:
+  // 发消息时 message.from / 群通知的 extra 都带着它,收信方按它比时间戳决定要不要刷缓存
+  // (惰性传播,见 hi/club/messaging.proto)。时间戳的权威在服务端,客户端自己造一个就是
+  // 两个时钟,会倒退(实测客户端微秒 vs 服务端整秒差 0.6s)。回权威值,调用方不必再查一次。
+  rpc Edit (EditProfileReq) returns (hi.Entity) { option (hi.auth) = AUTH_USER; } // 用户:改自己的资料(改谁只取自 token);回改完的资料
+  rpc Query (google.protobuf.Empty) returns (hi.Entity) { option (hi.auth) = AUTH_USER; } // 用户:查自己的资料
+  // 注:handler 里另有 List(死代码,proto 从未声明)+ 原 Total,均在后端一并处理。
 }

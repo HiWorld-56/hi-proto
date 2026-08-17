@@ -56,6 +56,13 @@ dkms.conf
 # hi_proto
 gen/
 http/merged.yaml
-buf.lock
 go.sum
 go.mod
+
+# 生成工具产物
+codegen/rust-gen/target/
+http/merged.yaml
+gen/
+codegen/rust-gen/target/
+codegen/rust-gen/Cargo.lock
+__pycache__/

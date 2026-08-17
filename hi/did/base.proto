@@ -2,43 +2,89 @@ syntax = "proto3";
 
 package hi.did;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "hi/options.proto";
 
+// 一个币种。**`name` 就是它的标识**(全生态用它指代币种:挂牌定价、付款、余额查询),
+// 所以带链后缀 —— `USDT-TRC20` / `USDT-ERC20` / `WHDS-APTOS` 是三个不同的币,
+// 光写 `USDT` 说不清往哪条链上转。
 message Coin {
-  string icon     = 1;
-  string name     = 2;
-  string category = 3; // public-公共币种, custom-自定义币种
+  option (hi.audience) = VIS_PUBLIC;
+  string icon     = 1 [(hi.visibility) = VIS_PUBLIC];
+  string name     = 2 [(hi.visibility) = VIS_PUBLIC]; // 标识 + 显示名,如 USDT-TRC20 / WHDS-APTOS
+  string category = 3 [(hi.visibility) = VIS_PUBLIC]; // public-公共币种, custom-自定义币种
+
+  // ── 下面三个是**转账真正需要的东西**,此前一直没有 ─────────────────────────
+  //
+  // 没有它们,持私钥的一方(app / 硬件机器人)就只能把合约地址和小数位**硬编码在自己那边**
+  // —— 改一次要刷全网设备,而且机器人根本没法自己知道 `WHDS-APTOS` 是哪个合约。
+  // 结果就是机器人只付得了原生币,插件市场用 USDT 定价却收不了款。
+  // 放在这里(公开面)是合适的:合约地址与小数位本就是链上公开事实,不是秘密。
+
+  string chain    = 4 [(hi.visibility) = VIS_PUBLIC]; // btc/eth/trx/sol/aptos,对齐 hidid-core 的 Chain::id()
+  // 合约(FA / token)地址。**空 = 该链的原生币**(BTC/ETH/TRX/SOL/APT)。
+  string contract = 5 [(hi.visibility) = VIS_PUBLIC];
+
+  // 最小单位的小数位。金额换算全程走整数,**不碰 f64** —— 钱经不起浮点误差。
+  //
+  // ⚠️ **必须与链上一致,配错就是金额差几个数量级**,而且不会报错:
+  //    多一位就是少付十倍,少一位就是多付十倍,链上不可撤销。
+  //    **不要照抄同名币种的经验值**(同一个符号在不同链上小数位可以不同)。
+  //    配之前去链上问一次,例如 Aptos:
+  //      POST <fullnode>/v1/view
+  //      {"function":"0x1::fungible_asset::decimals",
+  //       "type_arguments":["0x1::fungible_asset::Metadata"],"arguments":["<合约地址>"]}
+  uint32 decimals = 6 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message ListCoinsResp {
-  repeated Coin list = 1;
+  option (hi.audience) = VIS_PUBLIC;
+  repeated Coin list = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
-message LatestVersionReq {
-  string platform = 1; // android / ios / ...
-}
-
-message LatestVersionResp {
-  string          min_supported_version = 1;
-  string          latest_version        = 2;
-  string          download_url          = 3;
-  repeated string changes               = 4;
-  int64           release_time          = 5;
-}
-
+// ⚠️ 超管 did 名单不是"任何人可见":三个 SuperAdmin.List(did/club/ai)分别是
+// USER+MERCHANT / USER / MERCHANT,没有一个是 AUTH_NONE,标 PUBLIC 与档位矛盾。
 message ListSuperAdminUsersResp {
-  repeated string list = 1;
+  option (hi.audience) = VIS_PARTICIPANT;
+  repeated string list = 1 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
+message UserTotalResp {
+  option (hi.audience) = VIS_PUBLIC;
+  int32 total = 1 [(hi.visibility) = VIS_PUBLIC];
+}
+
+// Base —— 每个包统一的公共信息入口(币种/服务自身版本/用户总数),全部公开。
+// 生态约定:club/ai/media 也各有 Base.ServerVersion,保持一致。
+//
+// ⚠️ 原 `Base.LatestVersion` 已删:那是临时过渡品(数据在 hi_app_version 表、字段不足以描述
+//    机器人的按需更新)。产品发布统一走 `hi.did.Release`,见 hi/did/release.proto。
 service Base {
-  rpc ListCoins (google.protobuf.Empty) returns (ListCoinsResp); // 不鉴权
-  rpc LatestVersion (LatestVersionReq) returns (LatestVersionResp); // 不鉴权
-  rpc ListSuperAdminUsers (google.protobuf.Empty) returns (ListSuperAdminUsersResp); // 不鉴权
+  rpc ListCoins (google.protobuf.Empty) returns (ListCoinsResp) { option (hi.auth) = AUTH_NONE; }            // 公开:支持的币种列表
+  rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp) { option (hi.auth) = AUTH_NONE; } // 公开:本服务 bin 版本 + 运行环境
+  rpc UserTotal (google.protobuf.Empty) returns (UserTotalResp) { option (hi.auth) = AUTH_NONE; }            // 公开:用户总数(原 User.Total)
 }
 
-service Assist {
-  rpc VerifySignature (hi.SignedData) returns (hi.DID); // Web3鉴权
+// 超管名单的**唯一持有方**。超管是内部团队的后门(方便快速做全局操作/查询),与业务无关,
+// 人员固定就那几个。club/ai/media 一律穿透到这里问,不许自己留表 ——
+// 此前四个服务四张表,实测已漂移(did 11 / club 14 / ai 15 / media 3),
+// 且在一处撤权另一处不生效(zGzji3gw 在 did 已停用,在 club/ai 仍是超管)。
+//
+// List 是**身份无关的读**(不管谁调返回都一样):前端登录用户拿它显隐"内部使用"菜单,
+// 兄弟服务(club/ai)穿透过来判档。两类调用方凭证不同(token / ExtendToken),
+// 故一个方法通吃:同时标 AUTH_USER + AUTH_MERCHANT(任一通过即放行)。
+// (原 SuperAdmin.List + SuperAdminView.ListSuperAdminUsers 合并)
+// 注意:不能标 AUTH_SUPERADMIN,否则变成"先是超管才能知道自己是不是超管"。
+service SuperAdmin {
+  rpc List (google.protobuf.Empty) returns (ListSuperAdminUsersResp) {
+    option (hi.auth) = AUTH_USER;
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 取超管名单(前端/兄弟服务都可)
 }
+
+// (UserExtensionInfo / UserExtensionUnit 已迁至 merchant.proto —— 归位后只有 Merchant
+//  读写扩展,放那里最贴切,且不再有 merchant↔user_extension 的循环 import。)
+

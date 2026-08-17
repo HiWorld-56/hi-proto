@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+// club 的**交易子服务**内部面(backend-hi-club-trade 实现)。
+//
+// 位置即语义:放在 `hi/club/trade/` 而不是顶层 `hi/trade/` —— trade 是 club 的子服务,
+// **不是**与 club/ai/did 平级的模块。包名 `hi.club.trade` 同理。
+//
+// ## 为什么要有这一份(而不是让子服务直接实现 hi.club.Trade)
+//
+// 同一份 proto 曾被用在**两个信任级别**上,而两边对接口形状的要求正好相反:
+//
+// |            | 对外 app→club        | 对内 club→trade          |
+// |------------|----------------------|--------------------------|
+// | 主体从哪来 | 必须来自 token       | 必须由调用方显式传       |
+// | did 当入参 | **不能**(传=越权)   | **必须**(否则不知查谁)  |
+// | 谁鉴权     | club                 | 不鉴权                   |
+//
+// 硬用同一份 `hi.club.ListTradesReq`(故意不带 did),club 就没有合法途径把主体告诉 trade,
+// 只能拿 gRPC metadata 偷渡 —— 于是 trade 里长出了 `userDidFromMetadata` + 返回
+// `Unauthenticated`,鉴权语义漏进了本不该认识"用户"的子服务;而 metadata 是调用方随便填的,
+// 真按它鉴权等于开了个任填 did 的越权口子。(实际线上表现:club 压根没填,Trade.List 全挂。)
+//
+// 拆出内部面后:**主体是普通字段,不是鉴权凭据**;子服务只按给定条件取数,父服务是唯一鉴权点。
+// 顺带消除了"club 与 club-trade 注册同名 service"这个长期的认知混淆。
+//
+// ## 对外契约不变
+//
+// `hi.club.Trade` 保持原样(AUTH_USER、无 did 入参),前端一行不用改。改动只在 club↔trade 之间。
+package hi.club.trade;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club/trade";
+
+import "google/protobuf/empty.proto";
+import "hi/club/order.proto";
+import "hi/club/trade.proto";
+import "hi/common.proto";
+import "hi/options.proto";
+
+// 交易(内部面)。父服务 club 已完成鉴权与归属校验,这里只按给定条件取数。
+//
+// 归属校验为什么不在这儿做:那是**鉴权**,属于父服务。子服务做校验就得认识"谁是调用者",
+// 又会把身份概念拖回来。`Get` 因此不收 did —— club 取到 detail 后自行判定归属再返给前端。
+// `List` 收 did 则是另一回事:那是**数据过滤条件**(查谁的),不是鉴权。
+service Trade {
+  rpc GetFee (hi.club.GetTradeFeeReq) returns (hi.club.GetTradeFeeResp) { option (hi.auth) = AUTH_INTERNAL; }
+  // 按 order 取交易详情,**不做归属校验** —— club 拿到后判定归属(见上)。
+  rpc Get (hi.club.GetTradeReq) returns (hi.club.GetTradeResp) { option (hi.auth) = AUTH_INTERNAL; }
+  rpc Add (hi.club.AddTradeReq) returns (hi.club.AddTradeResp) { option (hi.auth) = AUTH_INTERNAL; }
+  rpc UpdateTransHash (hi.club.UpdateTransHashReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_INTERNAL; }
+  rpc List (ListTradesReq) returns (hi.club.ListTradesResp) { option (hi.auth) = AUTH_INTERNAL; }
+}
+
+// 查某人的交易(内部)。与对外的 `hi.club.ListTradesReq` 只差一个 `did`,而这一个字段
+// 正是两个信任级别的分界:对外**不能**有它(有就是越权入口),对内**必须**有它。
+message ListTradesReq {
+  // 查谁的交易。**数据过滤条件,不是鉴权凭据** —— 调用方(club)已经鉴过权,
+  // 这里不会、也不该再去验证它是不是"真的调用者"。
+  string        did        = 1;
+  string        id         = 2; // 可选:只看该交易
+  hi.Pagination pagination = 3;
+}
+
+// 交易统计(内部面)。超管资格由 club 验(AUTH_SUPERADMIN),这里不重复验。
+service TradeManage {
+  rpc List (hi.club.TradeManageListReq) returns (hi.club.ListTradesResp) { option (hi.auth) = AUTH_INTERNAL; }
+}
+
+// hidid-pc 订单(内部面)。入参仍是 `hi.SignedData` 且**不加 did 字段** —— 这是对的,不是遗漏:
+// 这里的主体不是"登录用户",而是**载荷里的 web3 签名**,与 token/did 无关。
+//
+// 验签在终点 `PcOrderService`(club-trade)完成,且不止验签:
+//   ① `didapi.VerifySignature` 解出签名者 did;② 比对载荷里的 did,不一致即拒;
+//   ③ nonce 必须命中 `PcPullOrderCache`(来自一次 PullOrderNotify),防重放。
+// 所以 SignedData 一路透传到验签点是**设计如此**:AUTH_WEB3 的语义就是"传输层不鉴权、
+// handler 自验签",中间任何一跳都不该、也无法代劳(它们没有签名上下文)。
+service Order {
+  rpc Pull (hi.SignedData) returns (hi.club.PullOrdersResp) { option (hi.auth) = AUTH_INTERNAL; }
+  rpc Report (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_INTERNAL; }
+}

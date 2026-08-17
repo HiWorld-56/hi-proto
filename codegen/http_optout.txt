@@ -1,0 +1,116 @@
+# 有意不导出 http 的 rpc —— 「同 service 已导出部分方法,却漏了这几条」的豁免名单。
+#
+# 判据(check_auth.py 用):一个 service 若一条 http 路由都没有,说明它整体不走 gateway
+# (app/设备走 grpc 直连),不管;但**已经导出了一部分**却漏几条,那多半是加 rpc 时忘了配路由 ——
+# hi.club.Agent.List 就是这么漏的,web 调 /api/v1/agent/list 拿到 code 5,由同事反馈才发现。
+#
+# 规则:新增 rpc 若落进这种缺口,要么配 http 路由,要么写进本文件(注明理由),否则 CI 失败。
+# 下面是机制落地时的存量,**尚未逐条确认**是"确实不需要"还是"也漏了"。确认一条删一条。
+# 内部面(AUTH_INTERNAL):子服务只由父服务经 grpc 转发调用,**不该**出现在 http gateway 上
+# —— 它们不鉴权,主体是调用方传进来的普通字段,一旦挂到 web 就是任填 did 的越权入口。
+service:hi.club.trade.Trade
+service:hi.club.trade.TradeManage
+service:hi.club.trade.Order
+service:hi.ai.plugin.Runner
+service:hi.ai.plugin.Builder
+
+# hi.club.Base 的唯一 http 路由(LatestVersion)随该接口一起删了 —— 剩下的 ListCoins/ServerVersion
+# 本就只走 grpc(app 用 grpc 直连),故整体声明不导出。
+service:hi.club.Base
+
+# 流式方法:grpc-gateway 不适合搬二进制流,web 端不经它们(发布页面用 Latest/Publish 即可)。
+hi.did.ReleaseManage.UploadPackage
+hi.did.Release.Download
+
+# 内部面:插件出新版时由 hi.ai 经 grpc 叫 hidid 用 root 账号广播一嗓子。
+# 不配 http —— 它会惊动全体机器人,挂到 web 上就是一个人人可按的开关。
+service:hi.did.BroadcastInternal
+
+hi.ai.Agent.RegisterRobot
+hi.ai.Plugin.DeleteByAgents  # 内部级联(club 撤插件权限时经 aiapi grpc 调),非前端接口,故意不配 http
+hi.club.Agent.BindMaster
+hi.club.Agent.UnbindMaster
+hi.club.Agent.BindStatus
+hi.club.Auth.Verify
+hi.club.Base.ListCoins
+hi.club.Base.ServerVersion
+hi.club.Trade.GetFee
+hi.club.Trade.Add
+hi.club.Trade.UpdateTransHash
+# 取交易明细:设备/后端走 grpc 直连,不上 web 网关(同 service 其它链上查询方法)。
+hi.did.Transfer.TxDetail
+hi.did.Assets.UpdateAddresses
+hi.did.Assets.ListAddresses
+hi.did.Auth.Verify
+hi.did.Auth.VerifyOffline
+hi.did.Auth.Notify
+hi.did.Auth.Logout
+hi.did.Base.ListCoins
+hi.did.Base.ServerVersion
+hi.did.Merchant.UploadLogo
+hi.did.Merchant.GetUser
+hi.did.Merchant.UploadUserAvatar
+hi.did.Merchant.GetUserMqtt
+hi.did.Merchant.ListGrants
+hi.did.Merchant.AddGrant
+hi.did.Merchant.RemoveGrant
+
+# ── 整个 service 不导出 http(service:<全名>)────────────────────────────
+# 判据见 check_auth.py:整体不导出确实存在,但必须**显式声明**,不能和"忘了配"
+# 长得一样。两次真实遗漏(club.Agent.List、club/ai 的 SuperAdmin)都是这个形态。
+
+# 有确凿依据:
+service:hi.source.File        # hi-source 只对内网开放,公网上传入口已在 nginx 层关闭
+service:hi.source.Base        # 同上
+service:hi.club.User          # app 走 grpc 直连(公开查询已拆去 UserDirectory)
+service:hi.club.Group         # app 走 grpc 直连
+service:hi.ai.AiPlugin        # 插件运行时内部调用,不对外
+service:hi.did.LoginCallback  # 回调一律走 grpc(2026-07-21 确认)
+service:hi.did.OrderNotify    # 同上
+service:hi.did.PayCallback    # 同上
+
+# ⚠️ 待确认 —— 我判断不了它们该不该对 web 暴露,先记在此以免 CI 常红。
+#    确认一条就把它移到上面并注明理由,或去掉此行并配路由。
+service:hi.club.Assets
+service:hi.club.Order
+service:hi.club.Price
+service:hi.club.Publisher
+service:hi.club.PushManager
+service:hi.club.Wallet
+service:hi.did.Pay
+service:hi.did.Price
+service:hi.did.Transfer
+service:hi.did.User
+service:hi.did.Wallet
+
+hi.club.Source.UploadTempStream
+hi.club.Source.UploadScriptStream  # 服务端不需，客户端流式 grpc-only
+hi.club.Source.Download
+hi.club.Source.DownloadStream  # 服务端流式,grpc-only(同 UploadTempStream);app 走 core grpc 边下边播
+hi.ai.Source.UploadScriptStream  # 客户端流式 grpc-only
+# Source —— 二进制搬运,走 grpc 不走 http 网关(json 里塞 bytes 只会 base64 膨胀 33%)。
+# 训练文件那两个是例外,web 后台在用,已在 http/*.yaml 配了路由。
+#
+# hi.did.Source **不能再整个 service 豁免**:UploadPub 已导出 http(网页要传公共区文件)。
+# 降到方法级逐条写,这样以后这个 service 再加 rpc 漏配路由,CI 照样拦得住。
+hi.did.Source.UploadAvatar  # 端上(app)传自己的头像,走 core grpc
+hi.did.Source.UploadLog     # 端上日志上报,走 grpc
+hi.did.Source.Delete        # **有意不导出**:按 url 删对象且不做归属校验,知道 url 就能删,挂网关上风险不对等
+
+# ── 插件市场 ──
+# MarketCallback 是商户后台调 club 的结算面(AUTH_WEB3,载荷验签):Pull 拉单 / Notify 回传。
+# 商户是服务端、走 grpc 直连;挂到 http gateway 上没有意义,也多一个暴露面。
+service:hi.club.MarketCallback
+
+# 内部级联:club 授权成立后经 aiapi 用 grpc 调,给已有壳加一个使用者(插 c/d)。
+# 前端不该够得着 —— 能直接调它就等于绕过整个授权流程白拿插件。
+hi.ai.Plugin.CreateReference
+
+# ── NATIVE 插件下发 ──
+# 下发清单由 club 经 grpc 穿透调用(机器人只够得着 hiclub 通道)。
+# 前端不需要:它是"机器人该装什么",不是给人看的页面数据。
+hi.ai.Plugin.ListNative
+
+# 机器人自用面 —— 主体恒取自凭证,机器人经 core 的 grpc 通道调。
+# 挂到 http 网关上没有意义(没有浏览器会以机器人身份登录),只多一个暴露面。
+service:hi.club.AgentPlugin

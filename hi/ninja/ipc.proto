@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package hi.ninja;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/ninja";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ninja";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
@@ -35,15 +35,30 @@ enum Emotion {
 
 // 机器人初始化：自身身份 + 当前所有者
 // master 缺省表示尚未绑定所有者
-message BotInit {
-  hi.Entity bot    = 1;
+message RobotInit {
+  hi.Entity robot    = 1;
   hi.Entity master = 2;
+}
+
+// 好友列表（全量，初始化时推送）
+message FriendList {
+  repeated hi.Entity list = 1;
+}
+
+// 群成员列表（全量，初始化时批量推送）
+message GroupInfoList {
+  repeated hi.club.GroupInfo list = 1;
 }
 
 // 所有者变更事件
 // trigger: bind（新绑定）/ unbind（解绑，此时 master 缺省）/ update（资料更新，绑定关系不变）
 message MasterEvent {
   hi.Entity master  = 1;
+  // 触发源:
+  //   bind    绑定了主人(master = 新主人)
+  //   unbind  解绑(master 为空)
+  //   update  **主人还是那个人,但他改了资料**(master = 主人当前完整的 Entity)
+  // ⚠️ update 这档别按 did 判重 —— did 没变正是它的常态,变的是 name/avatar。
   string    trigger = 2;
 }
 
@@ -67,7 +82,7 @@ message AudioPlay {
 message BrainToFace {
   oneof cmd {
     // 初始化
-    BotInit               init_bot         = 1;  // face 上线时推送，携带机器人和所有者身份
+    RobotInit               init_robot         = 1;  // face 上线时推送，携带机器人和所有者身份
 
     // 交互状态
     StateToggle           show_listen      = 2;  // 语音监听开始/结束
@@ -80,20 +95,109 @@ message BrainToFace {
     google.protobuf.Empty show_qr_code     = 7;  // 展示机器人 DID 二维码
 
     // 状态事件
-    hi.Entity             event_bot         = 8;  // 机器人自身资料变更
+    hi.Entity             event_robot         = 8;  // 机器人自身资料变更
     MasterEvent           event_master      = 9;  // 所有者绑定状态变化
     hi.club.GroupInfo     event_members     = 10; // 群成员列表（全量）
-    hi.ai.PluginItem      event_plugin      = 11; // 插件加载完成
+    hi.ai.PluginView      event_plugin      = 11; // 插件加载完成
+    PluginProgress        event_plugin_progress = 20; // 插件下载/安装进度
     hi.did.Transaction    event_transaction = 12; // 收到转账
 
-    // 媒体
+    // 媒体：uuid="" 时路由到 dialog_voice，否则按 uuid 路由到对应 IM dialog
     AudioPlay             play_audio = 13; // TTS 音频播放
+
+    // 好友变更
+    FriendList            event_friends       = 15; // 好友列表全量推送（初始化时）
+    hi.Entity             event_friend_delete = 14; // 被对方删除好友，face 从单聊列表移除该成员
+    hi.Entity             event_friend_add    = 16; // 新增好友，face 将其加入单聊成员列表
+
+    // 群成员初始化（全量批量，初始化时推送）
+    GroupInfoList         members_init        = 17;
+
+    // 系统状态：NTP 时间同步 + 网络连通性（face 上线推送 + 状态变化时推送）
+    StatusEvent           event_status        = 18;
+    //资源更新信息同步
+    UpdateInfo            event_update        = 19;
+
   }
+}
+
+// 系统状态快照
+// ntp:  系统时间已同步（时间戳 > 1_750_000_000，即 2025-06 之后）
+// wifi: 服务器 TCP 443 可达
+message StatusEvent {
+  bool ntp  = 1;
+  bool wifi = 2;
+  bool usb  = 3;
+}
+//资源更新进度信息
+// `state`：当前更新状态，例如 `idle`、`checking`、`downloading`、`installing`、`success`、`failed` 等。 
+// `current_version`：当前已安装/正在运行的版本号。 
+// `target_version`：目标版本号，也就是准备更新到的版本。 
+// `progress`： 更新进度，通常是 `0-100` 的百分比。 
+// `message` ： 给用户或前端展示的状态说明，例如“正在下载更新包”。 
+// `error` ：错误信息。更新失败时记录失败原因；正常情况下通常为空。 
+// `changes` ：版本变更列表，通常是 changelog，例如修复了哪些问题、增加了哪些功能。 
+// `trigger`：更新触发来源，例如 `manual` 手动触发、`auto` 自动检查、`startup` 启动时触发等。 
+// `updated_at` ：状态最后更新时间，通常是 Unix 时间戳。具体是秒还是毫秒要看实现约定。 
+// `downloaded_bytes`：已下载的字节数。 
+// `total_bytes`：需要下载的总字节数。可用于计算下载百分比。 
+message UpdateInfo {
+  string state = 1;
+  string current_version = 2;
+  string target_version = 3;
+  uint32 progress = 4;
+  string message = 5;
+  string error = 6;
+  repeated string changes = 7;
+  string trigger = 8;
+  uint64 updated_at = 9;
+  uint64 downloaded_bytes = 10;
+  uint64 total_bytes = 11;
 }
 
 // face -> brain
 message FaceToBrain {
   oneof cmd {
     StateToggle voice_state = 1; // 音频播放开始/结束，brain 据此控制麦克风静音
+    UpdateAction update_action = 2;//更新动作
   }
 }
+// 插件下载/安装进度。
+//
+// NATIVE 插件是**云端交叉编译好的 .so,机器人自己去取** —— 几百 KB 到几 MB,
+// 机器人的网可能很差。没有进度的话,用户在市场点了"购买"之后,face 上什么都不会变,
+// 直到某一刻插件突然出现;中间那段沉默里,用户只会以为没买成、然后再点一次。
+//
+// 字段有意与固件更新(UpdaterStatus)同形:state / progress / 已下/共多少字节。
+// **face 那边不该为"插件"和"固件"学两套进度模型。**
+message PluginProgress {
+  enum State {
+    STATE_UNKNOWN     = 0;
+    STATE_DOWNLOADING = 1; // 正在下载
+    STATE_INSTALLING  = 2; // 已下完,正在落盘/加载
+    STATE_DONE        = 3; // 装好了(已热加载,可以用了)
+    STATE_FAILED      = 4; // 这一个失败了 —— **不影响其它插件**
+  }
+  string uuid   = 1;
+  string title  = 2; // 给用户看的名字;取不到就退回 uuid
+  State  state  = 3;
+  // 0-100。**总长度未知时恒为 0** —— 服务端不给 Content-Length 是有可能的,
+  // 那时候宁可不显示百分比,也别编一个会往回跳的数字。
+  uint32 progress        = 4;
+  uint64 downloaded_bytes = 5;
+  uint64 total_bytes      = 6; // 0 = 未知
+  string message          = 7; // 失败原因(state=FAILED 时)
+}
+
+//更新动作
+message UpdateAction {
+  enum Action {
+    ACTION_UNKNOWN = 0;
+    ACTION_CHECK = 1;
+    ACTION_APPLY = 2;
+    ACTION_DISMISS = 3;
+  }
+
+  Action action = 1;
+}
+

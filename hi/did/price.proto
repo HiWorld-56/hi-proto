@@ -2,23 +2,26 @@ syntax = "proto3";
 
 package hi.did;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 
 import "hi/did/base.proto";
+import "hi/options.proto";
 
 message GetPriceReq {
   string coin = 1;
 }
 
 message GetPriceResp {
+  option (hi.audience) = VIS_PUBLIC;
   message Unit {
-    string price = 1;
-    Coin   coin  = 2;
+    option (hi.audience) = VIS_PUBLIC;
+    string price = 1 [(hi.visibility) = VIS_PUBLIC];
+    Coin   coin  = 2 [(hi.visibility) = VIS_PUBLIC];
   }
-  repeated Unit list     = 1;
-  string        exchange = 2;
+  repeated Unit list     = 1 [(hi.visibility) = VIS_PUBLIC];
+  string        exchange = 2 [(hi.visibility) = VIS_PUBLIC];
 }
 
 service Price {
-  rpc GetPrice (GetPriceReq) returns (GetPriceResp); // 不鉴权
+  rpc Get (GetPriceReq) returns (GetPriceResp) { option (hi.auth) = AUTH_NONE; } // 公开:查币价(原 GetPrice 去 stutter)
 }

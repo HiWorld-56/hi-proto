@@ -2,152 +2,257 @@ syntax = "proto3";
 
 package hi.club;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
-
+import "google/protobuf/any.proto";
 import "google/protobuf/empty.proto";
-import "hi/common.proto";
-import "hi/club/q3.proto";
-import "hi/did/transfer.proto";
 import "hi/club/trade.proto";
-import "hi/ai/plugin.proto";
+import "hi/common.proto";
+import "hi/did/transfer.proto";
+import "hi/options.proto";
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 message Packet {
+  option (hi.audience) = VIS_PARTICIPANT; // 群消息域:群里人人可见
   oneof kind {
-    Notice  notice  = 1;
-    Message message = 2;
+    Notice notice = 1 [(hi.visibility) = VIS_PARTICIPANT];
+    Message message = 2 [(hi.visibility) = VIS_PARTICIPANT];
   }
 }
 
 /*
- type:
- kicked-out
- invite-friend
- invite-group
- q3-sync
- unbind-hwbot
- bind-hwbot
- python-script-loaded
- update-hwbot
- */
+   type: 主类型
+      群通知（topic: hiclub/v1/group/<群Id>）
+      group-dissolve      群已解散                               / hi.club.GroupBase
+      member-join         成员加入群（主动加入 / 接受邀请）          / hi.club.Member
+      member-exit         成员主动退群                            / hi.club.Member
+      member-update       成员资料更新（头像、名字等）               / hi.club.GroupMember
+      group-update        群基础信息更新（名称、头像等）             / hi.club.GroupBase
+
+      单聊通知（topic: hiclub/v1/single/<用户Did>）
+      friend-invite         收到好友邀请（需我处理）
+      friend-invite-accept  我发出的好友邀请已被对方接受，双方已成为好友
+      friend-invite-reject  我发出的好友邀请已被对方拒绝（无需响应）
+      friend-add            对方加我为好友，**后台按我的"自动同意"设置代我同意了** / hi.Entity(对方)
+      friend-delete         我已被对方删除好友
+      group-invite          收到入群邀请（自动 accept）              / hi.club.Member
+      group-invite-reject   我邀请他人入群已被对方拒绝（无需响应）
+      group-kick            我已被踢出群聊                          / hi.club.MemberExit
+      robot-bind            robot(硬件机器人)绑定完成
+      robot-unbind          robot(硬件机器人)解绑完成
+      robot-update          robot(硬件机器人)资料更新              / hi.Entity
+      master-update         **主人**资料更新(发给仆从)              / hi.Entity(主人的 base)
+      plugin-load           插件/脚本加载完成                      / hi.ai.PluginLoaded
+      plugin-grant-request  收到插件授权申请(需我处理)              / hi.club.MarketGrantBrief
+      plugin-grant-approved 我的插件申请被同意                       / hi.club.MarketGrantBrief
+      plugin-grant-rejected 我的插件申请被拒绝                       / hi.club.MarketGrantBrief
+      plugin-grant-expiring 插件授权快到期了(**发给受让方机器人本人**)    / hi.club.MarketRenewBrief
+      plugin-grant-expired  插件授权已到期,已解绑                       / hi.club.MarketGrantBrief
+
+   ex_type: 附加类型
+      扩充主类型，避免主类型产生过多分支。
+      通知示例：
+      type: member-update + ex_type: role                   群成员角色更新
+      type: member-update + ex_type: base.name              群成员名字更新
+      type: member-update + ex_type: base.avatar            群成员头像更新
+      type: group-update  + ex_type: background             群背景更新
+      type: group-update  + ex_type: base.avatar            群头像更新
+      type: group-update  + ex_type: base.name;private      群名字与私有性更新
+      type: master-update + ex_type: base.name;base.avatar  主人资料更新(推给仆从)
+      ...
+
+   ⚠️ **一次变更发一条通知,不按字段拆条**。载荷(extra)永远是**当前完整的实体**
+   (Entity / GroupBase),`ex_type` 只是附带说明"这次动了哪几项",多项用 `;` 拼接
+   (如 `base.name;private`)。收到的人拿整个实体按需更新即可 ——
+   所以只有"主人变了"这种更新,没有"主人名字变了"那种更新。
+   按字段拆成多条的坏处:同一次变更被拆成 N 条同内容的通知,收信方要么重复刷 N 次,
+   要么按 update 时间戳把后面几条当旧的丢掉(它们时间戳一样),白发。
+
+   ## ex_type 是给谁看的
+
+   · **机器人(hinj-brain)不看 ex_type** —— 收到就按 `update` 时间戳整体替换 Entity。
+     它只关心"这份资料是不是比手里的新",不关心动的是哪个字段。
+   · **app 看 ex_type** —— 用来在群聊页把系统提示渲染准:是"XX 修改了群头像"
+     还是"XX 修改了群名称"。**这是 ex_type 存在的唯一理由**。
+   所以 ex_type 是**展示用的附注,不是分发依据**:别拿它做"要不要更新"的判断
+   (那是 update 时间戳的活),更别按它把一次变更拆成多条通知。
+
+   ## 通知只推给**有限主体**,其余靠 update 时间戳惰性传播
+
+   主体改了基础信息(名字/头像),后端**不可能**给每个需要更新的地方主动发通知,
+   只推有限的几类:
+      · 仆从机器人 —— master-update(长驻无头端,不会自己回前台刷,不推就一直是旧的)
+      · 群         —— group-update / member-update(群里人人要看到)
+
+   其余关系(典型:好友)**不推**。它们的更新时机是「我给他发消息的时候」:
+   `Message.from` 里带着我**当前**的 base,收信方拿 `from.update` 跟本地缓存的
+   `update` 一比,新的就覆盖 —— 这就是惰性传播,通知量与关系数解耦。
+
+   ⚠️ 由此推出两条铁律:
+   1. **主体主动设置就要推进 `Entity.update`**,哪怕值跟原来一样。
+      时间戳不动,下游一律认为"没变"而丢弃(core 身份池 upsert、brain 的 is_outdated
+      都是 `新.update > 旧.update` 才覆盖)。
+   2. **判断要不要更新一律比 `update` 时间戳,不比字段值。** 比值有两个坑:
+      重设同一个值被当成没改而漏发/漏更新;更糟的是拿手里那份旧的去盖新的
+      —— 比值的前提是"我这份是最新的",分布式下并不成立。
+*/
+/*
+   ## status:这条通知我处理过没有
+
+   `not_processed` / `processed`(邀请类另有 `accept` / `reject`)。**发出时一律写 `not_processed`**,
+   收方处理完调 `User.MarkNoticeProcessed`(按 uuid)置为 `processed`。
+
+   为什么要落到通知上而不是让端上自己记:端**不在线时发生的事**,上线补拉 `ListSystemMessages`
+   拿到的是同一条通知,状态跟着它走,端就知道这条到底处理过没有 —— 端上自己那份记录,
+   换台设备、重装、清缓存就没了。
+
+   ⚠️ 补拉走的是**库里的 status**(`ListSystemMessage` 用 `sysMsg.Status` 覆盖 payload 里那份),
+   实时那条则是发出时的快照(恒为 `not_processed`)。所以判据以补拉/回执为准。
+
+   典型:`friend-add` —— 我把 A 删了、A 又加回来、我又是"自动同意",
+   那么这条通知就是我唯一能知道"好友回来了"的信号,处理完(清掉会话的 severed)回执一下,
+   免得每次上线都重复处理。
+*/
 message Notice {
-  string    uuid       = 1;
-  string    type       = 2;
-  hi.Entity from       = 3;
-  int64     timestamp  = 4;
-  int64     expiration = 5;
-  string    status     = 6;
-  Extra     extra      = 7;
+  option (hi.audience) = VIS_PARTICIPANT; // 群/单聊通知,收信域内可见
+  string uuid = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  string type = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity from = 3 [(hi.visibility) = VIS_PUBLIC]; // Entity=公开门面
+  int64 timestamp = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  int64 expiration = 5 [(hi.visibility) = VIS_PARTICIPANT];
+  string status = 6 [(hi.visibility) = VIS_PARTICIPANT];
+  // ⚠️ **Any 是可见性 lint 唯一的结构性缺口**:装进去的真实类型 lint 看不见,
+  //    于是 `level(field.visibility) <= level(message.audience)` 这条规则在这里失效。
+  //    往里塞的类型**必须自己是 VIS_PARTICIPANT 或更宽**,别塞 VIS_SELF 的东西 ——
+  //    plugin-load 曾塞 hi.ai.PluginView(SELF,body.url 是私有 bucket 的脚本地址),
+  //    已换成专门的公开摘要 hi.ai.PluginLoaded。合法载荷见上面的类型表。
+  google.protobuf.Any extra = 7 [(hi.visibility) = VIS_PARTICIPANT];
+  string ex_type = 8 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 message Prompt {
-  string custom = 1;
-  string state  = 2;
+  option (hi.audience) = VIS_PARTICIPANT;
+  string custom = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  string state = 2 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 /*
- Message.type
- ----------------------------------------------------------------------------------------------------
- 常规消息: chat
- example
- A >>> Message
- type = chat
- from = A
- ghost = null
- ----------------------------------------------------------------------------------------------------
- 草稿消息: draft
- A创建原始消息，需要B修改确认后，作为一条新消息，由B发送出去，发送者显示为A。
- example:
- A >>> Message_1
- type = draft
- from = A
- ghost = B
- B >>> Message_2
- type = chat
- from = A
- ghost = B
- ----------------------------------------------------------------------------------------------------
- 代笔消息: chat
- B创建的消息，由B发出，发送者显示为A。
- example:
- B >>> Message
- type = chat
- from = A
- ghost = B
- 非法消息: invalid
- 未通过安全验证的消息
- ----------------------------------------------------------------------------------------------------
- 任意聊天中:
- type != chat 时: 一律不显示
- type == chat 时: 发送者显示为 from
- */
+   Message.type
+   ----------------------------------------------------------------------------------------------------
+   常规消息: chat
+   example
+   A >>> Message
+   type = chat
+   from = A
+   ghost = null
+   ----------------------------------------------------------------------------------------------------
+   草稿消息: draft
+   A创建原始消息，需要B修改确认后，作为一条新消息，由B发送出去，发送者显示为A。
+   example:
+   A >>> Message_1
+   type = draft
+   from = A
+   ghost = B
+   B >>> Message_2
+   type = chat
+   from = A
+   ghost = B
+   ----------------------------------------------------------------------------------------------------
+   代笔消息: chat
+   B创建的消息，由B发出，发送者显示为A。
+   example:
+   B >>> Message
+   type = chat
+   from = A
+   ghost = B
+   非法消息: invalid
+   未通过安全验证的消息
+   ----------------------------------------------------------------------------------------------------
+   任意聊天中:
+   type != chat 时: 一律不显示
+   type == chat 时: 发送者显示为 from
+*/
 message Message {
-  string           uuid      = 1;
-  string           type      = 2;
-  hi.Entity        from      = 3;
-  repeated Content conts     = 4;
-  int64            timestamp = 5;
-  Extra            extra     = 6;
-  hi.Entity        ghost     = 7;
-  Prompt           prompt    = 8;
+  option (hi.audience) = VIS_PARTICIPANT; // 群消息,群成员可见
+  string uuid = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  string type = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity from = 3 [(hi.visibility) = VIS_PUBLIC]; // Entity=公开门面
+  repeated Content conts = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  int64 timestamp = 5 [(hi.visibility) = VIS_PARTICIPANT];
+  google.protobuf.Any extra = 6 [(hi.visibility) = VIS_PARTICIPANT];
+  string ex_type = 7 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity ghost = 8 [(hi.visibility) = VIS_PUBLIC]; // Entity=公开门面
+  Prompt prompt = 9 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
-message Extra {
-  oneof kind {
-    hi.Entity        entity      = 1;
-    Mention          mention     = 2;
-    Member           member      = 3;
-    MemberExit       member_exit = 4;
-    GroupUpdate      group_info  = 5;
-    Q3GroupReadyResp ready       = 6;
-    Q3GroupEventReq  event       = 7;
-    ai.PluginItem    plugin      = 8;
-  }
-}
-
+// ⚠️ 被后端 Go 引用(群消息 @ 解析),proto 里无 rpc 引用,勿当死 message 删。
 message Mention {
-  hi.Entity          group = 1;
-  bool               all   = 2;
-  repeated hi.Entity list  = 3;
+  hi.Entity group = 1;
+  bool all = 2;
+  repeated hi.Entity list = 3;
 }
 
 message Member {
   hi.Entity group = 1;
-  hi.Entity user  = 2;
+  hi.Entity user = 2;
 }
 
 message MemberExit {
   Member member = 1;
-  string type   = 2;
+  string type = 2;
 }
 
-message GroupUpdate {
-  hi.Entity base        = 1;
-  string    back_ground = 2;
-  bool      mute        = 3;
-  hi.Entity owner       = 4;
-}
+/*
+   Content.type —— **一条消息里这一段是什么**。字符串,取值就是下面这张表,**别自己发明**。
 
+     text        纯文本            chat.content = 正文
+     image_url   图片              chat.content = 图片 url(name=原文件名, size=字节数)
+     audio_url   语音              chat.content = 音频 url(duration=秒)
+     file        文件              chat.content = 文件 url(name/size)
+     transfer    转账卡            kind=trans(hi.did.Transaction)
+     trade       交易卡            kind=trade(TradeBase)
+     broadcast   广播
+
+   ⚠️ **注意是 `image_url` 不是 `image`、`audio_url` 不是 `audio`。**
+
+   这套 content 是**从 OpenAI 的 content 标准扩展来的** —— 那边的多模态内容块就是
+   `{"type":"text"}` / `{"type":"image_url"}`,`image_url` 是照抄它的词,不是我们随手起的。
+   `audio_url` / `file` / `transfer` / `trade` 是我们在同一范式下的扩展。
+   所以**别看着别扭就"顺手改成 image"**:改了既背离上游那套约定,也当场打断
+   Android 端(hiclub-app)与硬件端(hinj-brain)—— 它们现网都按这张表收发。
+   同理,以后加多模态类型**先看 OpenAI 那边叫什么**,能对齐就对齐。
+
+   这张表原先**只存在于各端的代码里**(Android 的 MQTTConfig、brain 的 pb_ext),proto 这边
+   只写了 `string type = 1`。代价:hiclub-simple-app 自己发明了 `image`,于是
+   **发出去 Android 显示"未知类型消息"、收进来自己当文本把 url 打在屏幕上** —— 两个方向同时错,
+   而两边代码各自看都"没毛病"。后端的推送预览甚至为此写成 `strings.Contains(t, "image")`
+   模糊匹配来兜 —— 那是缺词汇表的补丁,不是词汇表。
+
+   为什么不改成枚举:这个字段已在现网多端流通,换 wire 类型要所有端同批发版;
+   而**把表写在这里**就已经解决"各自发明"的问题了。新增类型:先往这张表加一行,再去实现。
+*/
 message Content {
+  option (hi.audience) = VIS_PARTICIPANT; // 消息内容体,群成员可见
   message Chat {
-    string          content  = 1;
-    optional string name     = 2;
-    optional uint32 size     = 3;
-    optional uint32 duration = 4;
+    option (hi.audience) = VIS_PARTICIPANT;
+    string content = 1 [(hi.visibility) = VIS_PARTICIPANT];
+    optional string name = 2 [(hi.visibility) = VIS_PARTICIPANT];
+    optional uint32 size = 3 [(hi.visibility) = VIS_PARTICIPANT];
+    optional uint32 duration = 4 [(hi.visibility) = VIS_PARTICIPANT];
   }
 
-  string type = 1;
+  string type = 1 [(hi.visibility) = VIS_PARTICIPANT];
   oneof kind {
-    Chat               chat  = 2;
-    hi.did.Transaction trans = 3;
-    TradeBase          trade = 4;
+    Chat chat = 2 [(hi.visibility) = VIS_PARTICIPANT];
+    hi.did.Transaction trans = 3 [(hi.visibility) = VIS_PUBLIC]; // Transaction=公开
+    TradeBase trade = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 交易卡可入群,基础卡=PARTICIPANT
   }
 }
 
 message PublishReq {
-  string topic   = 1;
+  string topic = 1;
   Packet payload = 2;
 }
 
 service Publisher {
-  rpc Publish (PublishReq) returns (google.protobuf.Empty); // Token鉴权
+  rpc Publish (PublishReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // Token鉴权
 }

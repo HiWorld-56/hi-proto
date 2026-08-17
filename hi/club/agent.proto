@@ -2,20 +2,39 @@ syntax = "proto3";
 
 package hi.club;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 import "google/protobuf/empty.proto";
+import "buf/validate/validate.proto";
 import "hi/common.proto";
 import "hi/ai/agent.proto";
+import "hi/options.proto";
 
-message BindMasterReq {
-  string master = 1;
-  string agent  = 2;
-}
+// ── 说明:本文件里的智能体方法多数是 hi.ai 的门面 ──────────────────────────
+// club **自己没有 AI 功能**,这些方法就是击穿到 hi.ai 拿结果;club 是 hi.ai 的一个商户,
+// 用自己的 apikey 调 hiai。**入参/返回直接复用 hi.ai 的类型,是有意为之**:
+//   - 防止两边定义不同步(各自复制一份必然漂移);
+//   - 少一堆重复定义。
+// 所以 **hi.ai 的类型/方法一改,这里必须跟着改** —— 这是继承关系,不是耦合。
+// club 自有的部分(绑主人、在线状态)不走 ai,用 club 自己的类型。
 
-message UnbindMasterReq {
-  string master = 1;
-  string agent  = 2;
+// 绑定/解绑机器人的主人。
+//
+// ⚠️ **没有 master 字段** —— 主人恒是 token 里的人。原先收 `master` 并靠 handler
+//    校验 `userDid != req.Master` 才拒;守卫是有的,但接口形状在撒谎:调用方有理由
+//    以为传 master 管用,而这类"靠 handler 记得校验"的写法,漏一次就是强塞/解绑
+//    别人的机器人。删掉字段后,"指定给谁绑"在类型上就说不出来。
+//    (同文件 Agent.List 早就写明"没有查谁的参数,主体永远是 token 里的人",
+//     这两个**写**操作反而收了 master,不一致。)
+// 绑定/解绑共用 —— 两者入参完全一致(只需定位机器人),没必要两份定义。
+//
+// ⚠️ **没有 master 字段**:主人恒是 token 里的人。原先收 master 并校验
+//    `userDid != req.Master`,那是同义反复 —— 只拦"你填了别人的 did",
+//    而攻击者填自己的就过,对安全零贡献;真正要拦的「这台机器人是不是别人的」
+//    当时反而是漏的(见 validateBindMaster 的说明)。
+//    字段存在 → 就得写校验 → 写了就显得有防护,而防护点其实全在别处。
+message MasterBindReq {
+  string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 机器人 did
 }
 
 message BindStatusReq {
@@ -23,59 +42,104 @@ message BindStatusReq {
 }
 
 message BindStatusResp {
-  hi.Entity master = 1; // None / master
+  option (hi.audience) = VIS_PUBLIC; // 仅含 master 名片,与公开 AgentDirectory.GetAgentMaster 同数据
+  hi.Entity master = 1 [(hi.visibility) = VIS_PUBLIC]; // None / master(Entity=PUBLIC)
 }
 
-message ListAllOnlineAgentResp {
-  int32                    total = 1;
-  repeated hi.ai.AgentInfo list  = 2;
+// 转让机器人 = **换 master**。club 侧不存在"机器人创建者"的概念。
+//
+// ⚠️ 不再转发 ai.Agent.Transfer —— 那个已从 ai 删除(它自称"转 apikey+agent",实际只改 creator,
+//    还会把目标非超级用户的 agent 模型顺手降级)。这个概念本就该在 club 实现,故用 club 自己的类型。
+// 它与 BindMaster/UnbindMaster 是同一件事(换绑主人),故同处 Agent。
+message TransferReq {
+  string agent = 1; // 要转让的机器人 did
+  string to    = 2; // 新 master 的用户 did
 }
 
-message GetAgentMasterReq {
-  string agent = 1;
+// 在线 agent 列表(club 本地 presence,非转发 ai)。合并原 ListOnlineAgent(按用户)+ ListAllOnlineAgent(全量)。
+message ListOnlineReq {
+  string        owner_did  = 1; // 可选:只看该用户的在线 agent;空=全部在线
+  hi.Pagination pagination = 2;
 }
 
-message GetAgentMasterResp {
-  hi.Entity master = 1;
+message ListOnlineResp {
+  option (hi.audience) = VIS_PUBLIC; // 在线机器人目录(AgentDirectory.ListOnline 免鉴权 AUTH_NONE)
+  // ⚠️ 只吐机器人**公开身份**(Entity:name/avatar/did),不复用 hi.ai.AgentInfo ——
+  //    后者含 AgentConfig(prompt/模型/记忆)是 owner 私密配置(VIS_SELF),放进公开目录=泄漏。
+  //    此前误用 AgentInfo,由可见性 lint 反向校验查出并收窄为 Entity。
+  int32              total = 1 [(hi.visibility) = VIS_PUBLIC];
+  repeated hi.Entity infos = 2 [(hi.visibility) = VIS_PUBLIC];
 }
 
-message ListOnlineAgentResp {
-  repeated hi.ai.AgentInfo list = 1;
+// 超管按用户搜机器人。users 是**过滤条件**(空=不过滤,即全部)——
+// 与"空=换一种语义"不同,这里两种情况是同一根轴上的"筛/不筛"。
+message ListAgentsByUsersReq {
+  repeated string users      = 1; // 用户 did;空=全部
+  hi.Pagination   pagination = 2;
 }
 
-message AgentInfo {
-  hi.ai.AgentInfo info   = 1;
-  string          remark = 2; // 备注名
+// 机器人列表。**列表项直接用 hi.ai.AgentInfo,不自定义** ——
+// club 的 Agent 里 Get/Edit/CreateAssistant/GetDefaultConfig 一直直接用 hi.ai 的类型,
+// 唯独 List 自造过一个只吐 Entity 的结构,缺 config/token/note/created_at 一大票字段,
+// 前端拿完列表还得逐个再调 Get。
+//
+//
+// 穿过来的只是**机器人个体**(prompt/模型/用量);归属仍是 club 自己的数据,
+// 由 club 把 master 填进 AgentInfo.creator —— 关系不穿,各服务填各自视角的值。
+message ListAgentsResp {
+  option (hi.audience) = VIS_SELF;
+  int32                     total  = 1 [(hi.visibility) = VIS_SELF];
+  repeated hi.ai.AgentInfo  agents = 2 [(hi.visibility) = VIS_SELF];
 }
 
-message ListAgentResp {
-  int32              total = 1;
-  repeated AgentInfo infos = 2;
-}
 
 service Agent {
-  rpc ListLLM (google.protobuf.Empty) returns (hi.ai.ListLLMResp);
-  rpc ListEmbedding (google.protobuf.Empty) returns (hi.ai.ListEmbeddingResp);
-  rpc ListSTT (google.protobuf.Empty) returns (hi.ai.ListSTTResp);
-  rpc ListTTS (google.protobuf.Empty) returns (hi.ai.ListTTSResp);
-  rpc AgentConfig (google.protobuf.Empty) returns (hi.ai.AgentConfigResp);
-  rpc CreateAgent (hi.ai.CreateAgentReq) returns (hi.ai.CreateAgentResp);
-  rpc EditAgent (hi.ai.EditAgentReq) returns (google.protobuf.Empty);
-  rpc ListAgent (hi.Pagination) returns (ListAgentResp);
-  rpc ListAgentByDids (hi.ai.ListAgentByDidsReq) returns (hi.ai.ListAgentByDidsResp);
-  rpc DeleteAgent (hi.ai.DeleteAgentReq) returns (google.protobuf.Empty);
-  rpc FindAgent (hi.ai.FindAgentReq) returns (hi.ai.FindAgentResp);
-  rpc FindAgentCount (hi.ai.FindAgentCountReq) returns (hi.ai.FindAgentCountResp);
-  rpc Transfer (hi.ai.TransferReq) returns (google.protobuf.Empty);
-  rpc UpdatesToDefault (hi.ai.UpdatesToDefaultReq) returns (google.protobuf.Empty);
-  rpc FavoriteAgent (hi.ai.FavoriteAgentReq) returns (google.protobuf.Empty);
-  rpc ListFavoriteAgent (hi.ai.ListFavoriteAgentReq) returns (hi.ai.ListFavoriteAgentResp);
-  rpc FavoriteAgentListByDIDs (hi.ai.ListFavoriteAgentByDIDsReq) returns (hi.ai.ListFavoriteAgentByDIDsResp);
+  // 列我的机器人。归属**只看 club 自己的 relation(master 关系)** —— club 的机器人关系
+  // 由 club 自己管理,与 hiai 无关(hiai 那边所有 club 机器人的 creator 都是 club 商户,
+  // 根本表达不了"谁的机器人")。did 取自 token,不接受入参指定;
+  // 将来若要开放"查别人的机器人列表",那是**另一个方法**,不是把这个的档位放开。
+  rpc List (hi.ai.ListAgentsReq) returns (ListAgentsResp) { option (hi.auth) = AUTH_USER; } // 列我名下的机器人
+  // ── hi.ai 门面(跟 ai 定稿改名)──
+  rpc CreateAssistant (hi.ai.CreateAssistantReq) returns (hi.ai.CreateAgentResp) { option (hi.auth) = AUTH_USER; }  // 原 CreateAgent
+  // **改完回权威资料**(原先返 Empty)。`base.update` 是资料传播的唯一依据:
+  // 发消息时 message.from / 群通知的 extra 都带着它,收信方按它比时间戳决定要不要刷缓存
+  // (惰性传播,见 hi/club/messaging.proto)。时间戳的权威在服务端,客户端自己造一个就是
+  // 两个时钟,会倒退(实测客户端微秒 vs 服务端整秒差 0.6s)。回权威值,调用方不必再查一次。
+  rpc Edit (hi.ai.EditAgentReq) returns (hi.Entity) { option (hi.auth) = AUTH_USER; } // 原 EditAgent;回改完的机器人资料(透传 ai)
+  rpc Delete (hi.ai.DeleteAgentReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }  // 原 DeleteAgent
+  rpc Get (hi.ai.GetAgentReq) returns (hi.ai.GetAgentResp) { option (hi.auth) = AUTH_USER; }           // 原 FindAgent
+  rpc GetUsage (hi.ai.AgentUsageReq) returns (hi.ai.AgentUsageResp) { option (hi.auth) = AUTH_USER; }  // 原 FindAgentCount(消息数+token,不是"count")
+  rpc GetDefaultConfig (google.protobuf.Empty) returns (hi.ai.DefaultConfigResp) { option (hi.auth) = AUTH_USER; } // 全局默认配置(原 DefaultConfig,补动词跟 ai)
+  // ── club 自有:换绑主人 ──
+  rpc BindMaster (MasterBindReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }     // 绑定主人
+  rpc UnbindMaster (MasterBindReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 解绑主人
+  rpc BindStatus (BindStatusReq) returns (BindStatusResp) { option (hi.auth) = AUTH_USER; }            // 绑定状态
+  rpc Transfer (TransferReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }         // 转让机器人=换 master(club 自实现)
+}
 
-  rpc BindMaster (BindMasterReq) returns (google.protobuf.Empty); // 绑定智能体
-  rpc UnbindMaster (UnbindMasterReq) returns (google.protobuf.Empty); // 解绑智能体
-  rpc BindStatus (BindStatusReq) returns (BindStatusResp); // 智能体绑定状态
-  rpc ListAllOnlineAgent (hi.Pagination) returns (ListAllOnlineAgentResp); // 在线智能体列表
-  rpc ListOnlineAgent (hi.DID) returns (ListOnlineAgentResp); // 用户的在线智能体
-  rpc GetAgentMaster (GetAgentMasterReq) returns (GetAgentMasterResp); // 智能体主人
+// 智能体目录(公开)。从 Agent 拆出 —— 原来这三个免鉴权方法混在 token 档的 Agent 里(混档)。
+// 供三方看板/未登录页面列机器人、查在线与主人。
+// 公开目录。**只放真正该公开的东西。**
+//
+// ⚠️ 这里曾有 List 与 GetAgentMaster,都已**删除**:
+//   · List 转发 ai.Agent.List 且用 club 自己的 apikey —— 它查的是**hiai 里挂在 club 商户
+//     名下的 agent**,与"club 用户的机器人列表"毫无关系(club 的机器人归属由 club 自己的
+//     relation 管,不在 hiai)。而 hiai 里所有 club 机器人的 creator 都是 club 商户,
+//     所以匿名调用者传空参数就能把**全部** club 机器人连同 AgentConfig 的 prompt/模型
+//     一起拿走。这个方法从设计上就不成立,直接删,不是"改档位"能救的。
+//   · GetAgentMaster 让任何人都能反查某机器人的主人 —— 不该随便让人找到。
+//
+// (Agent.List 是**另起**的用户自服务方法,数据取自 club 自己的 relation,与上面这个无继承关系。)
+service AgentDirectory {
+  rpc ListOnline (ListOnlineReq) returns (ListOnlineResp) { option (hi.auth) = AUTH_NONE; }             // 公开:在线机器人(club 本地 presence);owner_did 空=全部
+}
+
+// 机器人管理(**超管**)。与 Agent(用户自服务)**主体不同,故拆 service** ——
+// 范式见 DApp/DAppAdmin、Merchant/MerchantManage。
+//
+// ⚠️ **没有"标记"功能** —— 曾在 club 加过 Mark/ListMarks + hi_chat_agent_mark 表,
+//    后来 hiai 侧的同类功能也整体删除了(实际没什么用,且标记本就不该是机器人的属性)。
+//    别再加回来。
+service AgentManage {
+  rpc List (ListAgentsByUsersReq) returns (ListAgentsResp) { option (hi.auth) = AUTH_SUPERADMIN; }      // 按用户搜机器人
 }

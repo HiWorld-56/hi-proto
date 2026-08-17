@@ -2,22 +2,35 @@ syntax = "proto3";
 
 package hi.club;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 import "google/protobuf/empty.proto";
 import "hi/did/base.proto";
+import "hi/common.proto";
+import "hi/options.proto";
 
-message GetConfigReq {
-  string name = 1;
-}
-
-message GetConfigResp {
-  string value = 1;
-}
-
+// 基础数据(公开)。全档一致 —— 与 did 的 Base 对齐。
+//
+// ListCoins 原标 AUTH_TOKEN 但注释写着"不鉴权",而 did 的 Base.ListCoins 本就是公开的
+// —— 注释与档位对不上,按 did 统一为公开。
 service Base {
-  rpc ListCoins (google.protobuf.Empty) returns (hi.did.ListCoinsResp); // 不鉴权
-  rpc LatestVersion (hi.did.LatestVersionReq) returns (hi.did.LatestVersionResp); // 不鉴权
-  rpc ListSuperAdminUsers (google.protobuf.Empty) returns (hi.did.ListSuperAdminUsersResp); // 不鉴权
-  rpc GetConfig (GetConfigReq) returns (GetConfigResp); // Token鉴权
+  rpc ListCoins (google.protobuf.Empty) returns (hi.did.ListCoinsResp) { option (hi.auth) = AUTH_NONE; }              // 公开:币种列表
+  rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp) { option (hi.auth) = AUTH_NONE; }          // 公开:服务自身版本+环境
+}
+
+// 超管名单(转发 hidid)。
+//
+// club **不留自己的表** —— 名单的唯一持有方是 hidid,这里只是替 club 的 web 前端
+// 转一道:前端登录后拿它比对自己的 did,决定显不显示"内部使用"菜单。
+// 此前 did/club/ai/media 各留一张表,实测四份已漂移(11/14/15/3),
+// 且在一处撤权另一处不生效,故统一穿透。
+//
+// ⚠️ 档位是 AUTH_USER 而**不是** AUTH_SUPERADMIN —— 否则就成了"先得是超管,
+//    才能知道自己是不是超管"。与 hi.did.SuperAdmin.List 同理(那边是 USER+MERCHANT
+//    双档,因为还要给兄弟服务穿透用;club 这边只服务前端,单 USER 档即可)。
+//
+// club 后端调 hidid 用的是自己的 ExtendToken,那只用于**取名单**;
+// "谁是超管"的判定另走 requireSuperAdmin,比对的是调用者本人的 did,两者不能混。
+service SuperAdmin {
+  rpc List (google.protobuf.Empty) returns (hi.did.ListSuperAdminUsersResp) { option (hi.auth) = AUTH_USER; } // 取超管名单(前端显隐内部菜单用)
 }

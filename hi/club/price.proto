@@ -2,10 +2,11 @@ syntax = "proto3";
 
 package hi.club;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 import "hi/did/price.proto";
+import "hi/options.proto";
 
 service Price {
-  rpc GetPrice (hi.did.GetPriceReq) returns (hi.did.GetPriceResp); // 不鉴权
+  rpc Get (hi.did.GetPriceReq) returns (hi.did.GetPriceResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权(原 GetPrice 去 stutter)
 }

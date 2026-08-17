@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package hi.ai;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
+
+import "hi/options.proto";
+
+message SynthesizeReq {
+  string text  = 1;
+  string model = 2;
+  string style = 3;
+}
+
+message SynthesizeResp {
+  option (hi.audience) = VIS_SELF; // 我的音频合成结果 → SELF
+  string url = 1 [(hi.visibility) = VIS_SELF]; // 合成音频 url
+}
+
+message TranscribeReq {
+  string url   = 1; // 音频 url(从 HiSource 下载)
+  string model = 2; // whisper-1 / whisper-hiai
+  string lang  = 3;
+}
+
+message TranscribeResp {
+  option (hi.audience) = VIS_SELF; // 我的语音转写结果 → SELF
+  string text = 1 [(hi.visibility) = VIS_SELF];
+}
+
+// 语音转换(主体=语音)。**纯格式转换,不涉及 agent / 会话 / 工具**。
+//
+// 从 Chat 拆出,并借机解掉命名撞车:原 `Chat.SimpleSpeechToText`(真 STT)与
+// `Chat.SpeechToText`(其实是完整多模态对话)只靠 "Simple" 前缀区分,读的人根本分不清。
+// 现在:真转换叫 Transcribe / Synthesize;Chat 里的 SpeechToText 系列才是多模态对话。
+//
+// 商户档:hiai web 与商户后台服务都会调。
+service Speech {
+  rpc Transcribe (TranscribeReq) returns (TranscribeResp) { option (hi.auth) = AUTH_MERCHANT; } // 语音转文字(原 Chat.SimpleSpeechToText)
+  rpc Synthesize (SynthesizeReq) returns (SynthesizeResp) { option (hi.auth) = AUTH_MERCHANT; } // 文字转语音(原 Chat.SimpleTextToSpeech)
+}

@@ -2,32 +2,56 @@ syntax = "proto3";
 
 package hi.club;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/club/messaging.proto";
+import "hi/options.proto";
+import "buf/validate/validate.proto";
 
-// 查询群信息的响应结构
+// ── 群信息按两个维度组织(未来扩展各归各位)──────────────────────────────
+//   · 公共(所有成员一致)→ GroupBase:新增公共字段往这里加。
+//   · 成员相关          → GroupMemberAttr:新增成员相关字段往这里加。
+//   · dnd 是**严格私有**(只有本人能看到自己的免打扰),故不进 GroupMemberAttr,
+//     单独挂在 GroupMemberView 顶层 —— 结构上就不会随成员列表泄漏给别人。
+
+// 群公共信息(所有成员一致)。群类型(单聊/群)在 base.type;public/private 见 private 字段。
+// base.update 供前端判断缓存新鲜度。
 message GroupBase {
-  hi.Entity base       = 1;
-  string    background = 2;
-  bool      private    = 3;
-  bool      dnd        = 4; // 免打扰
-  int32     muted      = 5;
-  int64     created_at = 6;
-  int64     updated_at = 7;
+  option (hi.audience) = VIS_PUBLIC; // 群公共信息,所有成员一致
+  hi.Entity base       = 1 [(hi.visibility) = VIS_PUBLIC];
+  string    background = 2 [(hi.visibility) = VIS_PUBLIC];
+  bool      private    = 3 [(hi.visibility) = VIS_PUBLIC]; // true=私密群(只能被邀请加入);false=公开群
+}
+
+// 成员相关属性(**对外可见**:成员列表里人人可见谁是什么角色、谁被禁言)。
+message GroupMemberAttr {
+  option (hi.audience) = VIS_PARTICIPANT; // 成员可见
+  string role  = 1 [(hi.visibility) = VIS_PARTICIPANT]; // owner / admin / member
+  bool   muted = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 是否被禁言(群主/管理员设;去写留读)
+  // ⚠️ dnd 不许加到这里:它是 VIS_SELF,而本消息 audience=VIS_PARTICIPANT,加了 check_auth 直接挂。dnd 放 GroupMemberView。
 }
 
 message GroupMember {
-  hi.Entity base  = 1;
-  string    role  = 2;
-  string    ghost = 3;
+  option (hi.audience) = VIS_PARTICIPANT; // 成员列表项,成员可见
+  hi.Entity       base = 1 [(hi.visibility) = VIS_PUBLIC];
+  GroupMemberAttr attr = 2 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 message GroupInfo {
-  GroupBase            base = 1;
-  repeated GroupMember list = 2;
+  option (hi.audience) = VIS_PARTICIPANT; // 成员列表,成员可见
+  GroupBase            base = 1 [(hi.visibility) = VIS_PUBLIC];
+  repeated GroupMember list = 2 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+// 某成员(调用者本人)视角的群信息 = 群公共 + 我的成员属性 + 我的免打扰(私有)。
+// 群信息页一次拉全,前端直接展示。
+message GroupMemberView {
+  option (hi.audience) = VIS_SELF; // 只当"我的视角"返回给本人
+  GroupBase       base = 1 [(hi.visibility) = VIS_PUBLIC];
+  GroupMemberAttr attr = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 我的 role/muted
+  bool            dnd  = 3 [(hi.visibility) = VIS_SELF]; // **仅本人可见**的免打扰(SELF,故 audience 必须是 SELF)
 }
 
 message GetGroupReq {
@@ -44,106 +68,124 @@ message CreateSingleReq {
   string did = 1;
 }
 
-// 更新群信息
-message UpdateGroupReq {
-  GroupBase base             = 1;
-  bool      clear_background = 2;
-}
-
 // 组聊天消息列表参数
-message ListGroupMessageReq {
+message ListGroupMessagesReq {
   string last_uuid = 1;
-  string code      = 2;
-  string type      = 3;
+  string code      = 2; // 群/单聊 code;群类型由后端按 code 查 GroupModel.group_type
 }
 
-message ListGroupMessageResp {
-  repeated Packet list = 1;
+message ListGroupMessagesResp {
+  option (hi.audience) = VIS_PARTICIPANT; // 群消息列表,成员可见
+  repeated Packet list = 1 [(hi.visibility) = VIS_PARTICIPANT]; // Packet=PARTICIPANT
 }
 
-message ListGroupBaseResp {
-  repeated GroupBase list = 1;
-}
-
-message ListGroupMemberReq {
+message ListGroupMembersReq {
   string        code       = 1;
-  string        type       = 2;
-  hi.Pagination pagination = 3;
+  hi.Pagination pagination = 2;
 }
 
 message GetGroupMemberTotalReq {
-  string group = 1;
+  string code = 1;
 }
 
 message GetGroupMemberTotalResp {
-  int32 total = 1;
+  option (hi.audience) = VIS_PARTICIPANT; // 群成员数,成员可见
+  int32 total = 1 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 message InviteGroupReq {
-  string          group  = 1;
-  repeated string agents = 2;
-  repeated string users  = 3;
+  string          code    = 1;
+  repeated string members = 2;
 }
 
 message JoinGroupReq {
-  string group = 1;
+  string code = 1; // 凭群 code 申请加入(仅公开群;私密群只能被邀请)
 }
 
 message QuitGroupReq {
-  string group = 1;
+  string code = 1;
 }
 
 message RemoveGroupReq {
-  string          group  = 1;
-  repeated string agents = 2;
-  repeated string users  = 3;
-}
-
-message LastUUID {
-  string last_uuid = 1;
-  string code      = 2;
-  string type      = 3;
-}
-
-message ListLastUUID {
-  repeated LastUUID list = 1;
+  string          code    = 1;
+  repeated string members = 2;
 }
 
 message SetRoleReq {
-  string          group = 1;
-  repeated string users = 2;
-  string          role  = 3;
+  string          code    = 1;
+  repeated string members = 2;
+  string          role    = 3; // admin=添加管理员 / member=取消管理员
 }
 
 message GetRoleReq {
-  string group = 1;
+  string code = 1;
 }
 
 message GetRoleResp {
-  string role = 1;
+  option (hi.audience) = VIS_PARTICIPANT; // 我在群里的角色,成员级
+  string role = 1 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
-message MuteGroupReq {
-  string group = 1;
-  bool   muted = 2;
+// 免打扰(调用者自己):新消息不震动手机。用户自设,非管理操作。
+message SetDndReq {
+  string code = 1;
+  bool   dnd  = 2;
+}
+
+// 禁言/解禁成员(群主/管理员):被禁言者去写权限、留读权限(后端移 group:wracl、加 group:racl)。
+message MuteMembersReq {
+  string          code    = 1;
+  repeated string members = 2;
+  bool            muted   = 3; // true=禁言,false=解禁
+}
+
+// 群(主体=群)。用户 token 档(AUTH_USER=必须登录用户)。
+// ⚠️ 群角色(owner/admin/member)是**每个群各自的角色**,不是全局身份,拦截器无从判断 ——
+//    故「仅群主/管理员」这类校验**由 handler 按请求里的 code 查群成员表强制**(不进 hi.auth 档)。
+// 成员权限矩阵(后端强制,只允许高级别对低级别操作:owner>admin>member):
+//   owner   : 全允许(含解散群、加管理员)
+//   admin   : 拉/踢人、拉/踢机器人、禁言、改群信息、设群类型;不可解散群、不可加管理员;不可操作 owner/admin
+//   member(公开群): 仅可拉人;其余禁止
+//   member(私密群): 全禁止(只能被邀请)
+// 改群信息。**入参不复用 GroupBase** —— 那是返回类型(群公共信息视图),
+// 里面的 Entity 带 type/update 等服务端产物。入参只放:定位用的群号 + 真正可改的字段。
+// **传了就是主动设置**:字段有值(optional 有 presence / name·avatar 非空)即视为"设成这个",
+// 服务端**不拿新值跟旧值比**,照写、推进 update 时间戳、照发通知。
+//
+// ⚠️ 别用值比对判断"改没改"。两个坑:
+//   1. **漏更新** —— 重新传同一张头像(比如换了图但 url 复用、或先改错再改回),
+//      值一样就不发通知,下游永远停在旧的那份。
+//   2. **拿旧的盖新的** —— 比值的前提是"我手里这份是最新的",而分布式下并不成立。
+// 要不要更新是**下游按 update 时间戳**判断的(身份池 upsert、brain 的 is_outdated 都是),
+// 上游只负责"我这次确实设置了"这个事实。
+message UpdateGroupReq {
+  string group               = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 群号(定位;权限由后端校验 owner/admin)
+  string name                = 2; // 群名(非空=设置)
+  string avatar              = 3; // 群头像 url(非空=设置)
+  optional string background = 4; // 群背景 url;**有 presence**:不传=不动,传空串=清空
+  optional bool   private    = 5; // true=私密群(只能被邀请);false=公开群。不传=不动
 }
 
 service Group {
-  rpc Get (GetGroupReq) returns (GroupBase); // 群信息
-  rpc Create (CreateGroupReq) returns (GroupBase); // 创建群
-  rpc CreateSingle (CreateSingleReq) returns (GroupBase); // 创建单聊群
-  rpc Update (UpdateGroupReq) returns (google.protobuf.Empty); // 更新群
-  rpc ListBase (google.protobuf.Empty) returns (ListGroupBaseResp); // 群列表
-  rpc ListMember (ListGroupMemberReq) returns (GroupInfo); // 群成员列表
-  rpc GetMemberTotal (GetGroupMemberTotalReq) returns (GetGroupMemberTotalResp); // 群成员总数
-  rpc Invite (InviteGroupReq) returns (google.protobuf.Empty); // 群邀请
-  rpc Join (JoinGroupReq) returns (google.protobuf.Empty); // 主动加群
-  rpc Quit (QuitGroupReq) returns (google.protobuf.Empty); // 主动退群/解散群
-  rpc Remove (RemoveGroupReq) returns (google.protobuf.Empty); // 移出群聊
-  rpc ListMessage (ListGroupMessageReq) returns (ListGroupMessageResp); // 群消息列表
-  rpc UpdateLastUUID (LastUUID) returns (google.protobuf.Empty); // 更新LastUUID
-  rpc CheckLastUUID (ListLastUUID) returns (ListLastUUID); // 检查LastUUID
-  rpc SetRole (SetRoleReq) returns (google.protobuf.Empty); // 设置/取消群管理员
-  rpc GetRole (GetRoleReq) returns (GetRoleResp); // 获取群成员角色
-  rpc Mute (MuteGroupReq) returns (google.protobuf.Empty); // 设置/取消群管理员
+  // 群头像/群背景传 `Source.UploadGroupAvatar` / `UploadGroupBackground`(→ hiclub bucket)。
+  // 那两个只回 url;把 url 写进群信息仍走本 service 的 Update —— 权限校验在那一步。
+  rpc Get (GetGroupReq) returns (GroupMemberView) { option (hi.auth) = AUTH_USER; }                                 // 群信息(公共 base + 我的 attr + 我的 dnd)
+  rpc Create (CreateGroupReq) returns (GroupBase) { option (hi.auth) = AUTH_USER; }                                 // 创建群
+  rpc CreateSingle (CreateSingleReq) returns (GroupBase) { option (hi.auth) = AUTH_USER; }                          // 创建单聊群
+  // **改完回权威资料**(原先返 Empty)。`base.update` 是资料传播的唯一依据:
+  // 发消息时 message.from / 群通知的 extra 都带着它,收信方按它比时间戳决定要不要刷缓存
+  // (惰性传播,见 hi/club/messaging.proto)。时间戳的权威在服务端,客户端自己造一个就是
+  // 两个时钟,会倒退(实测客户端微秒 vs 服务端整秒差 0.6s)。回权威值,调用方不必再查一次。
+  rpc Update (UpdateGroupReq) returns (GroupBase) { option (hi.auth) = AUTH_USER; }                                  // 【owner/admin】改群信息/群类型(private)
+  rpc ListMembers (ListGroupMembersReq) returns (GroupInfo) { option (hi.auth) = AUTH_USER; }                        // 群成员列表
+  rpc GetMemberTotal (GetGroupMemberTotalReq) returns (GetGroupMemberTotalResp) { option (hi.auth) = AUTH_USER; }   // 群成员总数
+  rpc Invite (InviteGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                     // 拉人/拉机器人入群(公开群 member 也可;私密群仅 owner/admin)
+  rpc Join (JoinGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                         // 凭 code 申请加入(公开群直进)
+  rpc Quit (QuitGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                         // 主动退群;owner 退=解散群
+  rpc Remove (RemoveGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                     // 【owner/admin】踢人/踢机器人(只能踢比自己低级别)
+  rpc ListMessages (ListGroupMessagesReq) returns (ListGroupMessagesResp) { option (hi.auth) = AUTH_USER; }           // 群消息列表
+  rpc SetRole (SetRoleReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                        // 【仅 owner】加/取消管理员
+  rpc GetRole (GetRoleReq) returns (GetRoleResp) { option (hi.auth) = AUTH_USER; }                                  // 获取自己在群里的角色
+  rpc SetDnd (SetDndReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                          // 自己:设/取消免打扰(原 Mute)
+  rpc MuteMembers (MuteMembersReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                // 【owner/admin】禁言/解禁成员(只能操作比自己低级别)
 }

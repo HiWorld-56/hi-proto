@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package hi.did;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
+
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+import "hi/options.proto";
+
+// Source —— hidid 侧直接搬运二进制的方法。分法见 hi/club/source.proto 的说明。
+//
+// **所有身份实体的头像都落 hidid/avatar/**:用户、商户(logo 即商户头像)、机器人,
+// 不再按实体分目录 —— 它们在存储上是同一类东西,分开只是徒增分支。
+// 以前不分家(全塞 upload 的按月目录)出过批量误删头像的事故,那是"不该合的合了";
+// 这里是"不该分的分了",两回事。
+//
+// ⚠️ 只回 url,**不改资料** —— 落库分别走 `User.Edit` / `Merchant.Update` /
+//    `Merchant.SetUsers`,上传与落库解耦(这个约定原先就是这样,只是方法搬了家)。
+// ⚠️ **头像没有商户档的上传口**,也不需要:资源的消耗方不关心资源由谁上传。
+//    商户要给名下用户设头像,拿任意一个自己有权调的上传口换到 url,再走
+//    `Merchant.SetUsers` 即可 —— 设置那步才是有主体校验的地方。
+//    公共区(`hidid/pub/`)同理**只有用户档**:它是通用口子(哪儿要直链都能用),
+//    没必要为某个调用方的身份再开一档 —— 曾短暂拆出过 `SourceMerchant`,
+//    发现除了让同一件事有两个入口之外没带来任何东西,删了。
+service Source {
+  rpc UploadAvatar (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; } // 自己的头像 → hidid/avatar/
+  rpc UploadLog (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }     // 端上日志 → log/HiDid/(NAME_TIMESTAMP 留历史)
+
+  // 公共区上传 → `hidid/pub/`,**拿到 url 直接 http get 就能下**(桶是永固公开读,
+  // 与 hiclub/pub、hiai/pub 同一口径)。给"前端要个能直链的地址"这类需求用:
+  // 商户后台传个附件/图、端上传个要分享出去的文件,拿回 url 就完事,不用再走鉴权下载口。
+  //
+  // ⚠️ **公开即公开**:url 是 32 位随机名,知道 url 就能拿到内容,别往这儿放私密文件
+  //    (私密的走各自的私有桶 + 鉴权下载口)。
+  // ⚠️ 只回 url,**不改任何资料** —— 与本文件其它上传口一致,落库各走各的设置方法;
+  //    设置失败记得调 Delete 收尸,否则就是无主文件(公开桶没有 lifecycle 兜底)。
+  //
+  // 本 service 里**只有它导出 http 路由**(网页要传);其余三个是端上的活,只走 grpc
+  // (`Delete` 尤其不导出:它按 url 删对象、不做归属校验,挂到网关上风险不对等)。
+  rpc UploadPub (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }
+
+  // Delete 删掉刚传上去、但**没被任何地方引用**的对象。
+  //
+  // 上传与落库解耦之后必然产生这个缺口:上传成功 → 调设置方法 → 设置失败,
+  // 那个对象就成了无主文件,永久桶又没有 lifecycle 兜底。约定:
+  //
+  //     上传 → 拿 url 调设置方法 → 设置失败 → **立即调 Delete**
+  //
+  // ⚠️ 不做归属校验,和上传对称 —— url 是 32 位随机名,知道 url 本身就是凭据。
+  //    这也意味着**它删得掉任何你知道 url 的对象**,别把 url 泄漏出去。
+  rpc Delete (hi.DeleteResourceReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
+}

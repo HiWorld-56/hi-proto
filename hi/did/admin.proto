@@ -2,15 +2,30 @@ syntax = "proto3";
 
 package hi.did;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 
+import "buf/validate/validate.proto";
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/did/merchant.proto";
+import "hi/options.proto";
+
+// ═══════════════════════════════════════════════════════════════════════════
+// admin.proto —— hisrv 商户后台的管理面接口。
+//
+// 已按裁决执行:超管方法标 AUTH_SUPERADMIN(原误标 TOKEN,只靠 handler 内联校验),
+// 并按主体拆 service。后端 bump 后需:①把 handler 内联超管校验收敛到拦截器
+// ②按拆分调整 RegisterXServer ③dev 实测超管方法"非超管被拒"。
+// 见 record/20260716-162625-did-裁决.md、record/20260716-164356-did-新4条裁决.md。
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── 邀请码 ──────────────────────────────────────────────────────────────────
+// 商户靠邀请码注册进 hisrv(草民只用 hidid app,登不了 hisrv web)。
 
 message InviteCodeCreateResp {
-  string code      = 1;
-  bool   is_active = 2;
+  option (hi.audience) = VIS_SELF;
+  string code      = 1 [(hi.visibility) = VIS_SELF];
+  bool   is_active = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message InviteCodeEditReq {
@@ -19,14 +34,16 @@ message InviteCodeEditReq {
 }
 
 message InviteCodeListResp {
+  option (hi.audience) = VIS_SELF;
   message Unit {
-    string code       = 1;
-    bool   is_active  = 2;
-    string note       = 3;
-    int64  created_at = 4;
+    option (hi.audience) = VIS_SELF;
+    string code       = 1 [(hi.visibility) = VIS_SELF];
+    bool   is_active  = 2 [(hi.visibility) = VIS_SELF];
+    string note       = 3 [(hi.visibility) = VIS_SELF];
+    int64  created_at = 4 [(hi.visibility) = VIS_SELF];
   }
-  int32         total = 1;
-  repeated Unit infos = 2;
+  int32         total = 1 [(hi.visibility) = VIS_SELF];
+  repeated Unit infos = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message InviteCodeDeleteReq {
@@ -39,34 +56,49 @@ message InviteCodeVerifyReq {
   string did  = 3;
 }
 
+// 邀请码管理:超管发/改/查/删邀请码。整个 service 都是超管面。
+// (待注册用户"验码"是另一个主体,已拆到下面 InviteCodeVerify。)
 service InviteCode {
-  rpc Create (google.protobuf.Empty) returns (InviteCodeCreateResp); // Token鉴权
-  rpc Edit (InviteCodeEditReq) returns (google.protobuf.Empty); // Token鉴权
-  rpc List (hi.Pagination) returns (InviteCodeListResp); // Token鉴权
-  rpc Delete (InviteCodeDeleteReq) returns (google.protobuf.Empty); // Token鉴权
-  rpc Verify (InviteCodeVerifyReq) returns (hi.AuthToken); // 不鉴权
+  rpc Create (google.protobuf.Empty) returns (InviteCodeCreateResp) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:生成一个新邀请码
+  rpc Edit (InviteCodeEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }       // 超管:改邀请码备注
+  rpc List (hi.Pagination) returns (InviteCodeListResp) { option (hi.auth) = AUTH_SUPERADMIN; }              // 超管:分页列出邀请码
+  rpc Delete (InviteCodeDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }   // 超管:删邀请码
 }
 
+// 注册:主体是**还没注册的人**,拿邀请码换 AuthToken 完成注册。
+// 从 InviteCode 拆出(主体不同:注册者 vs 超管;鉴权不同:公开 vs 超管)。
+// 原名 InviteCodeVerify.Verify 是 stutter,改 Register.Verify。
+service Register {
+  rpc Verify (InviteCodeVerifyReq) returns (hi.AuthToken) { option (hi.auth) = AUTH_NONE; } // 公开:验邀请码,通过则换回注册用的 AuthToken
+}
+
+// ── DApp 目录 ───────────────────────────────────────────────────────────────
+// hidid app 首页展示的 DApp(去中心化应用)列表。
+// 裁决 #2:按读写主体拆两个 service —— DApp(app 浏览,读)/ DAppAdmin(超管维护,写)。
+
 message DAppInfo {
-  string uuid        = 1; // uuid
-  string class       = 2; // 分类
-  string logo        = 3; // 应用图片
-  string title       = 4; // 应用标题
-  string description = 5; // 应用描述
-  string url         = 6; // 应用链接
-  bool   nav         = 7; // 是否在导航栏展示
-  bool   external    = 8; // 是否内置浏览器打开
-  bool   promotion   = 9; // 是否推广
+  option (hi.audience) = VIS_PUBLIC;
+  string uuid        = 1 [(hi.visibility) = VIS_PUBLIC]; // uuid
+  string class       = 2 [(hi.visibility) = VIS_PUBLIC]; // 分类
+  string logo        = 3 [(hi.visibility) = VIS_PUBLIC]; // 应用图片
+  string title       = 4 [(hi.visibility) = VIS_PUBLIC]; // 应用标题
+  string description = 5 [(hi.visibility) = VIS_PUBLIC]; // 应用描述
+  string url         = 6 [(hi.visibility) = VIS_PUBLIC]; // 应用链接
+  bool   nav         = 7 [(hi.visibility) = VIS_PUBLIC]; // 是否在导航栏展示
+  bool   external    = 8 [(hi.visibility) = VIS_PUBLIC]; // 是否内置浏览器打开
+  bool   promotion   = 9 [(hi.visibility) = VIS_PUBLIC]; // 是否推广
 }
 
 message DAppListByClassResp {
-  repeated DAppInfo top       = 1; // 视频类 Dapp
-  repeated DAppInfo popular   = 2; // 热门 Dapp
-  repeated DAppInfo recommend = 3; // 推荐 Dapp
+  option (hi.audience) = VIS_PUBLIC;
+  repeated DAppInfo top       = 1 [(hi.visibility) = VIS_PUBLIC]; // 视频类 Dapp
+  repeated DAppInfo popular   = 2 [(hi.visibility) = VIS_PUBLIC]; // 热门 Dapp
+  repeated DAppInfo recommend = 3 [(hi.visibility) = VIS_PUBLIC]; // 推荐 Dapp
 }
 
 message DAppGetRWAResp {
-  string url = 1;
+  option (hi.audience) = VIS_PUBLIC;
+  string url = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message DAppUpdateTopReq {
@@ -86,16 +118,24 @@ message DAppDeleteReq {
   string uuid = 1;
 }
 
+// DApp 浏览(app 面):普通登录用户看首页 DApp 列表。只读。
 service DApp {
-  rpc ListByClass (google.protobuf.Empty) returns (DAppListByClassResp); // Token鉴权
-  rpc GetRWA (google.protobuf.Empty) returns (DAppGetRWAResp); // Token鉴权
-  rpc GetTop (google.protobuf.Empty) returns (DAppInfo); // Token鉴权
-  rpc UpdateTop (DAppUpdateTopReq) returns (google.protobuf.Empty); // Token鉴权
-  rpc Create (DAppInfo) returns (google.protobuf.Empty); // Token鉴权
-  rpc Edit (DAppInfo) returns (google.protobuf.Empty); // Token鉴权
-  rpc UpdateOrder (DAppUpdateOrderReq) returns (google.protobuf.Empty); // Token鉴权
-  rpc Delete (DAppDeleteReq) returns (google.protobuf.Empty); // Token鉴权
+  rpc ListByClass (google.protobuf.Empty) returns (DAppListByClassResp) { option (hi.auth) = AUTH_USER; } // 用户:按分类取 DApp(视频/热门/推荐)
+  rpc GetRWA (google.protobuf.Empty) returns (DAppGetRWAResp) { option (hi.auth) = AUTH_USER; }           // 用户:取 RWA 类 DApp 的入口 url
+  rpc GetTop (google.protobuf.Empty) returns (DAppInfo) { option (hi.auth) = AUTH_USER; }                 // 用户:取置顶 DApp
 }
+
+// DApp 维护(超管面):上架/下架/改/排序/置顶。handler 里本有超管校验,收敛到拦截器。
+service DAppAdmin {
+  rpc Create (DAppInfo) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }                // 超管:上架 DApp
+  rpc Edit (DAppInfo) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }                  // 超管:改 DApp
+  rpc Delete (DAppDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }           // 超管:下架 DApp
+  rpc UpdateOrder (DAppUpdateOrderReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:调整 DApp 排序
+  rpc UpdateTop (DAppUpdateTopReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }     // 超管:设置置顶 DApp(封面+url)
+}
+
+// ── 商户管理 ────────────────────────────────────────────────────────────────
+// 超管在 hisrv 后台管理所有商户。
 
 message MerchantManageListReq {
   string        name       = 1;
@@ -103,12 +143,16 @@ message MerchantManageListReq {
 }
 
 message MerchantManageListResp {
+  option (hi.audience) = VIS_SELF;
   message Unit {
-    MerchantInfo base    = 1;
-    string       comment = 2;
+    option (hi.audience) = VIS_SELF;
+    MerchantInfo base    = 1 [(hi.visibility) = VIS_PARTICIPANT];
+    string       comment = 2 [(hi.visibility) = VIS_SELF];
+    // 该商户持有的权限位(仅超管可见)。空=普通商户,什么附加能力都没有。
+    repeated MerchantPermission permissions = 3 [(hi.visibility) = VIS_SELF];
   }
-  int32         total = 1;
-  repeated Unit list  = 2;
+  int32         total = 1 [(hi.visibility) = VIS_SELF];
+  repeated Unit list  = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message MerchantManageEditReq {
@@ -116,8 +160,88 @@ message MerchantManageEditReq {
   string comment = 2;
 }
 
+// 商户权限位。**仅超管可读写**(提权/降权),商户自己看不到也改不了。
+//
+// 邀请码注册进来的是普通商户,权限字段默认 0 —— 什么附加能力都没有,
+// 要什么由超管一项项给。这与 club 侧"机器人建号即全给、出事再撤"的方向相反,
+// 是有意的:那边管的是自家机器人的能力,这边管的是**别家商户能拿到什么数据**。
+enum MerchantPermission {
+  MERCHANT_PERM_UNSPECIFIED = 0; // 占位,无业务语义
+  MERCHANT_PERM_MQTT        = 1; // bit0:可读用户的 mqtt 认证信息(GetUserMqtt)
+}
+
+// 超管给商户提权/降权。
+//
+// ⚠️ 为什么 mqtt 认证信息要单独一个权限位:GetUserMqtt 返回的是用户的
+//    **mqtt 用户名+密码**,拿到就能直连 broker 订阅该用户的单聊 topic,
+//    绕过所有 RPC 层鉴权。它比"读业务数据"高一档,不能所有商户默认都有。
+//    club 需要它是因为要把通知转发到自己的用户端(hidid 发通知 → 机器人订阅
+//    对应 topic 即可收到,不必各自维护一条到 hidid 的登录态)。
+message MerchantSetPermissionReq {
+  string             did     = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 目标商户
+  MerchantPermission perm    = 2; // 要改的权限位
+  bool               granted = 3; // true=授予,false=撤销
+}
+
+// 商户管理(超管面)。裁决 #11:此前 Delete/Edit 标 AUTH_USER 且 handler 零校验
+// (任何登录用户可删改商户,是漏洞),已全部收紧为 AUTH_SUPERADMIN。
+// ⚠️ handler 侧无内联校验,完全靠拦截器 —— 后端 bump 后必须实测"非超管调 Delete/Edit 被拒"。
 service MerchantManage {
-  rpc List (MerchantManageListReq) returns (MerchantManageListResp); // Token鉴权
-  rpc Delete (hi.DID) returns (google.protobuf.Empty); // Token鉴权
-  rpc Edit (MerchantManageEditReq) returns (google.protobuf.Empty); // Token鉴权
+  rpc List (MerchantManageListReq) returns (MerchantManageListResp) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:分页列出所有商户
+  rpc Delete (hi.DID) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }               // 超管:删商户
+  rpc Edit (MerchantManageEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }  // 超管:改商户备注
+  rpc SetPermission (MerchantSetPermissionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:给商户提权/降权
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 系统广播(超管面)—— 向固定主题 hi/v1/broadcast 发全体通知(所有 app/机器人订阅)。
+// 系统用 root 账户代发 mqtt(仅 root 有该主题写权限)。目前承载 **app 新版本通知**:
+// 载荷 = hi.did.Packet{Notice{type="app-update", ex_type=<app>}},**触发式** —— 客户端收到后
+// 自查 hi.did.Release.Latest 取详情(原 Base.LatestVersion 已删,见 hi/did/release.proto)。不落消息记录。
+// ═══════════════════════════════════════════════════════════════════════════
+message BroadcastAppUpdateReq {
+  string app = 1; // 目标 app:hidid/hiclub/hinj;空=all。进 Notice.ex_type,客户端按此过滤。
+}
+
+// 公共插件出了新版 —— 广播给全体机器人,而不是后台挨个去发。
+//
+// 装了公共插件的机器人可能有几万台,逐台发通知既慢又要维护"谁装了"的名单;
+// 而这条消息对所有人**内容完全相同**,正是广播该干的事。
+//
+// ⚠️ **不带任何插件内容,只是"该去看看了"** —— 与 AppUpdate 同一个套路(触发式)。
+//    广播 topic 是全员可读的公共频道,往里塞具体内容等于把它讲给所有人听;
+//    况且每台机器人装的插件本来就不一样,真正该拉什么只有它自己查了才知道。
+//    收到后各自去查自己的插件列表,该更新的更新,没装的自然什么也不做。
+// 收到的机器人**先在本地看一眼自己装没装这个 uuid**,没装就直接丢掉 ——
+// 不查库、不发请求。所以哪怕每次发版都广播,对绝大多数机器人也是零成本,
+// 后台更不必去维护一份"谁装了什么"的名单(那份名单迟早会与事实不符)。
+// 这也是这里只放 uuid 的另一半理由:uuid 就是过滤器本身。
+message BroadcastPluginUpdateReq {
+  string plugin_uuid = 1; // 哪个插件的壳;空=让大家把自己的插件全都核对一遍
+}
+
+// 拆成独立 service 是因为**主体不同**:上面那条是超管在 web 上点的,这条是别的后端服务转发的。
+// 同 service 混档会让"这个接口到底谁能调"取决于方法而不是服务,拦截器就没法整体挂。
+//
+// ⚠️ 档位是 **AUTH_MERCHANT(ExtendToken),不是 AUTH_INTERNAL**。
+//    AUTH_INTERNAL 的前提是"这个端口外面够不着"(如 hi.ai.plugin.Runner,只在内网),
+//    而 **did 的 grpc 口是公网可达的**(prod: hidid-grpc-api.mados.net:443),
+//    上面本来就挂着 21 个 AUTH_NONE 方法 —— 换句话说,谁都连得上、谁都能调其中一部分。
+//    在这样一个端口上再加一个不鉴权的方法,就是给所有人一个"惊动全网机器人"的按钮。
+//    (与设备无关:机器人并不登录 did,它只调 Assets.UpdateAddresses,那条是 AUTH_WEB3、
+//     签名自证 —— 设备侧一直是有凭证的,问题出在端口本身是公开的。)
+//
+//    另一半原因更直接:did 的拦截器 fail-closed 且**压根没有 INTERNAL 这一档**,
+//    标了的结果是**永远鉴权失败**、广播悄悄地一次也发不出去。
+//
+//    ExtendToken 是 did 里既有的机器对机器凭证(hi.ai 在 did 注册为商户,club→did 一直这么走),
+//    不必新造一套配置。残留风险:任何持有效 ExtendToken 的商户都能发这条广播 ——
+//    它的破坏面仅限于"让机器人多自查几次",可以接受;要再收紧就在 handler 里
+//    比对调用方 merchant_did 是否是 ai 服务那个。
+service BroadcastInternal {
+  rpc PluginUpdate (BroadcastPluginUpdateReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 插件有新版,叫大家自查
+}
+
+service Broadcast {
+  rpc AppUpdate (BroadcastAppUpdateReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:广播一条 app 新版本通知
 }

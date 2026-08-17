@@ -2,20 +2,25 @@ syntax = "proto3";
 
 package hi.did;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/did";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/did/base.proto";
 import "buf/validate/validate.proto";
+import "hi/options.proto";
 
-// 链（chain）：
-//    ethereum
-//    tron
-//    filecoin（已废弃）
-//    bitcoin
-//    solana
-//    aptos
+// 链标识（`chain` 字段的取值）——**全生态就这一套短名**：
+//
+//    btc / eth / trx / sol / aptos      （身份标识另有 did，不是链）
+//
+// 权威在 **hidid-core 的 `Chain::id()`**（`from_id()` 反解），其余各处都是照它来的：
+// 后端 `common.ChainType`（存进 hi_user_wallet.chain 的就是这几个值）、
+// hidid-simple-app 的 `chain_utils.dart`、以及本文件里所有带 `chain` 的请求。
+//
+// ⚠️ 这里原先写的是 `ethereum / tron / bitcoin / solana / filecoin(已废弃)` —— **从来没有人这么用过**。
+// 照它去查 `ListAddresses`，五条链只回得来 aptos（只有它两边同名），
+// 而库里五条其实都在 —— 差一点被误判成"后端只写了一条"。注释比代码更容易骗人，这条是实例。
 
 message UpdateAddressesReq {
   optional string did = 1;
@@ -27,16 +32,17 @@ message UpdateAddressesReq {
 }
 
 message GetWalletReq {
-  string did   = 1;
-  string chain = 2;
+  string chain = 1; // did 从 token 取(自服务,不接受任意 did 入参)
 }
 
 message GetWalletResp {
+  option (hi.audience) = VIS_SELF;
   message Unit {
-    string chain   = 1;
-    string address = 2;
+    option (hi.audience) = VIS_SELF;
+    string chain   = 1 [(hi.visibility) = VIS_SELF];
+    string address = 2 [(hi.visibility) = VIS_SELF];
   }
-  repeated Unit list = 1;
+  repeated Unit list = 1 [(hi.visibility) = VIS_SELF];
 }
 
 message ListAddressesReq {
@@ -48,35 +54,55 @@ message ListAddressesReq {
 }
 
 message ListAddressesResp {
+  option (hi.audience) = VIS_SELF;
   message Unit {
-    string did     = 1;
-    string chain   = 2;
-    string address = 3;
+    option (hi.audience) = VIS_SELF;
+    string did     = 1 [(hi.visibility) = VIS_SELF];
+    string chain   = 2 [(hi.visibility) = VIS_SELF];
+    string address = 3 [(hi.visibility) = VIS_SELF];
   }
-  repeated Unit list = 1;
+  repeated Unit list = 1 [(hi.visibility) = VIS_SELF];
 }
 
+// 计价币种:**只支持 cny / usd**,传其他值直接报错。
+//
+// ⚠️ 原先服务端是「`currency == "cny"` 走人民币,**否则一律当美元**」——
+//    传 eur、传空、拼错,都静默返回美元金额,调用方无从察觉。白名单放在 proto 上
+//    (protovalidate 已在 grpc 拦截器里启用),校验前置到入口,各端也能直接看到取值范围。
+//
+// 不做成 enum 是有意的:币种要扩展时 enum 的增删比字符串麻烦得多。
 message TotalAssetsReq {
-  string currency = 1;
+  string currency = 1 [(buf.validate.field).cel = {
+    id: "currency.iso4217"
+    message: "currency 只支持 cny / usd"
+    expression: "this.lowerAscii() in ['cny', 'usd']"
+  }];
 }
 
 message TotalAssetsResp {
-  string n = 1;
+  option (hi.audience) = VIS_PUBLIC;
+  string n = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message ListUsersAssetsReq {
-  string        currency   = 1;
+  string        currency   = 1 [(buf.validate.field).cel = { // 同 TotalAssetsReq.currency,只支持 cny / usd
+    id: "currency.iso4217"
+    message: "currency 只支持 cny / usd"
+    expression: "this.lowerAscii() in ['cny', 'usd']"
+  }];
   hi.Pagination pagination = 2;
 }
 
 message ListUsersAssetsResp {
+  option (hi.audience) = VIS_PUBLIC;
   message Unit {
-    string did    = 1;
-    string avatar = 2;
-    string n      = 3;
+    option (hi.audience) = VIS_PUBLIC;
+    string did    = 1 [(hi.visibility) = VIS_PUBLIC];
+    string avatar = 2 [(hi.visibility) = VIS_PUBLIC];
+    string n      = 3 [(hi.visibility) = VIS_PUBLIC];
   }
-  int32         total = 1;
-  repeated Unit list  = 2;
+  int32         total = 1 [(hi.visibility) = VIS_PUBLIC];
+  repeated Unit list  = 2 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message GetUserAssetsReq {
@@ -87,51 +113,43 @@ message GetUserAssetsReq {
 // 美元金额 = amount*price
 // 人民币金额 = amount*price*exchange
 message GetUserAssetsResp {
+  option (hi.audience) = VIS_PUBLIC;
   message Unit {
-    Coin   coin    = 1;
-    string address = 2;
-    string amount  = 3; // 金额
-    string price   = 4; // 币价，单位USDT
+    option (hi.audience) = VIS_PUBLIC;
+    Coin   coin    = 1 [(hi.visibility) = VIS_PUBLIC];
+    string address = 2 [(hi.visibility) = VIS_PUBLIC];
+    string amount  = 3 [(hi.visibility) = VIS_PUBLIC]; // 金额
+    string price   = 4 [(hi.visibility) = VIS_PUBLIC]; // 币价，单位USDT
   }
-  repeated Unit unit     = 1;
-  string        exchange = 2; // 汇率：USD->CNY
+  repeated Unit unit     = 1 [(hi.visibility) = VIS_PUBLIC];
+  string        exchange = 2 [(hi.visibility) = VIS_PUBLIC]; // 汇率：USD->CNY
 }
 
-message UpdateAssetsReq { // Token ----> Real.DID
-  string did        = 1;
-  string btc        = 2;
-  string eth        = 31;
-  string usdt_erc20 = 32;
-  string trx        = 41;
-  string usdt_trc20 = 42;
-  string whds_trc20 = 43;
-  string bt_trc20   = 44;
-  string sol        = 51;
-  string usdt_sol   = 52;
-  string bt_sol     = 53;
-  string panda_sol  = 54;
-  string apt        = 61;
-  string whds_apt   = 62;
-  string hwhd_apt   = 63;
-  string slkj_apt   = 64;
-  string wsm_apt    = 65;
+// 刷新自己的资产快照。did 从 token 取(不接受任意 did 入参 —— 原 did 入参可覆写他人资产,越权)。
+// 币种数据驱动:repeated {coin, amount},加币种不必改 proto(原来每加一种就得手工加字段+分段跳号)。
+message UpdateAssetsReq {
+  message Asset {
+    string coin   = 1; // 币种标识:btc/eth/usdt_erc20/trx/usdt_trc20/sol/apt/...
+    string amount = 2;
+  }
+  repeated Asset assets = 1;
 }
 
-message GetUserByAddressReq {
-  string address = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}]; // 钱包地址
-}
-
-message GetUserByAddressResp {
-  string did = 1; // 用户did
-}
-
+// 用户自己的钱包(用户主体,token)。UpdateAddresses 需签名证明地址归属,故 web3 —— 已拆去 Assets。
 service Wallet {
-  rpc UpdateAddresses (hi.SignedData) returns (google.protobuf.Empty); // Web3鉴权 // UpdateAddressesReq
-  rpc UpdateAssets (UpdateAssetsReq) returns (google.protobuf.Empty); // Token鉴权
-  rpc GetWallet (GetWalletReq) returns (GetWalletResp); // Token鉴权
-  rpc ListAddresses (ListAddressesReq) returns (ListAddressesResp); // Token鉴权
-  rpc TotalAssets (TotalAssetsReq) returns (TotalAssetsResp); // 不鉴权
-  rpc ListUsersAssets (ListUsersAssetsReq) returns (ListUsersAssetsResp); // 不鉴权
-  rpc GetUserAssets (GetUserAssetsReq) returns (GetUserAssetsResp); // Token鉴权
-  rpc GetUserByAddress (GetUserByAddressReq) returns (GetUserByAddressResp);
+  rpc UpdateAssets (UpdateAssetsReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 用户:刷新自己的资产快照
+  rpc Get (GetWalletReq) returns (GetWalletResp) { option (hi.auth) = AUTH_USER; }               // 用户:查某链的钱包地址(原 GetWallet 去 stutter)
+}
+
+// 资产/地址(公开 + web3,web3 视为无鉴权,档位一致)。资产查询是链上公开数据;
+// UpdateAddresses 用签名自证地址归属(不依赖登录 token),故归此。
+service Assets {
+  rpc Total (TotalAssetsReq) returns (TotalAssetsResp) { option (hi.auth) = AUTH_NONE; } // 公开:总资产统计(链上数据;原 TotalAssets 去 stutter)
+  rpc List (ListUsersAssetsReq) returns (ListUsersAssetsResp) { option (hi.auth) = AUTH_NONE; } // 公开:批量用户资产(链上数据;原 ListUsersAssets)
+  rpc Get (GetUserAssetsReq) returns (GetUserAssetsResp) { option (hi.auth) = AUTH_NONE; } // 公开:某用户资产(链上数据;原 GetUserAssets)
+  rpc UpdateAddresses (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_WEB3; }    // web3:更新用户各链地址(btc/eth/trx/sol/apt),签名自证
+  // 列各链地址。**公开** —— 地址本就是链上公开数据,与同服务的 Total/List/Get 同档。
+  // 原先它在 Wallet(AUTH_USER)里,但 handler 遍历入参里的任意 did、零校验,
+  // 档位与行为对不上;而写入侧 UpdateAddresses 本来就在这个服务,读写归位到一处。
+  rpc ListAddresses (ListAddressesReq) returns (ListAddressesResp) { option (hi.auth) = AUTH_NONE; } // 公开:列各链地址
 }

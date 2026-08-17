@@ -2,13 +2,38 @@ syntax = "proto3";
 
 package hi.club;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
+import "buf/validate/validate.proto";
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/did/merchant.proto";
+import "hi/options.proto";
 
+// 列某商户名下的 greeter(扩展表 level >= 8)。
+//
+// ⚠️ merchant **必填**,与 did 侧同名字段不同语义:did 那边"空=自己",因为调用者本身
+//    就是商户(ExtendToken 解出);club 的调用者是普通用户、不是商户,"自己"无从谈起。
+//    故这里不照搬 hi.did.ListGreetersReq —— 同名字段两种语义,是最容易出事的复用。
+message ListGreetersReq {
+  string        merchant   = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 目标商户 did
+  hi.Pagination pagination = 2;
+}
+
+// 商户(用户档)。**club 侧目前没有商户的概念** —— 本 service 只是**转发 hidid 的商户方法**。
 service Merchant {
-  rpc List (google.protobuf.Empty) returns (hi.did.MerchantListResp); // 查询用户所在的商户列表
-  rpc ListAll (hi.Pagination) returns (hi.did.MerchantListResp); // 查询所有商户列表
+  rpc List (google.protobuf.Empty) returns (hi.did.MerchantListResp) { option (hi.auth) = AUTH_USER; } // 查询用户所在的商户列表(转发 did.Merchant.ListMerchants)
+
+  // 链路:club 用户 --用户token--> club后台 --ExtendToken--> did后台。
+  // club 手里只有自己的商户凭证,所以到了 did 侧是"club 这个商户要读**别家商户**的用户扩展",
+  // 必须由目标商户先授权给 club(did 侧 requireGrant 校验)。
+  // club 侧不再叠鉴权:所有登录用户都能调。
+  rpc ListGreeters (ListGreetersReq) returns (hi.did.ListUsersResp) { option (hi.auth) = AUTH_USER; } // 列某商户的 greeter(转发 did.Merchant.ListGreeters)
+}
+
+// 商户管理(超管)。原 `Merchant.ListAll` —— 超管方法蹲在用户面 service 里(混档),
+// 照 did 的 Merchant / MerchantManage 范式拆出来;拆出后 `ListAll` 改回 `List`
+// (主体已由 service 名表达,再叫 ListAll 是冗余)。转发 did.MerchantManage.List。
+service MerchantManage {
+  rpc List (hi.Pagination) returns (hi.did.MerchantListResp) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:列所有商户
 }

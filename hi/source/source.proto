@@ -2,47 +2,28 @@ syntax = "proto3";
 
 package hi.source;
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/source";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/source";
 
 import "buf/validate/validate.proto";
-
-message UploadReq {
-  string type    = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // image/video/audio/file/avatar/code
-  string name    = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 文件名
-  bytes  content = 3 [(buf.validate.field).bytes.min_len = 1]; // 文件内容
-}
-
-message UploadResp {
-  string          url       = 1;
-  optional string thumb_url = 2;
-}
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+import "hi/options.proto";
 
 message DownloadReq {
   string url = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}];
 }
 
 message DownloadResp {
-  bytes content = 1;
-}
-
-message UploadStreamReq {
-  oneof data {
-    UploadMeta meta  = 1; // 文件元数据，第一个请求包
-    bytes      chunk = 2; // 文件内容分片，后续请求包
-  }
-}
-
-message UploadMeta {
-  string type = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // image/video/audio/file/avatar/code
-  string name = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 文件名
-  int64  size = 3 [(buf.validate.field).int64 = { gt: 0 }]; // 文件大小, 单位：字节
+  option (hi.audience) = VIS_PUBLIC; // File.Download 为 AUTH_NONE(免鉴权),按 url 取公开资源内容
+  bytes content = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message DownloadStreamResp {
-  bytes chunk  = 1; // 文件内容分片
-  int64 sent   = 2; // 已发送字节数（累计）, 单位：字节
-  int64 total  = 3; // 文件总大小, 单位：字节
-  int64 offset = 4; // 当前块在文件中的起始字节位置
+  option (hi.audience) = VIS_PUBLIC; // File.DownloadStream 免鉴权 AUTH_NONE,公开资源(同 DownloadResp)
+  bytes chunk  = 1 [(hi.visibility) = VIS_PUBLIC]; // 文件内容分片
+  int64 sent   = 2 [(hi.visibility) = VIS_PUBLIC]; // 已发送字节数（累计）, 单位：字节
+  int64 total  = 3 [(hi.visibility) = VIS_PUBLIC]; // 文件总大小, 单位：字节
+  int64 offset = 4 [(hi.visibility) = VIS_PUBLIC]; // 当前块在文件中的起始字节位置
 }
 
 message DownloadStreamReq {
@@ -51,9 +32,147 @@ message DownloadStreamReq {
   int64  limit  = 3 [(buf.validate.field).int64 = {gte: 0}]; // 限制下载大小（字节），0表示下载全部
 }
 
+// ── bucket 化上传(新)────────────────────────────────────────────────────
+// hi-source 的定位:**只做"帮各服务拿着 minio 凭据的搬运工"** —— 不再懂业务。
+// 存哪个 bucket、哪个目录由**调用方**决定;hi-source 只负责随机改名 + 落库 + 回 url。
+// 故 Put 没有 `type` 那套业务枚举(image/avatar/code…),它已被 bucket+dir 取代。
+//
+// 分工(定稿):
+//   hidid  → avatar/ (用户头像)、logo/ (商户 logo)      公开读,永固
+//   hiclub → avatar/ (群头像)、background/ (群背景)      公开读,永固
+//   hiai   → plugin/<uuid>/<version>.zip (插件脚本)      **私有**,永固
+//   temp   → <YYYY_MM>/ (聊天/AI 媒体)                   公开读,**14 天过期**
+//   log    → <app>/<did>/                                私有
+//
+// ⚠️ 鉴权:AUTH_NONE 是**有意的** —— hi-source 只对内网开放(上传端口不对外),
+//    鉴权由各业务模块在转发前完成(它们本就持有用户身份)。
+message PutReq {
+  string bucket    = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 目标 bucket
+  string dir       = 2; // bucket 内逻辑目录,如 "avatar" / "plugin/<uuid>";空=根
+  string name      = 3 [(buf.validate.field).string.min_len = 1]; // 原始文件名(允许空格等,仅用于取扩展名;NAME_RANDOM 只保留扩展名,不带原名)
+  bytes  content   = 4 [(buf.validate.field).bytes.min_len = 1];
+  bool   thumbnail = 5; // 是否同时生成缩略图(仅图片有效;原先靠 type==image 隐式触发,现改显式)
+  NameMode name_mode = 6; // 对象命名方式,默认随机
+}
+
+// 对象命名方式。
+//
+// ⚠️ **红线**:公开 bucket 的用户内容一律用 NAME_RANDOM。那些 bucket 的安全性正是靠
+//    「32 位随机名不可猜 + LIST 403 不可枚举」撑起来的 —— 名字一旦可预测,等于门户洞开。
+//    非随机模式只给**私有 bucket 的运维类文件**(日志等)用。
+enum NameMode {
+  NAME_RANDOM    = 0; // <32位随机><扩展名>。默认,用户内容必须用它;不带原名(原名可能含空格/特殊字符)
+  NAME_TIMESTAMP = 1; // <原名主干>_<UTC纳秒时间戳><扩展名>。名字可读、天然有序,每次新对象 —— 日志用
+  NAME_KEEP      = 2; // 原样用 name。**同一对象反复覆盖,只留最新一份**,会丢历史,慎用
+}
+
+message PutStreamReq {
+  oneof data {
+    PutMeta meta  = 1; // 元数据,第一个请求包
+    bytes   chunk = 2; // 内容分片
+  }
+}
+
+message PutMeta {
+  string bucket    = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string dir       = 2;
+  string name      = 3 [(buf.validate.field).string.min_len = 1]; // 允许空格等,仅用于取扩展名
+  int64  size      = 4 [(buf.validate.field).int64 = { gt: 0 }];
+  bool   thumbnail = 5;
+}
+
+// 删除。**补这个是因为原先根本没有** —— 各业务模块把文件交给 hi-source 之后就再也
+// 删不掉了:用户在业务侧删掉记录,对象永远留在桶里。temp 桶有 14 天 lifecycle 兜底,
+// 永久桶和私有桶没有,只会一直涨。
+//
+// ⚠️ 幂等:对象不存在也返回成功 —— 调用方多半是"删库记录顺带删对象",
+//    对象早没了不该让整个删除操作失败。
+message DeleteReq {
+  string url = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 完整 url,bucket/对象名从中解析
+}
+
+// 预签名下载 url:给**私有桶**开一个限期、只针对单个对象的公开链接。
+//
+// 用途:官网/浏览器/系统下载器要的是一个普通 http 链接,拿不了 grpc,也不该持有 minio 凭据。
+// 桶保持私有(直连 403),签名参数写死了"哪个对象、什么方法、多久内有效",到期自动失效。
+// **凭据只留在本服务**,调用方(主服务)只拿回一串 url。
+message PresignedUrlReq {
+  string bucket         = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string object         = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 桶内对象键(不含桶名)
+  int64  expire_seconds = 3; // 有效期;<=0 用服务端默认
+  // 可选:覆盖下载时的文件名(response-content-disposition)。
+  // 发布包用得上 —— url 固定为 /dl/hidid.apk,却要让用户存下 hidid-0.0.9.apk。
+  string filename       = 4;
+}
+
+message PresignedUrlResp {
+  option (hi.audience) = VIS_PUBLIC; // 本就是要给浏览器/下载器用的公开链接
+  string url       = 1 [(hi.visibility) = VIS_PUBLIC]; // 带签名参数的完整 url,谁拿到都能下,到期即失效
+  int64  expire_at = 2 [(hi.visibility) = VIS_PUBLIC]; // 失效时刻(unix 秒),调用方据此决定要不要重新要一个
+}
+
+// 按 **bucket+对象键** 直接取/查,不经 url。
+//
+// 既有的 Download/Delete 都从 url 反解 bucket+object —— 那是给"手里只有 url"的调用方用的。
+// 而发布模块手里本来就是对象键(latest.json、包路径),再去拼一个 url 让对方反解回来,
+// 等于让调用方复制一份 url 拼装规则,base 一改两边就散。
+message GetObjectReq {
+  string bucket = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string object = 2 [(buf.validate.field).string.pattern="^\\S+$"];
+}
+
+message GetObjectResp {
+  option (hi.audience) = VIS_PARTICIPANT; // 内网调用方取回的原始字节
+  bytes content = 1 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+message PutObjectReq {
+  string bucket  = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string object  = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // **精确对象键**,不改名
+  bytes  content = 3;
+}
+
+// 按对象键流式下载。既有的 DownloadStream 按 **url** 取,而调用方手里是对象键 ——
+// 让它自己拼 minio url 就得把 base 配一份过去,base 一改两边就散。
+message GetObjectStreamReq {
+  string bucket = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string object = 2 [(buf.validate.field).string.pattern="^\\S+$"];
+  int64  offset = 3 [(buf.validate.field).int64 = {gte: 0}]; // 断点续传起点;0=从头
+  int64  limit  = 4 [(buf.validate.field).int64 = {gte: 0}]; // 0=到结尾
+}
+
+message GetObjectStreamResp {
+  option (hi.audience) = VIS_PARTICIPANT;
+  bytes content = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  int64 total   = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 整个对象的大小,首块带上,便于显示进度
+}
+
+// 对象元信息。`sha256` 由 hi-source **内部流式算**(字节不出本服务),供发布时核对
+// "manifest 里写的 sha256 与真正传上去的包是否一致"。
+message ObjectInfoReq {
+  string bucket = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string object = 2 [(buf.validate.field).string.pattern="^\\S+$"];
+}
+
+message ObjectInfoResp {
+  option (hi.audience) = VIS_PARTICIPANT;
+  int64  size   = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  string sha256 = 2 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
 service File {
-  rpc Upload(UploadReq) returns (UploadResp); // 文件上传
-  rpc Download(DownloadReq) returns (DownloadResp); // 文件下载
-  rpc UploadStream(stream UploadStreamReq) returns (UploadResp); // 流式上传
-  rpc DownloadStream(DownloadStreamReq) returns (stream DownloadStreamResp); // 流式下载
+  rpc Put (PutReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_NONE; } // bucket 化上传(内网)
+  rpc PutStream (stream PutStreamReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_NONE; } // bucket 化流式上传(内网)
+  rpc Download (DownloadReq) returns (DownloadResp) { option (hi.auth) = AUTH_NONE; } // 文件下载(从 url 解析 bucket,新老 url 通吃)
+  rpc DownloadStream (DownloadStreamReq) returns (stream DownloadStreamResp) { option (hi.auth) = AUTH_NONE; } // 流式下载
+  rpc Delete (DeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; } // 按 url 删对象(bucket 从 url 解析)
+  rpc PresignedUrl (PresignedUrlReq) returns (PresignedUrlResp) { option (hi.auth) = AUTH_NONE; } // 私有桶的限期公开下载链接
+  rpc GetObject (GetObjectReq) returns (GetObjectResp) { option (hi.auth) = AUTH_NONE; }            // 按 bucket+对象键取(小对象,如 latest.json)
+  rpc PutObject (PutObjectReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; }    // 按**精确对象键**写(不改名),覆盖式
+  rpc ObjectInfo (ObjectInfoReq) returns (ObjectInfoResp) { option (hi.auth) = AUTH_NONE; }         // 大小 + sha256(内部流式算,字节不出本服务)
+  rpc GetObjectStream (GetObjectStreamReq) returns (stream GetObjectStreamResp) { option (hi.auth) = AUTH_NONE; } // 按对象键流式下载(带 offset 续传)
+}
+
+service Base {
+  rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp) { option (hi.auth) = AUTH_NONE; } // 不鉴权:查服务自身版本+环境
 }

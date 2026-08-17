@@ -1,0 +1,133 @@
+syntax = "proto3";
+
+// 产品发布(超管面)—— 前端产物(app / 机器人固件)的上传、发布、查询、下载。
+//
+// ## 为什么在 hi.did
+//
+// 超管名单的**唯一权威在 hidid**(其他服务都要穿透 `hi.did.SuperAdmin.List` 取),
+// 而系统广播 `hi.did.Broadcast` 也在这里 —— 发布→广播→客户端自查是一条闭环,
+// 拆到独立服务只会把闭环切断,还要多一套端口/配置/部署/CI,不划算。
+//
+// ## 存储布局(minio,**私有桶**)
+//
+//   桶固定为 `product`,下面的都是**桶内对象键**(不含桶名):
+//     <product>/<platform>/latest.json          ← 每个平台一份,发布时整体覆盖
+//     <product>/<platform>/<version>/<包文件>    ← 按版本留多份,不删
+//
+// 按 platform 分目录:安卓发了 iOS 还在审核,发布节奏本就不同步,
+// 塞一份 json 里迟早互相覆盖。
+//
+// ## latest.json 就是 ReleaseManifest 的 protojson
+//
+// **只有一份 schema**。若 proto 定义一套、json 手写一套,迟早漂移
+// (hi-proto 自己就漂过 6 个版本)。发布页面直接用生成的 Dart/TS 类型,不用手撸 json。
+//
+// ## 完整性怎么保(当前不做签名)
+//
+// 靠 `bundle.sha256`,而它**经 gRPC-TLS 通道下发**(`Latest`),客户端拿它校验 http 下回来的包。
+// 所以 **latest.json 必须走 `Latest` 返回,不能让客户端自己去 minio 拉那个 json**
+// —— 那条是明文 http,json 被改了 sha256 也跟着改,校验就形同虚设。
+// 将来要加发布签名,在 manifest 上补字段即可,不影响现有形态。
+package hi.did;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
+
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+import "hi/options.proto";
+
+// 单个文件的更新指令。**版本长在文件上**,而不是塞一堆产品专属的顶层字段
+// (原先想放 extra.brain_version,那样每加一个组件就要动 schema)。
+message ReleaseFile {
+  option (hi.audience) = VIS_PUBLIC; // 随 manifest 公开
+  string path    = 1 [(hi.visibility) = VIS_PUBLIC]; // 相对安装根目录,如 bin/hinj_brain
+  string version = 2 [(hi.visibility) = VIS_PUBLIC]; // 该文件自身的版本,如 brain 的 0.6.0;没有就留空
+  string sha256  = 3 [(hi.visibility) = VIS_PUBLIC]; // 客户端据此判断"本地这份要不要换"
+  int64  size    = 4 [(hi.visibility) = VIS_PUBLIC];
+  string mode    = 5 [(hi.visibility) = VIS_PUBLIC]; // 八进制权限,如 "0755";空=沿用默认
+  // overwrite(默认) 覆盖 / keep 已存在就不动(用户配置,不可随机更改) /
+  // delete 本版要删掉的旧文件(否则升级只增不减,废文件越堆越多)
+  string policy  = 6 [(hi.visibility) = VIS_PUBLIC];
+}
+
+// 整包信息。存 **path 不存 url** —— url 里带 host,换机器/换环境就全废;
+// 且下载 url 是 `Latest` 每次现算的预签名(有期限),不该固化进 manifest。
+message ReleaseBundle {
+  option (hi.audience) = VIS_PUBLIC; // 随 manifest 公开
+  string path   = 1 [(hi.visibility) = VIS_PUBLIC]; // **product 桶内**的对象键(不含桶名),如 hinj/linux-aarch64/0.0.9/hinj_bundle_0.0.9.tar.gz
+  string sha256 = 2 [(hi.visibility) = VIS_PUBLIC];
+  int64  size   = 3 [(hi.visibility) = VIS_PUBLIC];
+}
+
+// 发布清单 = latest.json 的内容。
+message ReleaseManifest {
+  option (hi.audience) = VIS_PUBLIC; // 发布信息本就是公开的
+  string          product               = 1 [(hi.visibility) = VIS_PUBLIC]; // hidid / hiclub / hinj
+  string          platform              = 2 [(hi.visibility) = VIS_PUBLIC]; // android / ios / linux-aarch64 …
+  string          version               = 3 [(hi.visibility) = VIS_PUBLIC];
+  string          min_supported_version = 4 [(hi.visibility) = VIS_PUBLIC]; // 低于它必须强制升级
+  int64           release_time          = 5 [(hi.visibility) = VIS_PUBLIC];
+  repeated string changes               = 6 [(hi.visibility) = VIS_PUBLIC];
+  ReleaseBundle   bundle                = 7 [(hi.visibility) = VIS_PUBLIC];
+  // full  = 整包覆盖(安卓:下 apk 直接装);
+  // files = 按 files 逐个比 sha256,只拉不同的(机器人:有些配置不能动)
+  string          update_mode           = 8 [(hi.visibility) = VIS_PUBLIC];
+  repeated ReleaseFile files            = 9 [(hi.visibility) = VIS_PUBLIC];
+  // **只在 Latest 的响应里现算**(预签名,有期限),不写进 latest.json。
+  string          download_url          = 10 [(hi.visibility) = VIS_PUBLIC];
+  int64           download_url_expire   = 11 [(hi.visibility) = VIS_PUBLIC]; // 该 url 的失效时刻(unix 秒)
+}
+
+message UploadPackageResp {
+  option (hi.audience) = VIS_PARTICIPANT; // 超管面的中间产物,不必公开
+  string path   = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 落好的对象键,填进 Publish 的 manifest.bundle.path
+  string sha256 = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 服务端边写边算,供发布方核对
+  int64  size   = 3 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+message PublishReq {
+  ReleaseManifest manifest = 1;
+}
+
+message LatestReq {
+  string product  = 1; // hidid / hiclub / hinj
+  string platform = 2; // android / ios / linux-aarch64 …
+}
+
+message DownloadReq {
+  string product  = 1;
+  string platform = 2;
+  string version  = 3; // 留空=最新版
+  int64  offset   = 4; // 断点续传:从第几字节开始。机器人网络不稳,这个有用
+}
+
+message DownloadChunk {
+  option (hi.audience) = VIS_PUBLIC;
+  bytes chunk = 1 [(hi.visibility) = VIS_PUBLIC];
+  int64 total = 2 [(hi.visibility) = VIS_PUBLIC]; // 整包大小,首块带上,便于显示进度
+}
+
+// 发布管理(**超管面**)。与公开面 `Release` 拆开,不是为了迎合 lint ——
+// 同一个 service 里混档意味着主体归类错了(照 DApp/DAppAdmin、Trade/TradeManage 范式):
+// 上传/发布是"谁能发版"的问题,查询/下载是"谁能拿到"的问题,两者的主体本就不同。
+//
+// ⚠️ 上传与发布**分两步**是刻意的:一步做完的话,包传到一半失败就会留下
+// "latest.json 指向一个不完整的包"的半截状态。分开后:先传包(失败只多个垃圾对象),
+// 再 Publish —— 而 Publish 写 latest.json 是原子的(minio PutObject 要么成要么不成)。
+service ReleaseManage {
+  // 流式上传发布包(几十 MB,unary 扛不住)。首帧 meta 带文件名+大小,后续 chunk。
+  rpc UploadPackage (stream hi.UploadStreamReq) returns (UploadPackageResp) { option (hi.auth) = AUTH_SUPERADMIN; }
+  // 提交发布:校验版本 semver 严格递增、bundle.sha256 与已上传包一致 → 覆盖 latest.json
+  // → **自动触发 Broadcast.AppUpdate**(发布者不用再记得单独喊一嗓子,也就不会"发了包没通知")。
+  rpc Publish (PublishReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }
+}
+
+// 发布查询/下载(**公开面**)。客户端自查更新走这里,不需要任何凭证 ——
+// 发布信息与安装包本就是要给所有用户的。
+service Release {
+  // 查最新版。返回 manifest + **现算的预签名 download_url**(桶是私有的,但这个 url 谁拿到都能下,到期即失效)。
+  rpc Latest (LatestReq) returns (ReleaseManifest) { option (hi.auth) = AUTH_NONE; }
+  // 流式下载。给**机器人**用:它有 grpc 通道、要断点续传、不需要浏览器。
+  // app 走 Latest 给的预签名 url,由浏览器/下载器直接拉,字节不经我们的服务。
+  rpc Download (DownloadReq) returns (stream DownloadChunk) { option (hi.auth) = AUTH_NONE; }
+}

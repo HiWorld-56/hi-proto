@@ -5,52 +5,60 @@ package hi.club;
 import "google/protobuf/empty.proto";
 import "hi/ai/chat.proto";
 import "hi/club/messaging.proto";
+import "hi/options.proto";
+import "hi/common.proto";
 
-option go_package = "github.com/HiWorld-56/hi-proto/gen/go/hi/club";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
-message SimpleReq {
-  repeated Content conts = 1;
-}
-
-message DialogReq {
-  string           did                  = 1;
-  string           cid                  = 2;
-  repeated Content conts                = 3;
-  string           state                = 4;
-  string           custom               = 5;
-  bool             return_plugin_use    = 6;
-  bool             return_training_data = 7;
-  bool             return_context       = 8;
-}
+// ── 说明:Chat 是 hi.ai.Chat 的门面,但**入参不能直接复用 ai 的** ──────────────
+// club 的 `Content`(messaging.proto)是**富消息**:oneof{Chat|Transaction|Trade};
+// ai 的 `Content` 只是 {type, content} 一个带类型的字符串。二者是真实差异,不是重复定义,
+// 故带 Content 的入参用 club 自己的类型(后端负责转换成 ai 的);
+// 纯透传的返回(ChatResp/ConverseStreamResp/…)继续直接复用 hi.ai 的类型,防止两边漂移。
+// **对话只有一条路**,与 ai 对齐:Converse/ConverseStream 跑一个循环,只在"轮到客户端执行工具"时
+// 中途返回,客户端执行完调 Resume/ResumeStream 进同一个循环(详见 hi/ai/chat.proto 的 service 注释)。
 
 message QA {
-  repeated Content q = 1; // User
-  string           a = 2; // assistant
+  option (hi.audience) = VIS_SELF; // 我与机器人的私有对话
+  repeated Content q = 1 [(hi.visibility) = VIS_PARTICIPANT]; // User(club Content=PARTICIPANT)
+  string           a = 2 [(hi.visibility) = VIS_SELF];        // assistant
 }
 
-message GetContextResp {
-  repeated QA list = 1;
+message GetHistoryResp {
+  option (hi.audience) = VIS_SELF; // 我的历史对话
+  repeated QA list = 1 [(hi.visibility) = VIS_SELF]; // QA=SELF
 }
 
-message SpeechToSpeechReq {
-  string                    did         = 1;
+// 对话入参(模态由 conts+style 决定;合原 TextToText/SpeechToText/SpeechToSpeech 与原 CompleteReq)。
+//
+// ⚠️ **`tools` 是「我这边能执行哪些工具」,不是「这轮可用的全部工具」** ——
+//    ai 会把该 agent 的插件工具追加在它后面一起喂模型,返回后按名字分流。
+//    不上报(app / hiclub web)= 全部由服务端跑完 = 一次调用拿到最终答复。
+message ChatReq {
+  string                    agent       = 1;
   string                    cid         = 2;
   repeated Content          conts       = 3;
-  repeated hi.ai.ToolSupply tools       = 4;
+  repeated hi.ai.ToolSupply tools       = 4; // **客户端自己能执行的工具**;空 = 全交服务端跑完
   optional string           tool_choice = 5;
   optional string           custom      = 6;
   optional string           state       = 7;
-  optional string           style       = 8;
-}
-
-message TextToTextReq {
-  string                    did         = 1;
-  string                    cid         = 2;
-  repeated Content          conts       = 3;
-  repeated hi.ai.ToolSupply tools       = 4;
-  optional string           tool_choice = 5;
-  optional string           custom      = 6;
-  optional string           state       = 7;
+  optional string           style       = 8; // 语音出音色等;纯文本留空
+  // ── 过程回显开关(**只管输出,不管行为**)──────────────────────────────────────
+  // 与 hi.ai.ChatReq 的同名字段一一对应,club 原样透传。**仅流式有意义。**
+  // ⚠️ 别读成"要不要调插件":**调不调是模型决定的**(标准 function call);这几个只决定
+  //    过程数据要不要一并流出去。
+  //
+  // ⚠️ 旧名 `return_plugin_use` / `return_training_data` / `return_context` 已随 ai 一并改名
+  //    (`return_` 像"要不要返回结果",而回的是**过程**;`plugin_use` 回的是 function call,
+  //     不是"插件用量")。
+  //
+  // ⚠️ 这几个字段原属已删除的 `CompleteReq`。与 ai 侧同因同源:dev45 迁移
+  //    (Stream→CompleteStream)时从请求里漏掉过,而且 club 这层是**双层丢** ——
+  //    自己没有字段,转发给 ai 时自然也带不上,于是经 club 进来的调用方(app / hiclub web)
+  //    即便 ai 修好了也永远拿不到回显帧。搬家时别再漏第二次。
+  bool echo_tool_calls = 9;  // 发 type="echoToolCalls" 帧:模型调了哪个函数、传了什么参数、工具返回什么
+  bool echo_memory     = 10; // 发 type="echoMemory" 帧:本轮命中的记忆片段(旧名 return_training_data)
+  bool echo_context    = 11; // 发 type="echoContext" 帧:这次真正喂给模型的那份上下文(系统提示词 + 截出的历史 + 本轮输入)
 }
 
 message ToolCallResult {
@@ -58,37 +66,24 @@ message ToolCallResult {
   repeated Content conts = 2;
 }
 
+// 工具结果续跑入参(Resume):客户端执行完工具后把结果交回来,接着跑。
 message ToolCallResultsReq {
   string                  id   = 1;
   repeated ToolCallResult list = 2;
 }
 
-message SpeechToTextReq {
-  string                    did         = 1;
-  string                    cid         = 2;
-  repeated Content          conts       = 3;
-  repeated hi.ai.ToolSupply tools       = 4;
-  optional string           tool_choice = 5;
-  optional string           custom      = 6;
-  optional string           state       = 7;
-}
-
-// Token鉴权
+// 对话(主体=会话)。用户 token 档,全档一致。hi.ai.Chat 的门面。
 service Chat {
-  rpc Simple(SimpleReq) returns (hi.ai.DialogResp);
-  rpc GenerateCid(google.protobuf.Empty) returns (hi.ai.GenerateCidResp);
-  rpc Dialog(DialogReq) returns (hi.ai.DialogResp);
-  rpc DialogStream(DialogReq) returns (stream hi.ai.DialogStreamResp);
-  rpc ClearContext(hi.ai.ClearContextReq) returns (google.protobuf.Empty);
-  rpc GetContext(hi.ai.GetContextReq) returns (GetContextResp);
-
-  rpc SimpleTextToSpeech(hi.ai.SimpleTextToSpeechReq) returns (hi.ai.SimpleTextToSpeechResp);
-  rpc SimpleSpeechToText(hi.ai.SimpleSpeechToTextReq) returns (hi.ai.SimpleSpeechToTextResp);
-
-  rpc SpeechToSpeech(SpeechToSpeechReq) returns (hi.ai.ChatResp);
-  rpc SpeechToSpeech2(ToolCallResultsReq) returns (hi.ai.ChatResp);
-  rpc TextToText(TextToTextReq) returns (hi.ai.ChatResp);
-  rpc TextToText2(ToolCallResultsReq) returns (hi.ai.ChatResp);
-  rpc SpeechToText(SpeechToTextReq) returns (hi.ai.ChatResp);
-  rpc SpeechToText2(ToolCallResultsReq) returns (hi.ai.ChatResp);
+  // 传聊天媒体(图/语音/视频/文件)→ **temp bucket,14 天后自动过期**。
+  // 媒体是临时资产:redis 消息历史也只留 14 天,两者对齐;客户端收到即缓存到本地,
+  // 故过期不影响本地历史回看。**头像/群头像不要走这里** —— 那是永固资产,各有归属 bucket。
+  // ── 会话管理 ──
+  rpc NewSession (google.protobuf.Empty) returns (hi.ai.NewSessionResp) { option (hi.auth) = AUTH_USER; }      // 原 GenerateCid
+  rpc GetHistory (hi.ai.GetHistoryReq) returns (GetHistoryResp) { option (hi.auth) = AUTH_USER; }              // 原 GetContext
+  rpc ClearHistory (hi.ai.ClearHistoryReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }   // 原 ClearContext
+  // ── 对话:一轮 = 一个循环,中途只在"轮到客户端"时返回(详见 hi/ai/chat.proto)──
+  rpc Converse (ChatReq) returns (hi.ai.ChatResp) { option (hi.auth) = AUTH_USER; }                                  // 一轮对话(原 Complete + 原 Converse)
+  rpc ConverseStream (ChatReq) returns (stream hi.ai.ConverseStreamResp) { option (hi.auth) = AUTH_USER; }           // 同上,流式(原 CompleteStream)
+  rpc Resume (ToolCallResultsReq) returns (hi.ai.ChatResp) { option (hi.auth) = AUTH_USER; }                         // 交回客户端工具结果,续跑同一循环
+  rpc ResumeStream (ToolCallResultsReq) returns (stream hi.ai.ConverseStreamResp) { option (hi.auth) = AUTH_USER; }  // 同上,流式
 }

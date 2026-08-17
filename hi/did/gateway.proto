@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package hi.did;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
+
+import "google/protobuf/empty.proto";
+import "hi/options.proto";
+
+// ⚠️ 含 api_key(区块链节点凭证)—— 不是"任何人可见"的东西。
+// Gateway.List 本就要 AUTH_USER/AUTH_MERCHANT 才能调,标 PUBLIC 与档位自相矛盾。
+message GatewayConfigUnit {
+  option (hi.audience) = VIS_PARTICIPANT;
+  // 节点配置名(库 hi_gateway_config.name 实际就这几个):
+  //   aptos / bitcoin / ethereum / solana / tatum / tron-grpc / tron-http
+  //
+  // ⚠️ **这不是链标识**,别跟 `chain` 字段那套(btc/eth/trx/sol/aptos,见 wallet.proto)混。
+  // 它是"配哪个节点/服务商"的名字 —— 所以才会有 tatum(数据 API)、
+  // 以及 tron 拆成 grpc/http 两条。两套词汇长得像、含义不同,混用会静默查空。
+  string name    = 1 [(hi.visibility) = VIS_PUBLIC];
+  string url     = 2 [(hi.visibility) = VIS_PUBLIC];
+  string api_key = 3 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+message GatewayConfigListResp {
+  option (hi.audience) = VIS_PARTICIPANT;
+  repeated GatewayConfigUnit list = 1 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+message GatewayConfigSetReq {
+  repeated GatewayConfigUnit list = 1;
+}
+
+// ── 网关配置(区块链节点 url + api_key)──────────────────────────────────────
+// 这是**给前端用的配置**:hidid app 里的 hidid-core、以及 hiclub(内嵌 hidid-core)
+// 都要拿它去连区块链节点。resp 里的 api_key 是**共享的节点访问凭证**(非用户私密),
+// 前端连节点必须带,故读侧对已登录用户/商户开放。
+//
+// ⚠️ 后端(开发/生产)不要走这个 RPC 取配置 —— 生产与开发/前端环境不同,
+//    后端应从自己的配置文件引入。
+//
+// 读写拆两个 service(同 service 档位必须一致),照 DApp / DAppAdmin 的既有范式:
+//   Gateway(读,用户或商户) / GatewayAdmin(写,超管)。
+// HTTP 路径随之改为 /api/v1/gateway/list(读)与 /api/v1/gateway_admin/set(写)——
+// URL 与 selector 同构;前端调用地址已从旧的 gateway_config/* 变更,需同步更新。
+
+// 网关配置(客户端读)。主体=网关配置这份数据,谁登录了都要读:
+// app 用户(AUTH_USER)、hiclub 商户(AUTH_MERCHANT);超管运维页也走这个读(它是用户)。
+// 本方法**不依赖"我是谁"**,故两个主体都收 —— 标两行,任一通过即放行。
+service Gateway {
+  rpc List (google.protobuf.Empty) returns (GatewayConfigListResp) {
+    option (hi.auth) = AUTH_USER;
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 列出网关配置(含 api_key,前端连节点用)
+}
+
+// 网关配置维护(超管写)。纯内部运维:改区块链节点 url + api_key。
+service GatewayAdmin {
+  rpc Set (GatewayConfigSetReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:写网关配置
+}

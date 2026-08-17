@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
+
+import "google/protobuf/empty.proto";
+import "hi/ai/permission.proto";
+import "hi/options.proto";
+
+// ── 权限(原 UserACL)────────────────────────────────────────────────────────
+// **继承 hi.ai 的权限分类**(设计文档《HiClub.权限控制》开篇即写"继承 HiAI.模型权限控制"):
+//   normal 普通 / advanced 高级 / mem 记忆 / plugin 插件
+// 类型直接复用 hi.ai(有意为之,见 agent.proto 顶部说明)。
+//
+// ⚠️ **但 club 不是纯门面** —— 它在继承之上**增加了自己的控制项**(文档《HiClub.权限控制》):
+//   - 普通:群人数上限 **300**
+//   - 高级:APP 侧语音转文本默认开启;群人数上限 **1200**
+//
+// ⚠️⚠️ **取消高级权限的 club 侧副作用(重!后端必须实现)**:
+//   1. 群成员分 3 类:群主 / 管理员 / 草民
+//   2. 保留前 300 人,优先级 **群主 > 管理员 > 草民**
+//   3. **其余人全部自动"退群"**(无视是否含管理员)
+//   另:添加高级 → 用户所有群人数上限调 1200、新建群默认 1200;去除高级 → APP 侧语音转文本自动关闭。
+//
+// 未决(后端阶段定):授权限这个动作的入口在哪 —— 倾向 club 超管面为入口,
+// 转发 ai 的 PermissionManage 成功后,club 再执行自己的收尾(群上限/踢人/语音开关)。
+
+// ── 权限模型:**直接复用 hi.ai 的那套** ────────────────────────────────────
+//
+// PermissionType / PermissionInfo / PermissionAddReq / PermissionDeleteReq /
+// PermissionEditReq / PermissionListReq / PermissionListResp /
+// ListAgentPermissionsReq / ListAgentPermissionsResp —— 全部用 `hi.ai.*`。
+//
+// 曾经这里原样抄了一套一模一样的(字段、枚举值都一致),理由是"两边各存各的表、
+// 各判各的"。现在权威只有 ai 一处、club 是穿透门面,那份副本就纯粹是**同一个东西
+// 定义两遍**:改一处忘另一处就开始漂移。与 hi.club.Agent 复用 hi.ai.EditAgentReq 同一范式。
+//
+// 前端无感:字段名、枚举值、路由都没变(ai 那边的字段本就叫 did)。
+
+// 权限查询(用户档)。前端 robot_memory / robot_plugin / robot_setup 三个**普通用户页面**
+// 拿它当 getPermissions 用(查自己有哪些权限以显隐功能)。
+//
+// ⚠️ **绝不能标超管** —— 前人在此犯过实打实的回归:按"整个 service 都是管理面"把它标成
+//    SUPERADMIN,普通用户当场 PermissionDenied。故按主体拆成 查(用户)/ 管(超管)两个 service。
+//
+// ⚠️ **入参为空 = 强制查自己**。原 `UserACL.List(did, ...)` 带 did 参数,
+//    **传谁的 did 都能查 → 任意用户可读他人 ACL**(原注释里的 TODO 早已指出)。
+//    与 did 的 Merchant.Get 越权同一类病:身份必须来自 token,不能来自入参。
+service Permission {
+  // 机器人查**自己**的权限。无参数 —— 身份取自 token/apikey,不接受入参指定。
+  //
+  // ⚠️ 人用户没有权限配置,只有机器人才有。前端那三个页面
+  //    (robot_memory / robot_plugin / robot_setup)要看的是机器人能干什么:
+  //    机器人自己调 Get,master 代查走 List。
+  rpc Get (google.protobuf.Empty) returns (hi.ai.PermissionInfo) { option (hi.auth) = AUTH_USER; }
+  rpc List (hi.ai.ListAgentPermissionsReq) returns (hi.ai.ListAgentPermissionsResp) { option (hi.auth) = AUTH_USER; } // master 批量查名下机器人的权限
+}
+
+// 权限管理(超管)。**存储在 hi.ai,这里是穿透门面** ——
+// club 超管在 web 上操作,后端以「club 商户」的身份转发到 hi.ai.Permission(商户档)。
+//
+// ⚠️ 为什么不在 club 自己存:插件与记忆的**执行**在 ai,校验必须跟执行同一侧。
+//    曾经 club 存一份、ai 无权限层,结果撤了权限的机器人照样调插件用记忆 ——
+//    club 那几处检查全在"改配置"的路径上,拦得住改、拦不住用。
+//    两边各存一份也不行:同步必漂移,一漂移就是安全问题。
+// club 侧仍执行自己的副作用(取消高级 → 群缩容踢人等,见文件头)。
+service PermissionManage {
+  rpc Add (hi.ai.PermissionAddReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }       // 超管:授予(追加)
+  rpc Delete (hi.ai.PermissionDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:取消(伴随踢群等副作用)
+  rpc Edit (hi.ai.PermissionEditReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }     // 超管:改备注
+  rpc List (hi.ai.PermissionListReq) returns (hi.ai.PermissionListResp) { option (hi.auth) = AUTH_SUPERADMIN; }  // 超管:按类型列持有者
+}
