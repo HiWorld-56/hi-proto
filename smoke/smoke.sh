@@ -45,13 +45,12 @@ u_keep=$(put "{\"bucket\":\"log\",\"dir\":\"_smoke\",\"name\":\"keep.log\",\"con
 
 dl() { $G $(tp $SRC_GRPC) -protoset $PS -d "{\"url\":\"$1\"}" $SRC_GRPC hi.source.File/Download 2>&1 | grep -c '"content"'; }
 chk "私有桶经 Download 能取(匿名取不到)" "$(dl "$u_ts")" 1
-# ⚠️ 这条**故意**用内网 IP 前缀,不要"顺手统一成域名"。
-# 它验的是 parseURL 认不认存量数据:库里的老 url 和别的服务传来的 url 都是
-# `http://<ip>:9000/` 形式。只认域名的那一刻,历史 url 全报"跨环境数据",
-# 插件包取不到、CreateVersion 整条挂掉(踩过:冒烟从 21/0 掉到 13/8)。
-# 这里的 IP 是**入参数据**,不是"前端拿 IP 访问服务" —— 两回事。
-chk "老 upload url 仍可下(存量不受影响)" \
-    "$(dl "http://$H:9000/upload/2026_04/bc52deaa4b554fffb208c9a1e2178a8f_test_pic.jpg")" 1
+# 老的 `upload` 桶已于 2026-08-18 删除(全面 bucket 化之后用不到了),
+# 原先那条「老 upload url 仍可下(存量不受影响)」的断言随之作废 —— 桶都没了,
+# 再断言它可下就是在测一个不存在的东西。
+#
+# ⚠️ 但**别把这理解成"以后 url 一律域名就行"**:parseURL 仍要认 `http://<ip>:9000/<bucket>/...`
+# 这种形状(别的服务传来的 url 就是这样)。上面第 47 行那条私有桶 Download 覆盖了这一点。
 
 echo "── 鉴权边界:操作对象只能来自 token ──"
 # 第一个参数改成**端点**(原来是端口号):前端可达的两个网关走域名 TLS,
