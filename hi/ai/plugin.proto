@@ -178,6 +178,17 @@ message PluginView {
   // 一级页要它是因为:NATIVE 插件"挂上了"不等于"能用了" —— 中间隔着一次交叉编译。
   // 不回显的话,用户看到插件已启用、机器人却始终没装上,查不出是编失败了。
   PluginBuild   build        = 8 [(hi.visibility) = VIS_SELF];
+  // c.follow_latest:这台机器人要不要自动切到作者发的新版。
+  //
+  // ⭐ **这是使用方自己的事,归在使用行(c)上,不在挂牌上。**
+  // 原先它是两半:挂牌上一个"卖家允不允许"(allow_follow_latest)+ grant 上一个"买家选不选"。
+  // 那是错的 —— 买家买到的是这个插件,选哪一版、要不要自动跟,都是他自己的选择,
+  // 卖家没有理由(也没有能力)替他决定;而且**引用不一定有 grant**
+  // (内置插件是注册时自动建的引用,根本没有 grant 行),挂在 grant 上就漏掉一大片。
+  //
+  // 关掉 = 停在当前激活版,作者发新版也不动;打开 = 新版**构建成功后**自动切过去
+  // (NATIVE 要等编出来,切到一个还没编好的版本会让机器人拉到空清单)。
+  bool          follow_latest = 9 [(hi.visibility) = VIS_SELF];
 }
 
 // 二级页一行:某版本内容 + 该 agent 是否激活它 + 该 agent 对该版本的版本级数据。
@@ -237,6 +248,15 @@ message EditPluginReq {
 }
 
 message SetEnabledReq { string agent = 1; string uuid = 2; bool enabled = 3; }             // 改 c.enabled
+
+// SetFollowLatestReq 改 c.follow_latest —— **在"机器人 → 插件"那一行上操作**。
+// 打开之后,作者每发一版(NATIVE 是编成功之后)这台机器人就自动切过去;
+// 关掉就停在当前激活版,由主人自己在版本管理里选。
+message SetFollowLatestReq {
+  string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string uuid  = 2 [(buf.validate.field).string.pattern="^\\S+$"];
+  bool   on    = 3;
+}
 message SetActiveReq  { string agent = 1; string uuid = 2; string version = 3; }           // 改 d.active(事务内互斥)
 
 // SetActiveAll 把**所有使用方**切到同一版 —— 官方/内置插件发新版时用。
@@ -437,6 +457,7 @@ service Plugin {
   rpc SetActive (SetActiveReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }         // 激活某版本(d.active 互斥)
   rpc SetActiveAll (SetActiveAllReq) returns (SetActiveAllResp) { option (hi.auth) = AUTH_MERCHANT; }        // 所有使用方一起切到某版(官方/内置插件发新版)
   rpc SetEnabled (SetEnabledReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 插件开关(c.enabled)
+  rpc SetFollowLatest (SetFollowLatestReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 自动跟最新版开关(c.follow_latest)
   rpc ListNative (ListNativeReq) returns (ListNativeResp) { option (hi.auth) = AUTH_MERCHANT; }              // 下发清单:某机器人该装哪些 NATIVE 插件(club 经此穿透)
   rpc RetryBuild (RetryBuildReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 重编一版(仅创建者;版本本体不动,重来的是产物)
   rpc PublicBriefs (PublicBriefsReq) returns (PublicBriefsResp) { option (hi.auth) = AUTH_MERCHANT; }        // 批量取展示信息(市场列表页用;一次一页,别 N 次 Get)

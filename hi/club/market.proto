@@ -152,8 +152,12 @@ message MarketListingDetail {
   // 这个包提供哪些方法。直接取自 hi.ai 那份 tools 数组(已是最终形态、name 带壳前缀),
   // 买家装之前就知道会得到什么能力。
   string capabilities = 2 [(hi.visibility) = VIS_PUBLIC];
-  // 出让方是否允许引用方跟随最新版。引用方自己再选(见 ApplyReq.follow_latest)。
-  bool   allow_follow_latest = 3 [(hi.visibility) = VIS_PUBLIC];
+  // ⚠️ **没有 allow_follow_latest,不要再加回来。** 3 号是它原来的位置。
+  // "要不要自动跟新版"是**使用方自己的事**,归在 hi.ai 的使用行上
+  // (`hi.ai.PluginView.follow_latest`,在"机器人 → 插件"那一行上开关)。
+  // 卖家没有理由替买家决定他用哪一版 —— 买家买到的是这个插件,选版本是他的权利。
+  reserved 3;
+  reserved "allow_follow_latest";
   // 可选版本列表(引用方装好后可在其中切换)。
   repeated string versions = 4 [(hi.visibility) = VIS_PUBLIC];
   // 挂牌状态。**买家侧永远是 LISTED**(搜不到别的),这个字段是给 ListMyListings ——
@@ -219,7 +223,8 @@ message MarketGrantView {
   SettleMode  settle_mode  = 8 [(hi.visibility) = VIS_SELF];
   string      price        = 9 [(hi.visibility) = VIS_SELF];
   string      coin         = 10 [(hi.visibility) = VIS_SELF];
-  bool        follow_latest = 11 [(hi.visibility) = VIS_SELF];
+  reserved 11;
+  reserved "follow_latest"; // 见 hi.ai.PluginView.follow_latest —— 归使用行,不归授权
   string      version      = 12 [(hi.visibility) = VIS_SELF]; // 当前引用的版本
   int64       expire_at    = 13 [(hi.visibility) = VIS_SELF]; // installed_at + duration;0 = 永久
   string      action_url   = 14 [(hi.visibility) = VIS_SELF]; // 外部流程给的"去付款/去填资料"地址(可空)
@@ -281,7 +286,8 @@ message CreateListingReq {
   reserved 7, 8, 9;
   reserved "title", "summary", "logo";
   repeated string tags        = 10; // 市场分类。**这个不删** —— 插件自身没有分类的概念
-  bool            allow_follow_latest = 11;
+  reserved 11;
+  reserved "allow_follow_latest"; // 见 MarketListingDetail:这件事归使用方,不归挂牌
   // 外部流程的**办理页地址**(付款 / 填资料)。静态配置,club 拼上 grant_uuid 给前端跳转。
   //
   // 为什么是静态的:商户不再同步返回 action_url 了(它是"来拉"的一方,不在申请这条链路上)。
@@ -306,7 +312,7 @@ message EditListingReq {
   reserved 5, 6, 7;
   reserved "title", "summary", "logo";
   repeated string tags     = 8;
-  optional bool   allow_follow_latest = 9;
+  reserved 9; // allow_follow_latest 已删,见 MarketListingDetail
   optional string action_url          = 10;
 }
 
@@ -344,7 +350,8 @@ message CreateListingResp {
 message ApplyReq {
   string listing_uuid = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
   string to_agent     = 2 [(buf.validate.field).string.pattern = "^\\S+$"]; // 装到哪台机器人上
-  bool   follow_latest = 3; // 是否自动跟随出让方的新版本。**默认 false**(见下)
+  reserved 3;
+  reserved "follow_latest"; // 买完之后在"机器人 → 插件"那一行上自己开关(hi.ai 的 c.follow_latest)
   google.protobuf.Struct params = 4; // 外部流程要的额外参数,原样转给商户后台
 }
 
@@ -603,11 +610,11 @@ message ListGrantsResp {
   repeated MarketGrantView list  = 2 [(hi.visibility) = VIS_SELF];
 }
 
-// SetGrantVersionReq 引用方切换用哪个版本。
+// ⚠️ **SetGrantVersion 已删。** 切换用哪个版本走 `hi.club.Plugin.SetActive`
+//    (「机器人 → 插件 → 版本管理」里选)—— 那本来就是同一件事的同一套语义,
+//    有两个入口只会让人问"这两个有什么区别"。而且**引用不一定有 grant**
+//    (内置插件是注册时自动建的),按 grant 走的那条路对它们根本不存在。
 //
-// 语义与 `hi.club.Plugin.SetActive` 一致 —— 若该 agent 对 (uuid, version) 还没有 d 行,
-// 就**以当前激活版的 d.data 为模板建一行**再置 active。
-// c 是壳级的、每 (agent,uuid) 只有一行、跨版本不变,**不需要复制**,要复制的只有 d.data。
 // SetAutoRenewReq 开/关自动续费。
 //
 // ⚠️ **只有受让方是硬件机器人时才能开** —— 续费是机器人自己掏钱付款,
@@ -617,11 +624,6 @@ message ListGrantsResp {
 message SetAutoRenewReq {
   string grant_uuid = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
   bool   enabled    = 2;
-}
-
-message SetGrantVersionReq {
-  string grant_uuid = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
-  string version    = 2 [(buf.validate.field).string.pattern = "^\\S+$"];
 }
 
 // ── 超管面 ───────────────────────────────────────────────────────────────────
@@ -680,7 +682,6 @@ service Market {
   rpc GetTransaction (GetTransactionReq) returns (MarketPayment) { option (hi.auth) = AUTH_USER; }   // 查单笔(同样只有当事人查得到)
 
   rpc ListMyGrants (ListGrantsReq) returns (ListGrantsResp) { option (hi.auth) = AUTH_USER; }              // 我买到的
-  rpc SetGrantVersion (SetGrantVersionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 切换引用的版本
   rpc SetAutoRenew (SetAutoRenewReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }       // 开/关自动续费(仅硬件机器人)
 }
 

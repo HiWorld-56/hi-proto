@@ -45,6 +45,7 @@ service Plugin {
   //     PermissionService 撤"插件权限"时直接调 hi.ai.Plugin.DeleteByAgents(grpc),不走 club 门面。
   rpc SetActive (hi.ai.SetActiveReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }               // 选该 agent 激活版本
   rpc SetEnabled (hi.ai.SetEnabledReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }             // 插件级开关
+  rpc SetFollowLatest (hi.ai.SetFollowLatestReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }   // 自动跟最新版开关(c.follow_latest)。**归使用方**,不在挂牌上
   rpc ReloadApiKey (ReloadApiKeyReq) returns (ReloadApiKeyResp) { option (hi.auth) = AUTH_USER; } // 重装 api_key:重新取该机器人第一个 apikey 写入 c.data 并重载(用户删旧 apikey 后修复)
   rpc RetryBuild (hi.ai.RetryBuildReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 重编某个 NATIVE 版本(编译失败后重试,版本本体不动)
 }
