@@ -259,6 +259,27 @@ message MarketGrantView {
 
 // ── 公开面入参 ───────────────────────────────────────────────────────────────
 
+// ListSellersResp 卖家目录:**谁在卖** + 他有哪些摊位。
+//
+// 逛市场的顺序是「人 → 摊位 → 货」:先看见是谁在卖,再进他的摊位,再看待售的插件。
+// 直接铺一页插件的话,买家没法判断"这东西是谁出的"，而插件是要装进自己机器人里的三方代码。
+//
+// ⚠️ **只公开"有在售挂牌"的那些机器人的主人** —— 开店即自愿露出。
+//    这不是一个"任意 did → 查它主人"的反查口子(那个当年正是因为泄露归属被删掉的);
+//    没挂牌的机器人不会出现在这里。
+message MarketSeller {
+  option (hi.audience) = VIS_PUBLIC;
+  hi.Entity          master        = 1 [(hi.visibility) = VIS_PUBLIC]; // 卖家(主人)
+  repeated hi.Entity agents        = 2 [(hi.visibility) = VIS_PUBLIC]; // 他名下**有在售挂牌**的摊位
+  int32              listing_count = 3 [(hi.visibility) = VIS_PUBLIC]; // 在售挂牌总数
+}
+
+message ListSellersResp {
+  option (hi.audience) = VIS_PUBLIC;
+  int32                 total   = 1 [(hi.visibility) = VIS_PUBLIC];
+  repeated MarketSeller sellers = 2 [(hi.visibility) = VIS_PUBLIC];
+}
+
 message SearchListingsReq {
   string        keyword    = 1; // 空 = 不过滤
   repeated string tags     = 2;
@@ -771,6 +792,7 @@ message ForceDelistReq {
 //    「不该随便让人反查某机器人的主人」被删掉的。挂牌页只吐机器人 Entity + 公开文案。
 service MarketDirectory {
   rpc SearchListings (SearchListingsReq) returns (SearchListingsResp) { option (hi.auth) = AUTH_NONE; }        // 搜插件
+  rpc ListSellers (hi.Pagination) returns (ListSellersResp) { option (hi.auth) = AUTH_NONE; }                  // 列卖家(有在售挂牌的主人 + 他的摊位)
   rpc ListAgentListings (ListAgentListingsReq) returns (SearchListingsResp) { option (hi.auth) = AUTH_NONE; }  // 逛某台机器人的"店"
   rpc GetListing (GetListingReq) returns (GetListingResp) { option (hi.auth) = AUTH_NONE; }                    // 挂牌详情
 }

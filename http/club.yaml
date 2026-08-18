@@ -119,6 +119,9 @@ http:
   - selector: hi.club.MarketDirectory.SearchListings
     post: /api/v1/market_directory/search_listings
     body: "*"
+  - selector: hi.club.MarketDirectory.ListSellers
+    post: /api/v1/market_directory/list_sellers
+    body: "*"
   - selector: hi.club.MarketDirectory.ListAgentListings
     post: /api/v1/market_directory/list_agent_listings
     body: "*"
