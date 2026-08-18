@@ -92,6 +92,20 @@ enum MarketListingKind {
   MARKET_LISTING_KIND_BUILTIN     = 2; // 内置:每台硬件机器人自动引用 + 全网跟版 + 免费永久免审
 }
 
+// GrantInitiator 这笔授权是**谁先开的口**。
+//
+// 为什么必须有它:`PENDING` 这一个状态下"等谁点头"是两种完全不同的事 ——
+//   · APPLY 来的:等**出让方** master 审批(ListReceivedRequests 里那批);
+//   · OFFER 来的:等**受让方** master 接受。
+// 不分的话,我发出去的邀请会落进我自己的"收到的申请"列表,而 `Approve` 校验的是
+// **出让方** master —— 于是我能自己批准自己送出去的东西,**绕过受让方的同意**。
+// 这不是显示问题,是授权问题。
+enum GrantInitiator {
+  GRANT_INITIATOR_UNSPECIFIED = 0; // = APPLY(存量全是申请来的,default 0 天然正确)
+  GRANT_INITIATOR_APPLY       = 1; // 受让方申请(市场购买)
+  GRANT_INITIATOR_OFFER       = 2; // 出让方分享(赠予,不开单)
+}
+
 // GrantStatus 授权状态机。
 //
 // ⚠️ **`APPROVED` 与 `INSTALLED` 必须分开。** 前者是"授权成立"(club 的事实),
@@ -238,6 +252,9 @@ message MarketGrantView {
   int64       installed_at = 18 [(hi.visibility) = VIS_SELF];
   // 自动续费。**只有硬件机器人能开** —— 续费要它自己掏钱付款,软件机器人没有私钥。
   bool        auto_renew   = 19 [(hi.visibility) = VIS_SELF];
+  // 谁先开的口(申请 / 分享)。前端按它决定这一行给"同意/拒绝"还是"审批/驳回",
+  // 后端按它决定 PENDING 时该问谁 —— 见 GrantInitiator。
+  GrantInitiator initiator = 20 [(hi.visibility) = VIS_SELF];
 }
 
 // ── 公开面入参 ───────────────────────────────────────────────────────────────
@@ -290,6 +307,13 @@ message CreateListingReq {
   reserved 7, 8, 9;
   reserved "title", "summary", "logo";
   repeated string tags        = 10; // 市场分类。**这个不删** —— 插件自身没有分类的概念
+  // 收款方是否收到 **master** 名下。
+  //
+  // 默认 false = 机器人自己收（硬件机器人持私钥，能独立收款）。
+  // ⚠️ **软件机器人没得选**:它没有私钥,收不了款,后端一律按 master 处理,
+  //    传 false 也会被纠正 —— 不是"帮你改",是那个值与"软件机器人"这件事互相矛盾。
+  // 前端**暂时不给这个选项**(隐藏),先把能力放在契约里。
+  bool            payee_to_master = 14;
   reserved 11;
   reserved "allow_follow_latest"; // 见 MarketListingDetail:这件事归使用方,不归挂牌
   // 外部流程的**办理页地址**(付款 / 填资料)。静态配置,club 拼上 grant_uuid 给前端跳转。
@@ -316,6 +340,7 @@ message EditListingReq {
   reserved 5, 6, 7;
   reserved "title", "summary", "logo";
   repeated string tags     = 8;
+  optional bool   payee_to_master = 11; // 见 CreateListingReq:软件机器人没得选
   reserved 9; // allow_follow_latest 已删,见 MarketListingDetail
   optional string action_url          = 10;
 }
@@ -603,9 +628,13 @@ message DecideGrantReq {
 //     续费**延长同一个 grant,不新建** —— 新建要先撤旧的,而撤销会删掉 ai 侧的 c/d 行,
 //     用户在这个插件上攒的使用态配置(d.data)就没了。
 
+// ⚠️ `initiator` 是**过滤器**:不传=全部;传 OFFER 就是"收到的分享"那张表。
+// 收到的分享与买来的授权混在一张列表里,用户分不清"这是我买的"还是"别人送我的",
+// 而两者的下一步动作也不同(前者续费/切版本,后者同意/拒绝)。
 message ListGrantsReq {
-  GrantStatus   status     = 1; // 可选:按状态筛
-  hi.Pagination pagination = 2;
+  GrantStatus    status     = 1; // 可选:按状态筛
+  hi.Pagination  pagination = 2;
+  GrantInitiator initiator  = 3; // 可选:按"谁开的口"筛。传 OFFER 就是"收到的分享"那张表
 }
 
 message ListGrantsResp {
@@ -628,6 +657,44 @@ message ListGrantsResp {
 message SetAutoRenewReq {
   string grant_uuid = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
   bool   enabled    = 2;
+}
+
+// ── 分享(Offer)——「我想给」那条路 ───────────────────────────────────────────
+//
+// 市场原来只有一个方向:受让方 `Apply`(我想要)→ 出让方 `Approve`。
+// 分享是反过来的:出让方发起,受让方决定收不收。**装载发生在 Accept 之后,不在 Offer 之时**
+// —— 这是"可以给陌生机器人分享"能成立的前提:发出去只是一条待处理的邀请,
+// 对方不点就什么也不会发生。
+//
+// 三条口径(2026-08-19 定):
+//   · **可以给陌生机器人分享**,不限好友/群成员;
+//   · **无主机器人自动拒绝** —— 没有 master 就没有可问的对象,
+//     直接 REJECTED 并说明原因,**不要留成永远 PENDING**(攒一堆没人处理的单,
+//     发起方还看不出为什么没动静);
+//   · **7 天未接受自动过期**(REJECTED + 理由"未接受")。
+//
+// 分享一律**免费赠予、不开单**:挂牌是收费的也能送,出让方有权免单;
+// grant 上记 initiator=OFFER 与买来的区分开,否则对账时看不出这份为什么没付款。
+message OfferReq {
+  string listing_uuid = 1 [(buf.validate.field).string.pattern = "^\\S+$"]; // 分享哪个挂牌(HIDDEN 也行:不公开、只定向送)
+  string to_agent     = 2 [(buf.validate.field).string.pattern = "^\\S+$"]; // 送给哪台机器人
+}
+
+message OfferResp {
+  option (hi.audience) = VIS_SELF;
+  string      grant_uuid = 1 [(hi.visibility) = VIS_SELF];
+  // 送给**自己名下**的机器人 → 不需要谁同意,直接 INSTALLED;
+  // 送给别人的 → PENDING(等对方 master);对方无主 → REJECTED(reason 里写明)。
+  GrantStatus status     = 2 [(hi.visibility) = VIS_SELF];
+  string      reason     = 3 [(hi.visibility) = VIS_SELF];
+}
+
+// DecideOfferReq 受让方 master 接受 / 拒绝一条分享。
+// **主体是受让方**(与 DecideGrantReq 的主体是出让方正好相反,所以不复用那个类型 ——
+// 复用会让"这个接口该校验哪一侧"变成一件要靠记忆的事)。
+message DecideOfferReq {
+  string grant_uuid = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
+  string reason     = 2; // 拒绝理由(可空);接受时忽略
 }
 
 // ── 超管面 ───────────────────────────────────────────────────────────────────
@@ -685,7 +752,10 @@ service Market {
   rpc ListTransactions (ListTransactionsReq) returns (ListTransactionsResp) { option (hi.auth) = AUTH_USER; } // 我的交易记录(付款人或收款人是我)
   rpc GetTransaction (GetTransactionReq) returns (MarketPayment) { option (hi.auth) = AUTH_USER; }   // 查单笔(同样只有当事人查得到)
 
-  rpc ListMyGrants (ListGrantsReq) returns (ListGrantsResp) { option (hi.auth) = AUTH_USER; }              // 我买到的
+  rpc ListMyGrants (ListGrantsReq) returns (ListGrantsResp) { option (hi.auth) = AUTH_USER; }              // 我买到的 / 我收到的分享(按 initiator 过滤)
+  rpc Offer (OfferReq) returns (OfferResp) { option (hi.auth) = AUTH_USER; }                                // 分享:出让方发起(自己人直装,别人等接受)
+  rpc AcceptOffer (DecideOfferReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }        // 受让方 master 接受分享 → 装载
+  rpc DeclineOffer (DecideOfferReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }       // 受让方 master 拒绝分享
   rpc SetAutoRenew (SetAutoRenewReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }       // 开/关自动续费(仅硬件机器人)
 }
 

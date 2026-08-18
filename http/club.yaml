@@ -170,6 +170,15 @@ http:
   - selector: hi.club.Market.ListMyGrants
     post: /api/v1/market/list_my_grants
     body: "*"
+  - selector: hi.club.Market.Offer
+    post: /api/v1/market/offer
+    body: "*"
+  - selector: hi.club.Market.AcceptOffer
+    post: /api/v1/market/accept_offer
+    body: "*"
+  - selector: hi.club.Market.DeclineOffer
+    post: /api/v1/market/decline_offer
+    body: "*"
   - selector: hi.club.Market.SetAutoRenew
     post: /api/v1/market/set_auto_renew
     body: "*"
