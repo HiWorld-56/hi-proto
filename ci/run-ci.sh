@@ -67,6 +67,43 @@ retry git -C "$CODE" fetch -q --all --tags --prune
 git -C "$CODE" checkout -fq dev
 git -C "$CODE" reset --hard -q origin/dev
 
+# ── 路径过滤:只有真正影响生成物的改动,才重生成 + 打 tag ──────────────────────
+# 踩过两次:只改 smoke/ 也照样产 tag —— v1.5.0-dev.166/167/168 三个 tag 指向同一个
+# 生成物 commit(c2faf3e4),v1.5.1 / v1.5.1-dev.1 / v1.5.1-dev.2 又是同一个(563f7e58)。
+# 后果不是"多几个 tag 不好看":
+#   · 下游每次都得停下来判断"这个新号要不要跟",而答案几乎总是"不用" —— 判断成本全白付;
+#   · deps.md 为此专门备案了一节("三个 tag 同一个 commit,不用跟");
+#   · 最糟的是它训练出"新 tag 大概率是空的"这种直觉,真正该跟的那一次就会被一起忽略。
+#
+# 参照点用**本分支上最近一个 CI 打的 tag**(每轮 CI 都会给 hi-proto 自己打一个),
+# 它天然就是"上一次成功生成"的水位线;而且 tag 是整轮最后才推的,中途失败下一轮会重跑。
+#
+# ⚠️ main(正式发布)**不过滤** —— 发版必须出 tag,哪怕这一版 .proto 与上一个 dev tag 一模一样。
+# ⚠️ VERSION **不在触发集里**:release.sh 压根不读它(基号只用来拼 tag 名;生成物里没有基号,
+#    rust crate 的 version 是写死的 0.1.0)。所以**推基号本身不产 tag**,
+#    要等下一个真正的 .proto 改动才出 vX.Y.Z-dev.1 —— 这是预期行为,不是漏打。
+GEN_PATHS=("*.proto" "codegen/" "http/" "buf.yaml" "buf.lock" "Makefile" "release.sh")
+if [ "$BR" != main ]; then
+  LAST_TAG=$(git -C "$HP" describe --tags --abbrev=0 --match "v[0-9]*" "origin/$BR" 2>/dev/null || true)
+  if [ -z "$LAST_TAG" ]; then
+    echo "[ci] 本分支上没有既有 tag,不过滤,照常生成"
+  else
+    ALL_CHANGED=$(git -C "$HP" diff --name-only "$LAST_TAG" "origin/$BR")
+    GEN_CHANGED=$(git -C "$HP" diff --name-only "$LAST_TAG" "origin/$BR" -- "${GEN_PATHS[@]}")
+    if [ -z "$GEN_CHANGED" ]; then
+      echo "[ci] 自 $LAST_TAG 起没有影响生成物的改动,跳过生成与打 tag。"
+      echo "[ci] 本次变动的文件(全部不在触发集里):"
+      printf "      %s
+" $ALL_CHANGED
+      echo "[ci] done. (skipped)"
+      exit 0
+    fi
+    echo "[ci] 自 $LAST_TAG 起,影响生成物的改动:"
+    printf "      %s
+" $GEN_CHANGED
+  fi
+fi
+
 # 生成 + 推 hi-proto-code dev
 ( cd "$HP" && ./release.sh )
 

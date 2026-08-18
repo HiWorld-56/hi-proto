@@ -43,7 +43,6 @@ hi.did.Assets.UpdateAddresses
 hi.did.Assets.ListAddresses
 hi.did.Auth.Verify
 hi.did.Auth.VerifyOffline
-hi.did.Auth.Notify
 hi.did.Auth.Logout
 hi.did.Base.ListCoins
 hi.did.Base.ServerVersion
@@ -120,3 +119,8 @@ service:hi.club.AgentPlugin
 # 触发点是"发了新版"这个事实,不是页面上的一个按钮;挂到 http 上等于给了一个
 # "把全网机器人的插件版本推过去"的公开入口。
 hi.ai.Plugin.SetActiveAll
+
+# hi.ai.Plugin.PublicBriefs —— **只由 club 经 grpc 调**(市场列表页要拿插件自己的
+# 名字/图/简介)。hiai-web 那边不需要:它看的是自己商户的插件,走 Get/List 就有。
+# 挂到 http 上等于多开一个"按 (agent,uuid) 批量探展示信息"的公开口子,没有用处。
+hi.ai.Plugin.PublicBriefs

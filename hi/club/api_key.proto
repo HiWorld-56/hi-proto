@@ -24,9 +24,16 @@ message ApiKeyInfo {
 }
 
 // ⚠️ **只有机器人能持 apikey** —— 原先设计里"人也能设 apikey",没必要,已废。
-// 故这里是**机器人 did**,后端校验:调用者必须是该机器人的 master。
+// 故这里是**机器人 did**。
+//
+// ⚠️ **归属校验一律走 CheckAgentAccess(机器人自己 / master / 超管),不是"只有 master"。**
+// 这把 key 就是**机器人自己的身份**(插件拿它以机器人身份调 club),
+// 而 hiclub 的理念里人和机器人对等 —— 机器人能自己建插件、自己买插件,
+// 却建不了自己的身份凭据,说不通。
+// 而且绝大多数硬件机器人**无主**,"只有 master 能建"对它们等于这条路不存在。
+// (原先废掉 caller==target 的理由是"人不需要 key",顺手把机器人自己也挡了。)
 message CreateApiKeyReq {
-  string agent = 1; // 机器人 did;能设置的只有它的 master
+  string agent = 1; // 机器人 did;机器人自己 / 它的 master / 超管都能建
 }
 
 message CreateApiKeyResp {
