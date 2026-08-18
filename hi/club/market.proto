@@ -111,15 +111,26 @@ enum GrantStatus {
 // ── 公开面数据 ───────────────────────────────────────────────────────────────
 //
 // ⚠️ **不能复用 `hi.ai.PluginView`** —— 那是 VIS_SELF,里面有脚本 url 和 api_key。
-// ⚠️ **也不能复用 `PluginVersion.summary/logo`** —— 那两个是主人的私有配置(VIS_SELF),
-//    而挂牌页是 VIS_PUBLIC。直接复用会被可见性 lint 当场拦下 —— 这次 lint 是帮我们的,
-//    它逼着在公私之间切一层门面。
+//    所以这边要有自己的门面消息。**但门面是「另一个类型」,不是「另一套值」。**
+//
+// ❌ **勘误(2026-08-19)**:这里原先写着「也不能复用 `PluginVersion.summary/logo` ——
+//    那两个是主人的私有配置(VIS_SELF)」,并据此让挂牌**再填一遍** title/summary/logo。
+//    两头都不成立:
+//      · 那两个字段**标错了** —— 展示物没有"只给自己看"的语义,现已改成 VIS_PUBLIC;
+//        旁边 `capabilities`(取自 `PluginVersion.description`)和 `versions` 早就是公开的,
+//        同一条数据在门面里公开、在源头标私有,自相矛盾。
+//      · lint **从没逼过这件事** —— 规则是 `level(field) <= level(message)`,
+//        挡的只有反方向;PUBLIC 字段放进 SELF 消息一直是合法的。
+//    于是白白多出一套值,而两套值必然漂。**现在:门面照旧,值一律读侧从插件现取。**
 
 // MarketListingBrief 挂牌摘要(搜索结果一行)。
 message MarketListingBrief {
   option (hi.audience) = VIS_PUBLIC;
   string        uuid    = 1 [(hi.visibility) = VIS_PUBLIC]; // 挂牌 id
   hi.Entity     agent   = 2 [(hi.visibility) = VIS_PUBLIC]; // 出让方机器人(只到 Entity,**不吐它的 master**)
+  // ⭐ 下面三个是**读侧现取**的派生值,挂牌行里不存:
+  //    title ← 插件壳名;logo / summary ← 出让方**当前激活版**(与"引用跟版"同一口径)。
+  //    改插件名就是改市场标题 —— 单一来源,不会漂。
   string        title   = 3 [(hi.visibility) = VIS_PUBLIC];
   string        summary = 4 [(hi.visibility) = VIS_PUBLIC];
   string        logo    = 5 [(hi.visibility) = VIS_PUBLIC];
@@ -261,10 +272,15 @@ message CreateListingReq {
   string          price       = 4;
   string          coin        = 5;
   int64           duration    = 6; // 秒;0 = 永久
-  string          title       = 7 [(buf.validate.field).string.min_len = 1];
-  string          summary     = 8;
-  string          logo        = 9;
-  repeated string tags        = 10;
+  // ⚠️ **没有 title / summary / logo,不要再加回来。** 7/8/9 是它们原来的位置。
+  //
+  // 那三个是插件**自己就有**的东西(`hi.ai.PluginShell.name`、激活版的 `logo`/`summary`),
+  // 挂牌时再填一遍就是同一个东西存两份 —— 必然漂:市场里叫「超强天气」、
+  // 机器人插件列表里叫「weather」,而且没有任何一处会报错。
+  // 市场展示一律**读侧现取**(见 MarketListingBrief 的注释)。
+  reserved 7, 8, 9;
+  reserved "title", "summary", "logo";
+  repeated string tags        = 10; // 市场分类。**这个不删** —— 插件自身没有分类的概念
   bool            allow_follow_latest = 11;
   // 外部流程的**办理页地址**(付款 / 填资料)。静态配置,club 拼上 grant_uuid 给前端跳转。
   //
@@ -286,9 +302,9 @@ message EditListingReq {
   optional string price    = 2;
   optional string coin     = 3;
   optional int64  duration = 4;
-  optional string title    = 5;
-  optional string summary  = 6;
-  optional string logo     = 7;
+  // 同 CreateListingReq:展示信息以插件自身为准,改名字改简介去改插件。
+  reserved 5, 6, 7;
+  reserved "title", "summary", "logo";
   repeated string tags     = 8;
   optional bool   allow_follow_latest = 9;
   optional string action_url          = 10;

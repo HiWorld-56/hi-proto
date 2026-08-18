@@ -28,20 +28,30 @@ import "hi/options.proto";
 // 运行期:c(enabled)⋈ d(active)⋈ b 取 url/description;注入 py 的 plugin_annex = c.data ∪ d.data(激活版)。
 // **hiai 侧不认识 api_key**,只有 c/d 两级泛型扩展数据;api_key 是 hiclub 塞进 c.data 的约定。
 
+// ⚠️ **消息 audience 是 SELF,但里面几个字段是 PUBLIC —— 这不矛盾。**
+// lint 规则是 `level(field) <= level(message)`(见 hi/options.proto),
+// 挡的只有"把私字段塞进公消息",PUBLIC 字段放进 SELF 消息本来就合法。
+//
+// 名字这类**展示物本身就是给别人看的** —— 市场标题就是它。
+// 原先整条消息一路刷成 SELF,于是挂牌被迫另填一套 title/summary/logo,
+// 同一个东西两份值、必然漂(叫法在市场和机器人插件列表里不一样,还没人会报错)。
 message PluginShell {                                    // a
   option (hi.audience) = VIS_SELF;
   string uuid = 1 [(hi.visibility) = VIS_SELF]; // 插件 id,后台分配(单一 id)
-  string name = 2 [(hi.visibility) = VIS_SELF]; // 脚本名
-  // 跑在哪儿。建壳时定,之后不变 —— 它决定包的格式与执行方,换了等于换个插件。
+  string name = 2 [(hi.visibility) = VIS_PUBLIC]; // 插件名。**市场标题直接用它**,不另填
+  // 跑在哪儿。首版由包结构自动判定,之后不变 —— 它决定包的格式与执行方,换了等于换个插件。
   PluginRuntime runtime = 3 [(hi.visibility) = VIS_SELF];
 }
 
 message PluginVersion {                                  // b:按 (uuid,version) 冻结
   option (hi.audience) = VIS_SELF;
   string uuid        = 1 [(hi.visibility) = VIS_SELF]; // 所属壳
-  string version     = 2 [(hi.visibility) = VIS_SELF]; // 版本号(前端按现有版本预填,后端校验须>现有最大)
-  string logo        = 3 [(hi.visibility) = VIS_SELF];
-  string summary     = 4 [(hi.visibility) = VIS_SELF];
+  string version     = 2 [(hi.visibility) = VIS_PUBLIC]; // 版本号(前端按现有版本预填,后端校验须>现有最大)
+  // logo / summary 是**展示物**:市场页、插件详情页给买家看的就是这两个。
+  // 标 PUBLIC 不是放松,是纠正 —— 它们本来就没有"只给自己看"的语义,
+  // 而挂牌页要用它们(见 hi.club.MarketListingBrief:那边是门面,值从这儿来)。
+  string logo        = 3 [(hi.visibility) = VIS_PUBLIC];
+  string summary     = 4 [(hi.visibility) = VIS_PUBLIC];
   string url         = 5 [(hi.visibility) = VIS_SELF]; // 脚本包 zip:**至少含 main.py / requirements.txt / description.json**
   // function-call spec,**OpenAI tools 数组格式**(与 hi.ai.ToolSupply、与 brain 的
   // functions.json 完全一致 —— 三者的 tools 最终会合进同一个数组喂给模型):
@@ -62,7 +72,10 @@ message PluginVersion {                                  // b:按 (uuid,version)
   // 那一行物理上改不了,没有第二份可以跟它分叉。
   //
   // 拿它跟包里的文件比对会对不上,**这是预期行为,别当 bug 查**。
-  string description = 6 [(hi.visibility) = VIS_SELF];
+  //
+  // PUBLIC:买家在挂牌页看的 `MarketListingDetail.capabilities` 就是这一份 ——
+  // 那边早就是公开的了,源头这边却标着 SELF,两边对不上。以这边为准改成 PUBLIC。
+  string description = 6 [(hi.visibility) = VIS_PUBLIC];
 }
 
 // 插件跑在哪儿 —— **壳的属性**(同一个包不会一半 py 一半 rust),发版后不该再改。
@@ -329,6 +342,41 @@ message CreateReferenceReq {
   google.protobuf.Struct version_data = 5; // d.data
 }
 
+// ── 展示面:市场要拿插件自己的名字/图/简介 ──────────────────────────────────
+//
+// 为什么要**批量**:市场列表一页 N 条挂牌,逐条 `Get` 就是 N 次 grpc 往返。
+// 而这三样东西正是"读侧现取"的代价 —— 代价必须是一次查询,不然下一个人
+// 又会想着"要不还是在挂牌行里存一份吧",绕回那两套值。
+//
+// 为什么带 agent:插件的**展示信息跟着出让方当前激活的那一版**走
+// (与"引用跟版"同一口径),而 active 是每个使用方各自的(d 表),所以必须给主体。
+message PluginRef {
+  string agent = 1 [(buf.validate.field).string.pattern="^\S+$"];
+  string uuid  = 2 [(buf.validate.field).string.pattern="^\S+$"];
+}
+
+message PublicBriefsReq {
+  repeated PluginRef refs = 1;
+}
+
+// 一个插件对外能看到的全部展示信息。**没有 url / api_key / 扩展数据**。
+message PluginPublicBrief {
+  option (hi.audience) = VIS_PUBLIC;
+  string agent   = 1 [(hi.visibility) = VIS_PUBLIC];
+  string uuid    = 2 [(hi.visibility) = VIS_PUBLIC];
+  string name    = 3 [(hi.visibility) = VIS_PUBLIC]; // 壳名
+  string version = 4 [(hi.visibility) = VIS_PUBLIC]; // 该 agent 当前激活版(没有则空)
+  string logo    = 5 [(hi.visibility) = VIS_PUBLIC]; // 激活版的
+  string summary = 6 [(hi.visibility) = VIS_PUBLIC]; // 激活版的
+}
+
+message PublicBriefsResp {
+  option (hi.audience) = VIS_PUBLIC;
+  // 查不到的 ref **直接不出现在结果里**(不是返回一个空壳条目)——
+  // 调用方按 (agent,uuid) 对号入座,漏掉的那条自己决定怎么显示。
+  repeated PluginPublicBrief briefs = 1 [(hi.visibility) = VIS_PUBLIC];
+}
+
 // ── 下发面:机器人问「我该装哪些 NATIVE 插件」───────────────────────────────
 //
 // 只回**该装的**:c.enabled ∧ d.active ∧ 壳是 NATIVE ∧ 该版本构建成功。
@@ -391,6 +439,7 @@ service Plugin {
   rpc SetEnabled (SetEnabledReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 插件开关(c.enabled)
   rpc ListNative (ListNativeReq) returns (ListNativeResp) { option (hi.auth) = AUTH_MERCHANT; }              // 下发清单:某机器人该装哪些 NATIVE 插件(club 经此穿透)
   rpc RetryBuild (RetryBuildReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 重编一版(仅创建者;版本本体不动,重来的是产物)
+  rpc PublicBriefs (PublicBriefsReq) returns (PublicBriefsResp) { option (hi.auth) = AUTH_MERCHANT; }        // 批量取展示信息(市场列表页用;一次一页,别 N 次 Get)
 }
 
 // ── py-docker 执行契约已迁至子服务内部面 `hi/ai/plugin/base.proto`(package hi.ai.plugin)──
