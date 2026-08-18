@@ -11,18 +11,26 @@ import "hi/common.proto";
 
 // 插件管理(主体=插件)。**hi.ai.Plugin 的门面**,纯透传 → 类型直接复用 hi.ai(有意为之)。
 //
-// 插件只剩 **py 脚本一种** —— 网搜/画图已随 ai 整体砍掉(可封装进 py 脚本)。
+// 插件有 py / rust 两种,**建壳→建版本是同一条路**,club 这边一个分支都没有 ——
+// runtime 由后端从首版的包结构自动判定(见 hi.ai.PluginRuntime),用户不声明、也无从声明。
 //
 // ⚠️ club 侧的实际代码活(不只是改名):
-//   1. **建壳(CreateShell)时,自动把该机器人的 club-apikey 塞进 c.data** ——
-//      根除"运行期回调三方要 apikey"那套机制的落地点;失效后经 ReloadApiKey 重取。
-//   2. apikey **挂机器人名下、不挂用户**,机器人换持有者后脚本照常跑。
-//   3. **删 apikey 前必须查是否被插件引用,被引用则拒删**。
+//   1. **c.data 是 club 的私有区,不给用户填。** hi.ai 眼里它只是一袋不透明 JSON
+//      (hiai-web 那边确实开放给商户手填),但 club 征用它存 api_key ——
+//      故 club 的所有写入点一律 `c.data = {api_key: <该机器人的 key>}`,
+//      **丢弃调用方传来的壳级扩展数据**。用户自己的扩展数据走版本级 d.data。
+//      (只挡 api_key 一个键是不够的:那块地方本身就不该开着。)
+//   2. **每个建 c 行的入口都必须注入 api_key,一个都不能漏** ——
+//      建壳 / 改扩展数据 / 市场装载 / 内置插件自动装载。漏掉的表现是**静默**的:
+//      插件跑起来才发现自己没有身份,而那时已经在机器人上了。
+//      取不到就现造(ensure 语义),别报错让用户先去别处点一下。
+//   3. apikey **挂机器人名下、不挂用户**,机器人换持有者后脚本照常跑。
+//   4. **删 apikey 前必须查是否被插件引用,被引用则拒删**。
 //
 // 四表模型见 hi/ai/plugin.proto:a壳(uuid,name)/ b版本(uuid,version,本体)/ c壳级使用 / d版本级使用。
 // 建壳=a+c 联表、建版本=b+d 联表;c/d 是机器人自定义使用态。市场引用(复用 a/b + 建自己 c/d)未开放。
 service Plugin {
-  rpc CreateShell (hi.ai.CreateShellReq) returns (hi.ai.CreateShellResp) { option (hi.auth) = AUTH_USER; }           // 建空壳(后台分配 uuid;club 取 agent 第一个 apikey 塞进 annex)
+  rpc CreateShell (hi.ai.CreateShellReq) returns (hi.ai.CreateShellResp) { option (hi.auth) = AUTH_USER; }           // 建空壳(后台分配 uuid;club 覆盖 c.data={api_key},取不到就现造)
   rpc CreateVersion (hi.ai.CreateVersionReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }       // 给壳加版本(建 b+d)
   rpc Edit (hi.ai.EditPluginReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                   // 只改扩展数据 c.data/d.data(壳名/版本本体冻结)
   rpc Get (hi.ai.GetPluginReq) returns (hi.ai.GetPluginResp) { option (hi.auth) = AUTH_USER; }                       // 查单个插件

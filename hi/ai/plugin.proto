@@ -93,9 +93,25 @@ message PluginVersion {                                  // b:按 (uuid,version)
 // 由此,NATIVE 插件挂在一个**软件**机器人上是完全合法的 —— 那台机器人当"柜台":
 // 只展示和存储、供人选购与下发,自己一个也跑不了。这样公共插件就不必挂在某台
 // 硬件机器人上,免得那台机器一下线整个货架跟着消失。
+// ⭐ **runtime 是自动判定的,不让用户声明。**
+//
+// 建壳时**根本没有包**,谈不上语言 —— 所以空壳一律 UNDETERMINED;
+// 首版上传时后端解开 zip 按**包结构**认:
+//
+//   Cargo.toml → NATIVE      main.py → PYTHON      两个都有 / 都没有 → 报错,不猜
+//
+// 判定的材料早就在手上:`CreateVersion` 本来就要下载解压这个包去预读
+// description.json(specFromPackage),顺手看一眼根目录有什么,零额外成本。
+//
+// 让用户在表单里选一次"这是 rust 还是 py",等于要他把包里已经写死的事实再抄一遍 ——
+// 抄错了还没人拦得住(选了 PYTHON 传 rust 包:不会编译、当脚本跑、报一个看不懂的语法错)。
+//
+// 首版定下之后**壳的 runtime 冻结**:后续版本的包类型必须与壳一致,否则拒。
+// 换语言等于换了个东西 —— uuid / fn_prefix / 已经装了它的那些机器人,一样都不能沿用。
 enum PluginRuntime {
-  PLUGIN_RUNTIME_PYTHON = 0; // 服务端跑的 py 脚本包(默认,历史插件全是这个)
-  PLUGIN_RUNTIME_NATIVE = 1; // 机器人本地跑的 rust 插件(源码上传,云端编译后下发)
+  PLUGIN_RUNTIME_PYTHON       = 0; // 服务端跑的 py 脚本包(历史插件全是这个,故占 0)
+  PLUGIN_RUNTIME_NATIVE       = 1; // 机器人本地跑的 rust 插件(源码上传,云端编译后下发)
+  PLUGIN_RUNTIME_UNDETERMINED = 2; // 空壳:还没有任何版本,包没上传过,语言未知
 }
 
 // ── NATIVE 的构建态 ────────────────────────────────────────────────────────
@@ -169,14 +185,18 @@ message PluginLoaded {
   bool   enabled = 4 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
-// 建空壳:插 a{uuid,name} + owner 的 c{source=original, enabled}。uuid 后台分配返回;此时无版本、无激活。
+// 建空壳:插 a{uuid,name,runtime=UNDETERMINED} + owner 的 c{source=original, enabled=false}。
+// uuid 后台分配返回;此时无版本、无激活、**语言未知**(见 PluginRuntime:首版的包说了算)。
 // data=插件级扩展数据(hiclub 放该机器人 api_key;hiai 直连则空)。
+//
+// ⚠️ **没有 runtime 字段,不要再加回来。** 4 号留空是原 `runtime` 的位置。
+// 建壳时还没有包,语言这件事在这一刻**不存在**;它由首版上传的包结构自动判定。
 message CreateShellReq {
+  reserved 4;
+  reserved "runtime";
   string      agent = 1 [(buf.validate.field).string.pattern="^\\S+$"];
   string      name  = 2 [(buf.validate.field).string.min_len = 1];
   google.protobuf.Struct data = 3; // c.data(插件级)
-  // 不填=PYTHON(历史行为)。NATIVE 的包是 rust 源码,由云端编译后下发到机器人本地跑。
-  PluginRuntime runtime = 4;
 }
 message CreateShellResp {
   option (hi.audience) = VIS_SELF;
