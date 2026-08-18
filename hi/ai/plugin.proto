@@ -351,8 +351,8 @@ message CreateReferenceReq {
 // 为什么带 agent:插件的**展示信息跟着出让方当前激活的那一版**走
 // (与"引用跟版"同一口径),而 active 是每个使用方各自的(d 表),所以必须给主体。
 message PluginRef {
-  string agent = 1 [(buf.validate.field).string.pattern="^\S+$"];
-  string uuid  = 2 [(buf.validate.field).string.pattern="^\S+$"];
+  string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  string uuid  = 2 [(buf.validate.field).string.pattern="^\\S+$"];
 }
 
 message PublicBriefsReq {
