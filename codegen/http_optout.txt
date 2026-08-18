@@ -43,7 +43,6 @@ hi.did.Assets.UpdateAddresses
 hi.did.Assets.ListAddresses
 hi.did.Auth.Verify
 hi.did.Auth.VerifyOffline
-hi.did.Auth.Notify
 hi.did.Auth.Logout
 hi.did.Base.ListCoins
 hi.did.Base.ServerVersion
