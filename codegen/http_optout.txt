@@ -8,6 +8,8 @@
 # 下面是机制落地时的存量,**尚未逐条确认**是"确实不需要"还是"也漏了"。确认一条删一条。
 # 内部面(AUTH_INTERNAL):子服务只由父服务经 grpc 转发调用,**不该**出现在 http gateway 上
 # —— 它们不鉴权,主体是调用方传进来的普通字段,一旦挂到 web 就是任填 did 的越权入口。
+# 设备侧读网关配置:机器人 grpc 直连,整个 service 不上 web 网关(web 走 Gateway.List)。
+service:hi.did.GatewayDevice
 service:hi.club.trade.Trade
 service:hi.club.trade.TradeManage
 service:hi.club.trade.Order

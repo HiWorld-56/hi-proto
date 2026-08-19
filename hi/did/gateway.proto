@@ -5,6 +5,7 @@ package hi.did;
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 
 import "google/protobuf/empty.proto";
+import "hi/common.proto";
 import "hi/options.proto";
 
 // ⚠️ 含 api_key(区块链节点凭证)—— 不是"任何人可见"的东西。
@@ -52,6 +53,24 @@ service Gateway {
     option (hi.auth) = AUTH_USER;
     option (hi.auth) = AUTH_MERCHANT;
   } // 列出网关配置(含 api_key,前端连节点用)
+}
+
+// 网关配置(**设备读**)。与 Gateway 同一份数据,差别只在**主体怎么证明自己**:
+//
+//   · `Gateway.List`      —— 主体是**登录用户/商户**,拿 token(web、app 登录后)。
+//   · `GatewayDevice.List` —— 主体是**设备**:它有私钥、**没有登录态**。
+//
+// 机器人(hinj-brain)就是后者:它跟 hi-did 之间只走验签接口(UpdateAddresses / Pay.Notify),
+// 从来没有 token。而端点与 api_key 又必须从服务端取 —— 写死在固件里意味着
+// 换节点要重新 OTA,key 还会随镜像发到每台设备上。
+//
+// ⚠️ 档位不同就必须拆 service(同 service 档位必须一致),与
+//    Gateway / GatewayAdmin、DApp / DAppAdmin 同一个范式。
+//
+// 载荷(SignedData.Data)不带任何字段(`{}` 即可)—— 这个方法**不依赖"我是谁"**,
+// 签名只用来证明"是一台持私钥的设备",挡住匿名抓取节点凭证。
+service GatewayDevice {
+  rpc List (hi.SignedData) returns (GatewayConfigListResp) { option (hi.auth) = AUTH_WEB3; }
 }
 
 // 网关配置维护(超管写)。纯内部运维:改区块链节点 url + api_key。
