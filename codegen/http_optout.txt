@@ -44,7 +44,6 @@ hi.did.Assets.ListAddresses
 hi.did.Auth.Verify
 hi.did.Auth.VerifyOffline
 hi.did.Auth.Logout
-hi.did.Auth.Notify
 hi.did.Base.ListCoins
 hi.did.Base.ServerVersion
 hi.did.Merchant.UploadLogo
