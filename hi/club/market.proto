@@ -434,16 +434,9 @@ enum MarketOrderKind {
 enum MarketOrderStatus {
   MARKET_ORDER_STATUS_OPEN     = 0; // 待付款
   MARKET_ORDER_STATUS_PAID     = 1; // 已付款并履行完毕
-  // 2 曾是 EXPIRED —— **过期的是付款凭据,不是这张业务单**。
+  // ⚠️ **没有 EXPIRED,不要加回来** —— 过期的是**付款凭据**,不是这张业务单。
   // 一张凭据超时作废,业务上"这台机器人要续期"这件事并没有作废:
   // 主订单还开着,换一张新凭据继续付即可。
-  //
-  // ⚠️ **这是本仓仅剩的一处 reserved,别顺手清掉。**
-  // 消息字段的 reserved 我们不留(下游当天全跟、按同一 tag 重新生成,风险窗口极短);
-  // 但**枚举值号是落在库里的**——`hi_club_market_order.status` 存的就是这个整数。
-  // 2 号一旦放开给别的含义,库里存量的 status=2 那些行就**直接换了意思**,
-  // 重新生成代码救不了。凡是被持久化的枚举,空号就得留着。
-  reserved 2;
   MARKET_ORDER_STATUS_CANCELED = 3;
 }
 
