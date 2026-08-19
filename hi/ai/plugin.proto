@@ -200,7 +200,10 @@ message PluginVersionView {
   PluginVersion version = 1 [(hi.visibility) = VIS_SELF];
   bool          active  = 2 [(hi.visibility) = VIS_SELF];
   google.protobuf.Struct data = 3 [(hi.visibility) = VIS_SELF]; // d.data
-  PluginBuild   build   = 4 [(hi.visibility) = VIS_SELF]; // 该版本的构建态(NATIVE 才有)
+  // ⚠️ **单数那个 `build` 已删** —— 一版有**多个架构**各自的构建态(aarch64 / x86_64),
+  // 塞进一个字段就只能显示其中一个:另一个编失败也看不见,页面上"绿了"而实际半残。
+  // 前端要把每个架构一行地列出来。
+  repeated PluginBuild builds = 5 [(hi.visibility) = VIS_SELF]; // 该版本各架构的构建态(NATIVE 才有)
 }
 
 // 插件加载完成通知(公开摘要,不带私产)。
