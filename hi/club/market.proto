@@ -166,12 +166,10 @@ message MarketListingDetail {
   // 这个包提供哪些方法。直接取自 hi.ai 那份 tools 数组(已是最终形态、name 带壳前缀),
   // 买家装之前就知道会得到什么能力。
   string capabilities = 2 [(hi.visibility) = VIS_PUBLIC];
-  // ⚠️ **没有 allow_follow_latest,不要再加回来。** 3 号是它原来的位置。
+  // ⚠️ **没有 allow_follow_latest,不要再加回来。**
   // "要不要自动跟新版"是**使用方自己的事**,归在 hi.ai 的使用行上
   // (`hi.ai.PluginView.follow_latest`,在"机器人 → 插件"那一行上开关)。
   // 卖家没有理由替买家决定他用哪一版 —— 买家买到的是这个插件,选版本是他的权利。
-  reserved 3;
-  reserved "allow_follow_latest";
   // 可选版本列表(引用方装好后可在其中切换)。
   repeated string versions = 4 [(hi.visibility) = VIS_PUBLIC];
   // 挂牌状态。**买家侧永远是 LISTED**(搜不到别的),这个字段是给 ListMyListings ——
@@ -241,8 +239,7 @@ message MarketGrantView {
   SettleMode  settle_mode  = 8 [(hi.visibility) = VIS_SELF];
   string      price        = 9 [(hi.visibility) = VIS_SELF];
   string      coin         = 10 [(hi.visibility) = VIS_SELF];
-  reserved 11;
-  reserved "follow_latest"; // 见 hi.ai.PluginView.follow_latest —— 归使用行,不归授权
+  // ⚠️ 没有 follow_latest:见 hi.ai.PluginView.follow_latest —— 归使用行,不归授权。
   string      version      = 12 [(hi.visibility) = VIS_SELF]; // 当前引用的版本
   int64       expire_at    = 13 [(hi.visibility) = VIS_SELF]; // installed_at + duration;0 = 永久
   string      action_url   = 14 [(hi.visibility) = VIS_SELF]; // 外部流程给的"去付款/去填资料"地址(可空)
@@ -258,6 +255,27 @@ message MarketGrantView {
 }
 
 // ── 公开面入参 ───────────────────────────────────────────────────────────────
+
+// ListSellersResp 卖家目录:**谁在卖** + 他有哪些摊位。
+//
+// 逛市场的顺序是「人 → 摊位 → 货」:先看见是谁在卖,再进他的摊位,再看待售的插件。
+// 直接铺一页插件的话,买家没法判断"这东西是谁出的"，而插件是要装进自己机器人里的三方代码。
+//
+// ⚠️ **只公开"有在售挂牌"的那些机器人的主人** —— 开店即自愿露出。
+//    这不是一个"任意 did → 查它主人"的反查口子(那个当年正是因为泄露归属被删掉的);
+//    没挂牌的机器人不会出现在这里。
+message MarketSeller {
+  option (hi.audience) = VIS_PUBLIC;
+  hi.Entity          master        = 1 [(hi.visibility) = VIS_PUBLIC]; // 卖家(主人)
+  repeated hi.Entity agents        = 2 [(hi.visibility) = VIS_PUBLIC]; // 他名下**有在售挂牌**的摊位
+  int32              listing_count = 3 [(hi.visibility) = VIS_PUBLIC]; // 在售挂牌总数
+}
+
+message ListSellersResp {
+  option (hi.audience) = VIS_PUBLIC;
+  int32                 total   = 1 [(hi.visibility) = VIS_PUBLIC];
+  repeated MarketSeller sellers = 2 [(hi.visibility) = VIS_PUBLIC];
+}
 
 message SearchListingsReq {
   string        keyword    = 1; // 空 = 不过滤
@@ -304,8 +322,6 @@ message CreateListingReq {
   // 挂牌时再填一遍就是同一个东西存两份 —— 必然漂:市场里叫「超强天气」、
   // 机器人插件列表里叫「weather」,而且没有任何一处会报错。
   // 市场展示一律**读侧现取**(见 MarketListingBrief 的注释)。
-  reserved 7, 8, 9;
-  reserved "title", "summary", "logo";
   repeated string tags        = 10; // 市场分类。**这个不删** —— 插件自身没有分类的概念
   // 收款方是否收到 **master** 名下。
   //
@@ -314,8 +330,7 @@ message CreateListingReq {
   //    传 false 也会被纠正 —— 不是"帮你改",是那个值与"软件机器人"这件事互相矛盾。
   // 前端**暂时不给这个选项**(隐藏),先把能力放在契约里。
   bool            payee_to_master = 14;
-  reserved 11;
-  reserved "allow_follow_latest"; // 见 MarketListingDetail:这件事归使用方,不归挂牌
+  // ⚠️ 没有 allow_follow_latest:见 MarketListingDetail —— 这件事归使用方,不归挂牌。
   // 外部流程的**办理页地址**(付款 / 填资料)。静态配置,club 拼上 grant_uuid 给前端跳转。
   //
   // 为什么是静态的:商户不再同步返回 action_url 了(它是"来拉"的一方,不在申请这条链路上)。
@@ -337,11 +352,8 @@ message EditListingReq {
   optional string coin     = 3;
   optional int64  duration = 4;
   // 同 CreateListingReq:展示信息以插件自身为准,改名字改简介去改插件。
-  reserved 5, 6, 7;
-  reserved "title", "summary", "logo";
   repeated string tags     = 8;
   optional bool   payee_to_master = 11; // 见 CreateListingReq:软件机器人没得选
-  reserved 9; // allow_follow_latest 已删,见 MarketListingDetail
   optional string action_url          = 10;
 }
 
@@ -379,8 +391,7 @@ message CreateListingResp {
 message ApplyReq {
   string listing_uuid = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
   string to_agent     = 2 [(buf.validate.field).string.pattern = "^\\S+$"]; // 装到哪台机器人上
-  reserved 3;
-  reserved "follow_latest"; // 买完之后在"机器人 → 插件"那一行上自己开关(hi.ai 的 c.follow_latest)
+  // ⚠️ 没有 follow_latest:买完之后在"机器人 → 插件"那一行上自己开关(hi.ai 的 c.follow_latest)。
   google.protobuf.Struct params = 4; // 外部流程要的额外参数,原样转给商户后台
 }
 
@@ -423,10 +434,9 @@ enum MarketOrderKind {
 enum MarketOrderStatus {
   MARKET_ORDER_STATUS_OPEN     = 0; // 待付款
   MARKET_ORDER_STATUS_PAID     = 1; // 已付款并履行完毕
-  // 2 曾是 EXPIRED —— **过期的是付款凭据,不是这张业务单**。
+  // ⚠️ **没有 EXPIRED,不要加回来** —— 过期的是**付款凭据**,不是这张业务单。
   // 一张凭据超时作废,业务上"这台机器人要续期"这件事并没有作废:
-  // 主订单还开着,换一张新凭据继续付即可。留空号是为了不让库里的旧行悄悄换含义。
-  reserved 2;
+  // 主订单还开着,换一张新凭据继续付即可。
   MARKET_ORDER_STATUS_CANCELED = 3;
 }
 
@@ -450,6 +460,20 @@ enum MarketPaymentStatus {
   // 与 EXPIRED 分开是因为前端要按主订单号查详情:滤掉 SUPERSEDED 就恰好剩当前那张,
   // 而列"付款记录"时全部原样列出,换过几次、每次为什么没成一眼可见。
   MARKET_PAYMENT_STATUS_SUPERSEDED = 3;
+  // **已上报,待链上确认。**
+  //
+  // 钱包广播完就报 hash,而那一刻交易在索引器里必然还查不到(实测 `state=notfound`)。
+  // 原来把"收下 hash"与"链上已成功"压在同一个瞬间判,于是**正常付款必然被拒**,
+  // 而且 hash 根本没落库 —— 钱付了,系统这边一点痕迹都没有。
+  //
+  // 所以拆成两段:上报即落库并占住这个 hash(进本态),链上确认由后台异步做。
+  // ⚠️ 进了本态就**不再按 expire_at 作废** —— 钱已经出去了,凭据过没过期不再是判据;
+  //    改由"确认截止"兜底(见 club 的 confirmDeadline)。
+  MARKET_PAYMENT_STATUS_REPORTED   = 4;
+  // 上报的那笔转账**链上明确不成立**(失败、或与订单对不上)。
+  // 与 EXPIRED 分开:这是"这笔钱不算数",不是"你没付" —— 下一步是重开一张凭据再付。
+  // ⚠️ 被否掉的 tx_hash **不释放**:释放就等于让人拿一笔失败交易反复试。
+  MARKET_PAYMENT_STATUS_REJECTED   = 5;
 }
 
 message MarketPayment {
@@ -471,6 +495,14 @@ message MarketPayment {
   //   因为那时候还没有"交易"。
   //   ⚠️ 它**不是判据**:市场认款从来不看谁掏的钱(订单写明了给谁履约)。
   //      落它只是记账,以及让当事人查得到自己的交易。
+  // to_account:**这一笔要打到哪个账户** —— 开凭据那一刻解析并写死。
+  //
+  // 单笔交易只认账号,不涉及"谁在交易" —— 执行方(hidid app / PC 工具)拿它去查
+  // 对应链的地址就能付,**不需要、也不该再判断"这个主体的钱该进谁的账户"**。
+  // 认款比对的也是它:付给谁与比对谁从此是同一个值,不是两次独立计算。
+  //
+  // 为什么落在凭据上而不是业务单上:凭据就是"这一笔"。换一张凭据会重新解析 ——
+  // 卖家中途改了 server,新凭据用新账号、旧凭据保留旧账号,天然是快照。
   // payee:收款方,**从订单带出来**(订单开出时就定了,之后不变)。
   //
   // 两个都不在这张表上另存一份:payee/amount/coin 在订单上不可变,
@@ -479,6 +511,15 @@ message MarketPayment {
   string              payee      = 9 [(hi.visibility) = VIS_SELF];
   string              amount     = 10 [(hi.visibility) = VIS_SELF];
   string              coin       = 11 [(hi.visibility) = VIS_SELF];
+  // **这一笔打到哪个账户**。与 payee(收款人)分开:见上面那段。
+  // 它是**落库的快照**,不是 join 出来的 —— 因为 server 可以被改,而这一笔的目标不能变。
+  string              to_account = 12 [(hi.visibility) = VIS_SELF];
+  // **二维码里装的就是这个号**(hidid 的 `M` 号,见 hi.did.PayRequest)。
+  //
+  // 扫码方按它去 hidid 取要素(收款账号/币种/金额/业务单号),**改不了** ——
+  // 所以码里不需要金额和地址,被替换也只会"查不到这个号"。
+  // 空 = 这张凭据还没登记(登记失败不该让开单失败,页面上重开一张即可)。
+  string              pay_req_id = 13 [(hi.visibility) = VIS_SELF];
 }
 
 // 我的交易记录。**只覆盖插件市场的订单**,不是全站流水。
@@ -517,13 +558,32 @@ message MarketOrder {
   string            target_agent = 3 [(hi.visibility) = VIS_SELF]; // 给**哪台机器人**
   MarketOrderKind   kind         = 4 [(hi.visibility) = VIS_SELF];
   MarketOrderStatus status       = 5 [(hi.visibility) = VIS_SELF];
-  // 收款方 DID。**后端推导,不接受前端指定** —— 让前端传就等于把"钱打给谁"变成可篡改入参。
-  string            payee        = 6 [(hi.visibility) = VIS_SELF];
+  // ⭐ **收款人与收款账号是两件事,各记一行** —— 去银行存钱要姓名也要账号,缺一不可。
+  //
+  //   payee         = **谁在收款**(交易者):硬件机器人自己 / 软件机器人的 master。
+  //                   界面显示、权属判断用它。
+  //   payee_account = **钱进哪个账户**(结算实体):`MerchantPub.Server` 解析的结果,
+  //                   默认 = payee 本人。商户可以把结算实体改到别的账号
+  //                   (`MerchantOwner.SetServer`,改它 = 改钱打给谁)。
+  //
+  // 混成一列的后果:那一列会随"谁改了 server"变,而"卖家是谁"不变 ——
+  // 两个变速不同的事实压在一起,迟早对不上。club-trade 早就是分开的
+  // (业务单记交易者、子单记账号),market 这边补齐,口径一致。
+  //
+  // ⚠️ **两个都由后端推导,不接受前端指定** —— 让前端传就等于把"钱打给谁"变成可篡改入参。
+  // ⚠️ `payee_account` 在**开单那一刻解析并写死**(与价格/时长同批快照):
+  //    卖家之后改 server,旧单不能跟着飘。
+  string            payee         = 6 [(hi.visibility) = VIS_SELF];
+  string            payee_account = 13 [(hi.visibility) = VIS_SELF];
+  // 付款人(买家)。**只记账,不作判据** —— 市场认款从来不看谁掏的钱,
+  // 判据是"这张单要的钱到账了没有"。记它是为了让当事人查得到自己的交易。
+  //
+  // 没有 payer_account:判据不看付款侧,加一个没人读的列只会让人以为它是判据。
+  string            payer         = 14 [(hi.visibility) = VIS_SELF];
   string            amount       = 7 [(hi.visibility) = VIS_SELF]; // 人类可读金额,如 "9.9"
   string            coin         = 8 [(hi.visibility) = VIS_SELF];
-  // 9 曾是 expire_at —— 有效期挪到**付款凭据**上了(MarketPayment.expire_at)。
+  // ⚠️ **没有 expire_at** —— 有效期挪到**付款凭据**上了(MarketPayment.expire_at)。
   // 业务单不过期:凭据超时只是那一次付款作废,这台机器人要续期这件事还在。
-  reserved 9;
   int64             created_at   = 10 [(hi.visibility) = VIS_SELF];
   // 把付款结果**报给哪个商户** —— 即图示里唤起 hidid 时要带的「商户DID」。
   //
@@ -583,12 +643,16 @@ message CreateRenewOrderReq {
 
 message MarketPayInfo {
   option (hi.audience) = VIS_SELF;
-  // 收款方 DID。**由后端按机器人类型自动定,不接受前端指定**:
-  // 硬件机器人 → 机器人自己;软件机器人 → 它的 master。
-  // 让前端传就等于把"钱打给谁"变成一个可篡改的入参。
-  string payee  = 1 [(hi.visibility) = VIS_SELF];
+  // ⚠️ **没有 `payee` 这个字段,不要加回来。** 它原来的语义是"收款方 DID",
+  //    而付款方拿它**直接当转账目标**。现在收款人与收款账号分开了,叫 payee 会让人
+  //    不知道该拿哪个去付款 —— 所以换成下面两个名字,各自说清自己是什么。
   string amount = 2 [(hi.visibility) = VIS_SELF]; // 人类可读金额,如 "9.9"
   string coin   = 3 [(hi.visibility) = VIS_SELF];
+  // **钱打到这个 did 的地址上** —— 结算实体(默认=收款人本人)。付款方只认它。
+  string payee_account = 4 [(hi.visibility) = VIS_SELF];
+  // **显示给用户看"你在付给谁"** —— 收款人本人。跳蚤市场下用户是把钱付给一个
+  // 陌生的机器人/用户,看不清收款人就不该让他按确认。
+  string payee_owner   = 5 [(hi.visibility) = VIS_SELF];
 }
 
 // ApplyResp
@@ -728,6 +792,7 @@ message ForceDelistReq {
 //    「不该随便让人反查某机器人的主人」被删掉的。挂牌页只吐机器人 Entity + 公开文案。
 service MarketDirectory {
   rpc SearchListings (SearchListingsReq) returns (SearchListingsResp) { option (hi.auth) = AUTH_NONE; }        // 搜插件
+  rpc ListSellers (hi.Pagination) returns (ListSellersResp) { option (hi.auth) = AUTH_NONE; }                  // 列卖家(有在售挂牌的主人 + 他的摊位)
   rpc ListAgentListings (ListAgentListingsReq) returns (SearchListingsResp) { option (hi.auth) = AUTH_NONE; }  // 逛某台机器人的"店"
   rpc GetListing (GetListingReq) returns (GetListingResp) { option (hi.auth) = AUTH_NONE; }                    // 挂牌详情
 }

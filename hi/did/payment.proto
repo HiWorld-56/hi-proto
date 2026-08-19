@@ -20,9 +20,66 @@ message Order {
   string hash = 3; // 链上交易 hash
 }
 
+// ── 明码标价的付款请求(reqid 带要素)───────────────────────────────────────
+//
+// **两种付款请求,靠 reqid 的前缀分流** —— 与登录的 `L` 号同一套形状:
+//
+//   `P` + 32  老的:hidid 只拿到号,**要素靠唤起时的深链参数给**;
+//             跨设备扫码给不了参数,而且金额要用户自己填(hi-club-trade 那种)。
+//   `M` + 32  新的:三方**先把要素登记进来**,付款方扫到号后按号取 ——
+//             收款账号/币种/金额都是登记好的,**用户不能改**(明码标价)。
+//
+// 为什么是"号 + 后台取"而不是"把要素塞进码里":二维码是可以被替换的,
+// 要素写在码里,扫码方无从分辨;而号是不可猜的 33 位,换掉只会"查不到这个号"。
+// 这也与登录那条完全对称(裸 reqId + 后端查会话 + 网页轮询),app 只多一个分支。
+//
+// ⚠️ **hidid 不解释业务单号**:`order_id` 原样存、原样回 —— 付款方回执时把它填进
+//    `Order.id`,商户按自己的号找自己的单(见 Order.id 的注释)。
+message PayRequestSpec {
+  option (hi.audience) = VIS_SELF;
+  // 钱打到**这个 did 的地址**上 —— 结算实体(三方已解析好,hidid 不再转换)。
+  string payee_account = 1 [(hi.visibility) = VIS_SELF];
+  // 显示用:**谁在收款**。跳蚤市场下付款方是把钱给一个陌生主体,看不清收款人不该让他确认。
+  string payee_owner   = 2 [(hi.visibility) = VIS_SELF];
+  string coin          = 3 [(hi.visibility) = VIS_SELF];
+  string amount        = 4 [(hi.visibility) = VIS_SELF]; // 人类可读,如 "9.9"
+  // 三方业务单号。**付款方回执时原样填进 `Order.id`**,hidid 不解释它。
+  string order_id      = 5 [(hi.visibility) = VIS_SELF];
+  // 把付款结果报给哪个商户(回执路由)。登记时由 hidid 按调用者身份填,**不收入参** ——
+  // 收了就等于让人把别人的付款结果引到自己这儿。
+  string merchant      = 6 [(hi.visibility) = VIS_SELF];
+  int64  expire_at     = 7 [(hi.visibility) = VIS_SELF]; // 秒;过期后 GetRequest 查不到
+}
+
 // Pay —— 典型账单-支付流程(与 OrderNotify/OrderEvent 的自动付款是两条独立流程):
 // 先 GenerateReq 申请支付号,付款完成后 Notify 后台去核对。
 service Pay {
-  rpc GenerateReq (hi.ClientInfo) returns (hi.RequestId) { option (hi.auth) = AUTH_NONE; }      // 公开:生成支付请求 reqId
+  rpc GenerateReq (hi.ClientInfo) returns (hi.RequestId) { option (hi.auth) = AUTH_NONE; }      // 公开:生成支付请求 reqId(老的 `P` 号,不带要素)
   rpc Notify (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_WEB3; }  // 验签:携带订单的支付通知(载荷签名)
+}
+
+// PayRequest —— **主体=三方商户**:登记一笔明码标价的付款请求,拿到 `M` 号画成二维码。
+//
+// 与下面的 PayRequestPayer 拆开,是因为**主体不同**(商户 vs 付款方)——
+// 同一个 service 里混档位就说明主体归类错了(见 hi/options.proto 的设计要点二)。
+service PayRequest {
+  // merchant 取自**调用者身份**,不收入参 —— 收了就等于让人把别人的付款结果引到自己那儿。
+  rpc Register (PayRequestSpec) returns (hi.RequestId) { option (hi.auth) = AUTH_MERCHANT; }
+}
+
+// PayRequestPayer —— **主体=付款方**(扫码的那个人):按号取要素。
+//
+// 档位是 **AUTH_WEB3(验签)**,不是 AUTH_USER:
+//   · 付款方是**钱包**,它天然会签名,但**不一定有 hidid 的登录态**
+//     (我们自己的 hidid-simple-app 就只有钱包、没有登录 token);
+//   · 也不做 AUTH_NONE —— 号虽不可猜,公开就等于给了一个匿名探测接口
+//     (拿到号就能看金额与收款人)。签一下既证明"是个真实 did",又不要求登录。
+//
+// 载荷(SignedData.Data,JSON):`{"req_id":"M…"}`。
+message PayRequestQuery {
+  string req_id = 1;
+}
+
+service PayRequestPayer {
+  rpc Get (hi.SignedData) returns (PayRequestSpec) { option (hi.auth) = AUTH_WEB3; }
 }

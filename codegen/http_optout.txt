@@ -124,3 +124,11 @@ hi.ai.Plugin.SetActiveAll
 # 名字/图/简介)。hiai-web 那边不需要:它看的是自己商户的插件,走 Get/List 就有。
 # 挂到 http 上等于多开一个"按 (agent,uuid) 批量探展示信息"的公开口子,没有用处。
 hi.ai.Plugin.PublicBriefs
+
+# 付款请求登记/查询 —— **只走 grpc**。
+# · PayRequest.Register:三方后端(club 这类)登记,服务端之间调用,不经浏览器;
+# · PayRequestPayer.Get:**hidid app / 钱包**扫到码之后按号取要素,也是 grpc 直连。
+# 挂到 http 网关上没有用处,只多一个暴露面(那两条一个能写别人的付款请求路由、
+# 一个能按号读金额与收款人)。
+service:hi.did.PayRequest
+service:hi.did.PayRequestPayer
