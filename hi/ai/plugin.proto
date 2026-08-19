@@ -177,10 +177,13 @@ message PluginView {
   int32         ref_count    = 5 [(hi.visibility) = VIS_SELF]; // 被多少机器人引用(实时 COUNT)
   google.protobuf.Struct data         = 6 [(hi.visibility) = VIS_SELF]; // c.data:插件级扩展数据(含 api_key)
   google.protobuf.Struct version_data = 7 [(hi.visibility) = VIS_SELF]; // 激活版本的 d.data:版本级扩展数据
-  // 激活版本的构建态。**NATIVE 才有,PYTHON 恒空。**
+  // 激活版本的构建态,**每个架构一条**(aarch64 / x86_64)。NATIVE 才有,PYTHON 恒空。
   // 一级页要它是因为:NATIVE 插件"挂上了"不等于"能用了" —— 中间隔着一次交叉编译。
   // 不回显的话,用户看到插件已启用、机器人却始终没装上,查不出是编失败了。
-  PluginBuild   build        = 8 [(hi.visibility) = VIS_SELF];
+  //
+  // ⚠️ 8 号那个单数 `build` 已删:一版多架构,单个字段只能显示其中一个,
+  //    另一个编失败就看不见 —— 页面"绿了"而实际半残。
+  repeated PluginBuild builds = 12 [(hi.visibility) = VIS_SELF];
   // c.follow_latest:这台机器人要不要自动切到作者发的新版。
   //
   // ⭐ **这是使用方自己的事,归在使用行(c)上,不在挂牌上。**
