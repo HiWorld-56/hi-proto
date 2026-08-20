@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
+
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+import "hi/options.proto";
+import "buf/validate/validate.proto";
+
+// ── 机器人的资金流水 ─────────────────────────────────────────────────────────
+//
+// **只装非市场支出。** 市场订单(买插件、续费)有自己的一份 `MarketPayment`,
+// 那份挂在订单上、由认款流程写。同一笔记两处必然漂 —— 一处改了另一处不会知道。
+// 页面上要"一张总表"就在**上层合并两个来源**,不要在库里存第二份。
+//
+// 第一种是**提款**:硬件机器人把自己收到的钱结算给主人。它不经市场、不产生订单,
+// 在此之前**全网没有任何地方看得到它** —— 出了事只能上链去翻。
+//
+// ## 为什么由机器人自己报
+//
+// 付款方是机器人(私钥在它手里,club 全程碰不到钱),所以只有它知道"这笔发出去了"。
+// 用的是它自己的已认证通道 —— `payer` 天然就是它,不接受入参
+// (让调用方传付款人,等于给自己开一个"以别人的名义记账"的口子)。
+//
+// ## 它是**留痕**,不是判据
+//
+// 防重复付款那本账在机器人本地(sqlite,先落意向再动钱)。本表是给人看的:
+// 上报失败不能让钱卡住,所以机器人是**攒着补报**的 —— 于是同一条可能报两次,
+// 靠 `uuid` 幂等。**别拿本表当"付没付过"的依据**:它可能迟到,也可能永远不到
+// (机器人在报出去之前就下线了)。
+service Ledger {
+  // 机器人上报一笔自己花出去的钱。**幂等**:同 uuid 重复上报只更新,不新增。
+  rpc Record (FundsRecord) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
+  // 查流水。空 did = 看我自己;填了则**必须是我的仆从机器人**。
+  rpc List (ListFundsReq) returns (ListFundsResp) { option (hi.auth) = AUTH_USER; }
+}
+
+// 这笔钱是干什么的。**只是分类,不是判据** —— 服务端不会因为它给或不给什么。
+enum FundsKind {
+  FUNDS_KIND_UNSPECIFIED = 0;
+  // 提款:机器人把收到的钱结算给**它的主人**。
+  FUNDS_KIND_WITHDRAW    = 1;
+  // 其它付款(三方插件发起的转账)。市场订单不走这里 —— 见文件头。
+  FUNDS_KIND_PAY         = 2;
+}
+
+// 这笔钱到哪一步了。
+//
+// ⚠️ **没有"已确认上链"这一档。** 要有它就得有人去查链:club 不连链,
+//    让机器人长轮询又会把它钉在一笔交易上。现在只记"广播出去了",
+//    要确认状态拿 `tx_hash` 去区块浏览器 —— 那是链上公开事实,不必在这里再存一份。
+enum FundsStatus {
+  FUNDS_STATUS_UNSPECIFIED = 0;
+  // 已广播,有 tx_hash。
+  FUNDS_STATUS_SENT        = 1;
+  // **一分钱没动**就停了(收款人没有该链的地址、余额或手续费不够)。
+  // 记它是因为"为什么没提成"也是主人要看的东西 —— 而且它恰恰是最常被问的那个。
+  FUNDS_STATUS_FAILED      = 2;
+}
+
+message FundsRecord {
+  option (hi.audience) = VIS_SELF;
+  // 幂等键,**由机器人本地生成**(它先落账再动钱,uuid 那时就有了)。
+  // 不用时间戳:补报第二次就会变成两行。
+  string      uuid       = 1 [(buf.validate.field).string.pattern = "^\\S+$", (hi.visibility) = VIS_SELF];
+  FundsKind   kind       = 2 [(hi.visibility) = VIS_SELF];
+  // 付款人 = 机器人自己。**上报时不看这一栏**(主体取自凭证),回读时才填 ——
+  // 收在这里是为了让"我的仆从们的流水"一张表里分得清是哪台。
+  string      payer      = 3 [(hi.visibility) = VIS_SELF];
+  // 收款人的 did。提款时就是主人。
+  string      payee      = 4 [(hi.visibility) = VIS_SELF];
+  // 收款人在该链上的地址 —— did 是身份,地址是这一笔真正打到的地方,两个都要留:
+  // 对账时人拿着地址去链上翻,而 did 才说得清"这是谁"。
+  string      to_address = 5 [(hi.visibility) = VIS_SELF];
+  string      chain      = 6 [(hi.visibility) = VIS_SELF];
+  string      coin       = 7 [(hi.visibility) = VIS_SELF];
+  // 人类可读金额,如 "12.5"。**实际发出去的数** —— 全提时它与余额必然不同。
+  string      amount     = 8 [(hi.visibility) = VIS_SELF];
+  // 为手续费预留的量,以及它的币种。**手续费是本币** —— 转 USDT-TRC20 烧的是 TRX,
+  // 只给一个数字不给币种,页面上会显示成"手续费 1.1 USDT"。
+  string      fee        = 9 [(hi.visibility) = VIS_SELF];
+  string      fee_coin   = 10 [(hi.visibility) = VIS_SELF];
+  string      tx_hash    = 11 [(hi.visibility) = VIS_SELF];
+  FundsStatus status     = 12 [(hi.visibility) = VIS_SELF];
+  // 失败原因(status=FAILED 时)。原样存机器人报上来的那句话 ——
+  // 它是给人看的("有 USDT 但没 TRX 付手续费"),不参与任何判断。
+  string      reason     = 13 [(hi.visibility) = VIS_SELF];
+  // 这笔钱**发生**的时间(机器人本地落账的时刻),不是上报到达的时刻。
+  // 补报可能迟到几小时,按到达时间排会把顺序打乱。
+  int64       created_at = 14 [(hi.visibility) = VIS_SELF];
+}
+
+message ListFundsReq {
+  // 看谁的。空 = 看我自己;填了则**必须是我的仆从机器人**。
+  //
+  // ⚠️ 与 `Market.ListTransactions` 同一条规矩,别顺手放宽成"填谁都行" ——
+  //    那样它就成了拿别人 did 翻别人流水的口子,而这一栏看起来只是个筛选条件。
+  string        did        = 1;
+  hi.Pagination pagination = 2;
+}
+
+message ListFundsResp {
+  option (hi.audience) = VIS_SELF;
+  repeated FundsRecord list = 1 [(hi.visibility) = VIS_SELF];
+}
