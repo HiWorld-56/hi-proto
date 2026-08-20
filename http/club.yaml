@@ -17,6 +17,14 @@ http:
     post: /api/v1/auth/logout
     body: "*"
 # Base
+  # ⚠️ Base 的两个方法原来**没进这张表** —— 于是 grpc-gateway 只生成默认的
+  # /hi.club.Base/ListCoins,而 web 的 nginx 只把 /api/v1/... 转给后端:
+  # 前端一调就是 405「请求方法未被允许」(nginx 的静态 location 不收 POST),
+  # 后端日志里什么都看不到。2026-08-20 挂牌弹窗要币种下拉时撞上。
+  - selector: hi.club.Base.ListCoins
+    get: /api/v1/base/list_coins
+  - selector: hi.club.Base.ServerVersion
+    get: /api/v1/base/server_version
   - selector: hi.club.SuperAdmin.List
     get: /api/v1/super_admin/list
 # Agent
