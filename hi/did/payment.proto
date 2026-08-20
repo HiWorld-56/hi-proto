@@ -65,6 +65,15 @@ service Pay {
 service PayRequest {
   // merchant 取自**调用者身份**,不收入参 —— 收了就等于让人把别人的付款结果引到自己那儿。
   rpc Register (PayRequestSpec) returns (hi.RequestId) { option (hi.auth) = AUTH_MERCHANT; }
+  // Close 这个号**用掉了**,立刻作废。三方认款成功后调,不等它自然过期。
+  //
+  // 不作废的后果是真金白银:码还能扫,付款方(或者拿到码的任何人)可以照着**再付一次**,
+  // 每一次在钱包那头都是"付款成功"。三方那边第二笔认不上单(订单已付),
+  // 钱却已经出去了 —— 2026-08-20 测试反馈的就是这条。
+  //
+  // 只有**登记它的那个商户**能关(比对 spec.merchant);号不存在也返回成功 ——
+  // 幂等,且不告诉调用方"这个号存在过"。
+  rpc Close (hi.RequestId) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }
 }
 
 // PayRequestPayer —— **主体=付款方**(扫码的那个人):按号取要素。

@@ -16,13 +16,19 @@ service:hi.club.trade.Order
 service:hi.ai.plugin.Runner
 service:hi.ai.plugin.Builder
 
-# hi.club.Base 的唯一 http 路由(LatestVersion)随该接口一起删了 —— 剩下的 ListCoins/ServerVersion
-# 本就只走 grpc(app 用 grpc 直连),故整体声明不导出。
-service:hi.club.Base
+# hi.club.Base 2026-08-20 重新配了 http 路由,**不再豁免** ——
+# 前提变了:hiclub-web 的挂牌弹窗要按币种下拉,而币种的唯一来源是 hidid 的 hi_coin 表、
+# club 只是转一道(前端不许自己写死第二份)。web 的 nginx 只把 /api/v1/... 转给后端,
+# 只走 grpc 就等于前端根本够不着 —— 实测调默认路径 /hi.club.Base/ListCoins 是
+# nginx 的 405「请求方法未被允许」,后端日志里一行都没有。
 
 # 流式方法:grpc-gateway 不适合搬二进制流,web 端不经它们(发布页面用 Latest/Publish 即可)。
 hi.did.ReleaseManage.UploadPackage
 hi.did.Release.Download
+
+# 内部面:三方(club)认款成功后作废自己登记的付款号。只走 grpc(商户后端 → hidid),
+# 前端与钱包都不该够得着"作废别人的付款号"这个动作。
+hi.did.PayRequest.Close
 
 # 内部面:插件出新版时由 hi.ai 经 grpc 叫 hidid 用 root 账号广播一嗓子。
 # 不配 http —— 它会惊动全体机器人,挂到 web 上就是一个人人可按的开关。
@@ -34,8 +40,6 @@ hi.club.Agent.BindMaster
 hi.club.Agent.UnbindMaster
 hi.club.Agent.BindStatus
 hi.club.Auth.Verify
-hi.club.Base.ListCoins
-hi.club.Base.ServerVersion
 hi.club.Trade.GetFee
 hi.club.Trade.Add
 hi.club.Trade.UpdateTransHash

@@ -120,6 +120,13 @@ enum GrantStatus {
   GRANT_STATUS_REJECTED  = 4;
   GRANT_STATUS_REVOKED   = 5; // 被出让方撤回
   GRANT_STATUS_EXPIRED   = 6; // 到期
+  // 受让方**自己把插件删了**。与 REVOKED 分开:一个是"卖家收回",一个是"买家不要了",
+  // 对账时这两件事的结论完全不同。
+  //
+  // ⚠️ 它同时是**去重的解锁位**:GetLiveGrant 只把 PENDING/APPROVED/INSTALLED 当"还活着",
+  // 买家删掉插件后授权若还停在 INSTALLED,他再买/再收同一个插件会被判成"已经有授权了",
+  // 于是**永远装不回来**。
+  GRANT_STATUS_UNINSTALLED = 7; // 受让方已删除该插件
 }
 
 // ── 公开面数据 ───────────────────────────────────────────────────────────────
