@@ -26,6 +26,10 @@ service:hi.ai.plugin.Builder
 hi.did.ReleaseManage.UploadPackage
 hi.did.Release.Download
 
+# 内部面:三方(club)认款成功后作废自己登记的付款号。只走 grpc(商户后端 → hidid),
+# 前端与钱包都不该够得着"作废别人的付款号"这个动作。
+hi.did.PayRequest.Close
+
 # 内部面:插件出新版时由 hi.ai 经 grpc 叫 hidid 用 root 账号广播一嗓子。
 # 不配 http —— 它会惊动全体机器人,挂到 web 上就是一个人人可按的开关。
 service:hi.did.BroadcastInternal
