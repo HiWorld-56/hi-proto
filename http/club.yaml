@@ -64,6 +64,17 @@ http:
   - selector: hi.club.Agent.Transfer
     post: /api/v1/agent/transfer
     body: "*"
+  # ⚠️ 绑定/解绑原来**只走 grpc**,web 是手写 HTTP 客户端,够不着 ——
+  # 于是机器人页上只剩一个"删除",而删除对**硬件机器人**是解除注册(它得自己重新
+  # 登录才回得来)。硬件机器人该用的是解绑:关系断掉、机器人本身还在,可以再绑给别人。
+  # 2026-08-21 补路由,web 才做得出"绑定 Robot / 解绑"。
+  # (BindStatus 没补 —— web 的绑定流程用不到它,真需要再加。)
+  - selector: hi.club.Agent.BindMaster
+    post: /api/v1/agent/bind_master
+    body: "*"
+  - selector: hi.club.Agent.UnbindMaster
+    post: /api/v1/agent/unbind_master
+    body: "*"
   - selector: hi.club.AgentManage.List
     post: /api/v1/agent_manage/list
     body: "*"
