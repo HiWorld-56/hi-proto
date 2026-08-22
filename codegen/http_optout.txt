@@ -138,3 +138,9 @@ hi.ai.Plugin.PublicBriefs
 # 一个能按号读金额与收款人)。
 service:hi.did.PayRequest
 service:hi.did.PayRequestPayer
+
+# 付款成功后叫后台替自己通知收款方 —— **只走 grpc**,调用方是**钱包**
+# (hidid-app / hidid-simple-app / hinj-brain),它们直连 hidid 的 grpc。
+# 浏览器里没有钱包、也没有私钥,web 端不存在"我刚付完一笔"这件事。
+# 挂到 http 网关上只多一个暴露面:一个能往任意 did 的 MQTT 单聊主题投递通知的公开口子。
+service:hi.did.Notify
