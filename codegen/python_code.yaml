@@ -10,9 +10,14 @@
 #    作者 import 时直接报 "Runtime version cannot be older than the linked gencode version",
 #    **一个 proto 模块都加载不了**。生成物看着齐全,拿到手全是废的。
 #    升这个号之前先确认 PyPI 上有对应或更高的 protobuf 运行时。
+#
+# ⚠️ **两套号别搞混**:插件号是 protoc 那套(v35.1 / v36.0),生成物里写的
+#    "Protobuf Python Version" 是**运行时**那套(7.35.1 / 7.36.0)。
+#    对应关系实测:插件 v35.1 → gencode 7.35.1(PyPI 上装得到);
+#    插件 v36.0(当前最新)→ gencode 7.36.0(**PyPI 上还没有**)。
 version: v2
 plugins:
-  - remote: buf.build/protocolbuffers/python:v7.35.1
+  - remote: buf.build/protocolbuffers/python:v35.1
     out: ../hi-proto-code/python
     include_imports: true
     include_wkt: true
