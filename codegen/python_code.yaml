@@ -13,11 +13,17 @@
 #
 # ⚠️ **两套号别搞混**:插件号是 protoc 那套(v35.1 / v36.0),生成物里写的
 #    "Protobuf Python Version" 是**运行时**那套(7.35.1 / 7.36.0)。
-#    对应关系实测:插件 v35.1 → gencode 7.35.1(PyPI 上装得到);
-#    插件 v36.0(当前最新)→ gencode 7.36.0(**PyPI 上还没有**)。
+#    对应关系实测:v29.3→5.29.3 / v31.1→6.31.1 / v33.0→6.33.0 / v35.1→7.35.1 / v36.0→7.36.0。
+#
+# 🔴 **要钉得比"作者机器上大概率装着的运行时"更老。** 规则是 runtime 必须 >= gencode,
+#    而 `pip install protobuf` 见到已装的旧版就**不升级** —— 实测两台机器差很多:
+#    一台 conda 里本来就有 6.33.0(pip 不动它),另一台干净 venv 装到 7.35.1。
+#    钉 v31.1(gencode 6.31.1)是为了这两种都能跑;钉新的话前一种直接 import 失败,
+#    而错误是"Runtime version cannot be older than the linked gencode version",
+#    作者一眼看不出是我们生成物的问题。
 version: v2
 plugins:
-  - remote: buf.build/protocolbuffers/python:v35.1
+  - remote: buf.build/protocolbuffers/python:v31.1
     out: ../hi-proto-code/python
     include_imports: true
     include_wkt: true
