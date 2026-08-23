@@ -156,7 +156,14 @@ LID2=$(echo "$L2"|g data uuid)
 cj market/set_listing_status "{\"uuid\":\"$LID2\",\"status\":2}" "$SELLER_TOK" >/dev/null
 A2=$(cj market/apply "{\"listing_uuid\":\"$LID2\",\"to_agent\":\"$BB\"}" "$BUYER_TOK")
 G2=$(echo "$A2"|g data grantUuid)
-chk "**软件机器人也能卖**(收款方=它的 master)" "$(echo "$A2"|g data pay payee)" "$SELLER_DID"
+# ⚠️ `MarketPayInfo.payee` **已经删了,别再读它**(proto 里那句"不要加回来"就是说它)——
+# 收款人与收款账号已经分成两个字段,各自说清自己是什么:
+#   payeeAccount 钱打到这个 did 的地址上,**付款方只认它**
+#   payeeOwner   摊主本人,界面用来显示"你在付给谁"
+# 软件机器人没有私钥,所以这两个天然不同:账号落主人、收款人还是机器人自己。
+# 这也正是"软件机器人也能卖"这件事的落地点(当初按类型卡死它完全卖不了东西)。
+chk "**软件机器人也能卖**:钱落到主人账户" "$(echo "$A2"|g data pay payeeAccount)" "$SELLER_DID"
+chk "收款人仍是摊主本人(不是主人)" "$(echo "$A2"|g data pay payeeOwner)" "$SB"
 chk "回了金额" "$(echo "$A2"|g data pay amount)" "9.9"
 # 订单制之后:付费购买由 Apply **顺带开出账单**;认款则**没有客户端入口** ——
 # 付款方只对 hidid 上报,由 hidid 按订单里的商户DID 回调 club(hi.did.PayCallback.Pay)。
