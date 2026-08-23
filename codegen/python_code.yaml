@@ -2,16 +2,21 @@
 #
 # 谁在用:**三方插件作者的本地调试**。他们在自己机器上跑插件时,`plugin_builtin.call`
 # 要真的调到 hiclub(假回复测不出方法有没有用),而调用一律走 grpc + protobuf ——
-# 多端数据一致性的前提就是这个,不给 python 生成物、让他们自己拼 JSON 是走回头路。
+# 多端数据一致性的前提就是这个。
 #
-# include_imports/include_wkt 与 dart 那档同理:作者环境里不该再去找 google/* 的 .proto。
+# 🔴 **插件版本必须钉住**(与 dart 那档同理)。不钉的话 buf 会用 BSR 上的**最新**插件,
+#    而它的 gencode 版本可能**领先 PyPI 上能装到的运行时** —— 实测踩过:
+#    生成物写着 gencode 7.36.0,而 pip 装到的最新 protobuf 是 7.35.1,
+#    作者 import 时直接报 "Runtime version cannot be older than the linked gencode version",
+#    **一个 proto 模块都加载不了**。生成物看着齐全,拿到手全是废的。
+#    升这个号之前先确认 PyPI 上有对应或更高的 protobuf 运行时。
 version: v2
 plugins:
-  - remote: buf.build/protocolbuffers/python
+  - remote: buf.build/protocolbuffers/python:v7.35.1
     out: ../hi-proto-code/python
     include_imports: true
     include_wkt: true
-  - remote: buf.build/grpc/python
+  - remote: buf.build/grpc/python:v1.76.0
     out: ../hi-proto-code/python
     include_imports: true
     include_wkt: true
