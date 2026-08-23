@@ -1,0 +1,17 @@
+# python 生成物 → hi-proto-code/python
+#
+# 谁在用:**三方插件作者的本地调试**。他们在自己机器上跑插件时,`plugin_builtin.call`
+# 要真的调到 hiclub(假回复测不出方法有没有用),而调用一律走 grpc + protobuf ——
+# 多端数据一致性的前提就是这个,不给 python 生成物、让他们自己拼 JSON 是走回头路。
+#
+# include_imports/include_wkt 与 dart 那档同理:作者环境里不该再去找 google/* 的 .proto。
+version: v2
+plugins:
+  - remote: buf.build/protocolbuffers/python
+    out: ../hi-proto-code/python
+    include_imports: true
+    include_wkt: true
+  - remote: buf.build/grpc/python
+    out: ../hi-proto-code/python
+    include_imports: true
+    include_wkt: true
