@@ -85,9 +85,27 @@ fn main() -> Result<()> {
             }
         }
     }
+    // ── 描述符也留进 crate ────────────────────────────────────────────────
+    //
+    // 谁要它:**hinj-brain**。插件经 `ctx.call("hi.club.User/GetOther", body)` 回调 hiclub 时,
+    // 宿主要按方法名找出收发类型才能编解码。Go 那侧靠生成代码自动注册的全局表(protoregistry),
+    // prost **没有**这种东西 —— 要么手写一张"路径→类型"的表,要么带一份描述符。
+    //
+    // 🔴 手写表的坏处已经吃过:club 那边的白名单是另一份清单,两份要同步,漂了不报错,
+    //    只表现成"文档说能调、实际调不到"。所以带描述符、零表格。
+    //
+    // ⚠️ **必须随 crate 走,不能让消费方自己去别处取一份** —— 那样描述符与生成代码
+    //    会各自漂到不同版本,而症状是"某个字段解出来是空的",查起来毫无头绪。
+    //    放这里就与 crate 版本天然锁死。
+    out_lines.push(String::new());
+    out_lines.push("/// 全量 FileDescriptorSet(含 hi.* 与 imports)。".into());
+    out_lines.push("///".into());
+    out_lines.push("/// 给需要**按方法名动态编解码**的宿主用(见 hinj-brain 的 ctx.call)。".into());
+    out_lines.push("/// prost 不像 protobuf-go 那样有全局注册表,只能带着这份说明书。".into());
+    out_lines.push(
+        "pub const FILE_DESCRIPTOR_SET: &[u8] = include_bytes!(\"hi_proto_descriptor.bin\");".into(),
+    );
     File::create(&entry_file_path)?.write_all((out_lines.join("\n") + "\n").as_bytes())?;
-    // descriptor.bin 不必进 crate
-    let _ = fs::remove_file(&descriptor_path);
     println!("生成完成 -> {}", out_root.display());
     Ok(())
 }
