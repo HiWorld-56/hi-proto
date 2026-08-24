@@ -1,0 +1,33 @@
+# python 生成物 → hi-proto-code/python
+#
+# 谁在用:**三方插件作者的本地调试**。他们在自己机器上跑插件时,`plugin_builtin.call`
+# 要真的调到 hiclub(假回复测不出方法有没有用),而调用一律走 grpc + protobuf ——
+# 多端数据一致性的前提就是这个。
+#
+# 🔴 **插件版本必须钉住**(与 dart 那档同理)。不钉的话 buf 会用 BSR 上的**最新**插件,
+#    而它的 gencode 版本可能**领先 PyPI 上能装到的运行时** —— 实测踩过:
+#    生成物写着 gencode 7.36.0,而 pip 装到的最新 protobuf 是 7.35.1,
+#    作者 import 时直接报 "Runtime version cannot be older than the linked gencode version",
+#    **一个 proto 模块都加载不了**。生成物看着齐全,拿到手全是废的。
+#    升这个号之前先确认 PyPI 上有对应或更高的 protobuf 运行时。
+#
+# ⚠️ **两套号别搞混**:插件号是 protoc 那套(v35.1 / v36.0),生成物里写的
+#    "Protobuf Python Version" 是**运行时**那套(7.35.1 / 7.36.0)。
+#    对应关系实测:v29.3→5.29.3 / v31.1→6.31.1 / v33.0→6.33.0 / v35.1→7.35.1 / v36.0→7.36.0。
+#
+# 🔴 **要钉得比"作者机器上大概率装着的运行时"更老。** 规则是 runtime 必须 >= gencode,
+#    而 `pip install protobuf` 见到已装的旧版就**不升级** —— 实测两台机器差很多:
+#    一台 conda 里本来就有 6.33.0(pip 不动它),另一台干净 venv 装到 7.35.1。
+#    钉 v31.1(gencode 6.31.1)是为了这两种都能跑;钉新的话前一种直接 import 失败,
+#    而错误是"Runtime version cannot be older than the linked gencode version",
+#    作者一眼看不出是我们生成物的问题。
+version: v2
+plugins:
+  - remote: buf.build/protocolbuffers/python:v31.1
+    out: ../hi-proto-code/python
+    include_imports: true
+    include_wkt: true
+  - remote: buf.build/grpc/python:v1.76.0
+    out: ../hi-proto-code/python
+    include_imports: true
+    include_wkt: true

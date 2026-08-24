@@ -119,8 +119,29 @@ list_tags() {
   fi
   printf '%s\n' "$out" | sed 's|.*refs/tags/||; s|\^{}$||' | sort -u
 }
+# 两仓的 tag 分开存。合并列表只给 dev 段推算 N 用(两仓共用同一个 N,那是有意的);
+# **存在性判断必须按仓** —— 旧写法 `tag_exists()` 收了 repo 参数却不用,一律 grep 合并列表。
+# 2026-08-21 被这条咬过一次:发 v1.5.8 时人手先给 hi-proto 打了 tag(本该全交给 CI),
+# 合并列表里于是有了 v1.5.8 → 轮到 hi-proto-code 时判定"已存在,跳过",
+# **hi-proto-code 根本没打上 v1.5.8**。而且没有任何报错:CI 绿、main 也推上去了,
+# 只是下游按 tag 引用够不着那一版 —— 正是 CLAUDE.md 里说的"等于没发布,且不报错"。
 REMOTE_TAGS=""
-tag_exists() { printf '%s\n' "$REMOTE_TAGS" | grep -qx "$2"; }
+CODE_TAGS=""
+HP_TAGS=""
+load_tags() {   # 一次性拉两仓的 tag:分开存 + 合并一份
+  CODE_TAGS=$(list_tags "$CODE")
+  HP_TAGS=$(list_tags "$HP")
+  REMOTE_TAGS=$(printf '%s\n%s\n' "$CODE_TAGS" "$HP_TAGS")
+}
+tag_exists() {  # repo tag —— 只看**这个仓**自己的 tag(打 tag 前的存在性判断用这个)
+  case "$1" in
+    "$CODE") printf '%s\n' "$CODE_TAGS" ;;
+    *)       printf '%s\n' "$HP_TAGS" ;;
+  esac | grep -qx "$2"
+}
+# tag —— 两仓**任一**有就算占用。dev 段推算 N 专用:两仓共用同一个 N 是有意的,
+# 一边跳号另一边不跳,两仓的 devN 就会错位。别把它和上面那个混用。
+tag_exists_any() { printf '%s\n' "$REMOTE_TAGS" | grep -qx "$1"; }
 push_tag() {  # repo tag ref
   local repo=$1 tag=$2 ref=$3
   if tag_exists "$repo" "$tag"; then echo "  $tag 已存在于 $(basename $repo),跳过(不移动已发布 tag)"; return; fi
@@ -132,7 +153,7 @@ push_tag() {  # repo tag ref
 
 if [ "$BR" = main ]; then
   TAG="v$BASE"
-  REMOTE_TAGS=$(printf '%s\n%s\n' "$(list_tags "$CODE")" "$(list_tags "$HP")")
+  load_tags
   echo "[ci] 正式发布 $TAG"
   # hi-proto-code:dev 合入 main 再打 tag
   git -C "$CODE" checkout -fq main
@@ -156,9 +177,9 @@ else
   # ⚠️ 换格式必须**同时提 minor**(1.4.0 → 1.5.0):在同一个 base 上换格式救不了 ——
   #    `v1.4.0-dev.103` 和零填充的 `v1.4.0-dev0103` 都**仍然小于** `v1.4.0-dev99`
   #    ('.' 和 '0' 的 ASCII 都小于 '9')。只有抬高 base 才能盖过整段旧序列。
-  REMOTE_TAGS=$(printf '%s\n%s\n' "$(list_tags "$CODE")" "$(list_tags "$HP")")
+  load_tags
   N=1
-  while tag_exists x "v${BASE}-dev.${N}"; do N=$((N+1)); done
+  while tag_exists_any "v${BASE}-dev.${N}"; do N=$((N+1)); done
   TAG="v${BASE}-dev.${N}"
   echo "[ci] 预发布 $TAG"
   push_tag "$CODE" "$TAG" origin/dev

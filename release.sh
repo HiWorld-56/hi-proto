@@ -18,7 +18,7 @@ echo "[hi-proto] $(git -C "$HIPROTO" rev-parse --short HEAD)"
 
 # 鉴权标注校验:每个 rpc 必须显式标注 hi.auth。规则长在方法上,后端拦截器读 descriptor;
 # 漏标即 fail-closed(线上会被拒绝),故在生成前就拦下,而不是等上线才发现。
-echo "[0/5] 校验 hi.auth 标注"
+echo "[0/6] 校验 hi.auth 标注"
 python3 "$HIPROTO/codegen/check_auth.py"
 
 # 请求/响应命名坏味道(纯 proto 侧,硬拦):All 冗余段、裸 Manage/Admin 前缀。
@@ -60,10 +60,10 @@ done
 # 当成当前清单会被误导。生成物入库,便于 review 时直接看接口面变化。
 python3 "$HIPROTO/codegen/gen_api_surface.py"
 
-echo "[1/5] 合并 HTTP 配置"
+echo "[1/6] 合并 HTTP 配置"
 ( cd "$HIPROTO" && make merge >/dev/null )
 
-echo "[2/5] go-http → $CODE"
+echo "[2/6] go-http → $CODE"
 ( cd "$HIPROTO"; unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy
   rm -rf "$CODE/go/hi" "$CODE/go/google" "$CODE/go/buf"; buf generate --template codegen/go_http_code.yaml )
 
@@ -74,7 +74,7 @@ echo "[2/5] go-http → $CODE"
 # hi.club/hi.ai 的 Agent.Edit 就这么坏了(校验早已删除的 Base 字段),谁都调不通,
 # 直到写业务路径冒烟才发现。
 #
-# ⚠️ 必须放在 [2/5] **之后** —— 要用刚生成的 pb.go 校验,回答"我这次改 proto 会让
+# ⚠️ 必须放在 [2/6] **之后** —— 要用刚生成的 pb.go 校验,回答"我这次改 proto 会让
 #    哪个后端失效"。若按各仓 go.mod 锁定的旧版本校验,只能说明后端与自己当前依赖
 #    自洽,对刚改的这版 proto 一无所知,等于白跑。
 #
@@ -102,17 +102,24 @@ python3 "$HIPROTO/codegen/check_any.py" --warn /home/lo/wip/backend-hi-* || true
 # **只报不拦**:deadcode 保守看不到反射,重构中途也会短暂出现不可达 —— 硬失败会卡开发。
 python3 "$HIPROTO/codegen/check_deadcode.py" --warn /home/lo/wip/backend-hi-* || true
 
-echo "[3/5] rust → $CODE/rust/src/gen"
+echo "[3/6] rust → $CODE/rust/src/gen"
 ( cd "$HIPROTO/codegen/rust-gen"
   export HTTPS_PROXY=$PROXY HTTP_PROXY=$PROXY          # cargo 走梯子;rust-gen 内部会为 buf 剥离代理
   cargo run --quiet -- "$HIPROTO" "$CODE/rust/src/gen" )
 
-echo "[4/5] dart → $CODE/dart/lib"
+echo "[4/6] dart → $CODE/dart/lib"
 ( cd "$HIPROTO"; unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy
   rm -rf "$CODE/dart/lib/hi" "$CODE/dart/lib/google" "$CODE/dart/lib/buf"
   buf generate --template codegen/dart_code.yaml )
 
-echo "[5/5] lua descriptor → $CODE/lua/hi.pb"
+echo "[5/6] python → $CODE/python"
+# 谁在用:**三方插件作者的本地调试**。插件里的 plugin_builtin.call 一律走 grpc + protobuf,
+# 本地也必须走同一套 —— 不给生成物、让作者自己拼 JSON,就是把"多端一致"这个前提破掉。
+( cd "$HIPROTO"; unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy
+  rm -rf "$CODE/python/hi" "$CODE/python/google" "$CODE/python/buf"
+  buf generate --template codegen/python_code.yaml )
+
+echo "[6/6] lua descriptor → $CODE/lua/hi.pb"
 # lua-protobuf(pb.load)吃 FileDescriptorSet。Lua 工程(如 hinj-face)pin hi-proto-code 版本、
 # 加载此 hi.pb,不再各自本地 protoc 生成。含全部 hi.* 与 imports,单文件全量。
 ( cd "$HIPROTO"; unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy

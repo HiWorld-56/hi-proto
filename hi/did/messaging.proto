@@ -3,7 +3,10 @@ syntax = "proto3";
 package hi.did;
 
 import "google/protobuf/any.proto";
+import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "hi/did/transfer.proto";
+import "hi/options.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 
@@ -14,8 +17,11 @@ message Packet {
 }
 
 /*
+   钱包侧通知。载体是 MQTT 主题 `hidid/v1/single/<收件人did>`(Packet 的二进制)。
+
    type:
-   transaction: 其他人向自己发起交易
+   transaction: 其他人向自己发起交易 / extra: hi.did.Transaction
+   app-update:  app 有新版本(全体广播,走 `hi/v1/broadcast`,不是本主题)
 */
 message Notice {
   string uuid = 1;
@@ -23,4 +29,33 @@ message Notice {
   hi.Entity from = 3;
   google.protobuf.Any extra = 4;
   string ex_type = 5;
+}
+
+// Notify —— 付款方付完之后,叫 hidid 后台替它通知收款方。
+//
+// ## 为什么在后台发,而不是付款方自己发 MQTT
+//
+// 付款方**不一定连着 MQTT**:被三方唤起(deep link)去付款的那条路,
+// 拉起来就是付款页,压根没走过登录+连 broker 的流程,通知发不出去。
+// 而"付款成功"有好几条入口(钱包内转账 / 三方唤起 / DApp 内支付),
+// 各自记得发一次是靠不住的 —— 收口成一个方法,新增入口不会漏。
+//
+// 挪到后台之后,broker 的 `common:wacls` 就能把
+// **"任何认证客户端都能写别人的 `hidid/v1/single/+`"** 这条口子关掉。
+//
+// ## 这不是账目,是提醒
+//
+// 不落库、不重试、**收款方不在线就丢**(客户端一律 clean session,broker 不给离线的存)。
+// 谁都不会只凭这条通知认款 —— 要认款有 `Transfer.TxDetail` / `Transfer.VerifyTransaction`。
+service Notify {
+  // 载荷 = `hi.did.Transaction` 的 protojson 文本(与本仓其它验签接口同形;
+  // 验签走 FFI,那条通道只吃 UTF-8 文本,塞二进制会在第一个 NUL 处被截断)。
+  //
+  // ⚠️ `Transaction.from` **不收入参** —— 一律取自验签认出的签名者。
+  //    收了就等于让任何人冒名发付款通知。
+  // ⚠️ `Transaction.to.did` 必填:本生态业务层只认 did,链地址由后端按币种所在链查。
+  //
+  // 档位 AUTH_WEB3 与整条付款路径一致:付款方是**钱包**,它天然会签名,
+  // 但不一定有 hidid 登录态(hidid-simple-app 与 hinj-brain 都只有钱包、没有 token)。
+  rpc Transaction (hi.SignedData) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_WEB3; }
 }

@@ -113,13 +113,22 @@ fi
 
 echo
 echo "── 三、市场:挂牌与免费购买(阶段 2)──"
-L=$(cj market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P\",\"settle_mode\":1,\"price\":\"0\",\"title\":\"冒烟插件\",\"summary\":\"smoke\",\"tags\":[\"smk\"]}" "$SELLER_TOK")
+# ⚠️ **不要再传 title / summary / logo。** CreateListingReq 里 7/8/9 号已经留白删掉了
+# (展示信息单一来源:名字取 hi.ai 的壳名、logo/summary 取激活版)。传了也只是被
+# grpc-gateway 静默丢掉 —— 传着传着就会有人以为挂牌行里真存了一份。
+L=$(cj market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P\",\"settle_mode\":1,\"price\":\"0\",\"tags\":[\"smk\"]}" "$SELLER_TOK")
 LID=$(echo "$L"|g data uuid)
 [ -n "$LID" ] && ok "挂牌成功(uuid 非空)" || bad "挂牌成功(uuid 非空)" "回了空 uuid"
 cj market/set_listing_status "{\"uuid\":\"$LID\",\"status\":2}" "$SELLER_TOK" >/dev/null
-has "公开搜索能搜到(免鉴权)" "$(pub market_directory/search_listings '{"keyword":"冒烟","pagination":{"page":1,"limit":5}}')" "$LID"
+# 能搜的两样东西:**插件名**(在 hi.ai,挂牌行里没有副本)与**插件 id**(plugin_uuid,在本表)。
+# 原来这里搜的是挂牌自己的 title —— 那一列早就删了,而查询没跟,于是公开搜索一直回
+# `Error 1054 Unknown column 'title'`,且**只有带关键词的请求才炸**,空关键词浏览一切正常。
+# (summary 也不能拿来搜:它是**图片 url**,不是文本。)
+has "公开搜索:按插件名搜得到(免鉴权)" "$(pub market_directory/search_listings '{"keyword":"smk-demo","pagination":{"page":1,"limit":5}}')" "$LID"
+has "公开搜索:按插件 id 也搜得到" "$(pub market_directory/search_listings "{\"keyword\":\"$P\",\"pagination\":{\"page\":1,\"limit\":5}}")" "$LID"
+no  "公开搜索:搜不相干的词搜不到" "$(pub market_directory/search_listings '{"keyword":"绝不可能命中的词zzq","pagination":{"page":1,"limit":5}}')" "$LID"
 has "详情带 capabilities(方法名含壳前缀)" "$(pub market_directory/get_listing "{\"uuid\":\"$LID\"}")" "${PRE}_"
-has "负面:拿别人的机器人挂牌被拒" "$(cj market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P\",\"settle_mode\":1,\"title\":\"偷挂\"}" "$BUYER_TOK")" "不属于你"
+has "负面:拿别人的机器人挂牌被拒" "$(cj market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P\",\"settle_mode\":1}" "$BUYER_TOK")" "不属于你"
 
 A=$(cj market/apply "{\"listing_uuid\":\"$LID\",\"to_agent\":\"$BB\"}" "$BUYER_TOK")
 chk "免费购买:一步到已装载" "$(echo "$A"|g data status)" "GRANT_STATUS_INSTALLED"
@@ -142,12 +151,19 @@ echo "── 四、付费购买:hidid 直付(阶段 4)──"
 #    —— 拿 $P 再挂 PAID 会被正确拒绝(那道守卫本身在上面已经间接验过)。
 P2=$(cj plugin/create_shell "{\"agent\":\"$SB\",\"name\":\"smk-paid\"}" "$SELLER_TOK" | g data uuid)
 cj plugin/create_version "{\"agent\":\"$SB\",\"version\":{\"uuid\":\"$P2\",\"version\":\"1.0.0\",\"url\":\"$PKG\"}}" "$SELLER_TOK" >/dev/null
-L2=$(cj market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P2\",\"settle_mode\":3,\"price\":\"9.9\",\"coin\":\"USDT-TRC20\",\"duration\":2592000,\"title\":\"冒烟付费\"}" "$SELLER_TOK")
+L2=$(cj market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P2\",\"settle_mode\":3,\"price\":\"9.9\",\"coin\":\"USDT-TRC20\",\"duration\":2592000}" "$SELLER_TOK")
 LID2=$(echo "$L2"|g data uuid)
 cj market/set_listing_status "{\"uuid\":\"$LID2\",\"status\":2}" "$SELLER_TOK" >/dev/null
 A2=$(cj market/apply "{\"listing_uuid\":\"$LID2\",\"to_agent\":\"$BB\"}" "$BUYER_TOK")
 G2=$(echo "$A2"|g data grantUuid)
-chk "**软件机器人也能卖**(收款方=它的 master)" "$(echo "$A2"|g data pay payee)" "$SELLER_DID"
+# ⚠️ `MarketPayInfo.payee` **已经删了,别再读它**(proto 里那句"不要加回来"就是说它)——
+# 收款人与收款账号已经分成两个字段,各自说清自己是什么:
+#   payeeAccount 钱打到这个 did 的地址上,**付款方只认它**
+#   payeeOwner   摊主本人,界面用来显示"你在付给谁"
+# 软件机器人没有私钥,所以这两个天然不同:账号落主人、收款人还是机器人自己。
+# 这也正是"软件机器人也能卖"这件事的落地点(当初按类型卡死它完全卖不了东西)。
+chk "**软件机器人也能卖**:钱落到主人账户" "$(echo "$A2"|g data pay payeeAccount)" "$SELLER_DID"
+chk "收款人仍是摊主本人(不是主人)" "$(echo "$A2"|g data pay payeeOwner)" "$SB"
 chk "回了金额" "$(echo "$A2"|g data pay amount)" "9.9"
 # 订单制之后:付费购买由 Apply **顺带开出账单**;认款则**没有客户端入口** ——
 # 付款方只对 hidid 上报,由 hidid 按订单里的商户DID 回调 club(hi.did.PayCallback.Pay)。

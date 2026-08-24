@@ -24,7 +24,7 @@ MAIN_PY = '''"""多方法测试插件 —— main.py 只当 facade。
 这里顶层暴露的函数名(runner 是 getattr(main, name))。
 """
 
-from impl import add_numbers, secret_token, shout   # noqa: F401  (re-export 就是本文件的全部工作)
+from impl import add_numbers, secret_token, shout, call_probe   # noqa: F401  (re-export 就是本文件的全部工作)
 '''
 
 IMPL_PY = '''"""真正的实现。故意跟 main.py 分开,验证「文件怎么拆随便」。"""
@@ -50,11 +50,37 @@ def secret_token():
 def shout(text, times=1):
     """把文本喊出来。带默认值的参数验证 f(**arguments) 的关键字调用。
 
-    顺带读一下 plugin_annex,确认扩展数据注入在多方法下依然有效。
+    顺带把注入面读一遍:
+      · 用户自己填的扩展数据(ext-str,建壳时传的)——**下标访问**,因为它带连字符,
+        点访问取不到;
+      · asker —— **这句话是谁说的**。它由 club 一路带下来,模型看不见也改不了。
+        空 = 匿名(如机器人的现场语音路),这时要认人的方法就该拒绝。
+      · master —— 这台机器人的主人,服务端现取的权威值。判权限用它,不用 asker。
     """
-    annex = getattr(builtins, "plugin_annex", None)
-    who = annex.get("ext-str", "") if isinstance(annex, dict) else ""
-    return {"shout": (text.upper() + "!") * times, "annex_ext_str": who}
+    b = getattr(builtins, "plugin_builtin", None)
+    who = b["ext-str"] if (b is not None and "ext-str" in b) else ""
+    return {
+        "shout": (text.upper() + "!") * times,
+        "annex_ext_str": who,
+        "asker": (b.asker if b is not None else ""),
+        "master": (b.master if b is not None else ""),
+        "has_call": callable(getattr(b, "call", None)) if b is not None else False,
+    }
+
+
+def call_probe(path="user/get_current", body=None):
+    """探一下 plugin_builtin.call。**不进 description.json** —— 模型看不见它,
+    是冒烟按方法名直接调的。
+
+    失败也当正常值回,好让断言看得到那句错误文案(白名单拒绝长什么样)。
+    """
+    b = getattr(builtins, "plugin_builtin", None)
+    if b is None:
+        return {"ok": False, "error": "没有 plugin_builtin"}
+    try:
+        return {"ok": True, "data": b.call(path, body or {})}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
 '''
 
 DESC = [
