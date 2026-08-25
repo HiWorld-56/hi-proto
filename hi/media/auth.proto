@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package hi.media;
+
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+import "hi/did/auth.proto";
+import "hi/options.proto";
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
+
+// Auth 提供 HiMedia Web 扫码登录及会话管理接口。
+service Auth {
+  rpc GenerateReqId (hi.did.GenerateReqIdReq) returns (hi.RequestId) { option (hi.auth) = AUTH_NONE; }
+  rpc GetReqStatus (hi.RequestId) returns (hi.did.ReqStatusResp) { option (hi.auth) = AUTH_NONE; }
+  rpc RefreshToken (hi.did.RefreshTokenReq) returns (hi.AuthToken) { option (hi.auth) = AUTH_NONE; }
+  rpc Logout (hi.did.RefreshTokenReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; }
+}
