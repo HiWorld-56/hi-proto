@@ -78,16 +78,20 @@ message AudioPlay {
   bytes  audio = 2;
 }
 
-// 币安账户凭证及累计收益计算所需的初始金额。
-// api_secret 属于敏感字段，只允许通过受信任的本地 IPC 传递。
-message BinanceCredentials {
-  string api_key         = 1;
-  string api_secret      = 2;
-  string initial_capital = 3;
+// 币安接入设置。**凭证与业务参数分开放** —— 初始本金不是凭证，
+// 它是算累计收益用的基数；混在一条里，改一次本金就得把 api_secret 整条重发一遍。
+message BinanceSettings {
+  BinanceCredentials credentials      = 1;
+  // 初始本金。**十进制字符串**，与本仓所有金额字段同口径（免浮点误差）。
+  string             initial_capital  = 2;
 }
 
-// face 向 brain 请求当前币安凭证。
-message GetBinanceCredentials {}
+// 币安 API 凭证。
+// ⚠️ `api_secret` 是敏感字段，**只允许走 brain ↔ face 这条本地 ZMQ**，不出机器。
+message BinanceCredentials {
+  string api_key    = 1;
+  string api_secret = 2;
+}
 
 // brain -> face：所有指令通过 oneof 路由
 message BrainToFace {
@@ -129,8 +133,8 @@ message BrainToFace {
     //资源更新信息同步
     UpdateInfo            event_update        = 19;
 
-    // 币安凭证同步（仅限受信任的 face IPC）
-    BinanceCredentials    binance_credentials = 21;
+    // 币安设置同步（凭证 + 初始本金；仅限本地 face IPC）
+    BinanceSettings       event_binance_settings = 21;
 
   }
 }
@@ -174,7 +178,8 @@ message FaceToBrain {
   oneof cmd {
     StateToggle voice_state = 1; // 音频播放开始/结束，brain 据此控制麦克风静音
     UpdateAction update_action = 2;//更新动作
-    GetBinanceCredentials get_binance_credentials = 3; // 请求币安凭证与初始金额
+    // face 重启后内存缓存是空的，用它主动要一次（本文件里空请求一律用 Empty，见 show_qr_code）
+    google.protobuf.Empty get_binance_settings = 3;
   }
 }
 // 插件下载/安装进度。
