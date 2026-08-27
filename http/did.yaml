@@ -18,28 +18,6 @@ http:
   - selector: hi.did.Register.Verify
     post: /api/v1/register/verify
     body: "*"
-# DApp
-  - selector: hi.did.DApp.ListByClass
-    get: /api/v1/d_app/list_by_class
-  - selector: hi.did.DApp.GetRWA
-    get: /api/v1/d_app/get_rwa
-  - selector: hi.did.DApp.GetTop
-    get: /api/v1/d_app/get_top
-  - selector: hi.did.DAppAdmin.UpdateTop
-    post: /api/v1/d_app_admin/update_top
-    body: "*"
-  - selector: hi.did.DAppAdmin.Create
-    post: /api/v1/d_app_admin/create
-    body: "*"
-  - selector: hi.did.DAppAdmin.Edit
-    post: /api/v1/d_app_admin/edit
-    body: "*"
-  - selector: hi.did.DAppAdmin.UpdateOrder
-    post: /api/v1/d_app_admin/update_order
-    body: "*"
-  - selector: hi.did.DAppAdmin.Delete
-    post: /api/v1/d_app_admin/delete
-    body: "*"
 # MerchantManage
   - selector: hi.did.MerchantManage.List
     post: /api/v1/merchant_manage/list

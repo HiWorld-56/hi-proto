@@ -72,68 +72,6 @@ service Register {
   rpc Verify (InviteCodeVerifyReq) returns (hi.AuthToken) { option (hi.auth) = AUTH_NONE; } // 公开:验邀请码,通过则换回注册用的 AuthToken
 }
 
-// ── DApp 目录 ───────────────────────────────────────────────────────────────
-// hidid app 首页展示的 DApp(去中心化应用)列表。
-// 裁决 #2:按读写主体拆两个 service —— DApp(app 浏览,读)/ DAppAdmin(超管维护,写)。
-
-message DAppInfo {
-  option (hi.audience) = VIS_PUBLIC;
-  string uuid        = 1 [(hi.visibility) = VIS_PUBLIC]; // uuid
-  string class       = 2 [(hi.visibility) = VIS_PUBLIC]; // 分类
-  string logo        = 3 [(hi.visibility) = VIS_PUBLIC]; // 应用图片
-  string title       = 4 [(hi.visibility) = VIS_PUBLIC]; // 应用标题
-  string description = 5 [(hi.visibility) = VIS_PUBLIC]; // 应用描述
-  string url         = 6 [(hi.visibility) = VIS_PUBLIC]; // 应用链接
-  bool   nav         = 7 [(hi.visibility) = VIS_PUBLIC]; // 是否在导航栏展示
-  bool   external    = 8 [(hi.visibility) = VIS_PUBLIC]; // 是否内置浏览器打开
-  bool   promotion   = 9 [(hi.visibility) = VIS_PUBLIC]; // 是否推广
-}
-
-message DAppListByClassResp {
-  option (hi.audience) = VIS_PUBLIC;
-  repeated DAppInfo top       = 1 [(hi.visibility) = VIS_PUBLIC]; // 视频类 Dapp
-  repeated DAppInfo popular   = 2 [(hi.visibility) = VIS_PUBLIC]; // 热门 Dapp
-  repeated DAppInfo recommend = 3 [(hi.visibility) = VIS_PUBLIC]; // 推荐 Dapp
-}
-
-message DAppGetRWAResp {
-  option (hi.audience) = VIS_PUBLIC;
-  string url = 1 [(hi.visibility) = VIS_PUBLIC];
-}
-
-message DAppUpdateTopReq {
-  string url   = 1;
-  string cover = 2;
-}
-
-message DAppUpdateOrderReq {
-  message Unit {
-    string uuid  = 1;
-    int32  order = 2;
-  }
-  repeated Unit list = 1;
-}
-
-message DAppDeleteReq {
-  string uuid = 1;
-}
-
-// DApp 浏览(app 面):普通登录用户看首页 DApp 列表。只读。
-service DApp {
-  rpc ListByClass (google.protobuf.Empty) returns (DAppListByClassResp) { option (hi.auth) = AUTH_USER; } // 用户:按分类取 DApp(视频/热门/推荐)
-  rpc GetRWA (google.protobuf.Empty) returns (DAppGetRWAResp) { option (hi.auth) = AUTH_USER; }           // 用户:取 RWA 类 DApp 的入口 url
-  rpc GetTop (google.protobuf.Empty) returns (DAppInfo) { option (hi.auth) = AUTH_USER; }                 // 用户:取置顶 DApp
-}
-
-// DApp 维护(超管面):上架/下架/改/排序/置顶。handler 里本有超管校验,收敛到拦截器。
-service DAppAdmin {
-  rpc Create (DAppInfo) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }                // 超管:上架 DApp
-  rpc Edit (DAppInfo) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }                  // 超管:改 DApp
-  rpc Delete (DAppDeleteReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }           // 超管:下架 DApp
-  rpc UpdateOrder (DAppUpdateOrderReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; } // 超管:调整 DApp 排序
-  rpc UpdateTop (DAppUpdateTopReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }     // 超管:设置置顶 DApp(封面+url)
-}
-
 // ── 商户管理 ────────────────────────────────────────────────────────────────
 // 超管在 hisrv 后台管理所有商户。
 

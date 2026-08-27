@@ -40,7 +40,7 @@ message GatewayConfigSetReq {
 // ⚠️ 后端(开发/生产)不要走这个 RPC 取配置 —— 生产与开发/前端环境不同,
 //    后端应从自己的配置文件引入。
 //
-// 读写拆两个 service(同 service 档位必须一致),照 DApp / DAppAdmin 的既有范式:
+// 读写拆两个 service(同 service 档位必须一致),照 Merchant / MerchantManage 的既有范式:
 //   Gateway(读,用户或商户) / GatewayAdmin(写,超管)。
 // HTTP 路径随之改为 /api/v1/gateway/list(读)与 /api/v1/gateway_admin/set(写)——
 // URL 与 selector 同构;前端调用地址已从旧的 gateway_config/* 变更,需同步更新。
@@ -65,7 +65,7 @@ service Gateway {
 // 换节点要重新 OTA,key 还会随镜像发到每台设备上。
 //
 // ⚠️ 档位不同就必须拆 service(同 service 档位必须一致),与
-//    Gateway / GatewayAdmin、DApp / DAppAdmin 同一个范式。
+//    Gateway / GatewayAdmin、Merchant / MerchantManage 同一个范式。
 //
 // 载荷(SignedData.Data)不带任何字段(`{}` 即可)—— 这个方法**不依赖"我是谁"**,
 // 签名只用来证明"是一台持私钥的设备",挡住匿名抓取节点凭证。

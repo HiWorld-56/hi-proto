@@ -1,18 +1,18 @@
 # hi-proto 接口全量核对表
 
-**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.9-dev.6` @ `84dc956`)。
+**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.10-dev.5` @ `c12a0a6`)。
 上一版是手写的,内容停在重构前 —— 档位名、rpc 数量、方法名全部过时,当成当前清单会被误导,故改为随发布自动重生成。
 
-共 **365** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
+共 **357** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
 
 ## 档位分布
 
 | 档位 | 数量 |
 |---|---|
-| `AUTH_USER` | 150 |
+| `AUTH_USER` | 147 |
 | `AUTH_MERCHANT` | 95 |
 | `AUTH_NONE` | 57 |
-| `AUTH_SUPERADMIN` | 37 |
+| `AUTH_SUPERADMIN` | 32 |
 | `AUTH_WEB3` | 17 |
 | `AUTH_INTERNAL` | 11 |
 
@@ -606,24 +606,6 @@
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | PluginUpdate | `AUTH_MERCHANT` | BroadcastPluginUpdateReq | google.protobuf.Empty | — |
-
-### hi.did.DApp
-
-| 方法 | 档位 | 入参 | 返回 | HTTP |
-|---|---|---|---|---|
-| GetRWA | `AUTH_USER` | google.protobuf.Empty | DAppGetRWAResp | GET /api/v1/d_app/get_rwa |
-| GetTop | `AUTH_USER` | google.protobuf.Empty | DAppInfo | GET /api/v1/d_app/get_top |
-| ListByClass | `AUTH_USER` | google.protobuf.Empty | DAppListByClassResp | GET /api/v1/d_app/list_by_class |
-
-### hi.did.DAppAdmin
-
-| 方法 | 档位 | 入参 | 返回 | HTTP |
-|---|---|---|---|---|
-| Create | `AUTH_SUPERADMIN` | DAppInfo | google.protobuf.Empty | POST /api/v1/d_app_admin/create |
-| Delete | `AUTH_SUPERADMIN` | DAppDeleteReq | google.protobuf.Empty | POST /api/v1/d_app_admin/delete |
-| Edit | `AUTH_SUPERADMIN` | DAppInfo | google.protobuf.Empty | POST /api/v1/d_app_admin/edit |
-| UpdateOrder | `AUTH_SUPERADMIN` | DAppUpdateOrderReq | google.protobuf.Empty | POST /api/v1/d_app_admin/update_order |
-| UpdateTop | `AUTH_SUPERADMIN` | DAppUpdateTopReq | google.protobuf.Empty | POST /api/v1/d_app_admin/update_top |
 
 ### hi.did.Gateway
 
