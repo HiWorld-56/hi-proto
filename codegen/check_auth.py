@@ -167,8 +167,7 @@ for y in sorted(glob.glob('http/*.yaml')):
 # 历史教训:曾出现 Merchant.RemoveUsers 挂两条 URL、以及 save_uesrs/delete_uesrs 拼写错误上线。
 # **不设缩写特例**:一律机械蛇形化,缩写不开小灶 —— 与工具链一致才是真一致
 # (prost 生成的模块名用的就是同一套机械规则),自定义特例只会造出第二套规则。
-# 曾经的例子是 DApp → d_app / d_app_client,该 service 已于 2026-08-27 随功能下线;
-# 现存 service 名里已无连续大写,规则保留给以后新增的名字用。
+# 现存 service 名里已无连续大写,这条规则是留给以后新增的名字用的。
 
 
 def snake(n):
