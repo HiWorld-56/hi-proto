@@ -51,6 +51,7 @@ HTTP routing rules live in `http/` — one file per service module:
 - `http/did.yaml` — DID service
 - `http/ai.yaml` — AI service
 - `http/club.yaml` — Club (IM) service
+- `http/media.yaml` — HiMedia service
 
 To merge all rules into a single file for grpc-gateway:
 

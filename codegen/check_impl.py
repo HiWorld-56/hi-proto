@@ -31,6 +31,7 @@ REPOS = {
     'hi.did':    ['backend-hi-did'],
     'hi.club':   ['backend-hi-club', 'backend-hi-club-trade', 'backend-hi-ai'],
     'hi.ai':     ['backend-hi-ai', 'backend-hi-ai-plugin'],
+    'hi.media':  ['backend-hi-media'],
     # ⚠️ **包名是精确匹配的,`hi.ai` 不覆盖 `hi.ai.plugin`。** 少了这一行,
     #    hi/ai/plugin/base.proto 整个文件在上面 `pkg not in REPOS` 处被跳过 ——
     #    Runner(执行任意脚本)和 Builder(交叉编译任意 rust)这两个内部面
@@ -97,7 +98,7 @@ else:
 # 判据收紧:**谁注册了 http 网关(Register<Svc>HandlerFromEndpoint),谁就是 404 的
 # 暴露面,必须自己实现该 service 的所有 http 路由方法**(方法名精确匹配 grpc rpc 名)。
 # club-trade 只注册 grpc、不注册 http 网关,故它 Base 只实现 ServerVersion 不会误报。
-ALIAS = {'hiclub': 'hi.club', 'hidid': 'hi.did', 'hiai': 'hi.ai',
+ALIAS = {'hiclub': 'hi.club', 'hidid': 'hi.did', 'hiai': 'hi.ai', 'media': 'hi.media',
          'source': 'hi.source', 'hisource': 'hi.source'}
 # 有 http 路由的 (pkg.svc) → {method}
 routed = {}

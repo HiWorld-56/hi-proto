@@ -13,7 +13,7 @@
 本脚本保证:
   1. 每个 rpc 都显式标注,且不用 AUTH_UNSPECIFIED(漏标即构建失败,而非上线后静默拒绝/放行);
   2. **同一 service 内档位集合一致** —— 不一致 = 主体归类错了,该拆 service
-     (范式:DApp/DAppAdmin、Gateway/GatewayAdmin、Merchant/MerchantManage);
+     (范式:Gateway/GatewayAdmin、Merchant/MerchantManage、Trade/TradeManage);
   3. http 路由不悬空、无重复 key。
 """
 import re, sys, glob, os
@@ -72,7 +72,7 @@ for f in sorted(glob.glob('hi/**/*.proto', recursive=True)):
             ln = sets[0][1] if sets else line_of(src, sm.start())
             bad.append(
                 f'{f}:{ln}: service {svc} **混档** —— 同 service 档位必须一致,'
-                f'不一致说明主体归类错了,该拆 service(见 DApp/DAppAdmin 范式)。当前:{detail}')
+                f'不一致说明主体归类错了,该拆 service(见 Merchant/MerchantManage 范式)。当前:{detail}')
 
 # ── 方法名不得撞目标语言的**保留字** ────────────────────────────────────────
 # 真踩过:Plugin.PluginSwitch 去 stutter 改成 Plugin.Switch,而 **switch 是 Dart 保留字** ——
@@ -165,9 +165,9 @@ for y in sorted(glob.glob('http/*.yaml')):
 #   /gateway_admin/set 一眼是超管口子,/gateway/list 一眼是客户端读;
 #   若共用前缀(/gateway_config/set vs /gateway_config/list)长得一样,谁标错档位从 URL 上看不出来。
 # 历史教训:曾出现 Merchant.RemoveUsers 挂两条 URL、以及 save_uesrs/delete_uesrs 拼写错误上线。
-# **不设缩写特例**:机械蛇形化 DApp → d_app,而 prost 生成的模块名恰恰就是
-# d_app_client / d_app_admin_client —— 与工具链一致才是真一致,
-# 自定义特例只会造出第二套规则。
+# **不设缩写特例**:一律机械蛇形化,缩写不开小灶 —— 与工具链一致才是真一致
+# (prost 生成的模块名用的就是同一套机械规则),自定义特例只会造出第二套规则。
+# 现存 service 名里已无连续大写,这条规则是留给以后新增的名字用的。
 
 
 def snake(n):

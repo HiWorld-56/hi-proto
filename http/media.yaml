@@ -1,0 +1,19 @@
+type: google.api.Service
+config_version: 3
+
+http:
+  rules:
+  - selector: hi.media.Auth.GenerateReqId
+    post: /api/v1/auth/generate_req_id
+    body: "*"
+  - selector: hi.media.Auth.GetReqStatus
+    post: /api/v1/auth/get_req_status
+    body: "*"
+  - selector: hi.media.Auth.RefreshToken
+    post: /api/v1/auth/refresh_token
+    body: "*"
+  - selector: hi.media.Auth.Logout
+    post: /api/v1/auth/logout
+    body: "*"
+  - selector: hi.media.Base.ServerVersion
+    get: /api/v1/base/server_version
