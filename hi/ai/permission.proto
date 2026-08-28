@@ -44,7 +44,7 @@ message PermissionInfo {
   option (hi.audience) = VIS_SELF;
   string                  did         = 1 [(hi.visibility) = VIS_SELF]; // 机器人 did
   repeated PermissionType permissions = 2 [(hi.visibility) = VIS_SELF]; // 当前持有的档位
-  string                  note        = 3 [(hi.visibility) = VIS_SELF]; // 备注(为什么被撤,给人看的)
+  optional string         note        = 3 [(hi.visibility) = VIS_SELF]; // 备注(为什么被撤,给人看的)
 }
 
 message ListAgentPermissionsReq {
@@ -57,31 +57,31 @@ message ListAgentPermissionsResp {
 }
 
 message PermissionAddReq {
-  string         did  = 1 [(buf.validate.field).string.pattern = "^\\S+$"]; // 机器人 did
-  PermissionType type = 2;
+  string                  did  = 1 [(buf.validate.field).string.pattern = "^\\S+$"]; // 机器人 did
+  optional PermissionType type = 2;
 }
 
 message PermissionDeleteReq {
-  string         did  = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
-  PermissionType type = 2;
+  string                  did  = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
+  optional PermissionType type = 2;
 }
 
 // 按档位分页列持有者(club 超管页穿透过来用)。**只出调用者名下的机器人**。
 message PermissionListReq {
-  string         did        = 1; // 可选:按 did 过滤
-  PermissionType type       = 2; // **必填**,须是四档之一;列全部传 NORMAL(所有机器人都持有它),不是 UNSPECIFIED
-  hi.Pagination  pagination = 3;
+  optional string         did        = 1; // 可选:按 did 过滤;**不传=不筛**(以前用空串表示,已禁止)
+  optional PermissionType type       = 2; // **必填**,须是四档之一;列全部传 NORMAL(所有机器人都持有它),不是 UNSPECIFIED
+  hi.Pagination           pagination = 3;
 }
 
 message PermissionListResp {
   option (hi.audience) = VIS_SELF;
-  int32                   total = 1 [(hi.visibility) = VIS_SELF];
+  optional int32          total = 1 [(hi.visibility) = VIS_SELF];
   repeated PermissionInfo infos = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message PermissionEditReq {
-  string did  = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
-  string note = 2; // 备注
+  string          did  = 1 [(buf.validate.field).string.pattern = "^\\S+$"];
+  optional string note = 2; // 备注
 }
 
 // 机器人权限(商户档)。**权威存储在 ai**,推理时由 ai 自己校验。

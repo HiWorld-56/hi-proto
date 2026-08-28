@@ -52,9 +52,9 @@ message PluginAnnex {
 }
 
 message RunReq {
-  string          code_archive_url = 1; // = 激活版 b.url
-  string          code_params      = 2; // function-call 的 arguments(JSON 对象),按 ** 展开成关键字实参
-  string          uuid             = 3; // 壳 uuid
+  optional string code_archive_url = 1; // = 激活版 b.url
+  optional string code_params      = 2; // function-call 的 arguments(JSON 对象),按 ** 展开成关键字实参
+  optional string uuid             = 3; // 壳 uuid
   repeated string envs             = 4;
   PluginAnnex     annex            = 5; // → 字典全局变量 plugin_annex
   // 要调包里的哪个方法。**必传**,且是 main.py 里的**原始函数名**(不带壳前缀)。
@@ -66,7 +66,7 @@ message RunReq {
   // ⚠️ **不要把带前缀的名字传进来。** 喂给模型的工具名是 `<壳前缀>_<原名>`
   // (前缀保证不同插件包的同名方法不撞,见 hi/ai/plugin.proto 的 PluginVersion.description),
   // 但那是 hiai↔模型之间的事 —— 前缀在 hiai 侧切掉,包里和这里只认原始名。
-  string          function         = 6;
+  optional string function         = 6;
   // ── 本轮的两个身份 → 注入成脚本里的 plugin_builtin.asker / .master ───────────
   //
   // 与 `annex` 同为**注入面**(模型看不见、用户改不了),但**来源完全不同**:
@@ -74,8 +74,8 @@ message RunReq {
   // 这两个是**本轮对话现取的**。所以合并进 plugin_builtin 时
   // **内置键最后写、无条件覆盖** —— 否则用户在版本扩展数据里填一个同名键就能冒名,
   // 而且静默。
-  string          asker            = 7; // 这句话是谁说的;**空 = 匿名**(如现场语音)。消息事实,不是权限凭据
-  string          master           = 8; // 这台机器人的主人,**服务端现取的权威值**;判权限与动钱都用它
+  optional string asker            = 7; // 这句话是谁说的;**不传 = 匿名**(如现场语音)。消息事实,不是权限凭据
+  optional string master           = 8; // 这台机器人的主人,**服务端现取的权威值**;判权限与动钱都用它
 }
 
 message RunResp {
@@ -120,33 +120,34 @@ service Runner {
 // 一起存进构建表给发版的人看。回一个 grpc Internal 的话,用户看到的是"服务器错误",
 // 而他真正需要的是那段 `error[E0432]`。
 message BuildReq {
-  string code_archive_url = 1; // rust 源码包 zip(= 这一版的 b.url)
-  string uuid             = 2; // 壳 uuid(产物命名与日志用)
-  string version          = 3; // 版本号
+  optional string code_archive_url = 1; // rust 源码包 zip(= 这一版的 b.url)
+  optional string uuid             = 2; // 壳 uuid(产物命名与日志用)
+  optional string version          = 3; // 版本号
   // 目标架构:`aarch64` / `x86_64`(与 rust 的 `std::env::consts::ARCH` 同名,
   // 机器人上报的就是那个常量 —— 两边用同一套词,省掉一层映射)。
   //
-  // ⚠️ **空 = aarch64**。老调用方(还没跟上的 hi-ai)发不带这个字段的请求,
+  // ⚠️ **不传 = aarch64**。老调用方(还没跟上的 hi-ai)发不带这个字段的请求,
   // 编出来的仍是硬件机器人那一份 —— 而不是编出个谁也装不上的东西。
-  string arch             = 4;
+  // ⛔ 空串不是合法值:要么不传,要么给真架构名。
+  optional string arch             = 4;
 }
 
 message BuildResp {
   option (hi.audience) = VIS_SELF;
   // 编出来了没有。**false 时 rpc 本身仍是成功的**,理由见上。
-  bool   ok           = 1 [(hi.visibility) = VIS_SELF];
-  string artifact_url = 2 [(hi.visibility) = VIS_SELF]; // 编好的 .so(hiai 私有桶)
-  string sha256       = 3 [(hi.visibility) = VIS_SELF]; // 产物摘要,机器人下完照此核对
+  optional bool   ok           = 1 [(hi.visibility) = VIS_SELF];
+  optional string artifact_url = 2 [(hi.visibility) = VIS_SELF]; // 编好的 .so(hiai 私有桶)
+  optional string sha256       = 3 [(hi.visibility) = VIS_SELF]; // 产物摘要,机器人下完照此核对
   // 从**编出来的那个 `.so` 里真读出来的** ABI 版本(qemu 跑 aarch64 verifier 得到),
   // 不是从源码或 Cargo.toml 猜的。x86 上 dlopen 不了 aarch64 的 .so,
   // 只查 ELF machine + 导出符号是查不出这个值的。
-  uint32 abi_version  = 4 [(hi.visibility) = VIS_SELF];
+  optional uint32 abi_version  = 4 [(hi.visibility) = VIS_SELF];
   // 同样是从 .so 里真读出来的 manifest(OpenAI tools 数组,**原始名、不带壳前缀**)。
   // hi-ai 拿它跟包里的 description.json 比对 —— 两者不一致说明作者改了 json 却没改代码
   // (或反过来),那种插件装到机器人上就是"模型看得见、调不动"。
-  string manifest     = 5 [(hi.visibility) = VIS_SELF];
-  string error        = 6 [(hi.visibility) = VIS_SELF]; // 失败原因(给发版的人看的一句话)
-  string log          = 7 [(hi.visibility) = VIS_SELF]; // 编译日志尾部(失败时才有意义)
+  optional string manifest     = 5 [(hi.visibility) = VIS_SELF];
+  optional string error        = 6 [(hi.visibility) = VIS_SELF]; // 失败原因(给发版的人看的一句话)
+  optional string log          = 7 [(hi.visibility) = VIS_SELF]; // 编译日志尾部(失败时才有意义)
 }
 
 // NATIVE 插件构建器(内部面)。只由父服务 ai 经 grpc 转发调用。

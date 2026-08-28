@@ -59,11 +59,11 @@ service Plugin {
 // ListNativeReq —— 见下面 ListNative:**没有 agent 字段**,主体只能从凭证里取。
 // 只带机器人自己的架构:同一版插件两个架构各有一份产物,给错了要到 dlopen 才炸。
 //
-// ⚠️ **空 = aarch64**。老 brain 发的是 `Empty`,在 protobuf 里与"字段缺省"等价,
-//    解出来就是空串 —— 于是它照旧拿到 arm64 那份,零改动继续跑。
-//    这条兼容是有意的,别改成"空就报错"。
+// ⚠️ **不传 = aarch64**。老 brain 发的是 `Empty`(根本不带这个字段),optional 之后就是
+//    "没有值" —— 于是它照旧拿到 arm64 那份,零改动继续跑。这条兼容是有意的。
+//    ⛔ **空串不再是合法值**(2026-08-28 起禁止用空串表示"没有"):要么不传,要么给真架构名。
 message ListNativeReq {
-  string arch = 1;
+  optional string arch = 1;
 }
 
 // 所以 `ListNative` **没有 agent 参数**,主体只能从凭证里取。
@@ -84,10 +84,10 @@ service AgentPlugin {
 // 语义如"重新装弹":只从现有弹匣取,**不造子弹** —— 列表为空即报错,绝不偷偷创建 apikey。
 // 前端**不允许手填 api_key**(防伪),一律由此/建插件时后端自动注入。
 message ReloadApiKeyReq {
-  string agent = 1; // 机器人 did
-  string uuid = 2;  // 插件 uuid
+  optional string agent = 1; // 机器人 did
+  optional string uuid  = 2;  // 插件 uuid
 }
 message ReloadApiKeyResp {
   option (hi.audience) = VIS_SELF;
-  string api_key = 1 [(hi.visibility) = VIS_SELF]; // 重新写入的 api_key(便于前端就地刷新列表)
+  optional string api_key = 1 [(hi.visibility) = VIS_SELF]; // 重新写入的 api_key(便于前端就地刷新列表)
 }

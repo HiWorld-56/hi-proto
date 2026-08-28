@@ -34,11 +34,11 @@ import "hi/options.proto";
 //    当时反而是漏的(见 validateBindMaster 的说明)。
 //    字段存在 → 就得写校验 → 写了就显得有防护,而防护点其实全在别处。
 message MasterBindReq {
-  string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 机器人 did
+  optional string agent = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true]; // 机器人 did
 }
 
 message BindStatusReq {
-  string agent = 1;
+  optional string agent = 1;
 }
 
 message BindStatusResp {
@@ -52,14 +52,14 @@ message BindStatusResp {
 //    还会把目标非超级用户的 agent 模型顺手降级)。这个概念本就该在 club 实现,故用 club 自己的类型。
 // 它与 BindMaster/UnbindMaster 是同一件事(换绑主人),故同处 Agent。
 message TransferReq {
-  string agent = 1; // 要转让的机器人 did
-  string to    = 2; // 新 master 的用户 did
+  optional string agent = 1; // 要转让的机器人 did
+  optional string to    = 2; // 新 master 的用户 did
 }
 
 // 在线 agent 列表(club 本地 presence,非转发 ai)。合并原 ListOnlineAgent(按用户)+ ListAllOnlineAgent(全量)。
 message ListOnlineReq {
-  string        owner_did  = 1; // 可选:只看该用户的在线 agent;空=全部在线
-  hi.Pagination pagination = 2;
+  optional string owner_did  = 1; // 可选:只看该用户的在线 agent;**不传=全部在线**(以前用空串表示,已禁止)
+  hi.Pagination   pagination = 2;
 }
 
 message ListOnlineResp {
@@ -67,7 +67,7 @@ message ListOnlineResp {
   // ⚠️ 只吐机器人**公开身份**(Entity:name/avatar/did),不复用 hi.ai.AgentInfo ——
   //    后者含 AgentConfig(prompt/模型/记忆)是 owner 私密配置(VIS_SELF),放进公开目录=泄漏。
   //    此前误用 AgentInfo,由可见性 lint 反向校验查出并收窄为 Entity。
-  int32              total = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional int32     total = 1 [(hi.visibility) = VIS_PUBLIC];
   repeated hi.Entity infos = 2 [(hi.visibility) = VIS_PUBLIC];
 }
 
@@ -88,8 +88,8 @@ message ListAgentsByUsersReq {
 // 由 club 把 master 填进 AgentInfo.creator —— 关系不穿,各服务填各自视角的值。
 message ListAgentsResp {
   option (hi.audience) = VIS_SELF;
-  int32                     total  = 1 [(hi.visibility) = VIS_SELF];
-  repeated hi.ai.AgentInfo  agents = 2 [(hi.visibility) = VIS_SELF];
+  optional int32           total  = 1 [(hi.visibility) = VIS_SELF];
+  repeated hi.ai.AgentInfo agents = 2 [(hi.visibility) = VIS_SELF];
 }
 
 
@@ -131,7 +131,7 @@ service Agent {
 //
 // (Agent.List 是**另起**的用户自服务方法,数据取自 club 自己的 relation,与上面这个无继承关系。)
 service AgentDirectory {
-  rpc ListOnline (ListOnlineReq) returns (ListOnlineResp) { option (hi.auth) = AUTH_NONE; }             // 公开:在线机器人(club 本地 presence);owner_did 空=全部
+  rpc ListOnline (ListOnlineReq) returns (ListOnlineResp) { option (hi.auth) = AUTH_NONE; }             // 公开:在线机器人(club 本地 presence);owner_did 不传=全部
 }
 
 // 机器人管理(**超管**)。与 Agent(用户自服务)**主体不同,故拆 service** ——

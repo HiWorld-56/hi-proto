@@ -37,22 +37,22 @@ import "hi/options.proto";
 // 同一个东西两份值、必然漂(叫法在市场和机器人插件列表里不一样,还没人会报错)。
 message PluginShell {                                    // a
   option (hi.audience) = VIS_SELF;
-  string uuid = 1 [(hi.visibility) = VIS_SELF]; // 插件 id,后台分配(单一 id)
-  string name = 2 [(hi.visibility) = VIS_PUBLIC]; // 插件名。**市场标题直接用它**,不另填
+  optional string        uuid    = 1 [(hi.visibility) = VIS_SELF]; // 插件 id,后台分配(单一 id)
+  optional string        name    = 2 [(hi.visibility) = VIS_PUBLIC]; // 插件名。**市场标题直接用它**,不另填
   // 跑在哪儿。首版由包结构自动判定,之后不变 —— 它决定包的格式与执行方,换了等于换个插件。
-  PluginRuntime runtime = 3 [(hi.visibility) = VIS_SELF];
+  optional PluginRuntime runtime = 3 [(hi.visibility) = VIS_SELF];
 }
 
 message PluginVersion {                                  // b:按 (uuid,version) 冻结
   option (hi.audience) = VIS_SELF;
-  string uuid        = 1 [(hi.visibility) = VIS_SELF]; // 所属壳
-  string version     = 2 [(hi.visibility) = VIS_PUBLIC]; // 版本号(前端按现有版本预填,后端校验须>现有最大)
+  optional string uuid        = 1 [(hi.visibility) = VIS_SELF]; // 所属壳
+  optional string version     = 2 [(hi.visibility) = VIS_PUBLIC]; // 版本号(前端按现有版本预填,后端校验须>现有最大)
   // logo / summary 是**展示物**:市场页、插件详情页给买家看的就是这两个。
   // 标 PUBLIC 不是放松,是纠正 —— 它们本来就没有"只给自己看"的语义,
   // 而挂牌页要用它们(见 hi.club.MarketListingBrief:那边是门面,值从这儿来)。
-  string logo        = 3 [(hi.visibility) = VIS_PUBLIC];
-  string summary     = 4 [(hi.visibility) = VIS_PUBLIC];
-  string url         = 5 [(hi.visibility) = VIS_SELF]; // 脚本包 zip:**至少含 main.py / requirements.txt / description.json**
+  optional string logo        = 3 [(hi.visibility) = VIS_PUBLIC];
+  optional string summary     = 4 [(hi.visibility) = VIS_PUBLIC];
+  optional string url         = 5 [(hi.visibility) = VIS_SELF]; // 脚本包 zip:**至少含 main.py / requirements.txt / description.json**
   // function-call spec,**OpenAI tools 数组格式**(与 hi.ai.ToolSupply、与 brain 的
   // functions.json 完全一致 —— 三者的 tools 最终会合进同一个数组喂给模型):
   //
@@ -75,7 +75,7 @@ message PluginVersion {                                  // b:按 (uuid,version)
   //
   // PUBLIC:买家在挂牌页看的 `MarketListingDetail.capabilities` 就是这一份 ——
   // 那边早就是公开的了,源头这边却标着 SELF,两边对不上。以这边为准改成 PUBLIC。
-  string description = 6 [(hi.visibility) = VIS_PUBLIC];
+  optional string description = 6 [(hi.visibility) = VIS_PUBLIC];
 }
 
 // 插件跑在哪儿 —— **壳的属性**(同一个包不会一半 py 一半 rust),发版后不该再改。
@@ -145,19 +145,19 @@ enum PluginBuildStatus {
 // 结果经 Get/ListVersions 回显给发版的人看(编译中 / 失败+日志 / 成功)。
 message PluginBuild {
   option (hi.audience) = VIS_SELF;
-  string uuid    = 1 [(hi.visibility) = VIS_SELF];
-  string version = 2 [(hi.visibility) = VIS_SELF];
+  optional string            uuid         = 1 [(hi.visibility) = VIS_SELF];
+  optional string            version      = 2 [(hi.visibility) = VIS_SELF];
   // 这一行是哪个架构的构建。**一版有多行**(aarch64 / x86_64 各一),
   // 状态、产物、错误、日志都各记各的 —— 合并显示会互相掩盖("有一个成了"看着像全成了)。
-  string arch    = 11 [(hi.visibility) = VIS_SELF];
-  PluginBuildStatus status = 3 [(hi.visibility) = VIS_SELF];
-  string artifact_url = 4 [(hi.visibility) = VIS_SELF]; // 编好的 .so(私有桶;下发时现签 presigned)
-  string sha256       = 5 [(hi.visibility) = VIS_SELF]; // 产物摘要,机器人下完照此核对
-  uint32 abi_version  = 6 [(hi.visibility) = VIS_SELF]; // 从 .so 里真读出来的(见 hi.ai.plugin.BuildResp)
-  string error        = 7 [(hi.visibility) = VIS_SELF]; // 失败原因(一句话)
-  string log          = 8 [(hi.visibility) = VIS_SELF]; // 编译日志尾部
-  int64  started_at   = 9 [(hi.visibility) = VIS_SELF];
-  int64  finished_at  = 10 [(hi.visibility) = VIS_SELF];
+  optional string            arch         = 11 [(hi.visibility) = VIS_SELF];
+  optional PluginBuildStatus status       = 3 [(hi.visibility) = VIS_SELF];
+  optional string            artifact_url = 4 [(hi.visibility) = VIS_SELF]; // 编好的 .so(私有桶;下发时现签 presigned)
+  optional string            sha256       = 5 [(hi.visibility) = VIS_SELF]; // 产物摘要,机器人下完照此核对
+  optional uint32            abi_version  = 6 [(hi.visibility) = VIS_SELF]; // 从 .so 里真读出来的(见 hi.ai.plugin.BuildResp)
+  optional string            error        = 7 [(hi.visibility) = VIS_SELF]; // 失败原因(一句话)
+  optional string            log          = 8 [(hi.visibility) = VIS_SELF]; // 编译日志尾部
+  optional int64             started_at   = 9 [(hi.visibility) = VIS_SELF];
+  optional int64             finished_at  = 10 [(hi.visibility) = VIS_SELF];
 }
 
 // 插件在某机器人使用记录里的来源(历史事实;引用不是拷贝,只多一行 c 指向同壳)。
@@ -170,20 +170,20 @@ enum PluginSource {
 // **每机器人各不相同的 = c(enabled/source/data,含 api_key)+ d(激活版 + 版本级 data)**,这正是拆表的意义。
 message PluginView {
   option (hi.audience) = VIS_SELF;
-  PluginShell   shell        = 1 [(hi.visibility) = VIS_SELF];
-  PluginVersion active       = 2 [(hi.visibility) = VIS_SELF]; // 激活版本内容(无激活为空)
-  bool          enabled      = 3 [(hi.visibility) = VIS_SELF]; // c.enabled:插件是否开启
-  PluginSource  source       = 4 [(hi.visibility) = VIS_SELF]; // c.source
-  int32         ref_count    = 5 [(hi.visibility) = VIS_SELF]; // 被多少机器人引用(实时 COUNT)
-  google.protobuf.Struct data         = 6 [(hi.visibility) = VIS_SELF]; // c.data:插件级扩展数据(含 api_key)
-  google.protobuf.Struct version_data = 7 [(hi.visibility) = VIS_SELF]; // 激活版本的 d.data:版本级扩展数据
+  PluginShell            shell         = 1 [(hi.visibility) = VIS_SELF];
+  PluginVersion          active        = 2 [(hi.visibility) = VIS_SELF]; // 激活版本内容(无激活为空)
+  optional bool          enabled       = 3 [(hi.visibility) = VIS_SELF]; // c.enabled:插件是否开启
+  optional PluginSource  source        = 4 [(hi.visibility) = VIS_SELF]; // c.source
+  optional int32         ref_count     = 5 [(hi.visibility) = VIS_SELF]; // 被多少机器人引用(实时 COUNT)
+  google.protobuf.Struct data          = 6 [(hi.visibility) = VIS_SELF]; // c.data:插件级扩展数据(含 api_key)
+  google.protobuf.Struct version_data  = 7 [(hi.visibility) = VIS_SELF]; // 激活版本的 d.data:版本级扩展数据
   // 激活版本的构建态,**每个架构一条**(aarch64 / x86_64)。NATIVE 才有,PYTHON 恒空。
   // 一级页要它是因为:NATIVE 插件"挂上了"不等于"能用了" —— 中间隔着一次交叉编译。
   // 不回显的话,用户看到插件已启用、机器人却始终没装上,查不出是编失败了。
   //
   // ⚠️ 8 号那个单数 `build` 已删:一版多架构,单个字段只能显示其中一个,
   //    另一个编失败就看不见 —— 页面"绿了"而实际半残。
-  repeated PluginBuild builds = 12 [(hi.visibility) = VIS_SELF];
+  repeated PluginBuild   builds        = 12 [(hi.visibility) = VIS_SELF];
   // c.follow_latest:这台机器人要不要自动切到作者发的新版。
   //
   // ⭐ **这是使用方自己的事,归在使用行(c)上,不在挂牌上。**
@@ -194,28 +194,28 @@ message PluginView {
   //
   // 关掉 = 停在当前激活版,作者发新版也不动;打开 = 新版**构建成功后**自动切过去
   // (NATIVE 要等编出来,切到一个还没编好的版本会让机器人拉到空清单)。
-  bool          follow_latest = 9 [(hi.visibility) = VIS_SELF];
+  optional bool          follow_latest = 9 [(hi.visibility) = VIS_SELF];
 }
 
 // 二级页一行:某版本内容 + 该 agent 是否激活它 + 该 agent 对该版本的版本级数据。
 message PluginVersionView {
   option (hi.audience) = VIS_SELF;
-  PluginVersion version = 1 [(hi.visibility) = VIS_SELF];
-  bool          active  = 2 [(hi.visibility) = VIS_SELF];
-  google.protobuf.Struct data = 3 [(hi.visibility) = VIS_SELF]; // d.data
+  PluginVersion          version = 1 [(hi.visibility) = VIS_SELF];
+  optional bool          active  = 2 [(hi.visibility) = VIS_SELF];
+  google.protobuf.Struct data    = 3 [(hi.visibility) = VIS_SELF]; // d.data
   // ⚠️ **单数那个 `build` 已删** —— 一版有**多个架构**各自的构建态(aarch64 / x86_64),
   // 塞进一个字段就只能显示其中一个:另一个编失败也看不见,页面上"绿了"而实际半残。
   // 前端要把每个架构一行地列出来。
-  repeated PluginBuild builds = 5 [(hi.visibility) = VIS_SELF]; // 该版本各架构的构建态(NATIVE 才有)
+  repeated PluginBuild   builds  = 5 [(hi.visibility) = VIS_SELF]; // 该版本各架构的构建态(NATIVE 才有)
 }
 
 // 插件加载完成通知(公开摘要,不带私产)。
 message PluginLoaded {
   option (hi.audience) = VIS_PARTICIPANT;
-  string uuid    = 1 [(hi.visibility) = VIS_PARTICIPANT];
-  string name    = 2 [(hi.visibility) = VIS_PARTICIPANT];
-  string version = 3 [(hi.visibility) = VIS_PARTICIPANT];
-  bool   enabled = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string uuid    = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string name    = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string version = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  optional bool   enabled = 4 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 // 建空壳:插 a{uuid,name,runtime=UNDETERMINED} + owner 的 c{source=original, enabled=false}。
@@ -225,33 +225,33 @@ message PluginLoaded {
 // ⚠️ **没有 runtime 字段,不要再加回来。**
 // 建壳时还没有包,语言这件事在这一刻**不存在**;它由首版上传的包结构自动判定。
 message CreateShellReq {
-  string      agent = 1 [(buf.validate.field).string.pattern="^\\S+$"];
-  string      name  = 2 [(buf.validate.field).string.min_len = 1];
-  google.protobuf.Struct data = 3; // c.data(插件级)
+  optional string        agent = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  optional string        name  = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  google.protobuf.Struct data  = 3; // c.data(插件级)
 }
 message CreateShellResp {
   option (hi.audience) = VIS_SELF;
-  string uuid = 1 [(hi.visibility) = VIS_SELF];
+  optional string uuid = 1 [(hi.visibility) = VIS_SELF];
 }
 
 // 给壳加版本:插 b。若该 agent 对此壳还没激活版(首版)→ 顺带插 d(active=true) 自动激活。
 // data=该 agent 对这一版的版本级扩展数据(hiclub 放 club 数据)。
 message CreateVersionReq {
-  string        agent   = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  optional string        agent   = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
   // version.uuid=壳;version.version + 本体内容。
   // **description 不用填**:后端从 version.url 那个包里的 description.json 预读入库;
   // 包里没有它会直接报错(过渡期:字段里直接给合法 spec 内容仍收,但会告警)。
-  PluginVersion version = 2;
-  google.protobuf.Struct data = 3; // d.data(版本级)
+  PluginVersion          version = 2;
+  google.protobuf.Struct data    = 3; // d.data(版本级)
 }
 
 // 改扩展数据:壳级(c.data)和/或某版本级(d.data)。**壳/版本本体冻结,不动。**
 message EditPluginReq {
-  string                 agent        = 1;
-  string                 uuid         = 2;
+  optional string                 agent        = 1;
+  optional string                 uuid         = 2;
   optional google.protobuf.Struct data         = 3; // 传了才改 c.data(插件级)
   optional string                 version      = 4; // 配合 version_data 指定改哪个版本的 d.data
-  optional google.protobuf.Struct version_data = 5; // 传了(且 version 非空)才改 d.data
+  optional google.protobuf.Struct version_data = 5; // 传了(且 version 也传了)才改 d.data
 }
 
 message SetEnabledReq { string agent = 1; string uuid = 2; bool enabled = 3; }             // 改 c.enabled
@@ -260,9 +260,9 @@ message SetEnabledReq { string agent = 1; string uuid = 2; bool enabled = 3; }  
 // 打开之后,作者每发一版(NATIVE 是编成功之后)这台机器人就自动切过去;
 // 关掉就停在当前激活版,由主人自己在版本管理里选。
 message SetFollowLatestReq {
-  string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"];
-  string uuid  = 2 [(buf.validate.field).string.pattern="^\\S+$"];
-  bool   on    = 3;
+  optional string agent = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  optional string uuid  = 2 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  optional bool   on    = 3;
 }
 message SetActiveReq  { string agent = 1; string uuid = 2; string version = 3; }           // 改 d.active(事务内互斥)
 
@@ -279,31 +279,31 @@ message SetActiveReq  { string agent = 1; string uuid = 2; string version = 3; }
 // ⚠️ 与 SetActive 同一套语义(没有 d 行就以当前激活版的 d.data 为模板补一行再激活),
 //    所以引用方不必发过版也切得动。
 message SetActiveAllReq {
-  string uuid    = 1 [(buf.validate.field).string.pattern="^\\S+$"];
-  string version = 2 [(buf.validate.field).string.pattern="^\\S+$"];
+  optional string uuid    = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  optional string version = 2 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
 }
 message SetActiveAllResp {
   option (hi.audience) = VIS_SELF;
-  int32 switched = 1 [(hi.visibility) = VIS_SELF]; // 切过去的使用方个数(日志/回显用)
+  optional int32 switched = 1 [(hi.visibility) = VIS_SELF]; // 切过去的使用方个数(日志/回显用)
 }
 
 message DownloadScriptReq { string agent = 1; string uuid = 2; string version = 3; }
 message DownloadScriptResp {
   option (hi.audience) = VIS_SELF;
-  bytes  content = 1 [(hi.visibility) = VIS_SELF];
-  string name    = 2 [(hi.visibility) = VIS_SELF];
+  optional bytes  content = 1 [(hi.visibility) = VIS_SELF];
+  optional string name    = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message ListPluginsReq  { string agent = 1; hi.Pagination pagination = 2; }
 message ListVersionsReq { string agent = 1; string uuid = 2; hi.Pagination pagination = 3; }
 message ListPluginsResp {
   option (hi.audience) = VIS_SELF;
-  int32               total = 1 [(hi.visibility) = VIS_SELF];
+  optional int32      total = 1 [(hi.visibility) = VIS_SELF];
   repeated PluginView list  = 2 [(hi.visibility) = VIS_SELF];
 }
 message ListVersionsResp {
   option (hi.audience) = VIS_SELF;
-  int32                      total = 1 [(hi.visibility) = VIS_SELF];
+  optional int32             total = 1 [(hi.visibility) = VIS_SELF];
   repeated PluginVersionView list  = 2 [(hi.visibility) = VIS_SELF];
 }
 message GetPluginReq  { string agent = 1; string uuid = 2; }
@@ -314,34 +314,34 @@ message GetPluginResp {
 
 // 删单个版本(b 该行 + 全部 agent 的 d 该版本行 + 脚本文件)。**仅创建者(c.source=original)可删** —— 版本是共享本体。
 message DeleteVersionReq {
-  string agent   = 1 [(buf.validate.field).string.pattern="^\\S+$"];
-  string uuid    = 2 [(buf.validate.field).string.pattern="^\\S+$"];
-  string version = 3 [(buf.validate.field).string.pattern="^\\S+$"];
+  optional string agent   = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  optional string uuid    = 2 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  optional string version = 3 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
 }
 // 批量删版本:删该插件在 **[min_version, max_version] 范围内**(按三级版本号数值比较,含端点)的全部版本。
-// min_version 空=不设下界,max_version 空=不设上界(两者都空=全部版本)。**仅创建者可删**。
+// min_version 不传=不设下界,max_version 不传=不设上界(两者都不传=全部版本)。**仅创建者可删**。
 message DeleteVersionsReq {
-  string agent       = 1 [(buf.validate.field).string.pattern="^\\S+$"];
-  string uuid        = 2 [(buf.validate.field).string.pattern="^\\S+$"];
-  string min_version = 3; // 空=不设下界
-  string max_version = 4; // 空=不设上界
+  optional string agent       = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  optional string uuid        = 2 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  optional string min_version = 3; // 不传=不设下界
+  optional string max_version = 4; // 不传=不设上界
 }
 // 批量删**指定的**若干版本(前端勾选的一批,**版本号可不连续**)。**仅创建者可删**。
 message DeleteVersionListReq {
-  string agent    = 1 [(buf.validate.field).string.pattern="^\\S+$"];
-  string uuid     = 2 [(buf.validate.field).string.pattern="^\\S+$"];
+  optional string agent    = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  optional string uuid     = 2 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
   repeated string versions = 3; // 要删的版本号列表(可不连续)
 }
 // 从某机器人移除插件。**按归属分别处理**:该 agent 是创建者(c.source=original)→ 删整个插件
 // (a+全部b+全部c+全部d+脚本文件,全局);是引用方(reference)→ 只解绑本机器人(删本 agent 的 c/d,壳留给 owner)。
 // 这样引用方删不掉别人的插件。
 message DeleteShellReq {
-  string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"];
-  string uuid  = 2 [(buf.validate.field).string.pattern="^\\S+$"];
+  optional string agent = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  optional string uuid  = 2 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
 }
 // 批量:一次从某机器人移除多个插件,每个 uuid 语义同 DeleteShell(按归属删壳或解绑)。
 message DeleteShellsReq {
-  string          agent = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  optional string agent = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
   repeated string uuids = 2;
 }
 // **内部级联清理**:某些机器人被撤"插件权限"时,清掉它们名下全部插件绑定(club PermissionService.Revoke 调,非前端按钮)。
@@ -362,9 +362,9 @@ message DeletePluginByAgentsReq { repeated string agents = 1; }
 //    **绝不能把出让方的 c.data 拷过来** —— 那等于把出让方的凭据连同脚本一起交出去了。
 //    c/d 本来就是「每机器人各不相同的使用态」,这正是当初拆表的意义。
 message CreateReferenceReq {
-  string agent   = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 受让方机器人
-  string uuid    = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 壳 uuid(别人的)
-  string version = 3; // 空 = 取出让方当前激活版
+  optional string        agent        = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true]; // 受让方机器人
+  optional string        uuid         = 2 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true]; // 壳 uuid(别人的)
+  optional string        version      = 3; // 不传 = 取出让方当前激活版
   google.protobuf.Struct data         = 4; // c.data(club 注入受让方自己的 api_key)
   google.protobuf.Struct version_data = 5; // d.data
 }
@@ -378,8 +378,8 @@ message CreateReferenceReq {
 // 为什么带 agent:插件的**展示信息跟着出让方当前激活的那一版**走
 // (与"引用跟版"同一口径),而 active 是每个使用方各自的(d 表),所以必须给主体。
 message PluginRef {
-  string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"];
-  string uuid  = 2 [(buf.validate.field).string.pattern="^\\S+$"];
+  optional string agent = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  optional string uuid  = 2 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
 }
 
 message PublicBriefsReq {
@@ -389,12 +389,12 @@ message PublicBriefsReq {
 // 一个插件对外能看到的全部展示信息。**没有 url / api_key / 扩展数据**。
 message PluginPublicBrief {
   option (hi.audience) = VIS_PUBLIC;
-  string agent   = 1 [(hi.visibility) = VIS_PUBLIC];
-  string uuid    = 2 [(hi.visibility) = VIS_PUBLIC];
-  string name    = 3 [(hi.visibility) = VIS_PUBLIC]; // 壳名
-  string version = 4 [(hi.visibility) = VIS_PUBLIC]; // 该 agent 当前激活版(没有则空)
-  string logo    = 5 [(hi.visibility) = VIS_PUBLIC]; // 激活版的
-  string summary = 6 [(hi.visibility) = VIS_PUBLIC]; // 激活版的
+  optional string agent   = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional string uuid    = 2 [(hi.visibility) = VIS_PUBLIC];
+  optional string name    = 3 [(hi.visibility) = VIS_PUBLIC]; // 壳名
+  optional string version = 4 [(hi.visibility) = VIS_PUBLIC]; // 该 agent 当前激活版(没有则空)
+  optional string logo    = 5 [(hi.visibility) = VIS_PUBLIC]; // 激活版的
+  optional string summary = 6 [(hi.visibility) = VIS_PUBLIC]; // 激活版的
 }
 
 message PublicBriefsResp {
@@ -414,9 +414,9 @@ message PublicBriefsResp {
 // 市场 revoke 删的是服务端的引用行,机器人本地那个 `.so` 不会自己消失。
 message NativePlugin {
   option (hi.audience) = VIS_SELF;
-  string uuid    = 1 [(hi.visibility) = VIS_SELF]; // 壳 uuid。**落地文件名就是它**(`plugins/<uuid>.so`)
-  string name    = 2 [(hi.visibility) = VIS_SELF]; // 壳名,只用于机器人日志
-  string version = 3 [(hi.visibility) = VIS_SELF];
+  optional string uuid        = 1 [(hi.visibility) = VIS_SELF]; // 壳 uuid。**落地文件名就是它**(`plugins/<uuid>.so`)
+  optional string name        = 2 [(hi.visibility) = VIS_SELF]; // 壳名,只用于机器人日志
+  optional string version     = 3 [(hi.visibility) = VIS_SELF];
   // 壳前缀。机器人**上报 tools 时要拼在方法名前**(`<fn_prefix>_<原名>`),
   // 分发时切第一个 `_` 切掉。
   //
@@ -425,24 +425,25 @@ message NativePlugin {
   // 而 py 插件那侧的改名是在发版预读时做掉的,`.so` 没有对应的时机。
   // 不给机器人前缀的话,两个厂商各卖一个提供 `search` 的插件,买家两个都买 →
   // 机器人本地撞名 → 整个插件拒绝加载,而失败原因只在机器人的本地日志里。
-  string fn_prefix = 4 [(hi.visibility) = VIS_SELF];
+  optional string fn_prefix   = 4 [(hi.visibility) = VIS_SELF];
   // `.so` 的下载地址。私有桶,**每次拉清单现签**(限期),不存库。
-  string url       = 5 [(hi.visibility) = VIS_SELF];
-  string sha256    = 6 [(hi.visibility) = VIS_SELF]; // 下完必须核对;对不上就是没下全或被改过
-  uint32 abi_version = 7 [(hi.visibility) = VIS_SELF]; // 机器人可据此先筛掉对不上的,省一次下载
+  optional string url         = 5 [(hi.visibility) = VIS_SELF];
+  optional string sha256      = 6 [(hi.visibility) = VIS_SELF]; // 下完必须核对;对不上就是没下全或被改过
+  optional uint32 abi_version = 7 [(hi.visibility) = VIS_SELF]; // 机器人可据此先筛掉对不上的,省一次下载
   // 这份产物是给哪个架构的(`aarch64` / `x86_64`)。
   //
   // ⚠️ **abi_version 挡不住架构不对**:两台机器的 abi 一样,指令集却不同 ——
   //    装上去要到 dlopen 才炸,而那个错看着像"插件本身有问题"。
   //    机器人拿到清单先比这个,不符就跳过并说清楚。
-  string arch = 8 [(hi.visibility) = VIS_SELF];
+  optional string arch        = 8 [(hi.visibility) = VIS_SELF];
 }
 
 message ListNativeReq {
-  string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"];
-  // 机器人自己的架构。**空 = aarch64** —— 现网机器人全是 arm64,
+  optional string agent = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  // 机器人自己的架构。**不传 = aarch64** —— 现网机器人全是 arm64,
   // 老 brain 发不带这个字段的请求,照旧拿到 arm64 那份,零改动继续跑。
-  string arch  = 2;
+  // ⛔ 空串不是合法值:要么不传,要么给真架构名。
+  optional string arch  = 2;
 }
 message ListNativeResp {
   option (hi.audience) = VIS_SELF;
@@ -452,9 +453,9 @@ message ListNativeResp {
 // 重编一版。编译失败(网络抖、依赖源挂了)后不必删版本重发一遍 ——
 // 版本本体是冻结的,重编的是**产物**,不是版本。
 message RetryBuildReq {
-  string agent   = 1 [(buf.validate.field).string.pattern="^\\S+$"];
-  string uuid    = 2 [(buf.validate.field).string.pattern="^\\S+$"];
-  string version = 3 [(buf.validate.field).string.pattern="^\\S+$"];
+  optional string agent   = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  optional string uuid    = 2 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  optional string version = 3 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
 }
 
 // 插件管理(主体=插件)。商户档:hiai web 与三方商户后台(club)都会调。

@@ -13,9 +13,9 @@ import "hi/options.proto";
 // 光写 `USDT` 说不清往哪条链上转。
 message Coin {
   option (hi.audience) = VIS_PUBLIC;
-  string icon     = 1 [(hi.visibility) = VIS_PUBLIC];
-  string name     = 2 [(hi.visibility) = VIS_PUBLIC]; // 标识 + 显示名,如 USDT-TRC20 / WHDS-APTOS
-  string category = 3 [(hi.visibility) = VIS_PUBLIC]; // public-公共币种, custom-自定义币种
+  optional string icon     = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional string name     = 2 [(hi.visibility) = VIS_PUBLIC]; // 标识 + 显示名,如 USDT-TRC20 / WHDS-APTOS
+  optional string category = 3 [(hi.visibility) = VIS_PUBLIC]; // public-公共币种, custom-自定义币种
 
   // ── 下面三个是**转账真正需要的东西**,此前一直没有 ─────────────────────────
   //
@@ -24,9 +24,9 @@ message Coin {
   // 结果就是机器人只付得了原生币,插件市场用 USDT 定价却收不了款。
   // 放在这里(公开面)是合适的:合约地址与小数位本就是链上公开事实,不是秘密。
 
-  string chain    = 4 [(hi.visibility) = VIS_PUBLIC]; // btc/eth/trx/sol/aptos,对齐 hidid-core 的 Chain::id()
-  // 合约(FA / token)地址。**空 = 该链的原生币**(BTC/ETH/TRX/SOL/APT)。
-  string contract = 5 [(hi.visibility) = VIS_PUBLIC];
+  optional string chain    = 4 [(hi.visibility) = VIS_PUBLIC]; // btc/eth/trx/sol/aptos,对齐 hidid-core 的 Chain::id()
+  // 合约(FA / token)地址。**不传 = 该链的原生币**(BTC/ETH/TRX/SOL/APT)。
+  optional string contract = 5 [(hi.visibility) = VIS_PUBLIC];
 
   // 最小单位的小数位。金额换算全程走整数,**不碰 f64** —— 钱经不起浮点误差。
   //
@@ -37,7 +37,7 @@ message Coin {
   //      POST <fullnode>/v1/view
   //      {"function":"0x1::fungible_asset::decimals",
   //       "type_arguments":["0x1::fungible_asset::Metadata"],"arguments":["<合约地址>"]}
-  uint32 decimals = 6 [(hi.visibility) = VIS_PUBLIC];
+  optional uint32 decimals = 6 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message ListCoinsResp {
@@ -54,7 +54,7 @@ message ListSuperAdminUsersResp {
 
 message UserTotalResp {
   option (hi.audience) = VIS_PUBLIC;
-  int32 total = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional int32 total = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
 // Base —— 每个包统一的公共信息入口(币种/服务自身版本/用户总数),全部公开。

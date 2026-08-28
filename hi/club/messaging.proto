@@ -14,7 +14,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 message Packet {
   option (hi.audience) = VIS_PARTICIPANT; // 群消息域:群里人人可见
   oneof kind {
-    Notice notice = 1 [(hi.visibility) = VIS_PARTICIPANT];
+    Notice  notice  = 1 [(hi.visibility) = VIS_PARTICIPANT];
     Message message = 2 [(hi.visibility) = VIS_PARTICIPANT];
   }
 }
@@ -114,28 +114,28 @@ message Packet {
 */
 message Notice {
   option (hi.audience) = VIS_PARTICIPANT; // 群/单聊通知,收信域内可见
-  string uuid = 1 [(hi.visibility) = VIS_PARTICIPANT];
-  string type = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string     uuid       = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string     type       = 2 [(hi.visibility) = VIS_PARTICIPANT];
   // Entity=公开门面。**是真实发送者,broker 强制** —— 与 Message.from 同一条不变量,
   // 详见下面 Message 上方那段。通知没有 ghost,所以这里没有任何回旋余地:
   // 填成别人,这条通知发不出去(而且发送端看不到报错)。
-  hi.Entity from = 3 [(hi.visibility) = VIS_PUBLIC];
-  int64 timestamp = 4 [(hi.visibility) = VIS_PARTICIPANT];
-  int64 expiration = 5 [(hi.visibility) = VIS_PARTICIPANT];
-  string status = 6 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity           from       = 3 [(hi.visibility) = VIS_PUBLIC];
+  optional int64      timestamp  = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64      expiration = 5 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string     status     = 6 [(hi.visibility) = VIS_PARTICIPANT];
   // ⚠️ **Any 是可见性 lint 唯一的结构性缺口**:装进去的真实类型 lint 看不见,
   //    于是 `level(field.visibility) <= level(message.audience)` 这条规则在这里失效。
   //    往里塞的类型**必须自己是 VIS_PARTICIPANT 或更宽**,别塞 VIS_SELF 的东西 ——
   //    plugin-load 曾塞 hi.ai.PluginView(SELF,body.url 是私有 bucket 的脚本地址),
   //    已换成专门的公开摘要 hi.ai.PluginLoaded。合法载荷见上面的类型表。
-  google.protobuf.Any extra = 7 [(hi.visibility) = VIS_PARTICIPANT];
-  string ex_type = 8 [(hi.visibility) = VIS_PARTICIPANT];
+  google.protobuf.Any extra      = 7 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string     ex_type    = 8 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 message Prompt {
   option (hi.audience) = VIS_PARTICIPANT;
-  string custom = 1 [(hi.visibility) = VIS_PARTICIPANT];
-  string state = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string custom = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string state  = 2 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 /*
@@ -189,32 +189,32 @@ message Prompt {
 */
 message Message {
   option (hi.audience) = VIS_PARTICIPANT; // 群消息,群成员可见
-  string uuid = 1 [(hi.visibility) = VIS_PARTICIPANT];
-  string type = 2 [(hi.visibility) = VIS_PARTICIPANT];
-  hi.Entity from = 3 [(hi.visibility) = VIS_PUBLIC]; // Entity=公开门面
-  repeated Content conts = 4 [(hi.visibility) = VIS_PARTICIPANT];
-  int64 timestamp = 5 [(hi.visibility) = VIS_PARTICIPANT];
-  google.protobuf.Any extra = 6 [(hi.visibility) = VIS_PARTICIPANT];
-  string ex_type = 7 [(hi.visibility) = VIS_PARTICIPANT];
-  hi.Entity ghost = 8 [(hi.visibility) = VIS_PUBLIC]; // Entity=公开门面
-  Prompt prompt = 9 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string     uuid      = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string     type      = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity           from      = 3 [(hi.visibility) = VIS_PUBLIC]; // Entity=公开门面
+  repeated Content    conts     = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64      timestamp = 5 [(hi.visibility) = VIS_PARTICIPANT];
+  google.protobuf.Any extra     = 6 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string     ex_type   = 7 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity           ghost     = 8 [(hi.visibility) = VIS_PUBLIC]; // Entity=公开门面
+  Prompt              prompt    = 9 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 // ⚠️ 被后端 Go 引用(群消息 @ 解析),proto 里无 rpc 引用,勿当死 message 删。
 message Mention {
-  hi.Entity group = 1;
-  bool all = 2;
-  repeated hi.Entity list = 3;
+  hi.Entity          group = 1;
+  optional bool      all   = 2;
+  repeated hi.Entity list  = 3;
 }
 
 message Member {
   hi.Entity group = 1;
-  hi.Entity user = 2;
+  hi.Entity user  = 2;
 }
 
 message MemberExit {
-  Member member = 1;
-  string type = 2;
+  Member          member = 1;
+  optional string type   = 2;
 }
 
 /*
@@ -250,23 +250,23 @@ message Content {
   option (hi.audience) = VIS_PARTICIPANT; // 消息内容体,群成员可见
   message Chat {
     option (hi.audience) = VIS_PARTICIPANT;
-    string content = 1 [(hi.visibility) = VIS_PARTICIPANT];
-    optional string name = 2 [(hi.visibility) = VIS_PARTICIPANT];
-    optional uint32 size = 3 [(hi.visibility) = VIS_PARTICIPANT];
+    optional string content  = 1 [(hi.visibility) = VIS_PARTICIPANT];
+    optional string name     = 2 [(hi.visibility) = VIS_PARTICIPANT];
+    optional uint32 size     = 3 [(hi.visibility) = VIS_PARTICIPANT];
     optional uint32 duration = 4 [(hi.visibility) = VIS_PARTICIPANT];
   }
 
-  string type = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string type = 1 [(hi.visibility) = VIS_PARTICIPANT];
   oneof kind {
-    Chat chat = 2 [(hi.visibility) = VIS_PARTICIPANT];
+    Chat               chat  = 2 [(hi.visibility) = VIS_PARTICIPANT];
     hi.did.Transaction trans = 3 [(hi.visibility) = VIS_PUBLIC]; // Transaction=公开
-    TradeBase trade = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 交易卡可入群,基础卡=PARTICIPANT
+    TradeBase          trade = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 交易卡可入群,基础卡=PARTICIPANT
   }
 }
 
 message PublishReq {
-  string topic = 1;
-  Packet payload = 2;
+  optional string topic   = 1;
+  Packet          payload = 2;
 }
 
 service Publisher {

@@ -16,8 +16,8 @@ import "hi/options.proto";
 //    调用方有理由以为传 did 管用。换成专用消息后,"不能指定改谁"在**类型上就说不出来**。
 //    通则:**参数用专用消息,返回才用 Entity 这类对象**(各端自取所需)。
 message EditProfileReq {
-  string name   = 1; // 昵称
-  string avatar = 2; // 头像 url
+  optional string name   = 1; // 昵称
+  optional string avatar = 2; // 头像 url
 }
 
 service User {

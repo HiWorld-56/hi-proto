@@ -24,11 +24,11 @@ message Packet {
    app-update:  app 有新版本(全体广播,走 `hi/v1/broadcast`,不是本主题)
 */
 message Notice {
-  string uuid = 1;
-  string type = 2;
-  hi.Entity from = 3;
-  google.protobuf.Any extra = 4;
-  string ex_type = 5;
+  optional string     uuid    = 1;
+  optional string     type    = 2;
+  hi.Entity           from    = 3;
+  google.protobuf.Any extra   = 4;
+  optional string     ex_type = 5;
 }
 
 // Notify —— 付款方付完之后,叫 hidid 后台替它通知收款方。

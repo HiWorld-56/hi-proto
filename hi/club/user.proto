@@ -14,29 +14,29 @@ message UserInfo {
   option (hi.audience) = VIS_SELF; // 本人视图:含 permissions/verify_policy 私有字段,故 SELF
   hi.Entity       base          = 1 [(hi.visibility) = VIS_PUBLIC];      // 名片 name/avatar
   repeated string permissions   = 2 [(hi.visibility) = VIS_SELF];        // 我的权限列表(SELF)
-  string          verify_policy = 3 [(hi.visibility) = VIS_SELF];        // 加好友校验方式(私有,SELF)
-  string          moment        = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 用户动态(关系可见)
+  optional string verify_policy = 3 [(hi.visibility) = VIS_SELF];        // 加好友校验方式(私有,SELF)
+  optional string moment        = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 用户动态(关系可见)
 }
 
 message ListSystemMessagesReq {
-  string        status     = 1;
-  hi.Pagination pagination = 2;
+  optional string status     = 1;
+  hi.Pagination   pagination = 2;
 }
 
 message SystemMessages {
   option (hi.audience) = VIS_SELF; // 我的系统消息
-  bool            has_new = 1 [(hi.visibility) = VIS_SELF];
-  int32           total   = 2 [(hi.visibility) = VIS_SELF];
+  optional bool   has_new = 1 [(hi.visibility) = VIS_SELF];
+  optional int32  total   = 2 [(hi.visibility) = VIS_SELF];
   repeated Notice list    = 3 [(hi.visibility) = VIS_PARTICIPANT]; // Notice(messaging)为通知型,关系/群级
 }
 
 message DeleteSystemMessageReq {
-  string uuid = 1;
+  optional string uuid = 1;
 }
 
 message HandleSystemMessageReq {
-  string uuid   = 1;
-  string status = 2;
+  optional string uuid   = 1;
+  optional string status = 2;
 }
 
 // 通知回执:**我处理完这条通知了**。与 HandleSystemMessage 不是一回事 ——
@@ -44,14 +44,14 @@ message HandleSystemMessageReq {
 // 这里只是"这条我消费过了",没有任何业务副作用,对**任何**需要端上处理的通知都适用。
 // 以通知 uuid 为唯一标识,所以不用按类型各写一个接口。
 message MarkNoticeProcessedReq {
-  string uuid = 1;
+  optional string uuid = 1;
 }
 
 message RelationInfo {
   option (hi.audience) = VIS_SELF; // 我的关系视图:含仅本人可见的 remark,故 SELF(见 report)
-  hi.Entity base   = 1 [(hi.visibility) = VIS_PUBLIC];      // 名片
-  string    remark = 2 [(hi.visibility) = VIS_SELF];        // 备注名(仅设置者本人可见)
-  string    moment = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 用户动态(关系可见)
+  hi.Entity       base   = 1 [(hi.visibility) = VIS_PUBLIC];      // 名片
+  optional string remark = 2 [(hi.visibility) = VIS_SELF];        // 备注名(仅设置者本人可见)
+  optional string moment = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 用户动态(关系可见)
 }
 
 // 一次拿好友+仆从(同表,一次调用拿全);已删按关系拆开的 ListFriends/ListServitors(重叠)。
@@ -62,8 +62,8 @@ message ListRelationsResp {
 }
 
 message AddFriendReq {
-  string did  = 1;
-  string type = 2;
+  string          did  = 1;
+  optional string type = 2;
 }
 
 enum FriendRequestStatus {
@@ -75,7 +75,7 @@ enum FriendRequestStatus {
 
 message AddFriendResp {
   option (hi.audience) = VIS_PARTICIPANT; // 好友申请结果(关系状态)
-  FriendRequestStatus status = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional FriendRequestStatus status = 1 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 message DeleteFriendReq {
@@ -93,24 +93,24 @@ message GetUserReq {
 
 message UnprocessedSysMsgCountResp {
   option (hi.audience) = VIS_SELF; // 我的未读数
-  int32 count = 1 [(hi.visibility) = VIS_SELF];
+  optional int32 count = 1 [(hi.visibility) = VIS_SELF];
 }
 
 // 改自己的资料。**不收 hi.Entity 整体** —— Entity 带 did/type/update,
 // 而"改谁"永远取自 token,type/update 是服务端产物。入参只放调用方真正该给的。
 message UpdateUserReq {
-  string name   = 1; // 昵称
-  string avatar = 4; // 头像 url
+  optional string name          = 1; // 昵称
+  optional string avatar        = 4; // 头像 url
   // auto_reject-自动拒绝
   // manual_accept-手动同意
   // auto_accept-自动同意
-  string          verify_policy = 2; // 添加好友校验方式
+  optional string verify_policy = 2; // 添加好友校验方式
   optional string moment        = 3; // 用户动态
 }
 
 message SetRemarkReq {
-  string user   = 1; // 被备注的用户did
-  string remark = 2; // 备注名
+  optional string user   = 1; // 被备注的用户did
+  optional string remark = 2; // 备注名
 }
 
 message ListOnlineUsersReq {

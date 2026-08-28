@@ -55,9 +55,9 @@ service Trade {
 message ListTradesReq {
   // 查谁的交易。**数据过滤条件,不是鉴权凭据** —— 调用方(club)已经鉴过权,
   // 这里不会、也不该再去验证它是不是"真的调用者"。
-  string        did        = 1;
-  string        id         = 2; // 可选:只看该交易
-  hi.Pagination pagination = 3;
+  string          did        = 1;
+  optional string id         = 2; // 可选:只看该交易
+  hi.Pagination   pagination = 3;
 }
 
 // 交易统计(内部面)。超管资格由 club 验(AUTH_SUPERADMIN),这里不重复验。

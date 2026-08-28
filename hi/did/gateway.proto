@@ -18,9 +18,9 @@ message GatewayConfigUnit {
   // ⚠️ **这不是链标识**,别跟 `chain` 字段那套(btc/eth/trx/sol/aptos,见 wallet.proto)混。
   // 它是"配哪个节点/服务商"的名字 —— 所以才会有 tatum(数据 API)、
   // 以及 tron 拆成 grpc/http 两条。两套词汇长得像、含义不同,混用会静默查空。
-  string name    = 1 [(hi.visibility) = VIS_PUBLIC];
-  string url     = 2 [(hi.visibility) = VIS_PUBLIC];
-  string api_key = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string name    = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional string url     = 2 [(hi.visibility) = VIS_PUBLIC];
+  optional string api_key = 3 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 message GatewayConfigListResp {

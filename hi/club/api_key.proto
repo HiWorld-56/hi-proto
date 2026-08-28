@@ -17,10 +17,10 @@ import "hi/options.proto";
 // apikey 是用户机密(value 可鉴权),只发给归属用户本人。
 message ApiKeyInfo {
   option (hi.audience) = VIS_SELF;
-  string user       = 1 [(hi.visibility) = VIS_SELF]; // 归属用户 did(人/软bot/硬bot)
-  string value      = 2 [(hi.visibility) = VIS_SELF];
-  string note       = 3 [(hi.visibility) = VIS_SELF];
-  int64  created_at = 4 [(hi.visibility) = VIS_SELF];
+  optional string user       = 1 [(hi.visibility) = VIS_SELF]; // 归属用户 did(人/软bot/硬bot)
+  optional string value      = 2 [(hi.visibility) = VIS_SELF];
+  optional string note       = 3 [(hi.visibility) = VIS_SELF];
+  optional int64  created_at = 4 [(hi.visibility) = VIS_SELF];
 }
 
 // ⚠️ **只有机器人能持 apikey** —— 原先设计里"人也能设 apikey",没必要,已废。
@@ -33,7 +33,7 @@ message ApiKeyInfo {
 // 而且绝大多数硬件机器人**无主**,"只有 master 能建"对它们等于这条路不存在。
 // (原先废掉 caller==target 的理由是"人不需要 key",顺手把机器人自己也挡了。)
 message CreateApiKeyReq {
-  string agent = 1; // 机器人 did;机器人自己 / 它的 master / 超管都能建
+  optional string agent = 1; // 机器人 did;机器人自己 / 它的 master / 超管都能建
 }
 
 message CreateApiKeyResp {
@@ -47,18 +47,18 @@ message EditApiKeyResp {
 }
 
 message ListApiKeysReq {
-  string        agent      = 1; // 机器人 did;能查的只有它的 master
-  hi.Pagination pagination = 2;
+  optional string agent      = 1; // 机器人 did;能查的只有它的 master
+  hi.Pagination   pagination = 2;
 }
 
 message ListApiKeysResp {
   option (hi.audience) = VIS_SELF;
-  int32               total = 1 [(hi.visibility) = VIS_SELF];
+  optional int32      total = 1 [(hi.visibility) = VIS_SELF];
   repeated ApiKeyInfo infos = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message DeleteApiKeyReq {
-  string api_key = 1;
+  optional string api_key = 1;
 }
 
 // ⚠️ 入参 `EditApiKeyReq` **复用 hi.ai 的**(字段完全一致,club 只是门面)。

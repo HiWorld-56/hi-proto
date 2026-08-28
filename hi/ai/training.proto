@@ -11,60 +11,60 @@ import "hi/options.proto";
 
 message StartReq {
   repeated string uuids = 1; // 训练文件 uuid 列表(禁用数据表自增 id 跨端流转)
-  string          agent = 2; // 智能体did
+  optional string agent = 2; // 智能体did
 }
 
 message StatusReq {
-  string agent = 1; // 智能体did
+  optional string agent = 1; // 智能体did
 }
 
 message StatusResp {
   option (hi.audience) = VIS_SELF; // 机器人训练状态=owner 私有
-  string status      = 1 [(hi.visibility) = VIS_SELF]; // 训练状态,success-训练成功,failed-训练失败
-  int32  mem_count   = 2 [(hi.visibility) = VIS_SELF];
-  int32  slice_count = 3 [(hi.visibility) = VIS_SELF];
-  string message     = 4 [(hi.visibility) = VIS_SELF]; // 训练状态描述
+  optional string status      = 1 [(hi.visibility) = VIS_SELF]; // 训练状态,success-训练成功,failed-训练失败
+  optional int32  mem_count   = 2 [(hi.visibility) = VIS_SELF];
+  optional int32  slice_count = 3 [(hi.visibility) = VIS_SELF];
+  optional string message     = 4 [(hi.visibility) = VIS_SELF]; // 训练状态描述
 }
 
 message ClearReq {
-  string agent = 1; // 智能体did
+  optional string agent = 1; // 智能体did
 }
 
 message UploadFileReq {
-  string agent    = 1; // 智能体did
-  string filename = 2; // 文件名
-  bytes  content  = 3; // 文件内容
+  optional string agent    = 1; // 智能体did
+  optional string filename = 2; // 文件名
+  optional bytes  content  = 3; // 文件内容
 }
 
 message TrainingFile {
   option (hi.audience) = VIS_SELF; // 训练文件是机器人私产、有归属校验 → SELF
-  string uuid          = 1  [(hi.visibility) = VIS_SELF]; // 训练文件稳定标识(uuid;不暴露数据表自增 id)
-  string content       = 2  [(hi.visibility) = VIS_SELF]; // content（文件内容） / path / url
-  string agent         = 3  [(hi.visibility) = VIS_SELF]; // 智能体did
-  string title         = 4  [(hi.visibility) = VIS_SELF]; // 文件名
-  int32  size          = 5  [(hi.visibility) = VIS_SELF]; // 文件大小
-  string type          = 6  [(hi.visibility) = VIS_SELF]; // 文件类型
-  bool   is_use        = 7  [(hi.visibility) = VIS_SELF]; // 是否已经训练
-  string digest        = 8  [(hi.visibility) = VIS_SELF]; // 文件摘要
-  int64  training_time = 9  [(hi.visibility) = VIS_SELF]; // 训练时间
-  int64  created_at    = 10 [(hi.visibility) = VIS_SELF]; // 创建时间
-  int64  updated_at    = 11 [(hi.visibility) = VIS_SELF]; // 更新时间
+  optional string uuid          = 1  [(hi.visibility) = VIS_SELF]; // 训练文件稳定标识(uuid;不暴露数据表自增 id)
+  optional string content       = 2  [(hi.visibility) = VIS_SELF]; // content（文件内容） / path / url
+  optional string agent         = 3  [(hi.visibility) = VIS_SELF]; // 智能体did
+  optional string title         = 4  [(hi.visibility) = VIS_SELF]; // 文件名
+  optional int32  size          = 5  [(hi.visibility) = VIS_SELF]; // 文件大小
+  optional string type          = 6  [(hi.visibility) = VIS_SELF]; // 文件类型
+  optional bool   is_use        = 7  [(hi.visibility) = VIS_SELF]; // 是否已经训练
+  optional string digest        = 8  [(hi.visibility) = VIS_SELF]; // 文件摘要
+  optional int64  training_time = 9  [(hi.visibility) = VIS_SELF]; // 训练时间
+  optional int64  created_at    = 10 [(hi.visibility) = VIS_SELF]; // 创建时间
+  optional int64  updated_at    = 11 [(hi.visibility) = VIS_SELF]; // 更新时间
 }
 
 message ListFilesReq {
-  string        agent      = 1; // 智能体did
-  bool          use        = 2; // true-返回已训练的文件, false-返回所有文件
-  hi.Pagination pagination = 3;
+  optional string agent      = 1; // 智能体did
+  optional bool   use        = 2; // true-返回已训练的文件, false-返回所有文件
+  hi.Pagination   pagination = 3;
 }
 
 message ListFilesResp {
   option (hi.audience) = VIS_SELF; // TrainingFile(SELF)
-  int32                 total = 1 [(hi.visibility) = VIS_SELF];
+  optional int32        total = 1 [(hi.visibility) = VIS_SELF];
   repeated TrainingFile list  = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message DeleteFilesReq {
-  string          agent = 1; // 智能体did
+  optional string agent = 1; // 智能体did
   repeated string uuids = 2; // 训练文件 uuid 列表
 }
 
@@ -75,18 +75,18 @@ message DeleteFilesByAgentsReq {
 // 下载训练文件原件。训练资料存**私有桶**(商户私产,不公开读),所以拿不到可直下的 url,
 // 必须经这里带归属校验取字节 —— 与插件脚本的 DownloadScript 同一套路。
 message DownloadFileReq {
-  string agent = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // agent did(校验归属)
-  string uuid  = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 训练文件 uuid
+  optional string agent = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true]; // agent did(校验归属)
+  optional string uuid  = 2 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true]; // 训练文件 uuid
 }
 message DownloadFileResp {
   option (hi.audience) = VIS_SELF; // 训练资料是 owner 私产
-  bytes  content = 1 [(hi.visibility) = VIS_SELF];
-  string name    = 2 [(hi.visibility) = VIS_SELF]; // 建议的文件名
+  optional bytes  content = 1 [(hi.visibility) = VIS_SELF];
+  optional string name    = 2 [(hi.visibility) = VIS_SELF]; // 建议的文件名
 }
 
 message GetFileReq {
-  string uuid  = 1; // 训练文件 uuid
-  string agent = 2; // 智能体did(供 club/ai 两级归属校验;club 按 agent 查本方用户是否拥有该 agent)
+  optional string uuid  = 1; // 训练文件 uuid
+  optional string agent = 2; // 智能体did(供 club/ai 两级归属校验;club 按 agent 查本方用户是否拥有该 agent)
 }
 
 message GetFileResp {
@@ -95,21 +95,21 @@ message GetFileResp {
 }
 
 message UpdateContentReq {
-  string agent   = 1;
-  string uuid    = 2; // 训练文件 uuid
-  string content = 3;
+  optional string agent   = 1;
+  optional string uuid    = 2; // 训练文件 uuid
+  optional string content = 3;
 }
 
 message CreateContentReq {
-  string agent   = 1;
-  string content = 2;
-  // 文件名。**可空** —— 空了后端按内容前 10 字派生一个。
+  optional string agent   = 1;
+  optional string content = 2;
+  // 文件名。**可不传** —— 不传时后端按内容前 10 字派生一个。
   //
   // 为什么要收:文本训练在前端是让用户自己起名的(上传文件那条路天然带文件名),
   // 而派生出来的"前10字…"在列表里全是一个样,用户根本认不出自己传的是哪份。
   // 之前这一栏前端一直在传,后端没有这个字段 —— 请求照发、**字段静默丢掉**,
   // 谁都没发现(这正是 codegen/check_web_routes.py 存在的理由)。
-  string title   = 3;
+  optional string title   = 3;
 }
 
 message CreateContentResp {
@@ -118,9 +118,9 @@ message CreateContentResp {
 }
 
 message EditDigestReq {
-  string uuid   = 1; // 训练文件 uuid
-  string agent  = 2;
-  string digest = 3;
+  optional string uuid   = 1; // 训练文件 uuid
+  optional string agent  = 2;
+  optional string digest = 3;
 }
 
 // 训练/记忆(主体=训练)。商户档:**hiai 自己的 web 与三方商户后台都会调**,

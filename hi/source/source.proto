@@ -10,26 +10,26 @@ import "hi/common.proto";
 import "hi/options.proto";
 
 message DownloadReq {
-  string url = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}];
+  optional string url = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}, (buf.validate.field).required = true];
 }
 
 message DownloadResp {
   option (hi.audience) = VIS_PUBLIC; // File.Download 为 AUTH_NONE(免鉴权),按 url 取公开资源内容
-  bytes content = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional bytes content = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message DownloadStreamResp {
   option (hi.audience) = VIS_PUBLIC; // File.DownloadStream 免鉴权 AUTH_NONE,公开资源(同 DownloadResp)
-  bytes chunk  = 1 [(hi.visibility) = VIS_PUBLIC]; // 文件内容分片
-  int64 sent   = 2 [(hi.visibility) = VIS_PUBLIC]; // 已发送字节数（累计）, 单位：字节
-  int64 total  = 3 [(hi.visibility) = VIS_PUBLIC]; // 文件总大小, 单位：字节
-  int64 offset = 4 [(hi.visibility) = VIS_PUBLIC]; // 当前块在文件中的起始字节位置
+  optional bytes chunk  = 1 [(hi.visibility) = VIS_PUBLIC]; // 文件内容分片
+  optional int64 sent   = 2 [(hi.visibility) = VIS_PUBLIC]; // 已发送字节数（累计）, 单位：字节
+  optional int64 total  = 3 [(hi.visibility) = VIS_PUBLIC]; // 文件总大小, 单位：字节
+  optional int64 offset = 4 [(hi.visibility) = VIS_PUBLIC]; // 当前块在文件中的起始字节位置
 }
 
 message DownloadStreamReq {
-  string url    = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}]; // 文件URL
-  int64  offset = 2 [(buf.validate.field).int64 = {gte: 0}]; // 起始偏移量（字节），0表示从头开始，支持断点续传
-  int64  limit  = 3 [(buf.validate.field).int64 = {gte: 0}]; // 限制下载大小（字节），0表示下载全部
+  optional string url    = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}, (buf.validate.field).required = true]; // 文件URL
+  optional int64  offset = 2 [(buf.validate.field).int64 = {gte: 0}, (buf.validate.field).required = true]; // 起始偏移量（字节），0表示从头开始，支持断点续传
+  optional int64  limit  = 3 [(buf.validate.field).int64 = {gte: 0}, (buf.validate.field).required = true]; // 限制下载大小（字节），0表示下载全部
 }
 
 // ── bucket 化上传(新)────────────────────────────────────────────────────
@@ -47,12 +47,12 @@ message DownloadStreamReq {
 // ⚠️ 鉴权:AUTH_NONE 是**有意的** —— hi-source 只对内网开放(上传端口不对外),
 //    鉴权由各业务模块在转发前完成(它们本就持有用户身份)。
 message PutReq {
-  string bucket    = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 目标 bucket
-  string dir       = 2; // bucket 内逻辑目录,如 "avatar" / "plugin/<uuid>";空=根
-  string name      = 3 [(buf.validate.field).string.min_len = 1]; // 原始文件名(允许空格等,仅用于取扩展名;NAME_RANDOM 只保留扩展名,不带原名)
-  bytes  content   = 4 [(buf.validate.field).bytes.min_len = 1];
-  bool   thumbnail = 5; // 是否同时生成缩略图(仅图片有效;原先靠 type==image 隐式触发,现改显式)
-  NameMode name_mode = 6; // 对象命名方式,默认随机
+  optional string   bucket    = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true]; // 目标 bucket
+  optional string   dir       = 2; // bucket 内逻辑目录,如 "avatar" / "plugin/<uuid>";不传=根
+  optional string   name      = 3 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true]; // 原始文件名(允许空格等,仅用于取扩展名;NAME_RANDOM 只保留扩展名,不带原名)
+  optional bytes    content   = 4 [(buf.validate.field).bytes.min_len = 1, (buf.validate.field).required = true];
+  optional bool     thumbnail = 5; // 是否同时生成缩略图(仅图片有效;原先靠 type==image 隐式触发,现改显式)
+  optional NameMode name_mode = 6; // 对象命名方式,默认随机
 }
 
 // 对象命名方式。
@@ -74,11 +74,11 @@ message PutStreamReq {
 }
 
 message PutMeta {
-  string bucket    = 1 [(buf.validate.field).string.pattern="^\\S+$"];
-  string dir       = 2;
-  string name      = 3 [(buf.validate.field).string.min_len = 1]; // 允许空格等,仅用于取扩展名
-  int64  size      = 4 [(buf.validate.field).int64 = { gt: 0 }];
-  bool   thumbnail = 5;
+  optional string bucket    = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  optional string dir       = 2;
+  optional string name      = 3 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true]; // 允许空格等,仅用于取扩展名
+  optional int64  size      = 4 [(buf.validate.field).int64 = { gt: 0 }, (buf.validate.field).required = true];
+  optional bool   thumbnail = 5;
 }
 
 // 删除。**补这个是因为原先根本没有** —— 各业务模块把文件交给 hi-source 之后就再也
@@ -88,7 +88,7 @@ message PutMeta {
 // ⚠️ 幂等:对象不存在也返回成功 —— 调用方多半是"删库记录顺带删对象",
 //    对象早没了不该让整个删除操作失败。
 message DeleteReq {
-  string url = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 完整 url,bucket/对象名从中解析
+  optional string url = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true]; // 完整 url,bucket/对象名从中解析
 }
 
 // 预签名下载 url:给**私有桶**开一个限期、只针对单个对象的公开链接。
@@ -97,18 +97,18 @@ message DeleteReq {
 // 桶保持私有(直连 403),签名参数写死了"哪个对象、什么方法、多久内有效",到期自动失效。
 // **凭据只留在本服务**,调用方(主服务)只拿回一串 url。
 message PresignedUrlReq {
-  string bucket         = 1 [(buf.validate.field).string.pattern="^\\S+$"];
-  string object         = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // 桶内对象键(不含桶名)
-  int64  expire_seconds = 3; // 有效期;<=0 用服务端默认
+  optional string bucket         = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  optional string object         = 2 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true]; // 桶内对象键(不含桶名)
+  optional int64  expire_seconds = 3; // 有效期;<=0 用服务端默认
   // 可选:覆盖下载时的文件名(response-content-disposition)。
   // 发布包用得上 —— url 固定为 /dl/hidid.apk,却要让用户存下 hidid-0.0.9.apk。
-  string filename       = 4;
+  optional string filename       = 4;
 }
 
 message PresignedUrlResp {
   option (hi.audience) = VIS_PUBLIC; // 本就是要给浏览器/下载器用的公开链接
-  string url       = 1 [(hi.visibility) = VIS_PUBLIC]; // 带签名参数的完整 url,谁拿到都能下,到期即失效
-  int64  expire_at = 2 [(hi.visibility) = VIS_PUBLIC]; // 失效时刻(unix 秒),调用方据此决定要不要重新要一个
+  optional string url       = 1 [(hi.visibility) = VIS_PUBLIC]; // 带签名参数的完整 url,谁拿到都能下,到期即失效
+  optional int64  expire_at = 2 [(hi.visibility) = VIS_PUBLIC]; // 失效时刻(unix 秒),调用方据此决定要不要重新要一个
 }
 
 // 按 **bucket+对象键** 直接取/查,不经 url。
@@ -117,47 +117,47 @@ message PresignedUrlResp {
 // 而发布模块手里本来就是对象键(latest.json、包路径),再去拼一个 url 让对方反解回来,
 // 等于让调用方复制一份 url 拼装规则,base 一改两边就散。
 message GetObjectReq {
-  string bucket = 1 [(buf.validate.field).string.pattern="^\\S+$"];
-  string object = 2 [(buf.validate.field).string.pattern="^\\S+$"];
+  optional string bucket = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  optional string object = 2 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
 }
 
 message GetObjectResp {
   option (hi.audience) = VIS_PARTICIPANT; // 内网调用方取回的原始字节
-  bytes content = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional bytes content = 1 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 message PutObjectReq {
-  string bucket  = 1 [(buf.validate.field).string.pattern="^\\S+$"];
-  string object  = 2 [(buf.validate.field).string.pattern="^\\S+$"]; // **精确对象键**,不改名
-  bytes  content = 3;
+  optional string bucket  = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  optional string object  = 2 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true]; // **精确对象键**,不改名
+  optional bytes  content = 3;
 }
 
 // 按对象键流式下载。既有的 DownloadStream 按 **url** 取,而调用方手里是对象键 ——
 // 让它自己拼 minio url 就得把 base 配一份过去,base 一改两边就散。
 message GetObjectStreamReq {
-  string bucket = 1 [(buf.validate.field).string.pattern="^\\S+$"];
-  string object = 2 [(buf.validate.field).string.pattern="^\\S+$"];
-  int64  offset = 3 [(buf.validate.field).int64 = {gte: 0}]; // 断点续传起点;0=从头
-  int64  limit  = 4 [(buf.validate.field).int64 = {gte: 0}]; // 0=到结尾
+  optional string bucket = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  optional string object = 2 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  optional int64  offset = 3 [(buf.validate.field).int64 = {gte: 0}, (buf.validate.field).required = true]; // 断点续传起点;0=从头
+  optional int64  limit  = 4 [(buf.validate.field).int64 = {gte: 0}, (buf.validate.field).required = true]; // 0=到结尾
 }
 
 message GetObjectStreamResp {
   option (hi.audience) = VIS_PARTICIPANT;
-  bytes content = 1 [(hi.visibility) = VIS_PARTICIPANT];
-  int64 total   = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 整个对象的大小,首块带上,便于显示进度
+  optional bytes content = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 total   = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 整个对象的大小,首块带上,便于显示进度
 }
 
 // 对象元信息。`sha256` 由 hi-source **内部流式算**(字节不出本服务),供发布时核对
 // "manifest 里写的 sha256 与真正传上去的包是否一致"。
 message ObjectInfoReq {
-  string bucket = 1 [(buf.validate.field).string.pattern="^\\S+$"];
-  string object = 2 [(buf.validate.field).string.pattern="^\\S+$"];
+  optional string bucket = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  optional string object = 2 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
 }
 
 message ObjectInfoResp {
   option (hi.audience) = VIS_PARTICIPANT;
-  int64  size   = 1 [(hi.visibility) = VIS_PARTICIPANT];
-  string sha256 = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64  size   = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string sha256 = 2 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 service File {

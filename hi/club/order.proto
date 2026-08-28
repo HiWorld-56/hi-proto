@@ -12,8 +12,8 @@ import "hi/options.proto";
 // rpc 收的是 hi.SignedData,后端把 SignedData.Data 反序列化进它。
 // ⚠️ 只被后端 Go 引用、proto 里无 rpc 引用 —— **勿按"无引用"当死 message 删**。
 message PullOrdersData {
-  string did   = 1;
-  string nonce = 2;
+  string          did   = 1;
+  optional string nonce = 2;
 }
 
 // 我的订单(hidid-pc 为订单主体拉取)→ SELF。
@@ -31,14 +31,14 @@ message PullOrdersData {
 //  所以"我这边解得开"不能作为客户端不用升级的理由。)
 message PcOrder {
   option (hi.audience) = VIS_SELF;
-  string order_id   = 1 [(hi.visibility) = VIS_SELF];
-  string to_did     = 2 [(hi.visibility) = VIS_SELF];
-  string amount     = 3 [(hi.visibility) = VIS_SELF];
-  string type       = 4 [(hi.visibility) = VIS_SELF];
-  int64  created_at = 5 [(hi.visibility) = VIS_SELF];
-  int64  updated_at = 6 [(hi.visibility) = VIS_SELF];
-  string did        = 7 [(hi.visibility) = VIS_SELF];
-  string status     = 8 [(hi.visibility) = VIS_SELF];
+  optional string order_id   = 1 [(hi.visibility) = VIS_SELF];
+  string          to_did     = 2 [(hi.visibility) = VIS_SELF];
+  optional string amount     = 3 [(hi.visibility) = VIS_SELF];
+  optional string type       = 4 [(hi.visibility) = VIS_SELF];
+  optional int64  created_at = 5 [(hi.visibility) = VIS_SELF];
+  optional int64  updated_at = 6 [(hi.visibility) = VIS_SELF];
+  string          did        = 7 [(hi.visibility) = VIS_SELF];
+  optional string status     = 8 [(hi.visibility) = VIS_SELF];
 }
 
 message PullOrdersResp {
@@ -47,15 +47,15 @@ message PullOrdersResp {
 }
 
 message OrderResult {
-  string order_id  = 1;
-  string status    = 2;
-  string tx_hash   = 3;
-  int64  timestamp = 4;
+  optional string order_id  = 1;
+  optional string status    = 2;
+  optional string tx_hash   = 3;
+  optional int64  timestamp = 4;
 }
 
 // Order.Report 的**签名载荷 schema**(同上,勿当死 message 删)。
 message ReportResultsData {
-  string                       did    = 1;
+  string               did    = 1;
   repeated OrderResult orders = 2;
 }
 

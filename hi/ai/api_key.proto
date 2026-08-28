@@ -11,12 +11,12 @@ import "hi/options.proto";
 // apikey 是商户机密(value 可鉴权),只发给持有它的商户本人。
 message ApiKeyInfo {
   option (hi.audience) = VIS_SELF;
-  string value      = 1 [(hi.visibility) = VIS_SELF];
-  string did        = 2 [(hi.visibility) = VIS_SELF];
-  int32  rate_limit = 3 [(hi.visibility) = VIS_SELF];
-  bool   is_active  = 4 [(hi.visibility) = VIS_SELF];
-  string note       = 5 [(hi.visibility) = VIS_SELF];
-  int64  created_at = 6 [(hi.visibility) = VIS_SELF];
+  optional string value      = 1 [(hi.visibility) = VIS_SELF];
+  string          did        = 2 [(hi.visibility) = VIS_SELF];
+  optional int32  rate_limit = 3 [(hi.visibility) = VIS_SELF];
+  optional bool   is_active  = 4 [(hi.visibility) = VIS_SELF];
+  optional string note       = 5 [(hi.visibility) = VIS_SELF];
+  optional int64  created_at = 6 [(hi.visibility) = VIS_SELF];
 }
 
 message CreateApiKeyResp {
@@ -25,8 +25,8 @@ message CreateApiKeyResp {
 }
 
 message EditApiKeyReq {
-  string api_key = 1;
-  string note    = 2;
+  optional string api_key = 1;
+  optional string note    = 2;
 }
 
 message EditApiKeyResp {
@@ -36,12 +36,12 @@ message EditApiKeyResp {
 
 message ListApiKeysResp {
   option (hi.audience) = VIS_SELF;
-  int32               total = 1 [(hi.visibility) = VIS_SELF];
+  optional int32      total = 1 [(hi.visibility) = VIS_SELF];
   repeated ApiKeyInfo infos = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message DeleteApiKeyReq {
-  string api_key = 1;
+  optional string api_key = 1;
 }
 
 // 商户的 apikey 管理(主体=apikey)。商户档。

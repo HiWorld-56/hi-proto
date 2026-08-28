@@ -12,19 +12,19 @@ import "hi/options.proto";
 /////////////////////////////// 智能体 ///////////////////////////////
 message Prompt {
   option (hi.audience) = VIS_SELF; // 系统/用户提示词=机器人私有配置,只给 owner 本人
-  string system = 1 [(hi.visibility) = VIS_SELF];
-  string user   = 2 [(hi.visibility) = VIS_SELF];
+  optional string system = 1 [(hi.visibility) = VIS_SELF];
+  optional string user   = 2 [(hi.visibility) = VIS_SELF];
 }
 
 // 一个 agent 选用的一组模型。原名 Model —— 与模型目录 service Model 同包重名,
 // 且它本就不是"一个模型"而是一套选择,故改名 ModelSet。
 message ModelSet {
   option (hi.audience) = VIS_SELF; // 本 agent 选用的模型=私有配置(模型「目录」在 model.proto 才是 PUBLIC)
-  string llm       = 1 [(hi.visibility) = VIS_SELF];
-  string stt       = 2 [(hi.visibility) = VIS_SELF];
-  string tts       = 3 [(hi.visibility) = VIS_SELF];
-  string embedding = 4 [(hi.visibility) = VIS_SELF];
-  string mem_model = 5 [(hi.visibility) = VIS_SELF]; // 记忆模型:与其它模型配置同处,经 Agent.Edit 设置(原 Training.SetMemModel/GetMemModel 已删,别再开第二条写路径)
+  optional string llm       = 1 [(hi.visibility) = VIS_SELF];
+  optional string stt       = 2 [(hi.visibility) = VIS_SELF];
+  optional string tts       = 3 [(hi.visibility) = VIS_SELF];
+  optional string embedding = 4 [(hi.visibility) = VIS_SELF];
+  optional string mem_model = 5 [(hi.visibility) = VIS_SELF]; // 记忆模型:与其它模型配置同处,经 Agent.Edit 设置(原 Training.SetMemModel/GetMemModel 已删,别再开第二条写路径)
 }
 
 // 智能体配置。
@@ -44,9 +44,9 @@ message AgentConfig {
 // 用量/计费数据,只发给资源主人本人。
 message TokenUsage {
   option (hi.audience) = VIS_SELF;
-  int32 output = 1 [(hi.visibility) = VIS_SELF]; // 模型生成输出时消耗的token数。
-  int32 input  = 2 [(hi.visibility) = VIS_SELF]; // 模型输入时消耗的token数
-  int32 mem    = 3 [(hi.visibility) = VIS_SELF]; // 训练消耗的token数
+  optional int32 output = 1 [(hi.visibility) = VIS_SELF]; // 模型生成输出时消耗的token数。
+  optional int32 input  = 2 [(hi.visibility) = VIS_SELF]; // 模型输入时消耗的token数
+  optional int32 mem    = 3 [(hi.visibility) = VIS_SELF]; // 训练消耗的token数
 }
 
 // 机器人本身的信息。
@@ -57,12 +57,12 @@ message TokenUsage {
 //    应该不一样,而存储上(唯一键只有 agent_did)根本表达不了这件事。**别再加回来。**
 message AgentInfo {
   option (hi.audience) = VIS_SELF; // 含 config/token 私产 → 整条只发给 owner 本人
-  hi.Entity   base       = 1 [(hi.visibility) = VIS_PUBLIC]; // hi.Entity 恒 PUBLIC
-  AgentConfig config     = 2 [(hi.visibility) = VIS_SELF];
-  string      creator    = 3 [(hi.visibility) = VIS_SELF]; // 归属 did
-  string      note       = 4 [(hi.visibility) = VIS_SELF];
-  TokenUsage  token      = 5 [(hi.visibility) = VIS_SELF];
-  int64       created_at = 6 [(hi.visibility) = VIS_SELF];
+  hi.Entity       base       = 1 [(hi.visibility) = VIS_PUBLIC]; // hi.Entity 恒 PUBLIC
+  AgentConfig     config     = 2 [(hi.visibility) = VIS_SELF];
+  optional string creator    = 3 [(hi.visibility) = VIS_SELF]; // 归属 did
+  optional string note       = 4 [(hi.visibility) = VIS_SELF];
+  TokenUsage      token      = 5 [(hi.visibility) = VIS_SELF];
+  optional int64  created_at = 6 [(hi.visibility) = VIS_SELF];
 }
 
 message DefaultConfigResp {
@@ -72,8 +72,8 @@ message DefaultConfigResp {
 
 // 造**软件** assistant:did 由后台生成,type 固定 assistant。
 message CreateAssistantReq {
-  string name   = 1;
-  string avatar = 2;
+  optional string name   = 1;
+  optional string avatar = 2;
 }
 
 // 为**硬件** robot 建 agent 记录。
@@ -82,9 +82,9 @@ message CreateAssistantReq {
 // 把它分别登记到 hidid / hiai,这个方法就是 hiai 那一步。故 did 必填。
 // type 由服务端固定为 robot,**不收调用方传的 type**。
 message RegisterRobotReq {
-  string did    = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 硬件机器人已注册的 did
-  string name   = 2;
-  string avatar = 3;
+  string          did    = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 硬件机器人已注册的 did
+  optional string name   = 2;
+  optional string avatar = 3;
 }
 
 message CreateAgentResp {
@@ -96,18 +96,18 @@ message CreateAgentResp {
 
 // 改机器人。agent 是**定位**参数(改哪个),归属由后端校验;name/avatar 才是可改的内容。
 message EditAgentReq {
-  string      agent  = 1; // 机器人 did(定位)
-  string      name   = 4;
-  string      avatar = 5;
-  AgentConfig config = 2;
-  string      note   = 3;
+  optional string agent  = 1; // 机器人 did(定位)
+  optional string name   = 4;
+  optional string avatar = 5;
+  AgentConfig     config = 2;
+  optional string note   = 3;
 }
 
 // 商户档的列表:**不带 marked**。标记是超管的概念(见 AgentBrief),
 // 商户看自己的机器人不需要、也拿不到别人的标记。
 message ListAgentsResp {
   option (hi.audience) = VIS_SELF; // 列 owner 自己的机器人(含 config)→ SELF
-  int32              total = 1 [(hi.visibility) = VIS_SELF];
+  optional int32     total  = 1 [(hi.visibility) = VIS_SELF];
   repeated AgentInfo agents = 2 [(hi.visibility) = VIS_SELF]; // 与 hi.club.ListAgentsResp 对齐(原 infos)
 }
 
@@ -128,11 +128,11 @@ message ListAgentsReq {
 }
 
 message DeleteAgentReq {
-  string agent = 1;
+  optional string agent = 1;
 }
 
 message GetAgentReq {
-  string agent = 1;
+  optional string agent = 1;
 }
 
 message GetAgentResp {
@@ -141,14 +141,14 @@ message GetAgentResp {
 }
 
 message AgentUsageReq {
-  string agent = 1;
+  optional string agent = 1;
 }
 
 // 机器人用量。原 FindAgentCountResp —— 它不是"count",而是消息数 + token 三件套。
 message AgentUsageResp {
   option (hi.audience) = VIS_SELF;
-  int32      message_count = 1 [(hi.visibility) = VIS_SELF];
-  TokenUsage token         = 2 [(hi.visibility) = VIS_SELF];
+  optional int32 message_count = 1 [(hi.visibility) = VIS_SELF];
+  TokenUsage     token         = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message ResetToDefaultReq {
