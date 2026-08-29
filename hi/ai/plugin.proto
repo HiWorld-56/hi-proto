@@ -254,7 +254,11 @@ message EditPluginReq {
   optional google.protobuf.Struct version_data = 5; // 传了(且 version 也传了)才改 d.data
 }
 
-message SetEnabledReq { string agent = 1; string uuid = 2; bool enabled = 3; }             // 改 c.enabled
+message SetEnabledReq {
+  optional string agent = 1;
+  optional string uuid = 2;
+  optional bool enabled = 3; // **必传** —— 不传不是 false,是漏了字段(服务端报错)
+} // 改 c.enabled
 
 // SetFollowLatestReq 改 c.follow_latest —— **在"机器人 → 插件"那一行上操作**。
 // 打开之后,作者每发一版(NATIVE 是编成功之后)这台机器人就自动切过去;
@@ -262,9 +266,13 @@ message SetEnabledReq { string agent = 1; string uuid = 2; bool enabled = 3; }  
 message SetFollowLatestReq {
   optional string agent = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
   optional string uuid  = 2 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
-  optional bool   on    = 3;
+  optional bool   on    = 3; // **必传** —— 不传不是 false,是漏了字段(服务端报错)
 }
-message SetActiveReq  { string agent = 1; string uuid = 2; string version = 3; }           // 改 d.active(事务内互斥)
+message SetActiveReq {
+  optional string agent = 1;
+  optional string uuid = 2;
+  optional string version = 3;
+} // 改 d.active(事务内互斥)
 
 // SetActiveAll 把**所有使用方**切到同一版 —— 官方/内置插件发新版时用。
 //
@@ -287,15 +295,24 @@ message SetActiveAllResp {
   optional int32 switched = 1 [(hi.visibility) = VIS_SELF]; // 切过去的使用方个数(日志/回显用)
 }
 
-message DownloadScriptReq { string agent = 1; string uuid = 2; string version = 3; }
+message DownloadScriptReq {
+  optional string agent = 1;
+  optional string uuid = 2;
+  optional string version = 3;
+}
 message DownloadScriptResp {
   option (hi.audience) = VIS_SELF;
   optional bytes  content = 1 [(hi.visibility) = VIS_SELF];
   optional string name    = 2 [(hi.visibility) = VIS_SELF];
 }
 
-message ListPluginsReq  { string agent = 1; hi.Pagination pagination = 2; }
-message ListVersionsReq { string agent = 1; string uuid = 2; hi.Pagination pagination = 3; }
+message ListPluginsReq {
+  optional string agent = 1;
+}
+message ListVersionsReq {
+  optional string agent = 1;
+  optional string uuid = 2;
+}
 message ListPluginsResp {
   option (hi.audience) = VIS_SELF;
   optional int32      total = 1 [(hi.visibility) = VIS_SELF];
@@ -306,7 +323,10 @@ message ListVersionsResp {
   optional int32             total = 1 [(hi.visibility) = VIS_SELF];
   repeated PluginVersionView list  = 2 [(hi.visibility) = VIS_SELF];
 }
-message GetPluginReq  { string agent = 1; string uuid = 2; }
+message GetPluginReq {
+  optional string agent = 1;
+  optional string uuid = 2;
+}
 message GetPluginResp {
   option (hi.audience) = VIS_SELF;
   PluginView view = 1 [(hi.visibility) = VIS_SELF];

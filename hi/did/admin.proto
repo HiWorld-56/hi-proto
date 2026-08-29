@@ -118,7 +118,7 @@ enum MerchantPermission {
 message MerchantSetPermissionReq {
   string                      did     = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 目标商户
   optional MerchantPermission perm    = 2; // 要改的权限位
-  optional bool               granted = 3; // true=授予,false=撤销
+  optional bool               granted = 3; // true=授予,false=撤销。**必传** —— 不传不是 false,是漏了字段(服务端报错)
 }
 
 // 商户管理(超管面)。裁决 #11:此前 Delete/Edit 标 AUTH_USER 且 handler 零校验

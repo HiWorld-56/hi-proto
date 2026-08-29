@@ -205,7 +205,7 @@ message PluginProgress {
   // 那时候宁可不显示百分比,也别编一个会往回跳的数字。
   optional uint32 progress         = 4;
   optional uint64 downloaded_bytes = 5;
-  optional uint64 total_bytes      = 6; // 0 = 未知
+  optional uint64 total_bytes      = 6; // **不传 = 未知**(服务端没给 Content-Length);0 是真实取值:空文件
   optional string message          = 7; // 失败原因(state=FAILED 时)
 }
 

@@ -83,7 +83,9 @@ message RunResp {
   repeated hi.ai.Content conts = 1 [(hi.visibility) = VIS_SELF];
 }
 
-message CleanupReq { string code_archive_url = 1; }
+message CleanupReq {
+  optional string code_archive_url = 1;
+}
 
 // 脚本执行器(内部面)。只由父服务 ai 经 grpc 转发调用;不鉴权、也不认识"调用者"
 // —— 主体(商户/机器人)的校验在 `hi.ai.Plugin` 那一层完成。

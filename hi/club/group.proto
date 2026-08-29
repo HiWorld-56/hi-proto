@@ -129,14 +129,14 @@ message GetRoleResp {
 // 免打扰(调用者自己):新消息不震动手机。用户自设,非管理操作。
 message SetDndReq {
   optional string code = 1;
-  optional bool   dnd  = 2;
+  optional bool   dnd  = 2; // **必传** —— 不传不是 false,是漏了字段(服务端报错)
 }
 
 // 禁言/解禁成员(群主/管理员):被禁言者去写权限、留读权限(后端移 group:wracl、加 group:racl)。
 message MuteMembersReq {
   optional string code    = 1;
   repeated string members = 2;
-  optional bool   muted   = 3; // true=禁言,false=解禁
+  optional bool   muted   = 3; // true=禁言,false=解禁。**必传** —— 不传不是 false,是漏了字段(服务端报错)
 }
 
 // 群(主体=群)。用户 token 档(AUTH_USER=必须登录用户)。

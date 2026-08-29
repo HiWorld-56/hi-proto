@@ -798,7 +798,7 @@ message ListGrantsResp {
 // 用户在 hiclub 里随手开关;真正执行续费的是机器人自己(见 plugin-grant-expiring 通知)。
 message SetAutoRenewReq {
   optional string grant_uuid = 1 [(buf.validate.field).string.pattern = "^\\S+$", (buf.validate.field).required = true];
-  optional bool   enabled    = 2;
+  optional bool   enabled    = 2; // **必传** —— 不传不是 false,是漏了字段(服务端报错)
 }
 
 // ── 分享(Offer)——「我想给」那条路 ───────────────────────────────────────────
