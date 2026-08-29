@@ -42,8 +42,21 @@ sql(){ ssh -o ConnectTimeout=20 lo@192.168.1.65 "mysql -N -B -ulo -p568568 -e \"
 cclub(){ grpcurl -plaintext -protoset "$PS" -H "Authorization: Bearer $CLUB_TOKEN" -d "$2" "$CLUB" "$1" 2>&1 | tr '\n' ' '; }
 cdid(){  grpcurl -plaintext -protoset "$PS" -H "Authorization: Bearer $DID_TOKEN"  -d "$2" "$DID"  "$1" 2>&1 | tr '\n' ' '; }
 cai(){   grpcurl -plaintext -protoset "$PS" -H "ApiKey: $AI_KEY"                   -d "$2" "$AI"   "$1" 2>&1 | tr '\n' ' '; }
-# 断言调用成功(没有 ERROR),失败就直接把原文报出来 —— 别让"没变"冒充"对"
-must(){ local what=$1 out=$2; case "$out" in *ERROR*) no "$what" "$out"; return 1;; esac; return 0; }
+# 断言调用**真的成功了**,失败就把原文报出来 —— 别让"库里没变"冒充"行为对"。
+#
+# ⚠️ grpcurl 有**两种**失败形态,只认一种就会漏:
+#     ERROR:\n  Code: ...          ← 服务端回的 gRPC 状态
+#     Error invoking method "..."   ← grpcurl 自己的客户端错(方法名写错、协议解析不了…)
+#   2026-08-29 就漏过第二种:方法名写成了 hi.did.Merchant/Set(真名是 Update),
+#   调用压根没发出去,而"币种位图没变"这条断言**照样绿** —— 假绿。
+must(){
+  local what=$1 out=$2
+  case "$out" in
+    *"ERROR:"*|*"Error invoking method"*|*"Failed to dial"*)
+      no "$what" "$out"; return 1;;
+  esac
+  return 0
+}
 
 : "${CLUB_TOKEN:?}" ; : "${DID_TOKEN:?}" ; : "${AI_KEY:?}" ; : "${DID_DID:?}"
 : "${CLUB_DID:?}"   # club token 对应的 did,用来造只属于它自己的 apikey 夹具
@@ -122,6 +135,43 @@ fi
 if must "Edit 空请求" "$(cdid 'hi.did.User/Edit' '{}')"; then
   s=$(E); [ "$s" = "用例丙|" ] && ok "什么都不传 → 一列都不动" || no "空请求改动了数据" "库里=[$s]"
 fi
+
+echo
+echo "══════ 二之二、部分更新不能殃及别的列(repeated 没有 presence) ══════"
+# Merchant.Update 被两个页面共用:首页发 {name,logo,coins},调用服务页发 {endpoint,scheme}。
+# 后者**不带 coins** —— 服务端若无条件重算五个币种位图,保存一次就把币种配置抹了,
+# 而且一声不响。2026-08-29 真出过:改成 map 更新之后,原本靠 gorm 跳过零值
+# "碰巧"没事的那层运气就没了。
+#
+# ⚠️ 身份用**商户主人的 hidid 登录 token**(不是 ExtendToken)——
+#    Merchant.Update 的 handler 读的是 ctx 的 `did`,而拦截器只做 `did → merchant_did`
+#    单向归一化,ExtendToken 那条路注入的是 merchant_did,handler 拿不到 did。
+#    (这是既有问题,2025-10-30 就这样,不是本次改造引入的;见记录。)
+#
+# 夹具:给 DID_DID 建一行商户,用完删 —— 不去动真商户的数据。
+FX_BITS="1,3,3,3,1"
+sql "insert into hi_did.hi_merchant(did,name,btc,eth,trx,sol,apt,endpoint,created_at,updated_at)
+     values('$DID_DID','nulltest商户',1,3,3,3,1,'http://before.example',now(),now())
+     on duplicate key update btc=1,eth=3,trx=3,sol=3,apt=1,endpoint='http://before.example'" >/dev/null
+MBITS(){ sql "select concat(btc,',',eth,',',trx,',',sol,',',apt) from hi_did.hi_merchant where did='$DID_DID'"; }
+b4=$(MBITS)
+if [ "$b4" != "$FX_BITS" ]; then
+  sk "币种位图不被殃及" "夹具没建成(位图=[$b4])"
+else
+  if must "Merchant.Update 只发 endpoint" "$(cdid 'hi.did.Merchant/Update' '{"endpoint":"http://after.example/probe"}')"; then
+    af=$(MBITS)
+    ep=$(sql "select ifnull(endpoint,'<NULL>') from hi_did.hi_merchant where did='$DID_DID'")
+    # 先验"这次调用真的写成了",再验"别的列没被殃及" —— 否则"没变"就是假绿
+    if [ "$ep" = "http://after.example/probe" ]; then
+      ok "endpoint 写进去了(证明这次调用确实生效)"
+      [ "$af" = "$b4" ] && ok "只发 endpoint → 币种位图**原样不动**(共用 RPC 的部分更新)" \
+        || no "部分更新把币种位图改了" "before=[$b4] after=[$af]"
+    else
+      no "endpoint 没写进去 —— 后面那条'不动'会是假绿" "endpoint=[$ep]"
+    fi
+  fi
+fi
+sql "delete from hi_did.hi_merchant where did='$DID_DID' and name='nulltest商户'" >/dev/null
 
 echo
 echo "══════ 三、market:不传 duration = 永久(不是 0) ══════"
