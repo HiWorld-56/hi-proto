@@ -188,7 +188,11 @@ message MarketListingBrief {
   optional SettleMode        settle_mode   = 7 [(hi.visibility) = VIS_PUBLIC];
   optional string            price         = 8 [(hi.visibility) = VIS_PUBLIC];  // 十进制字符串,免浮点误差
   optional string            coin          = 9 [(hi.visibility) = VIS_PUBLIC];
-  optional int64             duration      = 10 [(hi.visibility) = VIS_PUBLIC]; // 商品规格:买一次能用多久(秒);0 = 永久
+  // 商品规格:买一次能用多久(秒)。**不传 = 永久**。
+  //
+  // ⚠️ 原来写的是 `0 = 永久`。0 秒的字面意思是"买了立刻就过期",拿它当"永不过期"
+  //    是用零值表示 null —— 而且方向恰好相反,读错一次就是把永久授权当成已过期。
+  optional int64             duration      = 10 [(hi.visibility) = VIS_PUBLIC];
   optional int32             install_count = 11 [(hi.visibility) = VIS_PUBLIC]; // 装机数
   // 这一摊是谁的货(普通 / 官方 / 内置)。公开 —— 买家要能看出哪个是官方出品,
   // 那正是这个字段存在的意义;藏起来等于白设。
@@ -264,7 +268,7 @@ message MarketRenewBrief {
   optional string payee      = 3 [(hi.visibility) = VIS_PARTICIPANT];
   optional string amount     = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 人类可读金额
   optional string coin       = 5 [(hi.visibility) = VIS_PARTICIPANT];
-  optional int64  expire_at  = 6 [(hi.visibility) = VIS_PARTICIPANT]; // 到期时刻(秒)
+  optional int64  expire_at  = 6 [(hi.visibility) = VIS_PARTICIPANT]; // 到期时刻(秒);**不传 = 永不过期**
   optional bool   auto_renew = 7 [(hi.visibility) = VIS_PARTICIPANT]; // 用户开没开自动续费
 }
 
@@ -296,7 +300,7 @@ message MarketGrantView {
   optional string         coin         = 10 [(hi.visibility) = VIS_SELF];
   // ⚠️ 没有 follow_latest:见 hi.ai.PluginView.follow_latest —— 归使用行,不归授权。
   optional string         version      = 12 [(hi.visibility) = VIS_SELF]; // 当前引用的版本
-  optional int64          expire_at    = 13 [(hi.visibility) = VIS_SELF]; // installed_at + duration;0 = 永久
+  optional int64          expire_at    = 13 [(hi.visibility) = VIS_SELF]; // installed_at + duration;**不传 = 永不过期**(理由同 duration)
   optional string         action_url   = 14 [(hi.visibility) = VIS_SELF]; // 外部流程给的"去付款/去填资料"地址(可不传)
   optional string         reason       = 15 [(hi.visibility) = VIS_SELF]; // 拒绝/撤销原因
   optional int64          created_at   = 16 [(hi.visibility) = VIS_SELF];
@@ -375,7 +379,7 @@ message CreateListingReq {
   optional SettleMode        settle_mode     = 3; // **建后不可改**
   optional string            price           = 4;
   optional string            coin            = 5;
-  optional int64             duration        = 6; // 秒;0 = 永久
+  optional int64             duration        = 6; // 秒;**不传 = 永久**(0 秒 = 买了立刻过期,是合法但没人要的值)
   // ⚠️ **没有 title / summary / logo,不要再加回来。** 7/8/9 是它们原来的位置。
   //
   // 那三个是插件**自己就有**的东西(`hi.ai.PluginShell.name`、激活版的 `logo`/`summary`),
@@ -413,7 +417,8 @@ message EditListingReq {
   optional string uuid            = 1 [(buf.validate.field).string.pattern = "^\\S+$", (buf.validate.field).required = true];
   optional string price           = 2;
   optional string coin            = 3;
-  optional int64  duration        = 4;
+  optional int64  duration        = 4; // 秒;不传=不改。要改成永久没有办法用这个字段表达,
+                                       // 那是"换商品规格",走下架重挂
   // 同 CreateListingReq:展示信息以插件自身为准,改名字改简介去改插件。
   repeated string tags            = 8;
   optional bool   payee_to_master = 11; // 见 CreateListingReq:软件机器人没得选
@@ -963,7 +968,7 @@ message MarketPendingGrant {
   optional SettleMode    settle_mode  = 7 [(hi.visibility) = VIS_SELF];
   optional string        price        = 8 [(hi.visibility) = VIS_SELF];
   optional string        coin         = 9 [(hi.visibility) = VIS_SELF];
-  optional int64         duration     = 10 [(hi.visibility) = VIS_SELF];
+  optional int64         duration     = 10 [(hi.visibility) = VIS_SELF]; // 秒;不传=永久(成交时快照)
   google.protobuf.Struct params       = 11 [(hi.visibility) = VIS_SELF]; // 申请方填的额外参数
   optional int64         created_at   = 12 [(hi.visibility) = VIS_SELF];
 }
