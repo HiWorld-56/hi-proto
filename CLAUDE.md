@@ -32,7 +32,28 @@
 
 ## ⛔ 禁止用空字符串(零值)表示 null
 
-**所有标量字段一律加 `optional`。** 2026-08-28 全仓铺平,794 个字段。
+**所有标量字段一律加 `optional`。** 2026-08-28 全仓铺平,2026-08-29 补齐单行 message 的 15 个。
+
+**例外只有三类**(写清楚,免得下游以为漏了):
+- `did` / `to_did` / `user_did` —— **常驻字段**,没有 did 就没有这个对象,不存在"不传";
+- `oneof` 成员 —— proto3 **语法禁止**加 `optional`(成员身份本身就是 presence);
+- `repeated` / `map` —— 靠"空集合"表达"没有",加不了也不需要。
+
+### ⛔ 批量改 proto 之后,验收凭据是 `buf breaking`,不是读 diff
+
+```sh
+buf breaking --against '.git#ref=HEAD~1'
+```
+**只应出现 cardinality 从 implicit → explicit presence;出现任何 "field deleted" 就是改坏了。**
+
+2026-08-29 栽过:把单行 message 展开成多行的脚本**只捕获标量字段**,重建 message 体时
+把 `hi.Pagination pagination` 这种消息型字段整个丢掉,而且**已经打了 tag 发出去**
+(`v1.5.11-dev.2`)。那次是靠消费方编译报错才发现的 —— 纯属运气:
+丢的两个都是必填分页参数。同一个脚本要是漏掉一个**可选**的消息型字段,
+就是静默丢参数,编译照过、跑起来照跑,谁都发现不了。
+
+**行式正则读 proto 一律不可信**:字段可以跟 message 挤在一行、可以带多行 option、
+可以在 `oneof` 里。要么用描述符比对,要么用 `buf breaking`。
 
 judgement 不是"这个字段缺席合不合法",而是 protobuf 官方口径 ——
 > We recommend always adding the `optional` label for proto3 basic types.
