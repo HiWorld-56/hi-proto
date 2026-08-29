@@ -307,11 +307,13 @@ message DownloadScriptResp {
 }
 
 message ListPluginsReq {
-  optional string agent = 1;
+  optional string agent      = 1;
+  hi.Pagination   pagination = 2;
 }
 message ListVersionsReq {
-  optional string agent = 1;
-  optional string uuid = 2;
+  optional string agent      = 1;
+  optional string uuid       = 2;
+  hi.Pagination   pagination = 3;
 }
 message ListPluginsResp {
   option (hi.audience) = VIS_SELF;
