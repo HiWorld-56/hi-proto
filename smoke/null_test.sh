@@ -12,6 +12,22 @@
 #     AI_KEY      hi.ai 商户 key   → hi.ai.*(走 ApiKey 头,不是 Bearer)
 #   用错体系会得到 Unauthenticated,**而断言"库里没变"照样成立** —— 那是假绿。
 #   所以每条改数据的用例都先断言"调用真的成功了"。
+#
+# 用法(**在 .64 上跑** —— grpcurl 只有那台有):
+#
+#   CLUB_TOKEN=... CLUB_DID=... \
+#   DID_TOKEN=...  DID_DID=...  \
+#   AI_KEY=61be7d40-... AI_KEY_DID=zGcNS5gA... \
+#   ./null_test.sh
+#
+# token 怎么造:.66 上 /tmp/tokgen(club)与 /tmp/didtok(hidid),见 TEST-CREDENTIALS.md。
+# AI_KEY 是 club 容器 /root/res/config.yml 的 HiAIServer.APIKEY;
+# AI_KEY_DID 是它对应的人 —— hi.ai 的权限判据是 `agent.creator == 它`。
+#
+# ⚠️ **绿了不等于测到了。** 改完要反向验一次:把对应服务退回改造前那版,这些用例必须**红**。
+#    2026-08-29 实测:退回 hi-did v2.5.26-dev5-3 后「传 avatar="" → 真的清空」当场变红;
+#    而「只传 name → avatar 不动」**新旧两版都绿** —— 旧版是靠 gorm 跳过零值"碰巧"对的,
+#    它不具备区分力。留着当不变式可以,别拿它当这次改动的证据。
 set -uo pipefail
 export PATH=$HOME/go/bin:$PATH
 PS=$(ls -d /home/lo/go/pkg/mod/github.com/*/hi-proto@v1.5.11-dev.4)/rust/src/gen/hi_proto_descriptor.bin
