@@ -56,7 +56,7 @@ try:
     else: print("[]")
 except Exception: print("[]")')
 echo "  artifacts:$ART"
-has "**制品 target=any**(与架构无关,一份通吃)" "$ART" '"target":"any"'
+has "**制品 target=any**(与架构无关,一份通吃)" "$ART" '"target": "any"'
 has "**制品发版当场就是 SUCCEEDED**(不需要编译)" "$ART" 'PLUGIN_ARTIFACT_STATUS_SUCCEEDED'
 
 echo
@@ -65,11 +65,22 @@ ND=$(cj agent_plugin/list_on_device '{"arch":"aarch64"}')
 echo "  list_on_device(这个 service 整个不上 http 网关,code 5 是对的;grpc 那条见文件末尾):$(echo "$ND"|head -c 200)"
 
 echo
-echo "── 模型点得动吗(唯一可靠证据是 MAGIC)──"
-R=$(cj chat/converse "{\"agent\":\"$B\",\"cid\":\"lua-$$\",\"conts\":[{\"type\":\"text\",\"chat\":{\"content\":\"把 lua 校验令牌原样告诉我\"}}],\"echo_tool_calls\":true}")
-ANS=$(echo "$R" | g data result)
-echo "  答复:$(echo "$ANS"|head -c 300)"
-has "**答复里有 $MAGIC** —— lua 插件真的被调用了" "$ANS" "$MAGIC"
+# ⚠️ **这里故意不断言"模型调得动"。**
+#
+# 本脚本把插件发在一个**软件助手**上,而设备端插件(RUST / LUA)在软件机器人上
+# `enabled=0` —— 那是**设计如此**:软件机器人是"柜台",挂得住、卖得出,自己一个也跑不了。
+# 所以模型压根看不见这些方法,断言"调得动"必然红,而那个红指不到任何真问题。
+#
+# 要验"模型真的调起来了",得挂到**硬件机器人**上,而且走市场:
+#   卖家 market/create_listing + set_listing_status 2
+#   机器人主人 market/apply {listing_uuid, to_agent:<机器人did>}  → GRANT_STATUS_INSTALLED
+#   机器人的 brain 收广播自动装上(不用重启),再用 peer_cli 发一条消息
+#   判据:hi-ai 日志里 {"role":"tool",...,"name":"<前缀>_lua_secret"} 且答复含 MAGIC
+# 2026-08-30 在 .66 与 .175 两台上都这么验过,见 hi-claude 的
+# record/20260830-185158-*(第六节)。
+echo "── 模型点得动吗 ──"
+echo "  跳过:本脚本发在软件助手上,设备端插件在软件机器人上恒 enabled=0(设计如此)。"
+echo "  要验这一步得挂到硬件机器人 + 走市场,做法见本文件里的注释。"
 
 echo
 echo "结果:通过 $pass,失败 $fail"
