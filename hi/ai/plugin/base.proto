@@ -166,9 +166,17 @@ message BuildResp {
 // 验不过就拒绝这一版 —— 而不是像 RUST 那样先落库再后台编。
 // 一个语法错的脚本压根不该进库。
 message VerifyLuaReq {
-  optional string code_archive_url = 1; // lua 脚本包 zip(= 这一版的 b.url)
-  optional string uuid             = 2; // 壳 uuid(日志用)
-  optional string version          = 3; // 版本号
+  // 🔴 **要验的是合并之后的那份脚本正文,不是那个 zip。**
+  //
+  // 包里可以有任意多个 `.lua`(正常工程本来就要拆文件),hi-ai 在发版时把它们
+  // 合成**一个**脚本 —— 那才是下发到机器人的产物。验收必须验**正好是**将要下发的
+  // 那串字节:验 zip 里的 main.lua 而下发合并版,两者之间就多了一段没人验过的代码。
+  //
+  // 原来这里传的是 zip url,于是解包这件事**两边各做一遍**(构建服务解一遍去验、
+  // hi-ai 解一遍去当产物)—— 同一份规则两处实现,迟早对不上,而对不上是静默的。
+  optional string script  = 1;
+  optional string uuid    = 2; // 壳 uuid(日志用)
+  optional string version = 3; // 版本号
 }
 
 message VerifyLuaResp {
