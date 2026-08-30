@@ -94,9 +94,9 @@ service Runner {
   rpc Cleanup (CleanupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_INTERNAL; }
 }
 
-// ── NATIVE 构建契约(独立构建服务实现,hiai 只作调用方)────────────────────────
+// ── RUST 构建契约(独立构建服务实现,hiai 只作调用方)──────────────────────────
 //
-// NATIVE 插件(`PluginRuntime.PLUGIN_RUNTIME_NATIVE`)传上来的是 **rust 源码**,
+// RUST 插件(`PluginLang.PLUGIN_LANG_RUST`)传上来的是 **rust 源码**,
 // 要先交叉编译成 arm64 的 `.so` 才谈得上下发。这条契约就是那一步。
 //
 // ## 它是**无状态纯函数**:给源码,还产物

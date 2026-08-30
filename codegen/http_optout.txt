@@ -111,10 +111,10 @@ service:hi.club.MarketCallback
 # 前端不该够得着 —— 能直接调它就等于绕过整个授权流程白拿插件。
 hi.ai.Plugin.CreateReference
 
-# ── NATIVE 插件下发 ──
+# ── 设备端插件下发 ──
 # 下发清单由 club 经 grpc 穿透调用(机器人只够得着 hiclub 通道)。
 # 前端不需要:它是"机器人该装什么",不是给人看的页面数据。
-hi.ai.Plugin.ListNative
+hi.ai.Plugin.ListOnDevice
 
 # 机器人自用面 —— 主体恒取自凭证,机器人经 core 的 grpc 通道调。
 # 挂到 http 网关上没有意义(没有浏览器会以机器人身份登录),只多一个暴露面。
