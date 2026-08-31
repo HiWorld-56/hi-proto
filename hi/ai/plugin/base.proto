@@ -202,8 +202,60 @@ message VerifyLuaResp {
 // ⚠️ **它执行的是三方代码** —— `Build` 跑三方的 `build.rs` 与依赖的构建脚本,
 // `VerifyLua` 把三方脚本真 load 一遍。比 Runner 跑 py 脚本危险程度只高不低。
 // 必须在容器里跑,且容器内不得挂载任何宿主凭证(ssh key / gitea token)。
+// ── C 模块的构建契约 ────────────────────────────────────────────────────────
+//
+// lua 插件可以依赖 luarocks 上带 `.so` 的包。**编译只在构建服务发生,绝不在机器人上**
+// —— 生产机器人是 Pi5 的 1GB 版本,CPU/内存/IO 都不适合编译,而"每台设备各装一套
+// 构建环境"是运行期才炸的事。
+//
+// ## 只收白名单里的 rock
+//
+// luarocks.org 没有签名也没有审核,谁都能发包,而我们要把编出来的 `.so` 签进产物、
+// 推到客户的机器人上。**"来自 luarocks"不是信任凭据** —— 白名单 + 钉版本 + 钉源码
+// 摘要才是。白名单同时把构建矩阵框住:依赖树一展开,要交叉编译的东西是不封口的。
+//
+// 配方在镜像里(`/opt/hinj/luarecipes/<rock>/<版本>/build.sh`),产出分两半:
+//
+//   so_files  —— 进**集合**,按 `<rock>/<版本>/<path>` 下发到机器人
+//   lua_files —— 发版时**内联进插件那一个脚本**,不下发
+//
+// lua 那半内联而不下发,是为了让机器人那侧只需要管 `.so` 一种东西。
+//
+// ## 编不出来不是 rpc 错误
+//
+// 同 Build:那是**业务结果**,要连日志尾部一起交给发版的人看。
+message BuildLuaDepReq {
+  optional string rock    = 1; // luarocks 上的包名,如 `lua-cjson`
+  optional string version = 2; // 钉死的版本,不给范围 —— 给范围就要解算器
+  // 目标架构:`aarch64` / `x86_64`。**每个架构各建一次**,建好就不可变、全平台复用。
+  optional string target  = 3;
+}
+
+message BuildLuaDepResp {
+  option (hi.audience) = VIS_SELF;
+  optional bool   ok        = 1 [(hi.visibility) = VIS_SELF];
+  repeated LuaDepBuiltFile so_files  = 2 [(hi.visibility) = VIS_SELF];
+  repeated LuaDepBuiltFile lua_files = 3 [(hi.visibility) = VIS_SELF];
+  optional string error     = 4 [(hi.visibility) = VIS_SELF];
+  optional string log       = 5 [(hi.visibility) = VIS_SELF];
+}
+
+message LuaDepBuiltFile {
+  option (hi.audience) = VIS_SELF;
+  // 相对 `<rock>/<版本>/` 的路径。`.so` 的点号与目录对应是 lua 的老规矩:
+  // `require("socket.core")` 找 `socket/core.so`,入口符号 `luaopen_socket_core`。
+  optional string path   = 1 [(hi.visibility) = VIS_SELF];
+  // `.so` 传 url(构建服务已经传进私有桶);`.lua` 传内容(要内联,不落桶)。
+  optional string url    = 2 [(hi.visibility) = VIS_SELF];
+  optional bytes  content = 3 [(hi.visibility) = VIS_SELF];
+  optional string sha256 = 4 [(hi.visibility) = VIS_SELF];
+}
+
 service Builder {
   rpc Build (BuildReq) returns (BuildResp) { option (hi.auth) = AUTH_INTERNAL; }
+  // 建一个 C 模块依赖。**同一个 (rock, 版本, target) 只建一次**,之后所有插件复用 ——
+  // 编译成本因此不随插件数量增长。
+  rpc BuildLuaDep (BuildLuaDepReq) returns (BuildLuaDepResp) { option (hi.auth) = AUTH_INTERNAL; }
   // 验一个 lua 包:语法能不能 load、manifest 是什么、契约号多少、有没有碰禁用项。
   // 毫秒级,hi-ai 在发版流程里同步等。
   rpc VerifyLua (VerifyLuaReq) returns (VerifyLuaResp) { option (hi.auth) = AUTH_INTERNAL; }
