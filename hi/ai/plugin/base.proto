@@ -32,6 +32,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai/plugin";
 import "google/protobuf/empty.proto";
 import "google/protobuf/struct.proto";
 import "hi/ai/chat.proto";
+import "hi/ai/plugin.proto";
 import "hi/options.proto";
 
 // ── py-docker 执行契约(独立 py-docker 服务实现,hiai 只作调用方)──────────────
@@ -177,6 +178,15 @@ message VerifyLuaReq {
   optional string script  = 1;
   optional string uuid    = 2; // 壳 uuid(日志用)
   optional string version = 3; // 版本号
+  // 这个脚本要用到的 C 模块。**校验器要真把它们装上再 load 脚本** ——
+  //
+  // 合并出来的 loader 在**顶层**就 `require` 依赖(`local cjson = require("cjson")`),
+  // 校验器没有它们的话,连"脚本能不能装进来"都验不了(报的是
+  // `attempt to call a nil value (global '__native')`,而那跟作者的代码毫无关系)。
+  //
+  // 🔴 更要紧的是**验的必须是发的**:装着依赖 load 一遍,才等于机器人上会发生的事。
+  // 给个空壳 `__native` 也能让验收变绿,但那种绿是假的。
+  repeated hi.ai.LuaDep deps = 4;
 }
 
 message VerifyLuaResp {
