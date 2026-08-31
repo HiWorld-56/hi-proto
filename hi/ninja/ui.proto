@@ -11,12 +11,13 @@ import "hi/club/messaging.proto";
 import "hi/ai/plugin.proto";
 import "hi/did/transfer.proto";
 
-// hinj_brain <-> hinj_face IPC
+// **hinj_brain ←→ hinj_ui（face）** 这一条线。
 //
-// 传输层：ZMQ ROUTER/DEALER，payload 为本文件定义的 protobuf 二进制单帧。
-// 注册机制：face 启动后周期性发裸字节 "PING"，brain 回 "PONG"，
-//   brain 以此将 face 的 ZMQ identity 加入在线模块集合，才能向 face 发送消息。
-//   周期发送仅为应对 brain 重启后身份丢失的情况，非传统心跳。
+// 传输与注册那套约定是**所有模块共用的**，写在 `hi/ninja/common.proto` 里，
+// 不要在各模块的文件里各抄一份。
+//
+// ⚠️ 本文件按「谁跟谁说话」划分，不按话题。所以 `PluginProgress` 在这儿 ——
+// 它讲的是插件，但它是**给脸上显示的**；插件本身的执行走 `hi/ninja/lua.proto`。
 
 // 二态开关：语音监听开始/结束、音频播放开始/结束等
 enum StateToggle {

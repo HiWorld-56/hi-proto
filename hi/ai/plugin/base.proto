@@ -259,6 +259,9 @@ message LuaDepBuiltFile {
   optional string url    = 2 [(hi.visibility) = VIS_SELF];
   optional bytes  content = 3 [(hi.visibility) = VIS_SELF];
   optional string sha256 = 4 [(hi.visibility) = VIS_SELF];
+  // 字节数。**没有它的话集合里的 size 列恒为 0** —— 从前 `.lua` 走 content
+  // 还能按内容长度算，2026-09-01 起两种 kind 都走 url，内容不再经过服务端。
+  optional int64  size   = 5 [(hi.visibility) = VIS_SELF];
 }
 
 // 问一个 rock 还要哪些别的 rock。**只读配方,不编译。**
