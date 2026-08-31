@@ -261,8 +261,39 @@ message LuaDepBuiltFile {
   optional string sha256 = 4 [(hi.visibility) = VIS_SELF];
 }
 
+// 问一个 rock 还要哪些别的 rock。**只读配方,不编译。**
+//
+// 🔴 **传递依赖由后台求闭包,不让作者写。** lua-http 压着 cqueues / luaossl /
+// lpeg / lpeg_patterns / basexx / fifo / binaryheap 七个 —— 让作者把它们逐个抄进
+// dependencies.txt,等于把"这个库依赖什么"这件**配方里已经写死的事实**要他再抄一遍,
+// 抄错了还没人拦得住(少一个的表现是运行期 require 不到,而错只在机器人本地日志里)。
+//
+// 为什么单独一个 rpc 而不是从 BuildLuaDep 顺带回:**集合里已经建过的不会再走构建**,
+// 那条路上问不到它的依赖。而依赖关系是配方里的事实,读一下就有,不必编译。
+message LuaDepRequiresReq {
+  optional string rock    = 1;
+  optional string version = 2;
+}
+
+message LuaDepRequiresResp {
+  option (hi.audience) = VIS_SELF;
+  // 配方在不在(= 在不在白名单里)。**不在时不是错误** —— 调用方要据此报
+  // "它不在白名单里",而不是报一个 rpc 失败。
+  optional bool ok = 1 [(hi.visibility) = VIS_SELF];
+  repeated LuaDepRef requires = 2 [(hi.visibility) = VIS_SELF];
+  optional string error = 3 [(hi.visibility) = VIS_SELF];
+}
+
+message LuaDepRef {
+  option (hi.audience) = VIS_SELF;
+  optional string rock    = 1 [(hi.visibility) = VIS_SELF];
+  optional string version = 2 [(hi.visibility) = VIS_SELF]; // 钉死,不给范围
+}
+
 service Builder {
   rpc Build (BuildReq) returns (BuildResp) { option (hi.auth) = AUTH_INTERNAL; }
+  // 读配方问依赖,不编译。见 LuaDepRequiresReq。
+  rpc LuaDepRequires (LuaDepRequiresReq) returns (LuaDepRequiresResp) { option (hi.auth) = AUTH_INTERNAL; }
   // 建一个 C 模块依赖。**同一个 (rock, 版本, target) 只建一次**,之后所有插件复用 ——
   // 编译成本因此不随插件数量增长。
   rpc BuildLuaDep (BuildLuaDepReq) returns (BuildLuaDepResp) { option (hi.auth) = AUTH_INTERNAL; }
