@@ -578,6 +578,19 @@ message LuaDepFile {
   optional string sha256 = 3 [(hi.visibility) = VIS_SELF]; // 下完必须核对
 }
 
+// HaveDep 机器人本地**已经有的**一个依赖文件。
+//
+// 🔴 粒度到**文件 + 摘要**,不能只报 `<rock>/<版本>` —— 只报版本的话,某个文件损坏
+// 或下了一半服务端看不出来,会以为齐了。一台机器人几个 rock、每个十几个文件,
+// 报文也就几百条,很小。
+message HaveDep {
+  option (hi.audience) = VIS_SELF;
+  optional string rock    = 1 [(hi.visibility) = VIS_SELF];
+  optional string version = 2 [(hi.visibility) = VIS_SELF];
+  optional string path    = 3 [(hi.visibility) = VIS_SELF]; // 相对 `<rock>/<版本>/`
+  optional string sha256  = 4 [(hi.visibility) = VIS_SELF];
+}
+
 message ListOnDeviceReq {
   optional string agent  = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
   // 机器人自己的架构。**不传 = aarch64** —— 现网机器人全是 arm64,
@@ -587,6 +600,15 @@ message ListOnDeviceReq {
   // LUA 的制品 target 是 `any`,与架构无关,任何机器人都拿得到。
   // ⛔ 空串不是合法值:要么不传,要么给真架构名。
   optional string arch   = 2;
+  // 机器人**已经有的依赖文件**。服务端据此**只给缺的那些现签 URL** ——
+  // 已经有的那些仍然在清单里(撤权与回收要靠全量清单表达),只是 `url` 为空。
+  //
+  // 🔴 **它是这次请求的参数,不是服务端的一张表。** 每轮机器人现扫磁盘现报,
+  // 服务端拿这一次的报文算差额 —— 权威始终在机器人那边,没有漂移的余地。
+  // 存下来当"最后一次报了什么"展示可以;**永远不要不重新问就拿它算差额**。
+  //
+  // ⚠️ 不传 = 什么都没有 → 服务端给全量 URL。老 brain 因此零改动继续跑。
+  repeated HaveDep have  = 3;
 }
 message ListOnDeviceResp {
   option (hi.audience) = VIS_SELF;

@@ -65,6 +65,10 @@ service Plugin {
 //    ⛔ **空串不再是合法值**(2026-08-28 起禁止用空串表示"没有"):要么不传,要么给真架构名。
 message ListOnDeviceReq {
   optional string arch = 1;
+  // 机器人已经有的依赖文件,club 原样穿透给 hi.ai。
+  // 语义见 `hi.ai.HaveDep` 与 `hi.ai.ListOnDeviceReq.have` —— **它是请求的参数,
+  // 不是服务端的一张表**。
+  repeated hi.ai.HaveDep have = 2;
 }
 
 // 所以 `ListOnDevice` **没有 agent 参数**,主体只能从凭证里取。
