@@ -49,6 +49,30 @@ message OpenReq {
   optional string uuid    = 1;
   optional string version = 2;
   optional bytes  script  = 3; // main.lua 合并后的那一个文件
+  // deps **这一版声明了哪些 rock** —— 执行器据此决定 `__native` / `__luasrc`
+  // 允许装哪些 C 模块与依赖自带的 lua 源码。
+  //
+  // 🔴 **它是一道权限闸，不是一份提示。**
+  //
+  // `/opt/hinj/luadeps/` 是**全机共用的集合**（同一个 rock 被五个插件用到只存一份），
+  // 而 `__native(rock, 版本, 模块)` 的三个分量是插件自己写的字符串。没有这份清单的话，
+  // 一个**依赖一个都没声明**的插件可以直接去 dlopen 别的插件装上去的 `.so` ——
+  // 2026-09-02 在 `.66` 上实测：拿到了 `luafilesystem` 与 `luasocket`，
+  // 列出了 `/opt/hinj`、建出了 TCP socket。**文件系统与网络，都在沙箱之外。**
+  //
+  // 而这条路**验收侧结构上看不见**：verify-lua 的集合是按本插件的依赖现搭的，
+  // 别人的 rock 不在那台机器上，同一段代码在验收里必然报"没装上"，只有到设备上才成立。
+  //
+  // ⚠️ **空 = 一个都不许，不是"不限制"。** 别为了兼容老 sidecar 把空当成放行 ——
+  // 那等于把闸门拆了，而且零报错。
+  repeated LuaRock deps = 4;
+}
+
+// LuaRock 一个依赖的坐标。**版本是键的一部分** —— 集合按
+// `<rock>/<版本>/` 落盘，只对 rock 名不对版本等于放行同名的另一个版本。
+message LuaRock {
+  optional string rock    = 1;
+  optional string version = 2;
 }
 
 message OpenResp {
