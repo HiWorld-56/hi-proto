@@ -75,8 +75,12 @@ BODIES = {
     # club / ai
     "api_key/list": '{"agent":"{agent}","pagination":{"page":1,"limit":50}}',
     "plugin/list": '{"agent":"{agent}","pagination":{"page":1,"limit":50}}',
-    "plugin/list_versions": '{"agent":"{agent}","uuid":"{plugin}"}',
+    # ⚠️ 带分页的 req 一定要给 pagination —— `buf.validate` 标了 required,
+    #    不给会得到 `field Pagination is required`,而那会被算成"接口没成功"跳过,
+    #    也就是**这条路由根本没验到**,却不显示为失败。
+    "plugin/list_versions": '{"agent":"{agent}","uuid":"{plugin}","pagination":{"page":1,"limit":20}}',
     "plugin/get": '{"agent":"{agent}","uuid":"{plugin}"}',
+    "training/get_file": '{"agent":"{agent}","uuid":"{plugin}"}',
     "agent/get": '{"agent":"{agent}"}',
     "agent/get_usage": '{"agent":"{agent}"}',
     "permission/list": '{"agents":["{agent}"]}',
@@ -131,9 +135,32 @@ def call(api, verb, tail, body):
 
 
 def scan(o, path=""):
-    """回 (空串键列表, 扫过的字符串叶子数)。"""
+    """回 (空串位置列表, 扫过的字符串叶子数)。
+
+    🔴 **字符串可能直接是数组的元素**,不一定挂在某个键下面。
+    proto 里 `repeated string` 一大堆(`models` / `langs` / `list` / `tags` / dids …),
+    它们在 JSON 里长这样:
+
+        {"models": ["gpt-4.1", "ministral-3"]}
+
+    第一版只在 dict 分支里数字符串,数组分支直接把元素递归下去 ——
+    而递归进去的是个 `str`,两个 isinstance 都不匹配,于是**什么都没数到**。
+    后果有两个,第二个才要命:
+
+      ① `Model.ListLlms` 这类回包被误报成"空回包、没验",而它明明有数据;
+      ② **`repeated string` 里的空串永远发现不了** —— `{"tags": ["", "x"]}`
+         一路绿灯。而那正是这条脚本要抓的东西。
+
+    (2026-09-03 发现:31 条"空回包"里有 6 条是这么来的,不是账号没数据。)
+    """
     bad, seen = [], 0
-    if isinstance(o, dict):
+    if isinstance(o, str):
+        # 走到这儿说明它是数组的元素(dict 的值在下面那支里就地处理了)。
+        # 位置用 path 本身,已经带着 `[i]` 下标。
+        seen += 1
+        if o == "" and path.rsplit(".", 1)[-1].split("[")[0] not in ALLOW:
+            bad.append(path.lstrip("."))
+    elif isinstance(o, dict):
         for k, v in o.items():
             if isinstance(v, str):
                 seen += 1
@@ -181,11 +208,13 @@ def main():
     #
     # 建一个软件助手是免费且幂等的(重复跑只是多几台 smk- 开头的),
     # 比"等着某个账号碰巧有数据"可靠得多。
+    made_agent = False
     if not ph["agent"]:
         ph["agent"] = pick("club", "agent/create_assistant",
                            '{"name":"smk-emptyprobe"}', "data", "base", "did")
         if ph["agent"]:
-            print("  夹具:这个账号名下没有机器人,现建了一台 smk-emptyprobe")
+            made_agent = True   # ⚠️ 只删**自己建的**,别动这个账号原有的机器人
+            print("  夹具:这个账号名下没有机器人,现建了一台 smk-emptyprobe(跑完收走)")
     if ph.get("agent"):
         ph["plugin"] = pick("club", "plugin/list",
                             '{"agent":"%s","pagination":{"page":1,"limit":1}}' % ph["agent"],
@@ -196,6 +225,36 @@ def main():
             ph["plugin"] = pick("club", "plugin/create_shell",
                                 '{"agent":"%s","name":"smk-emptyprobe"}' % ph["agent"],
                                 "data", "uuid")
+        # apikey:`ApiKey.List` 空着就等于没验。建一把是免费的。
+        call("club", "post", "api_key/create", '{"agent":"%s"}' % ph["agent"])
+        # 挂牌:`Market.ListMyListings` / `MarketDirectory.ListAgentListings` 两条
+        # 都要有自己的挂牌才出数据 —— 而**市场那条读路径正是 92 个空串出过的地方**
+        # (PluginDisplay 把 logo/summary 摊平那次)。这两条不能一直"没验"。
+        #
+        # ⚠️ **空壳挂不了牌**:服务端会说「这个插件还没有激活版本(空壳),不能挂牌」。
+        #    所以得先发一版。用 lua 包是因为它**发版即就绪**,不用等交叉编译。
+        #
+        # ⚠️ 草稿(status=1)就够:`ListMyListings` 出让方自己看,草稿/挂牌中/隐藏都出
+        #    (唯独不出已下架)。不上架就不会进公开搜索,也就不会打扰别人。
+        pkg = os.environ.get("PKG", "")
+        if not pkg:
+            try:
+                pkg = subprocess.run(
+                    [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                  "build_luapkg.py")],
+                    capture_output=True, text=True, timeout=120,
+                    env={**os.environ, "MINIO_HOST": os.environ.get("MINIO_HOST", "192.168.1.65:9000")},
+                ).stdout.strip().splitlines()[-1]
+            except Exception:
+                pkg = ""
+        if ph.get("plugin") and pkg.startswith("https://"):
+            call("club", "post", "plugin/create_version",
+                 '{"agent":"%s","version":{"uuid":"%s","version":"1.0.0","url":"%s"}}'
+                 % (ph["agent"], ph["plugin"], pkg))
+            ph["listing_mine"] = pick("club", "market/create_listing",
+                                      '{"agent":"%s","plugin_uuid":"%s","settle_mode":1}'
+                                      % (ph["agent"], ph["plugin"]),
+                                      "data", "uuid")
     try:
         d = json.loads(call("club", "post", "market_directory/search_listings",
                             '{"pagination":{"page":1,"limit":1}}'))
@@ -251,14 +310,71 @@ def main():
         else:
             ok += 1
 
+    # ── 清理 ────────────────────────────────────────────────────────────────
+    #
+    # 🔴 **自己造的夹具要自己收走。** 这个脚本原来一条清理都没有,
+    #    每跑一次就在开发环境留一个 smk-emptyprobe 机器人 + 一个插件壳 + 一个挂牌。
+    #    2026-09-03 清出来三个,全是它留的 —— 而它每次都报"0 失败"。
+    #
+    # 顺序有依赖:挂牌不下架就删不掉壳,壳不删就删不掉机器人。
+    if made_agent and ph.get("agent"):
+        if ph.get("listing_mine"):
+            call("club", "post", "market/set_listing_status",
+                 '{"uuid":"%s","status":4}' % ph["listing_mine"])
+        if ph.get("plugin"):
+            call("club", "post", "plugin/delete_shell",
+                 '{"agent":"%s","uuid":"%s"}' % (ph["agent"], ph["plugin"]))
+        r = call("club", "post", "agent/delete", '{"agent":"%s"}' % ph["agent"])
+        try:
+            done = json.loads(r).get("code") == 0
+        except Exception:
+            done = False
+        print(f"  {G}✓{N} 清理:收走了自己造的机器人 smk-emptyprobe" if done
+              else f"  {Y}—{N} 清理没做干净(下次跑会多一个 smk-emptyprobe):{r[:120]}")
+
     for f in fails:
         print(f"  {R}✗{N} {f}")
-    for b in blanks:
-        print(f"  {Y}—{N} 没验(空回包):{b}")
+    # 空回包按**原因**归类。平铺 22 行没法行动 ——
+    # 而这些原因是三类完全不同的东西:有的这辈子也覆盖不到(结构性),
+    # 有的只要换个跑法就能覆盖(接着别的 smoke 跑),有的得专门造夹具。
+    if blanks:
+        why = {
+            "① hi.ai 自己那一面:club 用户 token 在那边什么都不拥有(结构性,换夹具也没用)": [],
+            "② 要资金/交易流水才有数据 —— **接在 smoke-market.sh 后面、用它的卖家 token 跑**就能覆盖": [],
+            "③ 要商户身份": [],
+            "④ 要聊天记录 / 训练文件 / 用量": [],
+            "⑤ 与时机有关(此刻没人在线 / 这个账号链上没资产)": [],
+            "⑥ 其它": [],
+        }
+        k = list(why)
+        for b in blanks:
+            n = b.split(" ——")[0]
+            if n.startswith("ai:"):
+                why[k[0]].append(n)
+            elif any(x in n for x in ("Trade.", "Market.ListTransactions", "Market.ListReceivedRequests", "Ledger.")):
+                why[k[1]].append(n)
+            elif "Merchant" in n:
+                why[k[2]].append(n)
+            elif any(x in n for x in ("Chat.GetHistory", "Training.", "GetUsage", "AgentBench")):
+                why[k[3]].append(n)
+            elif any(x in n for x in ("ListOnline", "Assets.")):
+                why[k[4]].append(n)
+            else:
+                why[k[5]].append(n)
+        print(f"  {Y}—{N} 没验(空回包):接口回了 code 0,但**回包里一个字符串字段都没有**,")
+        print(f"       也就是这一条什么都没查到。按原因分:")
+        for reason, items in why.items():
+            if items:
+                print(f"       {reason}")
+                for i in items:
+                    print(f"           {i}")
     for s in skips:
         print(f"  {Y}—{N} 没验:{s}")
     print(f"\n  {G}✓{N} {ok} 条真的扫到了字段且没有空串")
     print(f"结果:通过 {G}{ok}{N},失败 {R}{bad}{N},空回包 {Y}{blank}{N},跳过 {Y}{skip}{N}")
+    print(f"       ——「空回包」与「跳过」都是**没验**,不是通过。"
+          f"今天挖到的两个真 bug 都出在**有数据**的路由上,")
+    print(f"         所以没验的那些正是同类 bug 还可能藏着的地方。")
     sys.exit(1 if bad else 0)
 
 
