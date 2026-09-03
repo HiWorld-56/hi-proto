@@ -21,6 +21,15 @@
 #   ./null_test.sh
 #
 # token 怎么造:.66 上 /tmp/tokgen(club)与 /tmp/didtok(hidid),见 TEST-CREDENTIALS.md。
+#
+# 🔴 **每个工具只跑一次,TOKEN 与 DID 从同一次输出里取。**
+#    登录态是按 `(did, app, dev)` 一行的 —— 为了拿 DID 再跑一次 tokgen,
+#    等于**同一个位又登录了一次**,前一个 token 当场失效。
+#    表现是一片 `Code(103) 异地登陆`,而那看着像产品坏了(实际是夹具自己顶掉的)。
+#
+#      C=$(cd /tmp/tokgen && MN_FILE=... DEV=embedded ./target/release/tokgen)
+#      CLUB_TOKEN=$(echo "$C" | grep ^TOKEN= | cut -d= -f2)
+#      CLUB_DID=$(  echo "$C" | grep ^DID=   | cut -d= -f2)
 # AI_KEY 是 club 容器 /root/res/config.yml 的 HiAIServer.APIKEY;
 # AI_KEY_DID 是它对应的人 —— hi.ai 的权限判据是 `agent.creator == 它`。
 #
@@ -30,14 +39,52 @@
 #    它不具备区分力。留着当不变式可以,别拿它当这次改动的证据。
 set -uo pipefail
 export PATH=$HOME/go/bin:$PATH
-PS=$(ls -d /home/lo/go/pkg/mod/github.com/*/hi-proto@v1.5.11-dev.4)/rust/src/gen/hi_proto_descriptor.bin
+# protoset:**取当前最新的那份**,别把版本号写死。
+#
+# 原来这里写死 `hi-proto@v1.5.11-dev.4`,而 proto 已经走到 dev.14 —— 回归网自己落后于代码。
+# 后果不是"跑不起来"那么直白:老 descriptor 里**没有新加的字段与方法**,
+# grpcurl 会把它们当成未知字段拒掉,而那条错看着像"服务端不认这个参数"。
+#
+# 允许用 HI_PB 覆盖(想钉某一版时)。
+PS=${HI_PB:-}
+if [ -z "$PS" ]; then
+  # 按**版本号**排,不按 mtime —— mtime 是"什么时候下载的",与新旧无关。
+  PS=$(ls -d /home/lo/go/pkg/mod/github.com/*/hi-proto@* 2>/dev/null \
+       | sed "s/.*hi-proto@//" | sort -V | tac \
+       | while read -r v; do
+           d=$(ls -d /home/lo/go/pkg/mod/github.com/*/hi-proto@"$v" 2>/dev/null | head -1)
+           [ -n "$d" ] && [ -f "$d/rust/src/gen/hi_proto_descriptor.bin" ] && { echo "$d/rust/src/gen/hi_proto_descriptor.bin"; break; }
+         done)
+fi
+[ -n "$PS" ] && [ -f "$PS" ] || { echo "找不到 hi_proto_descriptor.bin —— 先在任一后端仓跑一次 go mod download"; exit 2; }
+echo "protoset: $PS"
 CLUB=192.168.1.65:9536 ; AI=192.168.1.65:9534 ; DID=192.168.1.65:9532
 G="\033[32m"; R="\033[31m"; Y="\033[33m"; N="\033[0m"
 pass=0; fail=0; skip=0
 ok(){ printf "  ${G}✓${N} %s\n" "$1"; pass=$((pass+1)); }
 no(){ printf "  ${R}✗${N} %s\n     → %s\n" "$1" "$2"; fail=$((fail+1)); }
 sk(){ printf "  ${Y}—${N} %s (%s)\n" "$1" "$2"; skip=$((skip+1)); }
-sql(){ ssh -o ConnectTimeout=20 lo@192.168.1.65 "mysql -N -B -ulo -p568568 -e \"$1\"" 2>/dev/null; }
+# 🔴 **取数失败与"取到空"必须分得开。**
+#
+# 这条查询走 ssh 到 .65。那条链会抖(实测:同一次跑里前面几条正常、中间一条超时),
+# 而失败的表现是**返回空串** —— 于是断言变成 `want=<NULL> got=`,
+# **看着像产品坏了**。2026-08-29 就被这个骗过一次,今天又骗了一次。
+#
+# 两件事一起做:重试三次;三次都不行就置 SQL_ERR=1,让调用方报"没验"而不是"失败"。
+SQL_ERR=0
+sql(){
+  local _i _out
+  for _i in 1 2 3; do
+    if _out=$(ssh -o ConnectTimeout=20 -o BatchMode=yes lo@192.168.1.65 \
+                  "mysql -N -B -ulo -p568568 -e \"$1\"" 2>/dev/null); then
+      SQL_ERR=0; printf '%s' "$_out"; return 0
+    fi
+    sleep 2
+  done
+  SQL_ERR=1; return 1
+}
+# 取一个**必须有值**的标量:取不到就是取数坏了,不是被测的东西坏了。
+sqlv(){ local _v; _v=$(sql "$1") || { SQL_ERR=1; return 1; }; printf '%s' "$_v"; }
 # 三个调用器,各带各的凭据体系
 cclub(){ grpcurl -plaintext -protoset "$PS" -H "Authorization: Bearer $CLUB_TOKEN" -d "$2" "$CLUB" "$1" 2>&1 | tr '\n' ' '; }
 cdid(){  grpcurl -plaintext -protoset "$PS" -H "Authorization: Bearer $DID_TOKEN"  -d "$2" "$DID"  "$1" 2>&1 | tr '\n' ' '; }
@@ -175,10 +222,16 @@ sql "delete from hi_did.hi_merchant where did='$DID_DID' and name='nulltest商�
 
 echo
 echo "══════ 三、market:不传 duration = 永久(不是 0) ══════"
-n=$(sql "select count(*) from hi_club.hi_club_market_listing where duration=0")
-[ "${n:-x}" = "0" ] && ok "库里没有 duration=0 的残留" || no "还有 duration=0" "$n 行"
-n=$(sql "select count(*) from hi_club.hi_club_market_grant where expire_at=0")
-[ "${n:-x}" = "0" ] && ok "库里没有 expire_at=0 的残留" || no "还有 expire_at=0" "$n 行"
+# ⚠️ 计数为空 = **取数失败**,不是"零行"。分不开的话链路一抖就报成产品坏了。
+cnt(){ local _v; _v=$(sql "$1"); if [ "$SQL_ERR" = "1" ] || [ -z "$_v" ]; then echo "ERR"; else echo "$_v"; fi; }
+n=$(cnt "select count(*) from hi_club.hi_club_market_listing where duration=0")
+case "$n" in ERR) sk "duration=0 残留" "查库没取到数,这一条没验";;
+             0)   ok "库里没有 duration=0 的残留";;
+             *)   no "还有 duration=0" "$n 行";; esac
+n=$(cnt "select count(*) from hi_club.hi_club_market_grant where expire_at=0")
+case "$n" in ERR) sk "expire_at=0 残留" "查库没取到数,这一条没验";;
+             0)   ok "库里没有 expire_at=0 的残留";;
+             *)   no "还有 expire_at=0" "$n 行";; esac
 out=$(grpcurl -plaintext -protoset "$PS" -d '{"pagination":{"page":1,"limit":100}}' "$CLUB" hi.club.MarketDirectory/SearchListings 2>&1)
 z=$(python3 - <<PY 2>/dev/null
 import json
@@ -220,6 +273,79 @@ if [ -z "$KEY" ]; then sk "ApiKey 备注用例" "夹具没造出来"; else
     nt=$(sql "select ifnull(note,'<NULL>') from hi_club.hi_chat_api_key where value='$KEY'")
     [ "$nt" = "" ] && ok "传 note=\"\" → 真的清空" || no "传空串没清空" "note=[$nt]"
   fi
+fi
+
+echo
+echo "══════ 五、建机器人不传头像 → 落 NULL,不是空串 ══════"
+#
+# 🔴 这一条是 2026-09-03 一个**真 bug** 的回归用例,而它当时是靠翻数据发现的 ——
+#    没有任何测试挡得住:整条链三段各丢一次 presence,
+#
+#      handler   req.GetAvatar()             GetX() 把"没传"摊成 ""
+#      service   func(..., avatar string)    裸 string,签名这一层就没有 presence
+#      → hi.Entity{Avatar: proto.String(avatar)}    把 "" 包回成「有一个头像,它是空串」
+#
+#    而 hi-ai 的 createAgent 里写着「指针直传:没传头像就是 NULL,不是空串」——
+#    那句断言因此永远不成立。实测两张主用户表各 107 行 avatar="",
+#    全是 08-29 迁移之后写进去的,也就是**迁移做完当天就开始被写回来**。
+#
+# ⚠️ 判据要看**两张表**:hi-ai 建 agent 行、club 拿回包再建自己那行。
+#
+# 🔴 **取 did 用 JSON 解,不要 sed 抓第一个 `"did"`。**
+#    回包里第一个 did 是**创建者**,不是新建的机器人 —— 我第一版就是这么写的,
+#    于是后面的清理把**测试用户自己**从两张主用户表里删掉了,
+#    再登录直接 `RegisterRobot ... 服务内部错误`(agent 行还在、user 行没了)。
+newdid(){ python3 -c '
+import sys, json, re
+raw = sys.stdin.read()
+m = re.search(r"\{.*\}", raw, re.S)
+try:
+    d = json.loads(m.group(0)) if m else {}
+    print(d.get("base", {}).get("did") or d.get("data", {}).get("base", {}).get("did") or "")
+except Exception:
+    print("")
+'; }
+
+mkbot(){ cclub 'hi.club.Agent/CreateAssistant' "$1"; }
+# 用**产品自己的删除接口**清理,不要手写 SQL ——
+# 删一个 did 要动四个库 + redis 的 ACL,手删只会留一地孤儿(实测过)。
+delbot(){
+  [ -n "$1" ] && [ "$1" != "$CLUB_DID" ] || return 0     # 决不删调用者自己
+  cclub 'hi.club.Agent/Delete' "{\"agent\":\"$1\"}" >/dev/null 2>&1
+}
+
+AG=$(mkbot '{"name":"nulltest-avatar"}')
+NEW_DID=$(newdid <<<"$AG")
+if [ -z "$NEW_DID" ]; then
+  sk "建机器人不传头像" "建不出来:$(head -c 160 <<<"$AG")"
+elif [ "$NEW_DID" = "$CLUB_DID" ]; then
+  no "取到的 did 是调用者自己" "解析回包出错,拒绝往下走(否则会删掉测试用户)"
+else
+  n1=$(sql "select count(*) from hi_ai.hi_ai_user where did='$NEW_DID'")
+  n2=$(sql "select count(*) from hi_club.hi_chat_user where did='$NEW_DID'")
+  if [ "$SQL_ERR" = "1" ] || [ -z "$n1" ] || [ -z "$n2" ]; then
+    sk "建机器人不传头像" "查库没取到数(ssh 到 .65 那条链抖了),这一条**没验**"
+  elif [ "$n1" != "1" ] || [ "$n2" != "1" ]; then
+    no "建机器人:两张表都该有行" "hi_ai=$n1 hi_chat=$n2"
+  else
+    a1=$(sql "select if(avatar is null,'<NULL>',concat('[',avatar,']')) from hi_ai.hi_ai_user where did='$NEW_DID'")
+    a2=$(sql "select if(avatar is null,'<NULL>',concat('[',avatar,']')) from hi_club.hi_chat_user where did='$NEW_DID'")
+    [ "$a1" = "<NULL>" ] && ok "hi_ai_user.avatar 落 NULL(不是空串)" \
+                         || no "hi_ai_user.avatar 不是 NULL" "got=$a1 —— GetX()/proto.String 又把它摊平了"
+    [ "$a2" = "<NULL>" ] && ok "hi_chat_user.avatar 落 NULL(不是空串)" \
+                         || no "hi_chat_user.avatar 不是 NULL" "got=$a2"
+  fi
+  # ✅ 反面:**传了头像要真的写进去**,别用"一律不写"糊弄过上面那两条
+  AG2=$(mkbot '{"name":"nulltest-avatar2","avatar":"https://x/y.png"}')
+  D2=$(newdid <<<"$AG2")
+  if [ -n "$D2" ] && [ "$D2" != "$CLUB_DID" ]; then
+    a3=$(sql "select ifnull(avatar,'<NULL>') from hi_ai.hi_ai_user where did='$D2'")
+    if [ "$SQL_ERR" = "1" ] || [ -z "$a3" ]; then sk "传了头像要真的写进去" "查库没取到数,这一条没验"
+    elif [ "$a3" = "https://x/y.png" ]; then ok "传了头像要真的写进去(不许一律不写)"
+    else no "传了头像没写进去" "got=$a3"; fi
+    delbot "$D2"
+  fi
+  delbot "$NEW_DID"
 fi
 
 echo

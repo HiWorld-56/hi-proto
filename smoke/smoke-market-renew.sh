@@ -7,8 +7,8 @@ ST="$1"; BT="$2"; PKG="$3"
 #    库里那些断言会全部变成 "want=1 got=",看上去像产品坏了 ——
 #    实际只是这台机器没装客户端。踩过一次,查了十几分钟才发现。
 #    (mysql 在 .65 上;.64 是构建机,没有。)
-command -v mysql >/dev/null || {
-  echo "缺 mysql 客户端 —— 本脚本有一半断言要查库。请在 .65 上跑,或先装 mysql-client。" >&2
+have_db || {
+  echo "够不着 mysql —— 本机没装 mysql 时会 ssh 到 $DB 去查,检查那条路。" >&2
   exit 2
 }
 
@@ -18,7 +18,7 @@ bad(){ printf "  \033[31m✗\033[0m %s  (%s)\n" "$1" "$2"; fail=$((fail+1)); }
 chk(){ [ "$2" = "$3" ] && ok "$1" || bad "$1" "want=$3 got=$2"; }
 has(){ case "$2" in *"$3"*) ok "$1";; *) bad "$1" "没有 '$3':$(echo "$2"|head -c 150)";; esac; }
 cj(){ curl -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $3" -d "$2"; }
-q(){ mysql -h127.0.0.1 -ulo -p568568 "$1" -N -e "$2" 2>/dev/null; }
+q(){ mysqlq "$1" "$2"; }
 g(){ python3 -c '
 import sys, json
 try:

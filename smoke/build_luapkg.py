@@ -7,7 +7,13 @@ import hashlib, hmac, datetime, io, json, urllib.request, uuid, zipfile
 
 AK = "fnYMEbIv5wiz0SzuH42s"
 SK = "NyoDifhqrDB7L9jrEE5K6eVM7pwSEueQKIQ8Vjht"
-HOST = "127.0.0.1:9000"
+# minio 的地址。**默认本机**,但允许 `MINIO_HOST` 覆盖 ——
+# 这些脚本要在 .64(有 grpcurl / protoset / ~/wip)上跑,而 minio 在 .65。
+# 写死 127.0.0.1 的话在 .64 上就是 `Connection refused`,
+# 而那条错看着像 minio 挂了。
+# ⚠️ SigV4 的 canonical request 里也带 host,所以两处必须用同一个值 —— 它们都读这个常量。
+import os as _os
+HOST = _os.environ.get("MINIO_HOST", "127.0.0.1:9000")
 BUCKET = "hiai"
 PUBLIC_BASE = "https://hisource.hi.lan/"
 REGION, SVC = "us-east-1", "s3"
