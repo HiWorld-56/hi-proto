@@ -126,6 +126,21 @@ if [ -n "$sqlhits" ]; then
   printf '      %s\n' $sqlhits
 fi
 
+# ── 5. 不许凭空造空串 ───────────────────────────────────────────────────────
+#
+# 前四闸都够不着这一类:空串**不来自库**,是 handler 自己造的 ——
+# `var role string` 的零值,无条件 `proto.String(role)` 发出去。
+# 2026-09-03 用它扫出四个,而端到端那条(empty_in_resp)一个都够不着:
+# 它们全在"未观察字段"那一批里。
+echo
+echo "── 5. 不许凭空造空串(裸 string 变量无条件 proto.String)──"
+if out=$(python3 "$(dirname "$0")/synth_empty.py" 2>&1); then
+  printf "  ${G}✓${N} %s\n" "$(printf '%s' "$out" | tail -1 | sed 's/\[synth_empty\] //')"
+else
+  printf "  ${R}✗${N} %s\n" "$(printf '%s' "$out" | sed 's/^/     /' | tail -8)"
+  fail=$((fail+1))
+fi
+
 echo
 if [ "$fail" -eq 0 ]; then
   printf "${G}两道静态闸都过了。${N}注意它们**都看不见 SQL 里的 COALESCE**\n"

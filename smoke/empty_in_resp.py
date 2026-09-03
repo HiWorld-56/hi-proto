@@ -45,7 +45,58 @@ import re
 import subprocess
 import sys
 
-HTTP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "http")
+HERE = os.path.dirname(os.path.abspath(__file__))
+HTTP_DIR = os.path.join(HERE, "..", "http")
+
+# ── 判据的粒度:**字段**,不是接口 ─────────────────────────────────────────────
+#
+# 一个接口回了空集合(`{"list": [], "total": 0}`)**不是缺口** ——
+# 集合本身没什么可验的,要验的是**元素那个类型的字段**;没有元素就没有东西可验。
+# 真正的缺口是:某个 `string` 字段在所有回包里**一次都没出现过**,
+# 也就是"空串冒充 null"这个 bug 在它身上从来没被检查过。
+#
+# 所以这里从 proto 描述符现算「这些接口的回包**能**出现哪些 string 字段」,
+# 再和实际观察到的对账。描述符是 **protoc 自己**吐的,不是我们对语法的猜测
+# (行式正则读 proto 漏过删字段、还发过版)。
+def load_schema():
+    """→ (messages, services, 出错原因)。取不到就退化成通用扫描,并如实说没验字段覆盖。"""
+    fds = os.environ.get("HI_FDS", "")
+    if not fds or not os.path.isfile(fds):
+        fds = "/tmp/hi_fds.txt"
+        pb = os.environ.get("HI_PB", "")
+        if not pb:
+            import glob as _g
+            # ⚠️ **优先用 CI 那份**(~/ci/hi-proto-code/lua/hi.pb)——它跟着 hi-proto dev 走。
+            #    go mod 缓存里那些是**下游钉的旧版本**,拿它算覆盖会把已经改名/新增的
+            #    消息算错(实测:缓存里还是 PluginBuild,而 dev 上早改成 PluginArtifact 了)。
+            for c in ["/home/lo/ci/hi-proto-code/lua/hi.pb", os.path.expanduser("~/hi.pb")]:
+                if os.path.isfile(c):
+                    pb = c
+                    break
+            if not pb:
+                cands = sorted(_g.glob(os.path.expanduser(
+                    "~/go/pkg/mod/github.com/*/hi-proto@*/rust/src/gen/hi_proto_descriptor.bin")))
+                pb = cands[-1] if cands else ""
+        if not pb:
+            return {}, {}, "找不到 protoset(hi_proto_descriptor.bin)"
+        inc = "/usr/include" if os.path.isdir("/usr/include/google/protobuf") else "/opt/homebrew/include"
+        try:
+            with open(pb, "rb") as f, open(fds, "w", encoding="utf-8") as out:
+                r = subprocess.run(["protoc", "--decode=google.protobuf.FileDescriptorSet",
+                                    "google/protobuf/descriptor.proto"],
+                                   cwd=inc, stdin=f, stdout=out,
+                                   stderr=subprocess.PIPE, timeout=120)
+            if r.returncode != 0:
+                return {}, {}, f"protoc --decode 失败:{r.stderr.decode()[:120]}"
+        except Exception as e:
+            return {}, {}, f"生成描述符失败:{e}"
+    try:
+        sys.path.insert(0, HERE)
+        import _protoschema
+        m, sv = _protoschema.parse(fds)
+        return m, sv, ""
+    except Exception as e:
+        return {}, {}, f"解析描述符失败:{e}"
 CAC = os.environ.get("CAC", "").split()
 # 三个网关的 token 不通用:club 的那把在 hi.club / hi.ai 都认(同一套 JWT),
 # 但 hi-did 自成一套 —— 拿 club token 去调它会得到「ExtendToken不存在」,
@@ -55,6 +106,15 @@ TOKENS = {
     "ai": os.environ.get("AI_TOKEN") or os.environ.get("CLUB_TOKEN") or "",
     "did": os.environ.get("DID_TOKEN") or "",
 }
+# hi.ai 的**商户 key**。给了它,hi.ai 自己那一面才真正打得开 ——
+# 拿 club 用户 token 去打,那边什么都不拥有,一片空回包,
+# 于是 AgentInfo / ApiKeyInfo / TrainingFile / QA 这些类型的字段**一次都观察不到**。
+#
+# ⚠️ 走 **`Grpc-Metadata-ApiKey`** 这个头,不是裸 `ApiKey`。
+#    grpc-gateway 默认只透传白名单头(Authorization 等),自定义头必须带
+#    `Grpc-Metadata-` 前缀才会进 gRPC metadata。裸写 `ApiKey:` 会得到
+#    「apiKey是空」—— 而那条错看着像 key 不对,其实是**头压根没到后端**。
+AI_KEY = os.environ.get("AI_KEY") or ""
 APIS = {
     "club": os.environ.get("CLUB_API", "https://hiclub-http-api.hi.lan/api/v1"),
     "ai": os.environ.get("AI_API", "https://hiai-http-api.hi.lan/api/v1"),
@@ -125,7 +185,12 @@ def routes():
 def call(api, verb, tail, body):
     url = APIS[api] + "/" + tail
     cmd = ["curl", "-s", "-m", "30"] + CAC + ["-X", verb.upper(), url,
-           "-H", "Content-Type: application/json", "-H", "Authorization: Bearer " + TOKENS[api]]
+           "-H", "Content-Type: application/json"]
+    # hi.ai 优先用商户 key(它在那边是主体);其余仍走 Bearer。
+    if api == "ai" and AI_KEY:
+        cmd += ["-H", "Grpc-Metadata-ApiKey: " + AI_KEY]
+    else:
+        cmd += ["-H", "Authorization: Bearer " + TOKENS[api]]
     if verb == "post":
         cmd += ["-d", body]
     try:
@@ -178,12 +243,51 @@ def scan(o, path=""):
     return bad, seen
 
 
+def walk(messages, msg, obj, observed, bad, path=""):
+    """顺着 **schema** 走一遍回包,记下哪些 (消息, 字段) 真的观察到了。
+
+    与通用 `scan()` 的差别在于:它知道**这里本来该有哪些字段**。
+    protojson 的规矩是 absent 的字段根本不出现在 JSON 里 ——
+    所以"键在不在"就是 presence,而"值是不是空串"就是这条脚本要抓的东西。
+
+    ⚠️ **空集合不算缺口。** 集合本身没什么可验的,要验的是元素那个类型的字段;
+    `[]` 里没有元素,自然什么也观察不到,那不是"漏验",是"这里没有东西"。
+    真正的缺口在最后统一算:**哪些字段一次都没被观察到**。
+    """
+    if not isinstance(obj, dict) or msg not in messages:
+        return
+    for name, typ, tname, rep in messages[msg]:
+        jname = re.sub(r"_(\w)", lambda m: m.group(1).upper(), name)
+        if jname not in obj:
+            continue                      # 没出现 = absent,这正是我们要的语义
+        v = obj[jname]
+        if typ == "TYPE_STRING":
+            vals = v if isinstance(v, list) else [v]
+            for i, x in enumerate(vals):
+                if not isinstance(x, str):
+                    continue
+                observed.add((msg, name))
+                if x == "" and name not in ALLOW:
+                    where = (path + "." + jname).lstrip(".")
+                    bad.append(where + (f"[{i}]" if isinstance(v, list) else ""))
+        elif typ == "TYPE_MESSAGE" and tname:
+            for i, x in enumerate(v if isinstance(v, list) else [v]):
+                walk(messages, tname, x, observed, bad,
+                     (path + "." + jname).lstrip(".") + (f"[{i}]" if isinstance(v, list) else ""))
+
+
 def main():
     if not TOKENS["club"]:
         sys.exit("需要 CLUB_TOKEN(.66 的 /tmp/tokgen 生成;hi.club 与 hi.ai 都认它)")
     rs = routes()
+    MSGS, SVCS, SCHEMA_ERR = load_schema()
     print(f"══════ 读路径回包:不许出现 \"字段\": \"\" ══════")
-    print(f"  从 http/*.yaml 列出 {len(rs)} 条只读路由\n")
+    print(f"  从 http/*.yaml 列出 {len(rs)} 条只读路由")
+    if SCHEMA_ERR:
+        print(f"  {Y}—{N} 字段覆盖没验:{SCHEMA_ERR}(退化成通用扫描,只报空串、不报覆盖)")
+    else:
+        print(f"  从 proto 描述符解析到 {len(MSGS)} 个消息 / {len(SVCS)} 个 rpc,按**字段**算覆盖")
+    print()
 
     # 占位符**从线上现取**,不硬造 —— 造出来的 id 查不到,同样什么都没验到,
     # 而且会以「记录不存在」的样子被当成"接口没成功"跳过,看不出是夹具的问题。
@@ -210,8 +314,13 @@ def main():
     # 比"等着某个账号碰巧有数据"可靠得多。
     made_agent = False
     if not ph["agent"]:
+        # ⚠️ **建的时候就要把可选字段填上。** 不填 → 回包里 absent → 这个字段
+        #    "一次都没被观察过" → 「空串冒充 null」在它身上永远查不到。
+        #    (最扎眼的例子:PluginVersion.logo/summary 正是 92 个空串出问题的那两个,
+        #     而夹具从来不设它们。)
         ph["agent"] = pick("club", "agent/create_assistant",
-                           '{"name":"smk-emptyprobe"}', "data", "base", "did")
+                           '{"name":"smk-emptyprobe","avatar":"https://x/smk.png"}',
+                           "data", "base", "did")
         if ph["agent"]:
             made_agent = True   # ⚠️ 只删**自己建的**,别动这个账号原有的机器人
             print("  夹具:这个账号名下没有机器人,现建了一台 smk-emptyprobe(跑完收走)")
@@ -248,8 +357,11 @@ def main():
             except Exception:
                 pkg = ""
         if ph.get("plugin") and pkg.startswith("https://"):
+            # logo / summary 一定要给 —— 见上面那段:不给就永远观察不到这两个字段,
+            # 而它们正是 2026-09-03 那 92 个空串的出处。
             call("club", "post", "plugin/create_version",
-                 '{"agent":"%s","version":{"uuid":"%s","version":"1.0.0","url":"%s"}}'
+                 '{"agent":"%s","version":{"uuid":"%s","version":"1.0.0","url":"%s",'
+                 '"logo":"https://x/smk-logo.png","summary":"smoke 用的插件说明"}}'
                  % (ph["agent"], ph["plugin"], pkg))
             ph["listing_mine"] = pick("club", "market/create_listing",
                                       '{"agent":"%s","plugin_uuid":"%s","settle_mode":1}'
@@ -266,8 +378,10 @@ def main():
 
     ok = bad = skip = blank = 0
     fails, blanks, skips = [], [], []
+    observed = set()          # 真的看见过的 (消息, 字段)
+    expected = {}             # (消息, 字段) → 它出现在哪些 rpc 的回包里
     for api, verb, tail, sel in sorted(rs):
-        if not TOKENS[api]:
+        if not TOKENS[api] and not (api == "ai" and AI_KEY):
             skip += 1
             skips.append(f"{api}:{sel} —— 没给 {api.upper()}_TOKEN,整片没验")
             continue
@@ -300,7 +414,21 @@ def main():
             skip += 1
             skips.append(f"{api}:{sel} —— code {d.get('code')}: {str(d.get('message'))[:70]}")
             continue
-        b, seen = scan(d.get("data"))
+        # 这条 rpc 的回包类型是什么 —— 有 schema 就按 schema 走,没有就退化成通用扫描。
+        out_msg = SVCS.get(sel)
+        if out_msg and MSGS:
+            sys.path.insert(0, HERE)
+            import _protoschema
+            for m_, f_, _jp in _protoschema.string_fields(MSGS, out_msg):
+                expected.setdefault((m_, f_), set()).add(sel)
+            b = []
+            walk(MSGS, out_msg, d.get("data") or {}, observed, b)
+            seen = 1 if b or any(k in observed for k in expected) else 0
+            # seen 只用来分类"这条有没有数据",真正的覆盖在最后按字段算
+            _o2, seen2 = scan(d.get("data"))
+            seen = seen2
+        else:
+            b, seen = scan(d.get("data"))
         if b:
             bad += 1
             fails.append(f"{api}:{sel} —— {len(b)} 个:" + " ".join(sorted(set(b))[:8]))
@@ -334,47 +462,38 @@ def main():
 
     for f in fails:
         print(f"  {R}✗{N} {f}")
-    # 空回包按**原因**归类。平铺 22 行没法行动 ——
-    # 而这些原因是三类完全不同的东西:有的这辈子也覆盖不到(结构性),
-    # 有的只要换个跑法就能覆盖(接着别的 smoke 跑),有的得专门造夹具。
+    # ⚠️ **空集合不再算"没验"**。集合本身没什么可验的,要验的是元素那个类型的字段;
+    #    `[]` 里没有元素,自然什么也观察不到 —— 那不是漏验,是这里没有东西。
+    #    真正的判据在下面:**哪些字段一次都没被观察到**。
     if blanks:
-        why = {
-            "① hi.ai 自己那一面:club 用户 token 在那边什么都不拥有(结构性,换夹具也没用)": [],
-            "② 要资金/交易流水才有数据 —— **接在 smoke-market.sh 后面、用它的卖家 token 跑**就能覆盖": [],
-            "③ 要商户身份": [],
-            "④ 要聊天记录 / 训练文件 / 用量": [],
-            "⑤ 与时机有关(此刻没人在线 / 这个账号链上没资产)": [],
-            "⑥ 其它": [],
-        }
-        k = list(why)
-        for b in blanks:
-            n = b.split(" ——")[0]
-            if n.startswith("ai:"):
-                why[k[0]].append(n)
-            elif any(x in n for x in ("Trade.", "Market.ListTransactions", "Market.ListReceivedRequests", "Ledger.")):
-                why[k[1]].append(n)
-            elif "Merchant" in n:
-                why[k[2]].append(n)
-            elif any(x in n for x in ("Chat.GetHistory", "Training.", "GetUsage", "AgentBench")):
-                why[k[3]].append(n)
-            elif any(x in n for x in ("ListOnline", "Assets.")):
-                why[k[4]].append(n)
-            else:
-                why[k[5]].append(n)
-        print(f"  {Y}—{N} 没验(空回包):接口回了 code 0,但**回包里一个字符串字段都没有**,")
-        print(f"       也就是这一条什么都没查到。按原因分:")
-        for reason, items in why.items():
-            if items:
-                print(f"       {reason}")
-                for i in items:
-                    print(f"           {i}")
-    for s in skips:
-        print(f"  {Y}—{N} 没验:{s}")
-    print(f"\n  {G}✓{N} {ok} 条真的扫到了字段且没有空串")
-    print(f"结果:通过 {G}{ok}{N},失败 {R}{bad}{N},空回包 {Y}{blank}{N},跳过 {Y}{skip}{N}")
-    print(f"       ——「空回包」与「跳过」都是**没验**,不是通过。"
-          f"今天挖到的两个真 bug 都出在**有数据**的路由上,")
-    print(f"         所以没验的那些正是同类 bug 还可能藏着的地方。")
+        print(f"  {Y}—{N} {len(blanks)} 条回了 code 0 但没有数据(空集合)。"
+              f"这本身不是缺口 —— 覆盖按字段算,见下。")
+
+    print(f"\n  {G}✓{N} {ok} 条回包扫到了字段且没有空串")
+
+    # ── 字段覆盖:这才是"还有多少没验"的正确粒度 ──────────────────────────────
+    uncovered = 0
+    if MSGS and expected:
+        miss = sorted(k for k in expected if k not in observed)
+        cov = len(expected) - len(miss)
+        pct = 100.0 * cov / len(expected)
+        print(f"\n  ── 字段覆盖(判据是**字段**,不是接口)──")
+        print(f"  这些 rpc 的回包里一共能出现 {len(expected)} 个 string 字段,"
+              f"真的观察到 {G}{cov}{N} 个({pct:.0f}%)。")
+        if miss:
+            uncovered = len(miss)
+            bymsg = {}
+            for m_, f_ in miss:
+                bymsg.setdefault(m_, []).append(f_)
+            print(f"  {Y}—{N} 还有 {uncovered} 个**一次都没出现过** —— 那是"
+                  f"「空串冒充 null」还没被查过的地方:")
+            for m_ in sorted(bymsg)[:14]:
+                print(f"       {m_}: {', '.join(sorted(bymsg[m_])[:8])}"
+                      + (" …" if len(bymsg[m_]) > 8 else ""))
+            if len(bymsg) > 14:
+                print(f"       …… 另有 {len(bymsg) - 14} 个消息")
+    print(f"\n结果:通过 {G}{ok}{N},失败 {R}{bad}{N},没数据 {Y}{blank}{N},跳过 {Y}{skip}{N}"
+          f",未观察字段 {Y}{uncovered}{N}")
     sys.exit(1 if bad else 0)
 
 
