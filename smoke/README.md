@@ -52,6 +52,8 @@ magic 值,答复里出现了才算数。
 | `smoke-chain-fc.sh` | 链式 function call(第二步依赖第一步的输出) |
 | `smoke-external.sh` | EXTERNAL 结算:商户 Pull/Notify + 四道闸 |
 | `smoke-order-onchain.sh` | **订单制真钱闭环**(Aptos FA)。⚠️ 会真花钱 |
+| `null_static.sh` | 「空值改造」的**四道静态闸**,一条命令跑完 |
+| `empty_in_resp.sh` | 「空值改造」的**最后一道**:真调接口,数回包里的 `"字段": ""` |
 
 辅助:`build_testpkg.py`(多方法测试插件)、`build_chainpkg.py`(链式依赖插件)、
 `seed_coins.py` / `coin_sync.py`(币种表,**decimals 从链上读回来写,不手填**)、
@@ -69,3 +71,35 @@ magic 值,答复里出现了才算数。
 
 `smoke-paid-onchain.sh` —— 订单制之前的版本,打的 `market/confirm_payment` 已经 404。
 留着就是一个必红的死用例。订单制版见 `smoke-order-onchain.sh`。
+
+
+## 「禁止用空串表示 null」怎么验 —— 三道,缺一道就有盲区
+
+    null_static.sh      ① 库里有 NULL、Go 是裸类型   ② Go 是指针、库里有空串
+                        ③ 表覆盖对账(没写 TableName() 的模型整张表看不见)
+                        ④ 活代码里不许 COALESCE(x,'')
+    empty_in_resp.sh    端到端:真调接口,数回包里有多少个 `"字段": ""`
+    null_test.sh        行为:不传=不动 / 传空串=真清空 / bool 不传要报错
+
+**①②看的是库和 Go 两头,中间那一段它们都看不见。** 2026-09-03 实测过一次:
+`hi_ai_plugin_version` 129 行里 108 行 logo 是 NULL、**零个空串**(②绿),
+Go 那侧老老实实是 `*string`(①绿),而 `MarketDirectory.SearchListings`
+回包里 92 个 `"logo": ""` —— 真因是查询里一句 `COALESCE(b.logo,'')`。
+④ 就是为这一条加的,而**最终判据只能是端到端数回包**。
+
+### ⚠️ 这一类脚本最容易出的不是红,是**空跑的绿**
+
+同一天里三个地方栽在这上面:
+
+| 谁 | 怎么空跑的 | 长什么样 |
+|---|---|---|
+| `gen_nullq.py` / `gen_emptyq.py` | 它们把 SQL 写到 `/tmp/*.sql`,**stdout 只印一句中文提示**。手敲成 `python3 gen_nullq.py > /tmp/nq.sql` 就把提示喂给了 mysql,报 1064 而错误被 `mysqlq` 的 `2>/dev/null` 吞掉 | 两道闸各扫 **0 列**,输出一片干净 |
+| `codegen/check_gateway.py` | 不带仓参数时 `for repo in ARGS` 一次都不进 | 打印 ✓ 退出 0,**一个仓都没扫** |
+| 六个后端的 ASCII 闸 | `go test -run TestASCII` 匹配不上真名 `TestIdentifiersMustBeASCII` | `ok ... [no tests to run]` |
+
+所以这三处现在都会**先证明自己跑了多少**:`null_static.sh` 断言回的行数等于检查数,
+`check_gateway.py` 打印扫了几个仓/几个 service 并在为 0 时退 2,
+ASCII 测试打印扫了多少个 .go 文件。
+
+`empty_in_resp.py` 同理:回包里**一个字符串字段都没有**(空列表)时报「没验(空回包)」,
+不报 ✓ —— 否则一个权限不对、或这个账号本来就没数据的接口会永远绿着。

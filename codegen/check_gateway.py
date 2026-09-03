@@ -25,7 +25,21 @@ for y in glob.glob(f'{HIPROTO}/http/*.yaml'):
         pkg_svc, _, _ = sel.rpartition('.')
         routed.setdefault(pkg_svc, []).append(sel)
 
+# 🔴 **一个仓都没给,不许报绿。**
+#
+# 原来的写法是:没有 ARGS → 下面的 for 一次都不进 → `bad` 空 → 打印 ✓ 退出 0。
+# 于是「python3 codegen/check_gateway.py」(不带参数)看上去是通过的,
+# 而它**一个仓都没扫**。2026-09-03 就这么放过了 `hi.club.Ledger` 与 `hi.did.Broadcast`
+# 两个真缺口 —— 两条 http 路由从落地起一直 code 5,靠端到端数回包才撞见。
+#
+# 同一条教训:断言先证明自己的前提。
+if not ARGS:
+    print('[check_gateway] — 没验:一个仓都没给。用法 check_gateway.py <后端仓路径>...', file=sys.stderr)
+    sys.exit(2)
+
 bad = []
+scanned = []          # 真正扫过的仓,用来在最后证明"这一遍不是空跑"
+checked = 0           # 真正比对过的 service 数
 # import 别名 → proto 包名(hiclub "…/go/hi/club" → hi.club)。
 # **必须按包配对**:club/ai/did 三个包都有叫 Merchant 的 service,只按简名匹配
 # 会把别家的 service 算到本仓头上(第一版就这么误报了 3 条)。
@@ -35,7 +49,12 @@ for repo in ARGS:
     routers = glob.glob(f'{repo}/internal/router/httprouter/*.go')
     grpcs = glob.glob(f'{repo}/internal/router/grpcrouter/*.go')
     if not routers or not grpcs:
+        # 仓在、但没有这两个目录 —— 说明它本来就不走 gateway(或路径变了)。
+        # 无论哪种都**不是"检查过并通过"**,记下来在末尾如实报出去。
+        print(f'[check_gateway] — 没验:{os.path.basename(repo)} 找不到 '
+              f'internal/router/{{httprouter,grpcrouter}}', file=sys.stderr)
         continue
+    scanned.append(os.path.basename(repo))
     http_src = '\n'.join(open(f, encoding='utf-8').read() for f in routers)
     grpc_src = '\n'.join(open(f, encoding='utf-8').read() for f in grpcs)
 
@@ -47,6 +66,7 @@ for repo in ARGS:
         full = f'{pkg}.{svc}'
         if full not in routed:          # 没配 http 路由 —— 归 check_auth 的 optout 管
             continue
+        checked += 1
         if not re.search(rf'{re.escape(alias)}\.Register{re.escape(svc)}HandlerFromEndpoint\(', http_src):
             bad.append(f'{os.path.basename(repo)}: {full} 配了 {len(routed[full])} 条 http 路由,'
                        f'但没有 {alias}.Register{svc}HandlerFromEndpoint —— '
@@ -60,4 +80,9 @@ if bad:
         print('  (--warn:只报不拦)')
         sys.exit(0)
     sys.exit(1)
-print('[check_gateway] ✓ 所有配了 http 路由的 service 都已注册网关')
+if not scanned or checked == 0:
+    print(f'[check_gateway] — 没验:扫了 {len(scanned)} 个仓、比对了 {checked} 个 service,'
+          f'等于什么都没查', file=sys.stderr)
+    sys.exit(2)
+print(f'[check_gateway] ✓ {len(scanned)} 个仓 / {checked} 个配了 http 路由的 service,网关都注册了'
+      f'({", ".join(scanned)})')
