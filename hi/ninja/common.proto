@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package hi.ninja;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ninja";
+
+// hinj_brain 与它的各个子模块之间的**共用约定**。
+//
+// ## 传输
+//
+// ZMQ ROUTER（brain 侧）/ DEALER（模块侧），payload 是各模块自己那个 `.proto`
+// 定义的 protobuf 二进制单帧。
+//
+// 传输地址：产品上所有模块都在同一台机器，走 `ipc:///tmp/hinj.sock`；
+// 调试时（`--cfg hirpi`）走 `tcp://0.0.0.0:1568`，因为开发服务器上跑不了 face。
+//
+// ## 注册
+//
+// 模块启动后周期性发**裸字节** `"PING"`，brain 回 `"PONG"`，brain 以此把这个模块的
+// ZMQ identity 加进在线集合 —— 不进集合，brain 就没法向它发消息。
+// 周期发送只是为了应对 brain 重启后身份丢失，**不是传统心跳**。
+//
+// ## 一个模块一个文件
+//
+// `ui.proto`（face）、`lua.proto`（lua 执行器）…… **判据是「谁跟谁说话」，不是「聊什么」。**
+// 混在一个文件里的后果是：加一个模块就要在一堆无关消息中间找地方插，
+// 而 `oneof` 的字段号是全局的，谁都可能撞。
+
+// ModuleId 各子模块的 ZMQ identity。**这就是注册时用的那个身份**。
+//
+// ⚠️ 值必须与模块自己 DEALER socket 上设的 identity 逐字一致 ——
+// 对不上的表现是 brain 说"这个模块不在线"，而模块那侧一切正常。
+enum ModuleId {
+  MODULE_UNKNOWN = 0;
+  MODULE_UI      = 1; // hinj_ui（face）
+  MODULE_LUA     = 2; // lua 执行器
+}

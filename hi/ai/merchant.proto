@@ -19,8 +19,8 @@ import "hi/options.proto";
 
 // ── 商户目录 ─────────────────────────────────────────────────────────────
 message MerchantListReq {
-  string        did        = 1; // 可选:按 did 过滤
-  hi.Pagination pagination = 2;
+  optional string did        = 1; // 可选:按 did 过滤;**不传=不筛**(以前用空串表示,已禁止)
+  hi.Pagination   pagination = 2;
 }
 
 // 只由 AUTH_SUPERADMIN 的方法返回,而且带了**运营内部备注** → 整条 SELF
@@ -31,18 +31,18 @@ message MerchantListResp {
   option (hi.audience) = VIS_SELF;
   message Unit {
     option (hi.audience) = VIS_SELF;
-    hi.Entity base       = 1 [(hi.visibility) = VIS_PUBLIC]; // hi.Entity 恒 PUBLIC
-    int64     created_at = 2 [(hi.visibility) = VIS_SELF];
-    string    remark     = 3 [(hi.visibility) = VIS_SELF]; // 超管写的内部备注,商户本人看不到也改不了
+    hi.Entity       base       = 1 [(hi.visibility) = VIS_PUBLIC]; // hi.Entity 恒 PUBLIC
+    optional int64  created_at = 2 [(hi.visibility) = VIS_SELF];
+    optional string remark     = 3 [(hi.visibility) = VIS_SELF]; // 超管写的内部备注,商户本人看不到也改不了
   }
-  int32         total = 1 [(hi.visibility) = VIS_SELF];
-  repeated Unit infos = 2 [(hi.visibility) = VIS_SELF];
+  optional int32 total = 1 [(hi.visibility) = VIS_SELF];
+  repeated Unit  infos = 2 [(hi.visibility) = VIS_SELF];
 }
 
 // 改某商户的备注(超管)。整段覆盖,传空串即清空。
 message MerchantEditReq {
-  string did    = 1 [(buf.validate.field).string.pattern="^\\S+$"];
-  string remark = 2 [(buf.validate.field).string.max_len = 255]; // 列宽 255,超了当场拒,别到 DB 才截断
+  string          did    = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  optional string remark = 2 [(buf.validate.field).string.max_len = 255]; // 列宽 255,超了当场拒,别到 DB 才截断
 }
 
 // 商户目录(超管)。承接原 `UserACL.List(type="all")` —— 那查的是**注册用户/商户名录**,

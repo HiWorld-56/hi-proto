@@ -9,12 +9,12 @@ import "hi/common.proto";
 import "hi/options.proto";
 
 message PushRegisterReq {
-  hi.ClientInfo node  = 1;
-  string        token = 2; // 设备Token
+  hi.ClientInfo   node  = 1;
+  optional string token = 2; // 设备Token
 }
 
 message PushUnregisterReq {
-  string token = 1; // 设备Token
+  optional string token = 1; // 设备Token
 }
 
 // Token鉴权

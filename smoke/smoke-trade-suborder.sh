@@ -32,7 +32,7 @@ pass=0; fail=0
 ok(){ printf "  \033[32m✓\033[0m %s\n" "$1"; pass=$((pass+1)); }
 bad(){ printf "  \033[31m✗\033[0m %s  (%s)\n" "$1" "$2"; fail=$((fail+1)); }
 chk(){ [ "$2" = "$3" ] && ok "$1" || bad "$1" "want=$3 got=$2"; }
-command -v mysql >/dev/null || { echo "缺 mysql 客户端 —— 请在 .65 上跑。" >&2; exit 2; }
+have_db || { echo "够不着 mysql —— 本机没装 mysql 时会 ssh 到 $DB 去查,检查那条路。" >&2; exit 2; }
 [ -x /tmp/didsign ] || { echo "缺 /tmp/didsign(core-mqtt,--features testkit 编)。" >&2; exit 2; }
 [ -x "$GRPCURL" ] && [ -f "$PB" ] || { echo "缺 grpcurl / $PB。" >&2; exit 2; }
 # ⚠️ **助记词不在就直接退出。** 踩过一次:文件在 .66、脚本在 .65 跑,didsign 每次都失败,
@@ -42,7 +42,7 @@ command -v mysql >/dev/null || { echo "缺 mysql 客户端 —— 请在 .65 上
 for f in "$PC_MN" "$OTHER_MN"; do
   [ -f "$f" ] || { echo "缺助记词 $f(在 .66 的 /tmp 下,拷过来)" >&2; exit 2; }
 done
-Q(){ mysql -h$DB -ulo -p568568 hi_club_trade -N -e "$1" 2>/dev/null; }
+Q(){ mysqlq hi_club_trade "$1"; }
 
 did_of(){ MN_FILE="$1" /tmp/didsign --did; }
 # Order.Report:载荷是 ReportResultsData 的 JSON,用对应私钥签,走 web3(无 token)。

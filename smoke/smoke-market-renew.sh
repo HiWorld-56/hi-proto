@@ -7,8 +7,8 @@ ST="$1"; BT="$2"; PKG="$3"
 #    库里那些断言会全部变成 "want=1 got=",看上去像产品坏了 ——
 #    实际只是这台机器没装客户端。踩过一次,查了十几分钟才发现。
 #    (mysql 在 .65 上;.64 是构建机,没有。)
-command -v mysql >/dev/null || {
-  echo "缺 mysql 客户端 —— 本脚本有一半断言要查库。请在 .65 上跑,或先装 mysql-client。" >&2
+have_db || {
+  echo "够不着 mysql —— 本机没装 mysql 时会 ssh 到 $DB 去查,检查那条路。" >&2
   exit 2
 }
 
@@ -18,7 +18,7 @@ bad(){ printf "  \033[31m✗\033[0m %s  (%s)\n" "$1" "$2"; fail=$((fail+1)); }
 chk(){ [ "$2" = "$3" ] && ok "$1" || bad "$1" "want=$3 got=$2"; }
 has(){ case "$2" in *"$3"*) ok "$1";; *) bad "$1" "没有 '$3':$(echo "$2"|head -c 150)";; esac; }
 cj(){ curl -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $3" -d "$2"; }
-q(){ mysql -h127.0.0.1 -ulo -p568568 "$1" -N -e "$2" 2>/dev/null; }
+q(){ mysqlq "$1" "$2"; }
 g(){ python3 -c '
 import sys, json
 try:
@@ -40,10 +40,10 @@ echo "seller=$SB buyer=$BB(软件机器人) plugin=$P"
 
 echo
 echo "── 一、自动续费开关 ──"
-L=$(cj market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P\",\"settle_mode\":3,\"price\":\"1.5\",\"coin\":\"USDT-TRC20\",\"duration\":2592000,\"title\":\"续费测试\",\"allow_follow_latest\":true}" "$ST")
+L=$(cj market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P\",\"settle_mode\":3,\"price\":\"1.5\",\"coin\":\"USDT-TRC20\",\"duration\":2592000,\"title\":\"续费测试\"}" "$ST")
 LID=$(echo "$L"|g data uuid)
 cj market/set_listing_status "{\"uuid\":\"$LID\",\"status\":2}" "$ST" >/dev/null
-A=$(cj market/apply "{\"listing_uuid\":\"$LID\",\"to_agent\":\"$BB\",\"follow_latest\":true}" "$BT")
+A=$(cj market/apply "{\"listing_uuid\":\"$LID\",\"to_agent\":\"$BB\"}" "$BT")
 G=$(echo "$A"|g data grantUuid)
 has "负面:**软件机器人**开自动续费被拒(它没有私钥付不了款)" \
     "$(cj market/set_auto_renew "{\"grant_uuid\":\"$G\",\"enabled\":true}" "$BT")" "只有硬件机器人"
@@ -97,19 +97,40 @@ echo "── 四、follow_latest:发新版应推给跟随者 ──"
 #    不能像上面那样在库里手改 status(那样 ai 侧根本没有 c 行,SetActive 会正确地拒绝)。
 P2=$(cj plugin/create_shell "{\"agent\":\"$SB\",\"name\":\"rn-follow\"}" "$ST" | g data uuid)
 cj plugin/create_version "{\"agent\":\"$SB\",\"version\":{\"uuid\":\"$P2\",\"version\":\"1.0.0\",\"url\":\"$PKG\"}}" "$ST" >/dev/null
-L2=$(cj market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P2\",\"settle_mode\":1,\"price\":\"0\",\"title\":\"跟随测试\",\"allow_follow_latest\":true}" "$ST")
+# 🔴 **跟版开关不在市场接口上。**
+#
+# proto 写得很清楚:`ApplyReq` 没有 `follow_latest`、`CreateListingReq` 没有
+# `allow_follow_latest`(「不要再加回来」)—— 这件事**归使用行**(hi.ai 的
+# `c.follow_latest`),买完之后在「机器人 → 插件」那一行上自己开关。
+#
+# ⚠️ 原来这里往这两个接口里塞那两个字段,而 grpc-gateway 默认 `DiscardUnknown`,
+#    **老字段被静默丢掉** —— 请求 200、路由命中、开关根本没打开,
+#    于是"发新版没推给跟随者"这条常年红,看着像 propagateToFollowers 坏了。
+#    (2026-09-03 查出来:hi-ai 日志里 propagate 一条都没有,因为 FollowersOf 是空的。)
+L2=$(cj market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P2\",\"settle_mode\":1,\"price\":\"0\",\"title\":\"跟随测试\"}" "$ST")
 LID2=$(echo "$L2"|g data uuid)
 cj market/set_listing_status "{\"uuid\":\"$LID2\",\"status\":2}" "$ST" >/dev/null
-A2=$(cj market/apply "{\"listing_uuid\":\"$LID2\",\"to_agent\":\"$BB\",\"follow_latest\":true}" "$BT")
+A2=$(cj market/apply "{\"listing_uuid\":\"$LID2\",\"to_agent\":\"$BB\"}" "$BT")
 G2=$(echo "$A2"|g data grantUuid)
 chk "免费购买装上了(才有 d 行可切)" "$(echo "$A2"|g data status)" "GRANT_STATUS_INSTALLED"
+# 买完之后,在使用行上把跟版打开 —— 这才是真接口
+FL=$(cj plugin/set_follow_latest "{\"agent\":\"$BB\",\"uuid\":\"$P2\",\"on\":true}" "$BT")
+has "在使用行上打开跟版(不是在市场接口上)" "$FL" '"code":0'
+chk "库里 c.follow_latest 真的是 1(证明开关生效了)" \
+    "$(q hi_ai "SELECT follow_latest FROM hi_ai_plugin_using WHERE agent_did='$BB' AND uuid='$P2';")" "1"
 BEFORE=$(q hi_ai "SELECT version FROM hi_ai_plugin_version_using WHERE agent_did='$BB' AND uuid='$P2' AND active=1;")
 cj plugin/create_version "{\"agent\":\"$SB\",\"version\":{\"uuid\":\"$P2\",\"version\":\"1.1.0\",\"url\":\"$PKG\"}}" "$ST" >/dev/null
 sleep 2
 AFTER=$(q hi_ai "SELECT version FROM hi_ai_plugin_version_using WHERE agent_did='$BB' AND uuid='$P2' AND active=1;")
 echo "  跟随者激活版本:$BEFORE → $AFTER"
 chk "跟随者已切到新版" "$AFTER" "1.1.0"
-chk "grant 里记的版本也跟上了" "$(q hi_club "SELECT version FROM hi_club_market_grant WHERE uuid='$G2';")" "1.1.0"
+# ⚠️ **grant.version 不跟版,这是对的。** 单据是**成交快照** ——
+#    跟版切的是使用行(c/d),而 grant 记的是"当初买的是哪一版"。
+#    原来这里断言它也变成 1.1.0,那与"单据要快照"的设计相反,
+#    而且代码里从来没有人写过它(只有 settle 写一次)。
+GV=$(q hi_club "SELECT ifnull(version,'<NULL>') FROM hi_club_market_grant WHERE uuid='$G2';")
+[ "$GV" != "1.1.0" ] && ok "grant.version **不**跟版(单据是成交快照,got=$GV)" \
+                     || bad "grant.version 跟着变了" "单据应当是成交快照,不该被跟版改写"
 
 echo
 echo "── 清理 ──"

@@ -94,10 +94,10 @@ service Source {
 }
 
 message DownloadResourceReq {
-  string url = 1 [(buf.validate.field).string.pattern="^\\S+$"];
+  optional string url = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
 }
 message DownloadResourceResp {
   option (hi.audience) = VIS_PUBLIC; // 只服务公开桶,内容本就人人可取
-  bytes content = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional bytes content = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 

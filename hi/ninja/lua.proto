@@ -1,0 +1,150 @@
+syntax = "proto3";
+
+package hi.ninja;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ninja";
+
+// **hinj_brain ←→ lua 执行器** 这一条线。
+//
+// 传输与注册那套约定在 `hi/ninja/common.proto`，这里不重复。
+//
+// ## 为什么 lua 要单独一个进程
+//
+// 插件里的 C 模块（lzmq / openssl / lpeg…）是 `dlopen` 进执行方进程的。
+// 在同一个进程里，**一个 C 模块段错误就带走 brain**，而这件事在进程内没有任何
+// 办法关住。分出去之后：崩了只带走执行器、brain 把它拉起来、将来还能单独容器化。
+//
+// ## 执行模型：**每次调用现建解释器，用完释放**
+//
+// 不预热、不复用。省下的是每次约 140 毫秒（Pi 4 实测，`lua-http` 整条闭包），
+// 换来的是**环境绝对干净**：依赖库内部缓的东西不会跨调用留（`lua-http` 的
+// `default_cookie_store` 就是一个实例）、插件之间不能互相 monkey-patch 共享的依赖、
+// 两个插件钉同一个 rock 的不同版本也不会撞。
+//
+// 并发靠 worker 数封顶（4 个），超了排队（深 8），满了明确回忙 ——
+// **不动态建**，动态建的时机恰恰是并发高峰。
+//
+// ## 依赖归 brain 管
+//
+// 执行器**不下载、不校验、不回收**任何依赖，只从 `/opt/hinj/luadeps/` 读。
+// 谁该装什么由服务端算、brain 落盘，那套已经在跑且有对账。
+
+// LuaCtx 一次调用的上下文。**这些字段一个都不在 manifest 里** ——
+// 模型看不见，也就传不了；插件读到的只可能是 brain 填的。
+//
+// 🔴 没主人 / 匿名时**不要给值**（proto3 optional 的 presence），不是空串 ——
+// 空串会让 `if ctx.master then` 判成真，而那正是"提款只认主人"的判据。
+message LuaCtx {
+  optional string me     = 1; // 机器人自己的 did
+  optional string master = 2; // 主人；没有就不给
+  optional string asker  = 3; // 这一次是谁在问；匿名就不给
+}
+
+// OpenReq 装一个插件：跑一遍顶层，读出 contract 与 manifest。
+//
+// **脚本按字节传，不传路径。** 插件产物是 brain 下载并校验过的，执行器不该也
+// 够不着那个目录（它只需要 `/opt/hinj/luadeps/`）。现在制品是 KB 量级
+// （依赖不再内联），传字节比共享一个目录干净。
+message OpenReq {
+  optional string uuid    = 1;
+  optional string version = 2;
+  optional bytes  script  = 3; // main.lua 合并后的那一个文件
+  // deps **这一版声明了哪些 rock** —— 执行器据此决定 `__native` / `__luasrc`
+  // 允许装哪些 C 模块与依赖自带的 lua 源码。
+  //
+  // 🔴 **它是一道权限闸，不是一份提示。**
+  //
+  // `/opt/hinj/luadeps/` 是**全机共用的集合**（同一个 rock 被五个插件用到只存一份），
+  // 而 `__native(rock, 版本, 模块)` 的三个分量是插件自己写的字符串。没有这份清单的话，
+  // 一个**依赖一个都没声明**的插件可以直接去 dlopen 别的插件装上去的 `.so` ——
+  // 2026-09-02 在 `.66` 上实测：拿到了 `luafilesystem` 与 `luasocket`，
+  // 列出了 `/opt/hinj`、建出了 TCP socket。**文件系统与网络，都在沙箱之外。**
+  //
+  // 而这条路**验收侧结构上看不见**：verify-lua 的集合是按本插件的依赖现搭的，
+  // 别人的 rock 不在那台机器上，同一段代码在验收里必然报"没装上"，只有到设备上才成立。
+  //
+  // ⚠️ **空 = 一个都不许，不是"不限制"。** 别为了兼容老 sidecar 把空当成放行 ——
+  // 那等于把闸门拆了，而且零报错。
+  repeated LuaRock deps = 4;
+}
+
+// LuaRock 一个依赖的坐标。**版本是键的一部分** —— 集合按
+// `<rock>/<版本>/` 落盘，只对 rock 名不对版本等于放行同名的另一个版本。
+message LuaRock {
+  optional string rock    = 1;
+  optional string version = 2;
+}
+
+message OpenResp {
+  optional bool   ok       = 1;
+  optional uint32 contract = 2; // 插件声明的契约号
+  optional string manifest = 3; // 原始字符串，由 brain 按与 .so 同一条路径解析
+  optional string error    = 4;
+}
+
+// InvokeReq 调一个方法。
+message InvokeReq {
+  optional string uuid       = 1;
+  optional string version    = 2;
+  optional string method     = 3;
+  optional string args_json  = 4; // 模型给的参数，原样是 JSON
+  optional LuaCtx ctx        = 5;
+  optional uint32 timeout_ms = 6; // 超时就掐断并**丢掉整个解释器**
+}
+
+// InvokeResp 结果。
+//
+// ⚠️ **插件失败不是 rpc 失败。** 掐断、报错、撑爆内存，都是 `ok=false` + 一句话，
+// 交给模型看；只有"执行器本身出事"才该让这条消息发不出来。
+message InvokeResp {
+  optional bool   ok          = 1;
+  optional string result_json = 2; // 插件返回的那张表
+  optional string error       = 3;
+}
+
+// CloseReq 卸掉一个插件（撤权、换版本）。
+message CloseReq {
+  optional string uuid    = 1;
+  optional string version = 2;
+}
+
+// HostCallReq **执行器回头找 brain 要能力** —— 插件里的 `host.call`。
+//
+// 🔴 这条是**反向**的：brain 正等着 InvokeResp 的时候，执行器会先发这个过来。
+// 所以两边都得能在等一个回复的同时处理对方的请求，靠 `req_id` 配对。
+message HostCallReq {
+  optional string name      = 1; // 能力名，与 `.so` 插件那条路同一份白名单
+  optional string args_json = 2;
+  optional bytes  input     = 3; // 送字节的那几个（upload_image）
+}
+
+message HostCallResp {
+  // 三种形态照 host 那侧的原样：纯结构化 / 取字节（next_frame）/ 失败。
+  optional string json  = 1;
+  optional bytes  bytes = 2;
+  optional string error = 3;
+  optional uint32 code  = 4; // 失败时的错误码，与 host::HostErr 同一套
+}
+
+// BrainToLua brain 发给执行器的。
+message BrainToLua {
+  // req_id 与回复配对。**两个方向各有一套编号**，互不相干 ——
+  // 回复的类型就说明了该去哪张表里找。
+  optional uint64 req_id = 1;
+  oneof cmd {
+    OpenReq      open      = 2;
+    InvokeReq    invoke    = 3;
+    CloseReq     close     = 4;
+    HostCallResp host_resp = 5; // 回执行器发起的那条 HostCallReq
+  }
+}
+
+// LuaToBrain 执行器发给 brain 的。
+message LuaToBrain {
+  optional uint64 req_id = 1;
+  oneof cmd {
+    OpenResp    open      = 2;
+    InvokeResp  invoke    = 3;
+    HostCallReq host_call = 4; // 反向：插件调 host 能力
+  }
+}

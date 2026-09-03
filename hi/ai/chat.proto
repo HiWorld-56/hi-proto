@@ -11,26 +11,26 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
 // ── AI 对话全链路都是私有:会话/上下文/回复只发给发起对话的本人 ──────────────
 message Content {
   option (hi.audience) = VIS_SELF;
-  string type    = 1 [(hi.visibility) = VIS_SELF];
-  string content = 2 [(hi.visibility) = VIS_SELF];
+  optional string type    = 1 [(hi.visibility) = VIS_SELF];
+  optional string content = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message NewSessionResp {
   option (hi.audience) = VIS_SELF;
-  string cid = 1 [(hi.visibility) = VIS_SELF]; // 新会话 id;原 GenerateCidResp
+  optional string cid = 1 [(hi.visibility) = VIS_SELF]; // 新会话 id;原 GenerateCidResp
 }
 
 message ClearHistoryReq {
-  string cid = 1;
+  optional string cid = 1;
 }
 
 message GetHistoryReq {
-  string cid = 1; // cid 已唯一定位会话,不再带 agent
+  optional string cid = 1; // cid 已唯一定位会话,不再带 agent
 }
 
 message QA {
   option (hi.audience) = VIS_SELF;
-  string           a = 1 [(hi.visibility) = VIS_SELF]; // assistant
+  optional string  a = 1 [(hi.visibility) = VIS_SELF]; // assistant
   repeated Content q = 2 [(hi.visibility) = VIS_SELF]; // User
 }
 
@@ -53,14 +53,14 @@ message GetHistoryResp {
 // 模态(文/语音、输出音色)由 conts + style 决定 —— 合并原 TextToText/SpeechToText/SpeechToSpeech。
 // 命名读作模态转换但**不是字面格式转换**;真 STT/TTS 在 Speech service(Transcribe/Synthesize)。
 message ChatReq {
-  string              agent       = 1;
-  string              cid         = 2;
-  repeated Content    conts       = 3;
-  repeated ToolSupply tools       = 4; // **客户端自己能执行的工具**;空 = 全交服务端跑完
-  optional string     tool_choice = 5;
-  optional string     custom      = 6;
-  optional string     state       = 7;
-  optional string     style       = 8; // 语音出的音色等;纯文本场景留空
+  optional string     agent           = 1;
+  optional string     cid             = 2;
+  repeated Content    conts           = 3;
+  repeated ToolSupply tools           = 4; // **客户端自己能执行的工具**;空 = 全交服务端跑完
+  optional string     tool_choice     = 5;
+  optional string     custom          = 6;
+  optional string     state           = 7;
+  optional string     style           = 8; // 语音出的音色等;纯文本场景不传
   // ── 过程回显开关:要不要把中间过程一并流给调用方(**只管输出,不管行为**)──────────
   //
   // 一律 `echo_` 前缀,对应流式帧 `echoXxx`。**仅流式(ConverseStream/ResumeStream)有意义。**
@@ -76,12 +76,12 @@ message ChatReq {
   // ⚠️ 这几个字段原属已删除的 `CompleteReq`。它们在 dev45 那次迁移(Stream→CompleteStream)时
   //    **从请求里漏掉过**,而读它们的代码原样留着 → 恒 false → 回显帧与记忆片段
   //    从此再没发出去过,**不报错、类型也对,只是值永远是零值**。搬家时别再漏第二次。
-  bool echo_tool_calls = 9;  // 发 type="echoToolCalls" 帧:模型调了哪个函数、传了什么参数、工具返回什么
-  bool echo_memory     = 10; // 发 type="echoMemory" 帧:本轮命中的记忆片段(旧名 return_training_data)
+  optional bool       echo_tool_calls = 9;  // 发 type="echoToolCalls" 帧:模型调了哪个函数、传了什么参数、工具返回什么
+  optional bool       echo_memory     = 10; // 发 type="echoMemory" 帧:本轮命中的记忆片段(旧名 return_training_data)
   // 发 type="echoContext" 帧:**这次真正喂给模型的那份上下文**(系统提示词 + 按 qa_num 截出的历史
   // + 本轮输入),即 GetCompleteMessage 的产物。调不准的时候要看的就是它 ——
   // 光看历史列表看不出实际截了几轮、系统提示词长什么样、记忆片段拼没拼进去。
-  bool echo_context    = 11;
+  optional bool       echo_context    = 11;
   // ── 这一轮的两个身份(**都不进提示词、不进 tools schema,模型看不见也改不了**)────
   //
   // 走接口而不走提示词:凡模型看得见的用户都能覆盖,而这两个正是插件"认人"的依据。
@@ -96,48 +96,50 @@ message ChatReq {
   // **证明不了就空**(机器人语音路 = 现场人声,无法证明身份)。
   //
   // 🔴 它是**消息事实,不是权限凭据**。判权限用下面的 `master` 比对,别单独拿它当依据。
-  string asker  = 12;
-  // 这台机器人的主人。**服务端每轮现取的权威值**(club 的 masterOf),没主人时为空。
+  optional string     asker           = 12;
+  // 这台机器人的主人。**服务端每轮现取的权威值**(club 的 masterOf),没主人时**不传**。
   //
   // 🔴 **只能服务端算,不收客户端的** —— 所以 hi.club.ChatReq 里**故意没有**这个字段。
   // ⚠️ 每轮现取、不做长缓存:换主人(解绑/重绑)要立刻生效 —— 主人是活体,不是单据快照。
   //
-  // 插件判"是不是主人"的唯一正确写法:`master` 非空且 `asker == master`;
+  // 插件判"是不是主人"的唯一正确写法:`master` **有值**且 `asker == master`;
+  // (以前两个"没有"都是空串,`asker == master` 在皆空时会成立 —— 现在两者都是 null,
+  //  null != null 不成立,但**仍然必须先判 master 有值**,别只写相等。)
   // **动钱一律打给 `master`,不打给 `asker`**(NATIVE 内置插件的 withdraw 就是这么写的)。
-  string master = 13;
+  optional string     master          = 13;
 }
 
 message ToolCallResult {
-  string           id    = 1;
+  optional string  id    = 1;
   repeated Content conts = 2;
 }
 
 // 工具结果续跑入参(Resume):客户端执行完工具后把结果交回来,接着跑。续跑的模态由原始调用的 id 决定。
 message ToolCallResultsReq {
-  string                  id   = 1;
+  optional string         id   = 1;
   repeated ToolCallResult list = 2;
 }
 
 message ToolSupply {
   message Function {
-    string                          name        = 1;
-    string                          description = 2;
+    optional string                 name        = 1;
+    optional string                 description = 2;
     optional google.protobuf.Struct parameters  = 3;
   }
-  string   type     = 1;
-  Function function = 2;
+  optional string type     = 1;
+  Function        function = 2;
 }
 
 message ToolCall {
   option (hi.audience) = VIS_SELF; // 本轮对话里待客户端执行的工具,只发给本人
   message Function {
     option (hi.audience) = VIS_SELF;
-    string name      = 1 [(hi.visibility) = VIS_SELF];
-    string arguments = 2 [(hi.visibility) = VIS_SELF];
+    optional string name      = 1 [(hi.visibility) = VIS_SELF];
+    optional string arguments = 2 [(hi.visibility) = VIS_SELF];
   }
-  string   id       = 1 [(hi.visibility) = VIS_SELF];
-  string   type     = 2 [(hi.visibility) = VIS_SELF];
-  Function function = 3 [(hi.visibility) = VIS_SELF];
+  optional string id       = 1 [(hi.visibility) = VIS_SELF];
+  optional string type     = 2 [(hi.visibility) = VIS_SELF];
+  Function        function = 3 [(hi.visibility) = VIS_SELF];
 }
 
 // `final` = **这轮还需不需要你做事**,不是"模型有没有调工具"。
@@ -152,8 +154,8 @@ message ToolCall {
 //    否则整轮对话就停在半路,表现为"机器人不理我了"。
 message ChatResp {
   option (hi.audience) = VIS_SELF;
-  bool              final  = 1 [(hi.visibility) = VIS_SELF];
-  string            result = 2 [(hi.visibility) = VIS_SELF];
+  optional bool     final  = 1 [(hi.visibility) = VIS_SELF];
+  optional string   result = 2 [(hi.visibility) = VIS_SELF];
   repeated ToolCall tools  = 3 [(hi.visibility) = VIS_SELF];
 }
 
@@ -189,12 +191,12 @@ message ChatResp {
 // 收到 `toolCalls`:本条流到此结束,客户端执行 `tools`,再调 ResumeStream(带 `id`)续跑。
 message ConverseStreamResp {
   option (hi.audience) = VIS_SELF;
-  int32  code    = 1 [(hi.visibility) = VIS_SELF];
-  string type    = 2 [(hi.visibility) = VIS_SELF];
-  string message = 3 [(hi.visibility) = VIS_SELF];
+  optional int32    code    = 1 [(hi.visibility) = VIS_SELF];
+  optional string   type    = 2 [(hi.visibility) = VIS_SELF];
+  optional string   message = 3 [(hi.visibility) = VIS_SELF];
   // 仅 type="toolCalls" 时有值 —— 与 ChatResp 的 result/tools 同义。
-  string            id    = 4 [(hi.visibility) = VIS_SELF]; // 续跑 id(Resume 时带回)
-  repeated ToolCall tools = 5 [(hi.visibility) = VIS_SELF]; // 待客户端执行的工具
+  optional string   id      = 4 [(hi.visibility) = VIS_SELF]; // 续跑 id(Resume 时带回)
+  repeated ToolCall tools   = 5 [(hi.visibility) = VIS_SELF]; // 待客户端执行的工具
 }
 
 // 对话(主体=会话)。商户档:hiai web(token)与商户后台服务(apikey)都会调。

@@ -12,12 +12,12 @@ import "hi/options.proto";
 message Order {
   // 订单号。**由三方定义,hidid 不解释它** —— GenerateReq 出的 req_id 是一种,
   // 三方自己的业务单号(如插件市场的 `MKT-xxx`)也是一种,原样转给商户即可。
-  string id   = 1;
+  optional string id   = 1;
   // **商户DID**,不是付款人 —— 付款人是 SignedData 的签名者。
   // hidid 按它查出商户注册的 endpoint,回调 `PayCallback.Pay`。
   // 这正是"付款方不必认识三方接口"的支点:银行 app 不该知道美团的 API 长什么样。
-  string did  = 2;
-  string hash = 3; // 链上交易 hash
+  string          did  = 2;
+  optional string hash = 3; // 链上交易 hash
 }
 
 // ── 明码标价的付款请求(reqid 带要素)───────────────────────────────────────
@@ -38,17 +38,17 @@ message Order {
 message PayRequestSpec {
   option (hi.audience) = VIS_SELF;
   // 钱打到**这个 did 的地址**上 —— 结算实体(三方已解析好,hidid 不再转换)。
-  string payee_account = 1 [(hi.visibility) = VIS_SELF];
+  optional string payee_account = 1 [(hi.visibility) = VIS_SELF];
   // 显示用:**谁在收款**。跳蚤市场下付款方是把钱给一个陌生主体,看不清收款人不该让他确认。
-  string payee_owner   = 2 [(hi.visibility) = VIS_SELF];
-  string coin          = 3 [(hi.visibility) = VIS_SELF];
-  string amount        = 4 [(hi.visibility) = VIS_SELF]; // 人类可读,如 "9.9"
+  optional string payee_owner   = 2 [(hi.visibility) = VIS_SELF];
+  optional string coin          = 3 [(hi.visibility) = VIS_SELF];
+  optional string amount        = 4 [(hi.visibility) = VIS_SELF]; // 人类可读,如 "9.9"
   // 三方业务单号。**付款方回执时原样填进 `Order.id`**,hidid 不解释它。
-  string order_id      = 5 [(hi.visibility) = VIS_SELF];
+  optional string order_id      = 5 [(hi.visibility) = VIS_SELF];
   // 把付款结果报给哪个商户(回执路由)。登记时由 hidid 按调用者身份填,**不收入参** ——
   // 收了就等于让人把别人的付款结果引到自己这儿。
-  string merchant      = 6 [(hi.visibility) = VIS_SELF];
-  int64  expire_at     = 7 [(hi.visibility) = VIS_SELF]; // 秒;过期后 GetRequest 查不到
+  optional string merchant      = 6 [(hi.visibility) = VIS_SELF];
+  optional int64  expire_at     = 7 [(hi.visibility) = VIS_SELF]; // 秒;过期后 GetRequest 查不到
 }
 
 // Pay —— 典型账单-支付流程(与 OrderNotify/OrderEvent 的自动付款是两条独立流程):
@@ -86,7 +86,7 @@ service PayRequest {
 //
 // 载荷(SignedData.Data,JSON):`{"req_id":"M…"}`。
 message PayRequestQuery {
-  string req_id = 1;
+  optional string req_id = 1;
 }
 
 service PayRequestPayer {

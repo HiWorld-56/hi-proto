@@ -40,49 +40,49 @@ import "hi/options.proto";
 // (原先想放 extra.brain_version,那样每加一个组件就要动 schema)。
 message ReleaseFile {
   option (hi.audience) = VIS_PUBLIC; // 随 manifest 公开
-  string path    = 1 [(hi.visibility) = VIS_PUBLIC]; // 相对安装根目录,如 bin/hinj_brain
-  string version = 2 [(hi.visibility) = VIS_PUBLIC]; // 该文件自身的版本,如 brain 的 0.6.0;没有就留空
-  string sha256  = 3 [(hi.visibility) = VIS_PUBLIC]; // 客户端据此判断"本地这份要不要换"
-  int64  size    = 4 [(hi.visibility) = VIS_PUBLIC];
-  string mode    = 5 [(hi.visibility) = VIS_PUBLIC]; // 八进制权限,如 "0755";空=沿用默认
+  optional string path    = 1 [(hi.visibility) = VIS_PUBLIC]; // 相对安装根目录,如 bin/hinj_brain
+  optional string version = 2 [(hi.visibility) = VIS_PUBLIC]; // 该文件自身的版本,如 brain 的 0.6.0;没有就不传
+  optional string sha256  = 3 [(hi.visibility) = VIS_PUBLIC]; // 客户端据此判断"本地这份要不要换"
+  optional int64  size    = 4 [(hi.visibility) = VIS_PUBLIC];
+  optional string mode    = 5 [(hi.visibility) = VIS_PUBLIC]; // 八进制权限,如 "0755";不传=沿用默认
   // overwrite(默认) 覆盖 / keep 已存在就不动(用户配置,不可随机更改) /
   // delete 本版要删掉的旧文件(否则升级只增不减,废文件越堆越多)
-  string policy  = 6 [(hi.visibility) = VIS_PUBLIC];
+  optional string policy  = 6 [(hi.visibility) = VIS_PUBLIC];
 }
 
 // 整包信息。存 **path 不存 url** —— url 里带 host,换机器/换环境就全废;
 // 且下载 url 是 `Latest` 每次现算的预签名(有期限),不该固化进 manifest。
 message ReleaseBundle {
   option (hi.audience) = VIS_PUBLIC; // 随 manifest 公开
-  string path   = 1 [(hi.visibility) = VIS_PUBLIC]; // **product 桶内**的对象键(不含桶名),如 hinj/linux-aarch64/0.0.9/hinj_bundle_0.0.9.tar.gz
-  string sha256 = 2 [(hi.visibility) = VIS_PUBLIC];
-  int64  size   = 3 [(hi.visibility) = VIS_PUBLIC];
+  optional string path   = 1 [(hi.visibility) = VIS_PUBLIC]; // **product 桶内**的对象键(不含桶名),如 hinj/linux-aarch64/0.0.9/hinj_bundle_0.0.9.tar.gz
+  optional string sha256 = 2 [(hi.visibility) = VIS_PUBLIC];
+  optional int64  size   = 3 [(hi.visibility) = VIS_PUBLIC];
 }
 
 // 发布清单 = latest.json 的内容。
 message ReleaseManifest {
   option (hi.audience) = VIS_PUBLIC; // 发布信息本就是公开的
-  string          product               = 1 [(hi.visibility) = VIS_PUBLIC]; // hidid / hiclub / hinj
-  string          platform              = 2 [(hi.visibility) = VIS_PUBLIC]; // android / ios / linux-aarch64 …
-  string          version               = 3 [(hi.visibility) = VIS_PUBLIC];
-  string          min_supported_version = 4 [(hi.visibility) = VIS_PUBLIC]; // 低于它必须强制升级
-  int64           release_time          = 5 [(hi.visibility) = VIS_PUBLIC];
-  repeated string changes               = 6 [(hi.visibility) = VIS_PUBLIC];
-  ReleaseBundle   bundle                = 7 [(hi.visibility) = VIS_PUBLIC];
+  optional string      product               = 1 [(hi.visibility) = VIS_PUBLIC]; // hidid / hiclub / hinj
+  optional string      platform              = 2 [(hi.visibility) = VIS_PUBLIC]; // android / ios / linux-aarch64 …
+  optional string      version               = 3 [(hi.visibility) = VIS_PUBLIC];
+  optional string      min_supported_version = 4 [(hi.visibility) = VIS_PUBLIC]; // 低于它必须强制升级
+  optional int64       release_time          = 5 [(hi.visibility) = VIS_PUBLIC];
+  repeated string      changes               = 6 [(hi.visibility) = VIS_PUBLIC];
+  ReleaseBundle        bundle                = 7 [(hi.visibility) = VIS_PUBLIC];
   // full  = 整包覆盖(安卓:下 apk 直接装);
   // files = 按 files 逐个比 sha256,只拉不同的(机器人:有些配置不能动)
-  string          update_mode           = 8 [(hi.visibility) = VIS_PUBLIC];
-  repeated ReleaseFile files            = 9 [(hi.visibility) = VIS_PUBLIC];
+  optional string      update_mode           = 8 [(hi.visibility) = VIS_PUBLIC];
+  repeated ReleaseFile files                 = 9 [(hi.visibility) = VIS_PUBLIC];
   // **只在 Latest 的响应里现算**(预签名,有期限),不写进 latest.json。
-  string          download_url          = 10 [(hi.visibility) = VIS_PUBLIC];
-  int64           download_url_expire   = 11 [(hi.visibility) = VIS_PUBLIC]; // 该 url 的失效时刻(unix 秒)
+  optional string      download_url          = 10 [(hi.visibility) = VIS_PUBLIC];
+  optional int64       download_url_expire   = 11 [(hi.visibility) = VIS_PUBLIC]; // 该 url 的失效时刻(unix 秒)
 }
 
 message UploadPackageResp {
   option (hi.audience) = VIS_PARTICIPANT; // 超管面的中间产物,不必公开
-  string path   = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 落好的对象键,填进 Publish 的 manifest.bundle.path
-  string sha256 = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 服务端边写边算,供发布方核对
-  int64  size   = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string path   = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 落好的对象键,填进 Publish 的 manifest.bundle.path
+  optional string sha256 = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 服务端边写边算,供发布方核对
+  optional int64  size   = 3 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 message PublishReq {
@@ -90,21 +90,21 @@ message PublishReq {
 }
 
 message LatestReq {
-  string product  = 1; // hidid / hiclub / hinj
-  string platform = 2; // android / ios / linux-aarch64 …
+  optional string product  = 1; // hidid / hiclub / hinj
+  optional string platform = 2; // android / ios / linux-aarch64 …
 }
 
 message DownloadReq {
-  string product  = 1;
-  string platform = 2;
-  string version  = 3; // 留空=最新版
-  int64  offset   = 4; // 断点续传:从第几字节开始。机器人网络不稳,这个有用
+  optional string product  = 1;
+  optional string platform = 2;
+  optional string version  = 3; // 不传=最新版
+  optional int64  offset   = 4; // 断点续传:从第几字节开始。机器人网络不稳,这个有用
 }
 
 message DownloadChunk {
   option (hi.audience) = VIS_PUBLIC;
-  bytes chunk = 1 [(hi.visibility) = VIS_PUBLIC];
-  int64 total = 2 [(hi.visibility) = VIS_PUBLIC]; // 整包大小,首块带上,便于显示进度
+  optional bytes chunk = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional int64 total = 2 [(hi.visibility) = VIS_PUBLIC]; // 整包大小,首块带上,便于显示进度
 }
 
 // 发布管理(**超管面**)。与公开面 `Release` 拆开,不是为了迎合 lint ——

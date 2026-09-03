@@ -32,6 +32,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai/plugin";
 import "google/protobuf/empty.proto";
 import "google/protobuf/struct.proto";
 import "hi/ai/chat.proto";
+import "hi/ai/plugin.proto";
 import "hi/options.proto";
 
 // ── py-docker 执行契约(独立 py-docker 服务实现,hiai 只作调用方)──────────────
@@ -52,9 +53,9 @@ message PluginAnnex {
 }
 
 message RunReq {
-  string          code_archive_url = 1; // = 激活版 b.url
-  string          code_params      = 2; // function-call 的 arguments(JSON 对象),按 ** 展开成关键字实参
-  string          uuid             = 3; // 壳 uuid
+  optional string code_archive_url = 1; // = 激活版 b.url
+  optional string code_params      = 2; // function-call 的 arguments(JSON 对象),按 ** 展开成关键字实参
+  optional string uuid             = 3; // 壳 uuid
   repeated string envs             = 4;
   PluginAnnex     annex            = 5; // → 字典全局变量 plugin_annex
   // 要调包里的哪个方法。**必传**,且是 main.py 里的**原始函数名**(不带壳前缀)。
@@ -66,7 +67,7 @@ message RunReq {
   // ⚠️ **不要把带前缀的名字传进来。** 喂给模型的工具名是 `<壳前缀>_<原名>`
   // (前缀保证不同插件包的同名方法不撞,见 hi/ai/plugin.proto 的 PluginVersion.description),
   // 但那是 hiai↔模型之间的事 —— 前缀在 hiai 侧切掉,包里和这里只认原始名。
-  string          function         = 6;
+  optional string function         = 6;
   // ── 本轮的两个身份 → 注入成脚本里的 plugin_builtin.asker / .master ───────────
   //
   // 与 `annex` 同为**注入面**(模型看不见、用户改不了),但**来源完全不同**:
@@ -74,8 +75,8 @@ message RunReq {
   // 这两个是**本轮对话现取的**。所以合并进 plugin_builtin 时
   // **内置键最后写、无条件覆盖** —— 否则用户在版本扩展数据里填一个同名键就能冒名,
   // 而且静默。
-  string          asker            = 7; // 这句话是谁说的;**空 = 匿名**(如现场语音)。消息事实,不是权限凭据
-  string          master           = 8; // 这台机器人的主人,**服务端现取的权威值**;判权限与动钱都用它
+  optional string asker            = 7; // 这句话是谁说的;**不传 = 匿名**(如现场语音)。消息事实,不是权限凭据
+  optional string master           = 8; // 这台机器人的主人,**服务端现取的权威值**;判权限与动钱都用它
 }
 
 message RunResp {
@@ -83,7 +84,9 @@ message RunResp {
   repeated hi.ai.Content conts = 1 [(hi.visibility) = VIS_SELF];
 }
 
-message CleanupReq { string code_archive_url = 1; }
+message CleanupReq {
+  optional string code_archive_url = 1;
+}
 
 // 脚本执行器(内部面)。只由父服务 ai 经 grpc 转发调用;不鉴权、也不认识"调用者"
 // —— 主体(商户/机器人)的校验在 `hi.ai.Plugin` 那一层完成。
@@ -92,9 +95,9 @@ service Runner {
   rpc Cleanup (CleanupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_INTERNAL; }
 }
 
-// ── NATIVE 构建契约(独立构建服务实现,hiai 只作调用方)────────────────────────
+// ── RUST 构建契约(独立构建服务实现,hiai 只作调用方)──────────────────────────
 //
-// NATIVE 插件(`PluginRuntime.PLUGIN_RUNTIME_NATIVE`)传上来的是 **rust 源码**,
+// RUST 插件(`PluginLang.PLUGIN_LANG_RUST`)传上来的是 **rust 源码**,
 // 要先交叉编译成 arm64 的 `.so` 才谈得上下发。这条契约就是那一步。
 //
 // ## 它是**无状态纯函数**:给源码,还产物
@@ -120,39 +123,192 @@ service Runner {
 // 一起存进构建表给发版的人看。回一个 grpc Internal 的话,用户看到的是"服务器错误",
 // 而他真正需要的是那段 `error[E0432]`。
 message BuildReq {
-  string code_archive_url = 1; // rust 源码包 zip(= 这一版的 b.url)
-  string uuid             = 2; // 壳 uuid(产物命名与日志用)
-  string version          = 3; // 版本号
+  optional string code_archive_url = 1; // rust 源码包 zip(= 这一版的 b.url)
+  optional string uuid             = 2; // 壳 uuid(产物命名与日志用)
+  optional string version          = 3; // 版本号
   // 目标架构:`aarch64` / `x86_64`(与 rust 的 `std::env::consts::ARCH` 同名,
   // 机器人上报的就是那个常量 —— 两边用同一套词,省掉一层映射)。
   //
-  // ⚠️ **空 = aarch64**。老调用方(还没跟上的 hi-ai)发不带这个字段的请求,
+  // ⚠️ **不传 = aarch64**。老调用方(还没跟上的 hi-ai)发不带这个字段的请求,
   // 编出来的仍是硬件机器人那一份 —— 而不是编出个谁也装不上的东西。
-  string arch             = 4;
+  // ⛔ 空串不是合法值:要么不传,要么给真架构名。
+  optional string arch             = 4;
 }
 
 message BuildResp {
   option (hi.audience) = VIS_SELF;
   // 编出来了没有。**false 时 rpc 本身仍是成功的**,理由见上。
-  bool   ok           = 1 [(hi.visibility) = VIS_SELF];
-  string artifact_url = 2 [(hi.visibility) = VIS_SELF]; // 编好的 .so(hiai 私有桶)
-  string sha256       = 3 [(hi.visibility) = VIS_SELF]; // 产物摘要,机器人下完照此核对
+  optional bool   ok           = 1 [(hi.visibility) = VIS_SELF];
+  optional string artifact_url = 2 [(hi.visibility) = VIS_SELF]; // 编好的 .so(hiai 私有桶)
+  optional string sha256       = 3 [(hi.visibility) = VIS_SELF]; // 产物摘要,机器人下完照此核对
   // 从**编出来的那个 `.so` 里真读出来的** ABI 版本(qemu 跑 aarch64 verifier 得到),
   // 不是从源码或 Cargo.toml 猜的。x86 上 dlopen 不了 aarch64 的 .so,
   // 只查 ELF machine + 导出符号是查不出这个值的。
-  uint32 abi_version  = 4 [(hi.visibility) = VIS_SELF];
+  optional uint32 abi_version  = 4 [(hi.visibility) = VIS_SELF];
   // 同样是从 .so 里真读出来的 manifest(OpenAI tools 数组,**原始名、不带壳前缀**)。
   // hi-ai 拿它跟包里的 description.json 比对 —— 两者不一致说明作者改了 json 却没改代码
   // (或反过来),那种插件装到机器人上就是"模型看得见、调不动"。
-  string manifest     = 5 [(hi.visibility) = VIS_SELF];
-  string error        = 6 [(hi.visibility) = VIS_SELF]; // 失败原因(给发版的人看的一句话)
-  string log          = 7 [(hi.visibility) = VIS_SELF]; // 编译日志尾部(失败时才有意义)
+  optional string manifest     = 5 [(hi.visibility) = VIS_SELF];
+  optional string error        = 6 [(hi.visibility) = VIS_SELF]; // 失败原因(给发版的人看的一句话)
+  optional string log          = 7 [(hi.visibility) = VIS_SELF]; // 编译日志尾部(失败时才有意义)
 }
 
-// NATIVE 插件构建器(内部面)。只由父服务 ai 经 grpc 转发调用。
+// ── LUA 验收契约 ────────────────────────────────────────────────────────────
 //
-// ⚠️ **它执行的是三方的 `build.rs` 与三方依赖的构建脚本** —— 比 Runner 跑 py 脚本
-// 危险程度只高不低。必须在容器里跑,且容器内不得挂载任何宿主凭证(ssh key / gitea token)。
+// LUA 插件**不需要编译**(上传的脚本就是产物),但**绝不能因此跳过验收**。
+// 不验的话,一个语法错的脚本会直接铺到全网机器人,而失败只存在于每台机器人的
+// 本地日志里 —— 那正是我们反复踩过的「失败原因只在机器人本地」。
+//
+// 为什么这一步在构建服务而不是 hi-ai 里做:**hi-ai 里没有 lua 解释器**,
+// 而验收要真的把脚本 load 一遍、读出它的 manifest。塞一个 lua 运行时进业务服务,
+// 等于让每次发版都多背一个 C 依赖;构建服务本来就是"跑三方代码的那个容器"。
+//
+// 与 Build 的区别:**这是毫秒级的同步调用**,所以 hi-ai 在 CreateVersion 里直接等它,
+// 验不过就拒绝这一版 —— 而不是像 RUST 那样先落库再后台编。
+// 一个语法错的脚本压根不该进库。
+message VerifyLuaReq {
+  // 🔴 **要验的是合并之后的那份脚本正文,不是那个 zip。**
+  //
+  // 包里可以有任意多个 `.lua`(正常工程本来就要拆文件),hi-ai 在发版时把它们
+  // 合成**一个**脚本 —— 那才是下发到机器人的产物。验收必须验**正好是**将要下发的
+  // 那串字节:验 zip 里的 main.lua 而下发合并版,两者之间就多了一段没人验过的代码。
+  //
+  // 原来这里传的是 zip url,于是解包这件事**两边各做一遍**(构建服务解一遍去验、
+  // hi-ai 解一遍去当产物)—— 同一份规则两处实现,迟早对不上,而对不上是静默的。
+  optional string script  = 1;
+  optional string uuid    = 2; // 壳 uuid(日志用)
+  optional string version = 3; // 版本号
+  // 这个脚本要用到的 C 模块。**校验器要真把它们装上再 load 脚本** ——
+  //
+  // 合并出来的 loader 在**顶层**就 `require` 依赖(`local cjson = require("cjson")`),
+  // 校验器没有它们的话,连"脚本能不能装进来"都验不了(报的是
+  // `attempt to call a nil value (global '__native')`,而那跟作者的代码毫无关系)。
+  //
+  // 🔴 更要紧的是**验的必须是发的**:装着依赖 load 一遍,才等于机器人上会发生的事。
+  // 给个空壳 `__native` 也能让验收变绿,但那种绿是假的。
+  repeated hi.ai.LuaDep deps = 4;
+}
+
+message VerifyLuaResp {
+  option (hi.audience) = VIS_SELF;
+  // 验过了没有。**false 时 rpc 本身仍是成功的** —— 同 BuildResp,
+  // 「脚本层面的错不是 rpc 错误」,要把原因原样交给发版的人看。
+  optional bool   ok       = 1 [(hi.visibility) = VIS_SELF];
+  // 脚本里声明的契约号(`contract`)。**机器人加载前拿它比对,不匹配拒载。**
+  //
+  // 🔴 它与 RUST 的 C ABI 号**各涨各的,不共用计数器** —— 共用的话撞一次 C ABI
+  // 就逼所有 lua 插件重发,而它们根本不受影响。
+  optional uint32 contract = 2 [(hi.visibility) = VIS_SELF];
+  // 从**脚本里真跑出来的** manifest(OpenAI tools 数组,原始名、不带壳前缀)。
+  // hi-ai 拿它跟包里的 description.json 比对 —— 不一致说明作者改了 json 却没改代码
+  // (或反过来),那种插件装到机器人上就是"模型看得见、调不动"。
+  optional string manifest = 3 [(hi.visibility) = VIS_SELF];
+  optional string error    = 4 [(hi.visibility) = VIS_SELF]; // 失败原因(给发版的人看的一句话)
+  optional string log      = 5 [(hi.visibility) = VIS_SELF]; // 细节(语法错的行号、命中的禁用项)
+}
+
+// 设备端插件的**产出与验收**(内部面)。只由父服务 ai 经 grpc 转发调用。
+//
+// ⚠️ **它执行的是三方代码** —— `Build` 跑三方的 `build.rs` 与依赖的构建脚本,
+// `VerifyLua` 把三方脚本真 load 一遍。比 Runner 跑 py 脚本危险程度只高不低。
+// 必须在容器里跑,且容器内不得挂载任何宿主凭证(ssh key / gitea token)。
+// ── C 模块的构建契约 ────────────────────────────────────────────────────────
+//
+// lua 插件可以依赖 luarocks 上带 `.so` 的包。**编译只在构建服务发生,绝不在机器人上**
+// —— 生产机器人是 Pi5 的 1GB 版本,CPU/内存/IO 都不适合编译,而"每台设备各装一套
+// 构建环境"是运行期才炸的事。
+//
+// ## 只收白名单里的 rock
+//
+// luarocks.org 没有签名也没有审核,谁都能发包,而我们要把编出来的 `.so` 签进产物、
+// 推到客户的机器人上。**"来自 luarocks"不是信任凭据** —— 白名单 + 钉版本 + 钉源码
+// 摘要才是。白名单同时把构建矩阵框住:依赖树一展开,要交叉编译的东西是不封口的。
+//
+// 配方在镜像里(`/opt/hinj/luarecipes/<rock>/<版本>/build.sh`),产出分两半:
+//
+//   so_files  —— 进**集合**,按 `<rock>/<版本>/<path>` 下发到机器人
+//   lua_files —— 发版时**内联进插件那一个脚本**,不下发
+//
+// lua 那半内联而不下发,是为了让机器人那侧只需要管 `.so` 一种东西。
+//
+// ## 编不出来不是 rpc 错误
+//
+// 同 Build:那是**业务结果**,要连日志尾部一起交给发版的人看。
+message BuildLuaDepReq {
+  optional string rock    = 1; // luarocks 上的包名,如 `lua-cjson`
+  optional string version = 2; // 钉死的版本,不给范围 —— 给范围就要解算器
+  // 目标架构:`aarch64` / `x86_64`。**每个架构各建一次**,建好就不可变、全平台复用。
+  optional string target  = 3;
+}
+
+message BuildLuaDepResp {
+  option (hi.audience) = VIS_SELF;
+  optional bool   ok        = 1 [(hi.visibility) = VIS_SELF];
+  repeated LuaDepBuiltFile so_files  = 2 [(hi.visibility) = VIS_SELF];
+  repeated LuaDepBuiltFile lua_files = 3 [(hi.visibility) = VIS_SELF];
+  optional string error     = 4 [(hi.visibility) = VIS_SELF];
+  optional string log       = 5 [(hi.visibility) = VIS_SELF];
+}
+
+message LuaDepBuiltFile {
+  option (hi.audience) = VIS_SELF;
+  // 相对 `<rock>/<版本>/` 的路径。`.so` 的点号与目录对应是 lua 的老规矩:
+  // `require("socket.core")` 找 `socket/core.so`,入口符号 `luaopen_socket_core`。
+  optional string path   = 1 [(hi.visibility) = VIS_SELF];
+  // `.so` 传 url(构建服务已经传进私有桶);`.lua` 传内容(要内联,不落桶)。
+  optional string url    = 2 [(hi.visibility) = VIS_SELF];
+  optional bytes  content = 3 [(hi.visibility) = VIS_SELF];
+  optional string sha256 = 4 [(hi.visibility) = VIS_SELF];
+  // 字节数。**没有它的话集合里的 size 列恒为 0** —— 从前 `.lua` 走 content
+  // 还能按内容长度算，2026-09-01 起两种 kind 都走 url，内容不再经过服务端。
+  optional int64  size   = 5 [(hi.visibility) = VIS_SELF];
+}
+
+// 问一个 rock 还要哪些别的 rock。**只读配方,不编译。**
+//
+// 🔴 **传递依赖由后台求闭包,不让作者写。** lua-http 压着 cqueues / luaossl /
+// lpeg / lpeg_patterns / basexx / fifo / binaryheap 七个 —— 让作者把它们逐个抄进
+// dependencies.txt,等于把"这个库依赖什么"这件**配方里已经写死的事实**要他再抄一遍,
+// 抄错了还没人拦得住(少一个的表现是运行期 require 不到,而错只在机器人本地日志里)。
+//
+// 为什么单独一个 rpc 而不是从 BuildLuaDep 顺带回:**集合里已经建过的不会再走构建**,
+// 那条路上问不到它的依赖。而依赖关系是配方里的事实,读一下就有,不必编译。
+message LuaDepRequiresReq {
+  optional string rock    = 1;
+  optional string version = 2;
+}
+
+message LuaDepRequiresResp {
+  option (hi.audience) = VIS_SELF;
+  // 这个 rock 的依赖问得出来没有。**问不出来不是错误** —— 调用方要据此报
+  // 一句人话，而不是报一个 rpc 失败。
+  //
+  // ⚠️ 原来这里写的是「配方在不在(= 在不在白名单里)」—— **白名单 2026-09-01 已经取消**
+  //    （任意 luarocks 包都能装，见 backend-hi-ai-plugin 的 `去掉白名单` 那次提交）。
+  //    注释不是凭据，留着一句已经不成立的话只会误导下一个人。
+  //
+  // 🔴 **`optional` 是有意义的：不给 = "没表态"，与 `false` = "明说不行"是两回事。**
+  //    读它一律判 presence（`resp.Ok == nil`），别用 `GetOk()` —— 那个函数正是把
+  //    "没传"摊成 false 的那一个，摊完两种成因就再也分不开了。
+  optional bool ok = 1 [(hi.visibility) = VIS_SELF];
+  repeated LuaDepRef requires = 2 [(hi.visibility) = VIS_SELF];
+  optional string error = 3 [(hi.visibility) = VIS_SELF];
+}
+
+message LuaDepRef {
+  option (hi.audience) = VIS_SELF;
+  optional string rock    = 1 [(hi.visibility) = VIS_SELF];
+  optional string version = 2 [(hi.visibility) = VIS_SELF]; // 钉死,不给范围
+}
+
 service Builder {
   rpc Build (BuildReq) returns (BuildResp) { option (hi.auth) = AUTH_INTERNAL; }
+  // 读配方问依赖,不编译。见 LuaDepRequiresReq。
+  rpc LuaDepRequires (LuaDepRequiresReq) returns (LuaDepRequiresResp) { option (hi.auth) = AUTH_INTERNAL; }
+  // 建一个 C 模块依赖。**同一个 (rock, 版本, target) 只建一次**,之后所有插件复用 ——
+  // 编译成本因此不随插件数量增长。
+  rpc BuildLuaDep (BuildLuaDepReq) returns (BuildLuaDepResp) { option (hi.auth) = AUTH_INTERNAL; }
+  // 验一个 lua 包:语法能不能 load、manifest 是什么、契约号多少、有没有碰禁用项。
+  // 毫秒级,hi-ai 在发版流程里同步等。
+  rpc VerifyLua (VerifyLuaReq) returns (VerifyLuaResp) { option (hi.auth) = AUTH_INTERNAL; }
 }

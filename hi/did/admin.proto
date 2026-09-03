@@ -24,36 +24,36 @@ import "hi/options.proto";
 
 message InviteCodeCreateResp {
   option (hi.audience) = VIS_SELF;
-  string code      = 1 [(hi.visibility) = VIS_SELF];
-  bool   is_active = 2 [(hi.visibility) = VIS_SELF];
+  optional string code      = 1 [(hi.visibility) = VIS_SELF];
+  optional bool   is_active = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message InviteCodeEditReq {
-  string code = 1;
-  string note = 2;
+  optional string code = 1;
+  optional string note = 2;
 }
 
 message InviteCodeListResp {
   option (hi.audience) = VIS_SELF;
   message Unit {
     option (hi.audience) = VIS_SELF;
-    string code       = 1 [(hi.visibility) = VIS_SELF];
-    bool   is_active  = 2 [(hi.visibility) = VIS_SELF];
-    string note       = 3 [(hi.visibility) = VIS_SELF];
-    int64  created_at = 4 [(hi.visibility) = VIS_SELF];
+    optional string code       = 1 [(hi.visibility) = VIS_SELF];
+    optional bool   is_active  = 2 [(hi.visibility) = VIS_SELF];
+    optional string note       = 3 [(hi.visibility) = VIS_SELF];
+    optional int64  created_at = 4 [(hi.visibility) = VIS_SELF];
   }
-  int32         total = 1 [(hi.visibility) = VIS_SELF];
-  repeated Unit infos = 2 [(hi.visibility) = VIS_SELF];
+  optional int32 total = 1 [(hi.visibility) = VIS_SELF];
+  repeated Unit  infos = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message InviteCodeDeleteReq {
-  string code = 1;
+  optional string code = 1;
 }
 
 message InviteCodeVerifyReq {
-  string id   = 1;
-  string code = 2;
-  string did  = 3;
+  optional string id   = 1;
+  optional string code = 2;
+  string          did  = 3;
 }
 
 // 邀请码管理:超管发/改/查/删邀请码。整个 service 都是超管面。
@@ -76,26 +76,26 @@ service Register {
 // 超管在 hisrv 后台管理所有商户。
 
 message MerchantManageListReq {
-  string        name       = 1;
-  hi.Pagination pagination = 2;
+  optional string name       = 1;
+  hi.Pagination   pagination = 2;
 }
 
 message MerchantManageListResp {
   option (hi.audience) = VIS_SELF;
   message Unit {
     option (hi.audience) = VIS_SELF;
-    MerchantInfo base    = 1 [(hi.visibility) = VIS_PARTICIPANT];
-    string       comment = 2 [(hi.visibility) = VIS_SELF];
+    MerchantInfo                base        = 1 [(hi.visibility) = VIS_PARTICIPANT];
+    optional string             comment     = 2 [(hi.visibility) = VIS_SELF];
     // 该商户持有的权限位(仅超管可见)。空=普通商户,什么附加能力都没有。
     repeated MerchantPermission permissions = 3 [(hi.visibility) = VIS_SELF];
   }
-  int32         total = 1 [(hi.visibility) = VIS_SELF];
-  repeated Unit list  = 2 [(hi.visibility) = VIS_SELF];
+  optional int32 total = 1 [(hi.visibility) = VIS_SELF];
+  repeated Unit  list  = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message MerchantManageEditReq {
-  string did     = 1;
-  string comment = 2;
+  string          did     = 1;
+  optional string comment = 2;
 }
 
 // 商户权限位。**仅超管可读写**(提权/降权),商户自己看不到也改不了。
@@ -116,9 +116,9 @@ enum MerchantPermission {
 //    club 需要它是因为要把通知转发到自己的用户端(hidid 发通知 → 机器人订阅
 //    对应 topic 即可收到,不必各自维护一条到 hidid 的登录态)。
 message MerchantSetPermissionReq {
-  string             did     = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 目标商户
-  MerchantPermission perm    = 2; // 要改的权限位
-  bool               granted = 3; // true=授予,false=撤销
+  string                      did     = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 目标商户
+  optional MerchantPermission perm    = 2; // 要改的权限位
+  optional bool               granted = 3; // true=授予,false=撤销。**必传** —— 不传不是 false,是漏了字段(服务端报错)
 }
 
 // 商户管理(超管面)。裁决 #11:此前 Delete/Edit 标 AUTH_USER 且 handler 零校验
@@ -138,7 +138,7 @@ service MerchantManage {
 // 自查 hi.did.Release.Latest 取详情(原 Base.LatestVersion 已删,见 hi/did/release.proto)。不落消息记录。
 // ═══════════════════════════════════════════════════════════════════════════
 message BroadcastAppUpdateReq {
-  string app = 1; // 目标 app:hidid/hiclub/hinj;空=all。进 Notice.ex_type,客户端按此过滤。
+  optional string app = 1; // 目标 app:hidid/hiclub/hinj;不传=all。进 Notice.ex_type,客户端按此过滤。
 }
 
 // 公共插件出了新版 —— 广播给全体机器人,而不是后台挨个去发。
@@ -155,7 +155,7 @@ message BroadcastAppUpdateReq {
 // 后台更不必去维护一份"谁装了什么"的名单(那份名单迟早会与事实不符)。
 // 这也是这里只放 uuid 的另一半理由:uuid 就是过滤器本身。
 message BroadcastPluginUpdateReq {
-  string plugin_uuid = 1; // 哪个插件的壳;空=让大家把自己的插件全都核对一遍
+  optional string plugin_uuid = 1; // 哪个插件的壳;不传=让大家把自己的插件全都核对一遍
 }
 
 // 拆成独立 service 是因为**主体不同**:上面那条是超管在 web 上点的,这条是别的后端服务转发的。

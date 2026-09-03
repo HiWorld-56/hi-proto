@@ -8,18 +8,18 @@ import "hi/did/base.proto";
 import "hi/options.proto";
 
 message GetPriceReq {
-  string coin = 1;
+  optional string coin = 1;
 }
 
 message GetPriceResp {
   option (hi.audience) = VIS_PUBLIC;
   message Unit {
     option (hi.audience) = VIS_PUBLIC;
-    string price = 1 [(hi.visibility) = VIS_PUBLIC];
-    Coin   coin  = 2 [(hi.visibility) = VIS_PUBLIC];
+    optional string price = 1 [(hi.visibility) = VIS_PUBLIC];
+    Coin            coin  = 2 [(hi.visibility) = VIS_PUBLIC];
   }
-  repeated Unit list     = 1 [(hi.visibility) = VIS_PUBLIC];
-  string        exchange = 2 [(hi.visibility) = VIS_PUBLIC];
+  repeated Unit   list     = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional string exchange = 2 [(hi.visibility) = VIS_PUBLIC];
 }
 
 service Price {

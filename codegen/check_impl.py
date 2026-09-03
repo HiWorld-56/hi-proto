@@ -44,6 +44,11 @@ REPOS = {
 THIRD_PARTY = {('hi.did', 'LoginCallback'), ('hi.did', 'PayCallback')}
 
 src_cache = {}
+# 本机**没有检出**的仓。它们不是"实现缺失",是这台机器上没法判 ——
+# 两者必须分开报,见下面 `absent_repos` 的说明。
+absent_repos = set()
+
+
 def repo_src(repo):
     if repo not in src_cache:
         buf = []
@@ -54,6 +59,17 @@ def repo_src(repo):
                 buf.append(open(f, encoding='utf-8', errors='ignore').read())
             except OSError:
                 pass
+        if not buf:
+            # 🔴 **前提不成立就报"没验",不要报一个像 bug 的红。**
+            #
+            # 仓没检出时源码是空的,于是**它的每一个 rpc 都"找不到实现"** ——
+            # 而那跟"真的没实现"长得一模一样。2026-09-03 实测:`.64` 上没有
+            # `backend-hi-media`(那是同事的仓,不在我们维护的清单里),
+            # smoke.sh 因此常年报"有 rpc 找不到实现",5 条全是这么来的。
+            #
+            # 一个永远红、而且红得没有意义的断言,下一个人只会学会忽略它 ——
+            # 那时它连真的漂移也一起盖住了。
+            absent_repos.add(repo)
         src_cache[repo] = '\n'.join(buf)
     return src_cache[repo]
 
@@ -72,7 +88,11 @@ for f in sorted(glob.glob('hi/**/*.proto', recursive=True)):
             total += 1
             # receiver 类型名以 service 名开头、以 Server 结尾(允许中间有词,如 XxxApiServer)
             pat = re.compile(r'func \(\w+ \*' + svc + r'\w*Server\) ' + meth + r'\(')
-            if not any(pat.search(repo_src(r)) for r in REPOS[pkg]):
+            srcs = [repo_src(r) for r in REPOS[pkg]]
+            # 这个包的仓**一个都没检出** → 判不了,归到"没验",不算失败。
+            if all(r in absent_repos for r in REPOS[pkg]):
+                continue
+            if not any(pat.search(x) for x in srcs):
                 missing.append(f'{f}: {pkg}.{svc}.{meth} —— 在 {"/".join(REPOS[pkg])} 中找不到实现'
                                f'(注册了 service 的话,运行时会静默返 Unimplemented)')
 
@@ -120,6 +140,11 @@ for repo in repo_dirs:
             if not re.search(r'func \(\w+ \*' + svc + r'\w*Server\) ' + meth + r'\(', src):
                 gateway_gaps.append(f'{repo}: 注册了 {key} 的 http 网关,却没实现 {meth} '
                                     f'—— web 调 http 会 "method {meth} not implemented"')
+
+# 🔴 **把"没验"明确说出来。** 静默跳过与"验过了、没问题"长得一样,
+#    而那正是这套检查要消灭的东西。
+if absent_repos:
+    print(f'[check_impl] — 没验(本机没有检出这些仓,不是实现缺失):{", ".join(sorted(absent_repos))}')
 
 if gateway_gaps:
     print(f'[check_impl] ❌ http 暴露面漂移 {len(gateway_gaps)} 个(比上面更要命,直接 404/Unimplemented):')

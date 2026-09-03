@@ -30,6 +30,90 @@
 > 没有任何一行数据、没有任何一条代码路径会写 2。
 > **别拿"可能有存量"当理由,先去库里数一下。**
 
+## ⛔ 禁止用空字符串(零值)表示 null
+
+**所有标量字段一律加 `optional`。** 2026-08-28 全仓铺平,2026-08-29 补齐单行 message 的 15 个。
+
+**例外只有三类**(写清楚,免得下游以为漏了):
+- `did` / `to_did` / `user_did` —— **常驻字段**,没有 did 就没有这个对象,不存在"不传";
+- `oneof` 成员 —— proto3 **语法禁止**加 `optional`(成员身份本身就是 presence);
+- `repeated` / `map` —— 靠"空集合"表达"没有",加不了也不需要。
+
+### ⛔ 批量改 proto 之后,验收凭据是 `buf breaking`,不是读 diff
+
+```sh
+buf breaking --against '.git#ref=HEAD~1'
+```
+**只应出现 cardinality 从 implicit → explicit presence;出现任何 "field deleted" 就是改坏了。**
+
+2026-08-29 栽过:把单行 message 展开成多行的脚本**只捕获标量字段**,重建 message 体时
+把 `hi.Pagination pagination` 这种消息型字段整个丢掉,而且**已经打了 tag 发出去**
+(`v1.5.11-dev.2`)。那次是靠消费方编译报错才发现的 —— 纯属运气:
+丢的两个都是必填分页参数。同一个脚本要是漏掉一个**可选**的消息型字段,
+就是静默丢参数,编译照过、跑起来照跑,谁都发现不了。
+
+**行式正则读 proto 一律不可信**:字段可以跟 message 挤在一行、可以带多行 option、
+可以在 `oneof` 里。要么用描述符比对,要么用 `buf breaking`。
+
+judgement 不是"这个字段缺席合不合法",而是 protobuf 官方口径 ——
+> We recommend always adding the `optional` label for proto3 basic types.
+
+### 为什么
+
+不加 presence 时,默认值是三种情况混在一起(官方原话):
+> The default value may mean: **the field was explicitly set to its default value, which is valid in
+> the application-specific domain of values**; the field was notionally "cleared" by setting its
+> default; or the field was never set.
+
+更要命的是,**二进制线路上"传空串"根本不上线**:
+> if the field is set to the default (zero) value. **It will not be serialized to the wire.**
+
+所以走二进制 gRPC 的客户端(Go/Rust/Dart),把 `name` 设成 `""` 和根本不设是同一串字节 ——
+**协议层面压根没有"清空"这个能力**,后端那行 `!= ""` 删了也没用。
+
+我们自己踩到的三处(全在注释里留着):
+1. `backend-hi-ai/internal/repo/agent_repo.go:73` —— 为一个 bool(`use_mem=false` 被 gorm 当零值跳过)
+   单开一条 map 更新,同 struct 里所有 string 还在被静默跳。
+2. `backend-hi-did/internal/repo/merchant_repo.go:60` —— 为 SetServer 单开一个"无条件写"的方法,
+   绕开通用 Update 的"空串跳过"。
+3. `hi/ai/chat.proto` 的 `master`(没主人)与 `asker`(匿名)两个"没有"都是空串 ——
+   `asker == master` 在皆空时**成立**,匿名提问会被判成"主人在问"。
+
+### 三态语义(ProtoJSON 规范)
+
+| 客户端发 | 服务端 | 请求语义 | 响应语义 |
+|---|---|---|---|
+| 不带这个键 | `has=false` | **不动** | 这个字段没有值 |
+| `"name": null` | `has=false`(**与不带键完全等价**) | **不动** | —— |
+| `"name": ""` | `has=true`,值 `""` | **清空** | 值就是空串 |
+| `"name": "阿明"` | `has=true` | 设成阿明 | 值是阿明 |
+
+> Parsers accept `null` as a legal value for any field … The field should remain unset, as though it
+> was not present in the input at all.
+
+所以规则只有一条:**没有 presence 的字段不更新。**
+
+### 例外(只有三类)
+
+- **entity 里的身份 did**(`did` / `*_did`,32 处)。did 是常驻字段,没有 did 其他字段没有意义。
+  ⚠️ **当过滤器/可选参数用的 did 要加**(`ListOnlineReq.owner_did`、
+  `hi.ai.PermissionListReq.did`、`hi.ai.MerchantListReq.did` 已加)。
+- **`oneof` 成员**(2 处 `bytes chunk`)。proto3 语法不允许,而且 oneof 本来就有 presence。
+- **`repeated`**(110 处)。空列表天然就是"没有",不存在"设成空列表 vs 不动"的歧义。
+
+### 配套硬规则
+
+- **必填字段也加 `optional`**,但要同时补 `(buf.validate.field).required = true` ——
+  否则 optional 之后"字段缺席"会**跳过校验**,是静默削弱。
+  只对隐含非空的规则补(pattern / min_len / gt / cel);`max_len` 这类上界不补。
+- **注释一律写"不传=xxx",不许写"空=xxx"。** 2026-08-28 已把全仓 47 处改过来。
+- **不用 `update_mask`**(`google.protobuf.FieldMask`)。路径是字符串、编译期零检查 ——
+  proto 改字段名不会报错,正是 `return_context`→`echo_context` 栽过两次的那个坑;
+  而且 proto 写 `config.mem_model`、JSON 要写 `config.memModel`,我们有四个手写 JSON 的 web。
+  **presence 本身就是最省的 update_mask**:客户端设了哪个字段,服务端就知道动了哪个。
+- **不比新旧值**。见 `backend-hi-club/internal/service/group.go` 的 `updateGroupFields` 注释:
+  比值会让"重传同一张图"被判成没动,既不写库也不发通知。**设了就设,设了就发。**
+
 ## 结构化数据传输原则
 
 **payload 是数据的唯一来源，传输层 metadata 不是。**

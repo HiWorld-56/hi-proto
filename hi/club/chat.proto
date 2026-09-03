@@ -21,7 +21,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 message QA {
   option (hi.audience) = VIS_SELF; // 我与机器人的私有对话
   repeated Content q = 1 [(hi.visibility) = VIS_PARTICIPANT]; // User(club Content=PARTICIPANT)
-  string           a = 2 [(hi.visibility) = VIS_SELF];        // assistant
+  optional string  a = 2 [(hi.visibility) = VIS_SELF];        // assistant
 }
 
 message GetHistoryResp {
@@ -35,14 +35,14 @@ message GetHistoryResp {
 //    ai 会把该 agent 的插件工具追加在它后面一起喂模型,返回后按名字分流。
 //    不上报(app / hiclub web)= 全部由服务端跑完 = 一次调用拿到最终答复。
 message ChatReq {
-  string                    agent       = 1;
-  string                    cid         = 2;
-  repeated Content          conts       = 3;
-  repeated hi.ai.ToolSupply tools       = 4; // **客户端自己能执行的工具**;空 = 全交服务端跑完
-  optional string           tool_choice = 5;
-  optional string           custom      = 6;
-  optional string           state       = 7;
-  optional string           style       = 8; // 语音出音色等;纯文本留空
+  optional string           agent           = 1;
+  optional string           cid             = 2;
+  repeated Content          conts           = 3;
+  repeated hi.ai.ToolSupply tools           = 4; // **客户端自己能执行的工具**;空 = 全交服务端跑完
+  optional string           tool_choice     = 5;
+  optional string           custom          = 6;
+  optional string           state           = 7;
+  optional string           style           = 8; // 语音出音色等;纯文本不传
   // ── 过程回显开关(**只管输出,不管行为**)──────────────────────────────────────
   // 与 hi.ai.ChatReq 的同名字段一一对应,club 原样透传。**仅流式有意义。**
   // ⚠️ 别读成"要不要调插件":**调不调是模型决定的**(标准 function call);这几个只决定
@@ -56,34 +56,34 @@ message ChatReq {
   //    (Stream→CompleteStream)时从请求里漏掉过,而且 club 这层是**双层丢** ——
   //    自己没有字段,转发给 ai 时自然也带不上,于是经 club 进来的调用方(app / hiclub web)
   //    即便 ai 修好了也永远拿不到回显帧。搬家时别再漏第二次。
-  bool echo_tool_calls = 9;  // 发 type="echoToolCalls" 帧:模型调了哪个函数、传了什么参数、工具返回什么
-  bool echo_memory     = 10; // 发 type="echoMemory" 帧:本轮命中的记忆片段(旧名 return_training_data)
-  bool echo_context    = 11; // 发 type="echoContext" 帧:这次真正喂给模型的那份上下文(系统提示词 + 截出的历史 + 本轮输入)
+  optional bool             echo_tool_calls = 9;  // 发 type="echoToolCalls" 帧:模型调了哪个函数、传了什么参数、工具返回什么
+  optional bool             echo_memory     = 10; // 发 type="echoMemory" 帧:本轮命中的记忆片段(旧名 return_training_data)
+  optional bool             echo_context    = 11; // 发 type="echoContext" 帧:这次真正喂给模型的那份上下文(系统提示词 + 截出的历史 + 本轮输入)
   // ── 这句话是谁说的 ─────────────────────────────────────────────────────────
   //
   // 🔴 **不是"谁在调这个接口"。** 调用方几乎永远是机器人自己(`agent` 就是它),
   //    而提问者在**它收到的那条 mqtt 消息的 `from`** 里 —— 只有收到消息的那一端知道,
   //    所以必须由客户端带上来,服务端无法从"谁在调"反推(反推出来的是机器人)。
   //
-  // **证明不了就留空**:机器人的语音路(现场人声)无法证明身份,一律空。
-  // 空 = 匿名提问,插件侧要认人的方法应当直接拒绝,**不许退回成"主人在问"**。
+  // **证明不了就不传**:机器人的语音路(现场人声)无法证明身份,一律不传。
+  // 不传 = 匿名提问,插件侧要认人的方法应当直接拒绝,**不许退回成"主人在问"**。
   //
   // ⚠️ 它只是**消息流转里的事实**,不是权限凭据。判"是不是主人"要拿服务端现取的
   //    权威值比对(见 hi.ai.ChatReq.master),动钱一律用那个权威值。
   //    别拿 `from` 去做流转之外的事。
   //
   // ⚠️ 人自己在 app/web 里直接跟助手聊时可以不传,服务端按登录主体推导。
-  string asker = 12;
+  optional string           asker           = 12;
 }
 
 message ToolCallResult {
-  string           id    = 1;
+  optional string  id    = 1;
   repeated Content conts = 2;
 }
 
 // 工具结果续跑入参(Resume):客户端执行完工具后把结果交回来,接着跑。
 message ToolCallResultsReq {
-  string                  id   = 1;
+  optional string         id   = 1;
   repeated ToolCallResult list = 2;
 }
 

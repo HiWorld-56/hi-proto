@@ -24,8 +24,8 @@ MAGIC="HI-MKT-7Q3XZ9"; SUM="623"
 pass=0; fail=0
 ok(){ printf "  \033[32m✓\033[0m %s\n" "$1"; pass=$((pass+1)); }
 bad(){ printf "  \033[31m✗\033[0m %s  (%s)\n" "$1" "$2"; fail=$((fail+1)); }
-command -v mysql >/dev/null || { echo "缺 mysql 客户端 —— 请在 .65 上跑。" >&2; exit 2; }
-Q(){ mysql -h$DB -ulo -p568568 hi_ai -N -e "$1" 2>/dev/null; }
+have_db || { echo "够不着 mysql —— 本机没装 mysql 时会 ssh 到 $DB 去查,检查那条路。" >&2; exit 2; }
+Q(){ mysqlq hi_ai "$1"; }
 cj(){ curl -s $CAC -m 240 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $TOK" -d "$2"; }
 g(){ python3 -c '
 import sys,json

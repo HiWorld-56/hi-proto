@@ -24,9 +24,9 @@ ok(){ printf "  \033[32m✓\033[0m %s\n" "$1"; pass=$((pass+1)); }
 bad(){ printf "  \033[31m✗\033[0m %s  (%s)\n" "$1" "$2"; fail=$((fail+1)); }
 has(){ case "$2" in *"$3"*) ok "$1";; *) bad "$1" "输出里没有 '$3':$(echo "$2"|head -c 160)";; esac; }
 chk(){ [ "$2" = "$3" ] && ok "$1" || bad "$1" "want=$3 got=$2"; }
-command -v mysql >/dev/null || { echo "缺 mysql 客户端 —— 请在 .65 上跑。" >&2; exit 2; }
+have_db || { echo "够不着 mysql —— 本机没装 mysql 时会 ssh 到 $DB 去查,检查那条路。" >&2; exit 2; }
 [ -x /tmp/didsign ] || { echo "缺 /tmp/didsign(core-mqtt 的 didsign,--features testkit 编)。" >&2; exit 2; }
-Q(){ mysql -h$DB -ulo -p568568 "$1" -N -e "$2" 2>/dev/null; }
+Q(){ mysqlq "$1" "$2"; }
 cjs(){ curl -s $CAC -m 60 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $STOK" -d "$2"; }
 cjb(){ curl -s $CAC -m 60 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $BTOK" -d "$2"; }
 g(){ python3 -c '
@@ -63,7 +63,7 @@ G=$(cjb market/apply "{\"listing_uuid\":\"$L\",\"to_agent\":\"$BB\"}" | g data g
 SELLER_DID=$(MN_FILE=$SELLER_MN /tmp/didsign --did)
 # ⚠️ 这一行原来打的是**助记词**的 did,却写成 "master=" —— 把一个假设显示成了事实。
 #    实际的出让方 master 由 SELLER_TOK 决定,库里才是真值。
-REAL_MASTER=$(mysql -h$DB -ulo -p568568 hi_club -N -e "SELECT from_master FROM hi_club_market_grant WHERE uuid='$G';" 2>/dev/null)
+REAL_MASTER=$(mysqlq hi_club "SELECT from_master FROM hi_club_market_grant WHERE uuid='$G';")
 echo "  卖方=$SB(master=$REAL_MASTER) 买方=$BB 授权=$G  签名用=$SELLER_DID"
 # **前提先自证**:卖方 token 与卖方助记词必须是同一个人,否则闸②(签名者必须是收款方)
 # 会拦下正路,而报出来的是"签名者不是这笔授权的收款方" —— 看着像产品坏了,实际是参数配错。

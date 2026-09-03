@@ -12,12 +12,12 @@ import "hi/options.proto";
 
 // 列某商户名下的 greeter(扩展表 level >= 8)。
 //
-// ⚠️ merchant **必填**,与 did 侧同名字段不同语义:did 那边"空=自己",因为调用者本身
+// ⚠️ merchant **必填**,与 did 侧同名字段不同语义:did 那边"不传=自己",因为调用者本身
 //    就是商户(ExtendToken 解出);club 的调用者是普通用户、不是商户,"自己"无从谈起。
 //    故这里不照搬 hi.did.ListGreetersReq —— 同名字段两种语义,是最容易出事的复用。
 message ListGreetersReq {
-  string        merchant   = 1 [(buf.validate.field).string.pattern="^\\S+$"]; // 目标商户 did
-  hi.Pagination pagination = 2;
+  optional string merchant   = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true]; // 目标商户 did
+  hi.Pagination   pagination = 2;
 }
 
 // 商户(用户档)。**club 侧目前没有商户的概念** —— 本 service 只是**转发 hidid 的商户方法**。

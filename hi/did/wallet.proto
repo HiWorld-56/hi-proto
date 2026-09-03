@@ -32,23 +32,23 @@ message UpdateAddressesReq {
 }
 
 message GetWalletReq {
-  string chain = 1; // did 从 token 取(自服务,不接受任意 did 入参)
+  optional string chain = 1; // did 从 token 取(自服务,不接受任意 did 入参)
 }
 
 message GetWalletResp {
   option (hi.audience) = VIS_SELF;
   message Unit {
     option (hi.audience) = VIS_SELF;
-    string chain   = 1 [(hi.visibility) = VIS_SELF];
-    string address = 2 [(hi.visibility) = VIS_SELF];
+    optional string chain   = 1 [(hi.visibility) = VIS_SELF];
+    optional string address = 2 [(hi.visibility) = VIS_SELF];
   }
   repeated Unit list = 1 [(hi.visibility) = VIS_SELF];
 }
 
 message ListAddressesReq {
   message Unit {
-    string did   = 1;
-    string chain = 2;
+    string          did   = 1;
+    optional string chain = 2;
   }
   repeated Unit list = 1;
 }
@@ -57,9 +57,9 @@ message ListAddressesResp {
   option (hi.audience) = VIS_SELF;
   message Unit {
     option (hi.audience) = VIS_SELF;
-    string did     = 1 [(hi.visibility) = VIS_SELF];
-    string chain   = 2 [(hi.visibility) = VIS_SELF];
-    string address = 3 [(hi.visibility) = VIS_SELF];
+    string          did     = 1 [(hi.visibility) = VIS_SELF];
+    optional string chain   = 2 [(hi.visibility) = VIS_SELF];
+    optional string address = 3 [(hi.visibility) = VIS_SELF];
   }
   repeated Unit list = 1 [(hi.visibility) = VIS_SELF];
 }
@@ -72,42 +72,42 @@ message ListAddressesResp {
 //
 // 不做成 enum 是有意的:币种要扩展时 enum 的增删比字符串麻烦得多。
 message TotalAssetsReq {
-  string currency = 1 [(buf.validate.field).cel = {
+  optional string currency = 1 [(buf.validate.field).cel = {
     id: "currency.iso4217"
     message: "currency 只支持 cny / usd"
     expression: "this.lowerAscii() in ['cny', 'usd']"
-  }];
+  }, (buf.validate.field).required = true];
 }
 
 message TotalAssetsResp {
   option (hi.audience) = VIS_PUBLIC;
-  string n = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional string n = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message ListUsersAssetsReq {
-  string        currency   = 1 [(buf.validate.field).cel = { // 同 TotalAssetsReq.currency,只支持 cny / usd
+  optional string currency   = 1 [(buf.validate.field).cel = { // 同 TotalAssetsReq.currency,只支持 cny / usd
     id: "currency.iso4217"
     message: "currency 只支持 cny / usd"
     expression: "this.lowerAscii() in ['cny', 'usd']"
-  }];
-  hi.Pagination pagination = 2;
+  }, (buf.validate.field).required = true];
+  hi.Pagination   pagination = 2;
 }
 
 message ListUsersAssetsResp {
   option (hi.audience) = VIS_PUBLIC;
   message Unit {
     option (hi.audience) = VIS_PUBLIC;
-    string did    = 1 [(hi.visibility) = VIS_PUBLIC];
-    string avatar = 2 [(hi.visibility) = VIS_PUBLIC];
-    string n      = 3 [(hi.visibility) = VIS_PUBLIC];
+    string          did    = 1 [(hi.visibility) = VIS_PUBLIC];
+    optional string avatar = 2 [(hi.visibility) = VIS_PUBLIC];
+    optional string n      = 3 [(hi.visibility) = VIS_PUBLIC];
   }
-  int32         total = 1 [(hi.visibility) = VIS_PUBLIC];
-  repeated Unit list  = 2 [(hi.visibility) = VIS_PUBLIC];
+  optional int32 total = 1 [(hi.visibility) = VIS_PUBLIC];
+  repeated Unit  list  = 2 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message GetUserAssetsReq {
-  string did  = 1;
-  string coin = 2;
+  string          did  = 1;
+  optional string coin = 2;
 }
 
 // 美元金额 = amount*price
@@ -116,21 +116,21 @@ message GetUserAssetsResp {
   option (hi.audience) = VIS_PUBLIC;
   message Unit {
     option (hi.audience) = VIS_PUBLIC;
-    Coin   coin    = 1 [(hi.visibility) = VIS_PUBLIC];
-    string address = 2 [(hi.visibility) = VIS_PUBLIC];
-    string amount  = 3 [(hi.visibility) = VIS_PUBLIC]; // 金额
-    string price   = 4 [(hi.visibility) = VIS_PUBLIC]; // 币价，单位USDT
+    Coin            coin    = 1 [(hi.visibility) = VIS_PUBLIC];
+    optional string address = 2 [(hi.visibility) = VIS_PUBLIC];
+    optional string amount  = 3 [(hi.visibility) = VIS_PUBLIC]; // 金额
+    optional string price   = 4 [(hi.visibility) = VIS_PUBLIC]; // 币价，单位USDT
   }
-  repeated Unit unit     = 1 [(hi.visibility) = VIS_PUBLIC];
-  string        exchange = 2 [(hi.visibility) = VIS_PUBLIC]; // 汇率：USD->CNY
+  repeated Unit   unit     = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional string exchange = 2 [(hi.visibility) = VIS_PUBLIC]; // 汇率：USD->CNY
 }
 
 // 刷新自己的资产快照。did 从 token 取(不接受任意 did 入参 —— 原 did 入参可覆写他人资产,越权)。
 // 币种数据驱动:repeated {coin, amount},加币种不必改 proto(原来每加一种就得手工加字段+分段跳号)。
 message UpdateAssetsReq {
   message Asset {
-    string coin   = 1; // 币种标识:btc/eth/usdt_erc20/trx/usdt_trc20/sol/apt/...
-    string amount = 2;
+    optional string coin   = 1; // 币种标识:btc/eth/usdt_erc20/trx/usdt_trc20/sol/apt/...
+    optional string amount = 2;
   }
   repeated Asset assets = 1;
 }

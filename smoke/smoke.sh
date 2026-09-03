@@ -10,7 +10,6 @@ set -uo pipefail
 # 端点/CA 的统一约定见 _endpoints.sh(前端可达→域名 TLS,内部服务→内网 IP)。
 source "$(dirname "$0")/_endpoints.sh"
 G=/home/lo/go/bin/grpcurl
-PS=/home/lo/ci/hi-proto-code/lua/hi.pb
 pass=0; fail=0
 
 ok()   { printf "  \033[32m✓\033[0m %s\n" "$1"; pass=$((pass+1)); }

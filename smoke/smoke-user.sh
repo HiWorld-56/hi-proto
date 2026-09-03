@@ -88,7 +88,17 @@ SA=$(A "$API/super_admin/list")
 chkcode "SuperAdmin.List 取超管名单" "$SA" 0
 N=$(echo "$SA" | grep -oE 'z[A-Za-z0-9]{20,}' | wc -l)
 [ "$N" -gt 0 ] && ok "超管名单非空($N 个)" || bad "超管名单" "空列表 —— hidid 穿透可能挂了"
-echo "$SA" | grep -q "$DID" && bad "测试用户不该是超管" "它出现在名单里" || ok "测试用户非超管(符合预期)"
+# ⚠️ **两个身份都要查。** 下面「List 混入别人的机器人 → 整体拒绝」那条用的是
+#    人用户($DID_U),而超管是能穿透这道检查的 —— 只查机器人($DID)的话,
+#    人用户一旦被加进超管名单,那条用例就会红,而红的原因指不到任何产品问题。
+#    2026-09-03 真踩到:为了覆盖管理端接口临时把 $DID_U 加进了名单,
+#    smoke-user 当场 20/1,查了十几分钟才发现是**夹具自己**造的。
+echo "$SA" | grep -q "$DID" && bad "机器人不该是超管" "它出现在名单里" || ok "机器人非超管(符合预期)"
+if echo "$SA" | grep -q "$DID_U"; then
+  bad "人用户不该是超管" "$DID_U 在名单里 —— 后面的越权用例会被它穿透,先把它从 hi_did.hi_superadmin 里删掉再跑"
+else
+  ok "人用户非超管(符合预期,越权用例才有意义)"
+fi
 
 chkcode "UserDirectory.ListOnline(免鉴权,带 token 也应通)" \
         "$(P $API/user_directory/list_online "{\"users\":[\"$DID\"]}")" 0

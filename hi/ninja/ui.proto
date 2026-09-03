@@ -11,12 +11,13 @@ import "hi/club/messaging.proto";
 import "hi/ai/plugin.proto";
 import "hi/did/transfer.proto";
 
-// hinj_brain <-> hinj_face IPC
+// **hinj_brain ←→ hinj_ui（face）** 这一条线。
 //
-// 传输层：ZMQ ROUTER/DEALER，payload 为本文件定义的 protobuf 二进制单帧。
-// 注册机制：face 启动后周期性发裸字节 "PING"，brain 回 "PONG"，
-//   brain 以此将 face 的 ZMQ identity 加入在线模块集合，才能向 face 发送消息。
-//   周期发送仅为应对 brain 重启后身份丢失的情况，非传统心跳。
+// 传输与注册那套约定是**所有模块共用的**，写在 `hi/ninja/common.proto` 里，
+// 不要在各模块的文件里各抄一份。
+//
+// ⚠️ 本文件按「谁跟谁说话」划分，不按话题。所以 `PluginProgress` 在这儿 ——
+// 它讲的是插件，但它是**给脸上显示的**；插件本身的执行走 `hi/ninja/lua.proto`。
 
 // 二态开关：语音监听开始/结束、音频播放开始/结束等
 enum StateToggle {
@@ -36,7 +37,7 @@ enum Emotion {
 // 机器人初始化：自身身份 + 当前所有者
 // master 缺省表示尚未绑定所有者
 message RobotInit {
-  hi.Entity robot    = 1;
+  hi.Entity robot  = 1;
   hi.Entity master = 2;
 }
 
@@ -53,13 +54,13 @@ message GroupInfoList {
 // 所有者变更事件
 // trigger: bind（新绑定）/ unbind（解绑，此时 master 缺省）/ update（资料更新，绑定关系不变）
 message MasterEvent {
-  hi.Entity master  = 1;
+  hi.Entity       master  = 1;
   // 触发源:
   //   bind    绑定了主人(master = 新主人)
-  //   unbind  解绑(master 为空)
+  //   unbind  解绑(master 不传)
   //   update  **主人还是那个人,但他改了资料**(master = 主人当前完整的 Entity)
   // ⚠️ update 这档别按 did 判重 —— did 没变正是它的常态,变的是 name/avatar。
-  string    trigger = 2;
+  optional string trigger = 2;
 }
 
 // AI 文字回复
@@ -67,71 +68,71 @@ message MasterEvent {
 // 和 show_im_reply / show_voice_reply 两端传递，face 据此将回复路由到对应的对话框。
 // value 为 AI 输出的纯文本，不封装为 Message 结构。
 message TextReply {
-  string uuid  = 1;
-  string value = 2;
+  optional string uuid  = 1;
+  optional string value = 2;
 }
 
 // TTS 音频播放
 // uuid 与对应的 TextReply.uuid 一致，audio 为完整音频文件的原始字节。
 message AudioPlay {
-  string uuid  = 1;
-  bytes  audio = 2;
+  optional string uuid  = 1;
+  optional bytes  audio = 2;
 }
 
 // 币安接入设置。**凭证与业务参数分开放** —— 初始本金不是凭证，
 // 它是算累计收益用的基数；混在一条里，改一次本金就得把 api_secret 整条重发一遍。
 message BinanceSettings {
-  BinanceCredentials credentials      = 1;
+  BinanceCredentials credentials     = 1;
   // 初始本金。**十进制字符串**，与本仓所有金额字段同口径（免浮点误差）。
-  string             initial_capital  = 2;
+  optional string    initial_capital = 2;
 }
 
 // 币安 API 凭证。
 // ⚠️ `api_secret` 是敏感字段，**只允许走 brain ↔ face 这条本地 ZMQ**，不出机器。
 message BinanceCredentials {
-  string api_key    = 1;
-  string api_secret = 2;
+  optional string api_key    = 1;
+  optional string api_secret = 2;
 }
 
 // brain -> face：所有指令通过 oneof 路由
 message BrainToFace {
   oneof cmd {
     // 初始化
-    RobotInit               init_robot         = 1;  // face 上线时推送，携带机器人和所有者身份
+    RobotInit             init_robot             = 1;  // face 上线时推送，携带机器人和所有者身份
 
     // 交互状态
-    StateToggle           show_listen      = 2;  // 语音监听开始/结束
-    Emotion               show_emotion     = 3;  // 情绪表达
+    StateToggle           show_listen            = 2;  // 语音监听开始/结束
+    Emotion               show_emotion           = 3;  // 情绪表达
 
     // 对话内容
-    hi.club.Message       show_im_request  = 4;  // 收到 IM 消息（单聊/所有者/群聊）
-    TextReply             show_im_reply    = 5;  // IM 对话的 AI 回复
-    TextReply             show_voice_reply = 6;  // 语音对话的 AI 回复
-    google.protobuf.Empty show_qr_code     = 7;  // 展示机器人 DID 二维码
+    hi.club.Message       show_im_request        = 4;  // 收到 IM 消息（单聊/所有者/群聊）
+    TextReply             show_im_reply          = 5;  // IM 对话的 AI 回复
+    TextReply             show_voice_reply       = 6;  // 语音对话的 AI 回复
+    google.protobuf.Empty show_qr_code           = 7;  // 展示机器人 DID 二维码
 
     // 状态事件
-    hi.Entity             event_robot         = 8;  // 机器人自身资料变更
-    MasterEvent           event_master      = 9;  // 所有者绑定状态变化
-    hi.club.GroupInfo     event_members     = 10; // 群成员列表（全量）
-    hi.ai.PluginView      event_plugin      = 11; // 插件加载完成
-    PluginProgress        event_plugin_progress = 20; // 插件下载/安装进度
-    hi.did.Transaction    event_transaction = 12; // 收到转账
+    hi.Entity             event_robot            = 8;  // 机器人自身资料变更
+    MasterEvent           event_master           = 9;  // 所有者绑定状态变化
+    hi.club.GroupInfo     event_members          = 10; // 群成员列表（全量）
+    hi.ai.PluginView      event_plugin           = 11; // 插件加载完成
+    PluginProgress        event_plugin_progress  = 20; // 插件下载/安装进度
+    hi.did.Transaction    event_transaction      = 12; // 收到转账
 
     // 媒体：uuid="" 时路由到 dialog_voice，否则按 uuid 路由到对应 IM dialog
-    AudioPlay             play_audio = 13; // TTS 音频播放
+    AudioPlay             play_audio             = 13; // TTS 音频播放
 
     // 好友变更
-    FriendList            event_friends       = 15; // 好友列表全量推送（初始化时）
-    hi.Entity             event_friend_delete = 14; // 被对方删除好友，face 从单聊列表移除该成员
-    hi.Entity             event_friend_add    = 16; // 新增好友，face 将其加入单聊成员列表
+    FriendList            event_friends          = 15; // 好友列表全量推送（初始化时）
+    hi.Entity             event_friend_delete    = 14; // 被对方删除好友，face 从单聊列表移除该成员
+    hi.Entity             event_friend_add       = 16; // 新增好友，face 将其加入单聊成员列表
 
     // 群成员初始化（全量批量，初始化时推送）
-    GroupInfoList         members_init        = 17;
+    GroupInfoList         members_init           = 17;
 
     // 系统状态：NTP 时间同步 + 网络连通性（face 上线推送 + 状态变化时推送）
-    StatusEvent           event_status        = 18;
+    StatusEvent           event_status           = 18;
     //资源更新信息同步
-    UpdateInfo            event_update        = 19;
+    UpdateInfo            event_update           = 19;
 
     // 币安设置同步（凭证 + 初始本金；仅限本地 face IPC）
     BinanceSettings       event_binance_settings = 21;
@@ -143,9 +144,9 @@ message BrainToFace {
 // ntp:  系统时间已同步（时间戳 > 1_750_000_000，即 2025-06 之后）
 // wifi: 服务器 TCP 443 可达
 message StatusEvent {
-  bool ntp  = 1;
-  bool wifi = 2;
-  bool usb  = 3;
+  optional bool ntp  = 1;
+  optional bool wifi = 2;
+  optional bool usb  = 3;
 }
 //资源更新进度信息
 // `state`：当前更新状态，例如 `idle`、`checking`、`downloading`、`installing`、`success`、`failed` 等。 
@@ -153,33 +154,43 @@ message StatusEvent {
 // `target_version`：目标版本号，也就是准备更新到的版本。 
 // `progress`： 更新进度，通常是 `0-100` 的百分比。 
 // `message` ： 给用户或前端展示的状态说明，例如“正在下载更新包”。 
-// `error` ：错误信息。更新失败时记录失败原因；正常情况下通常为空。 
+// `error` ：错误信息。更新失败时记录失败原因；正常情况下不传。 
 // `changes` ：版本变更列表，通常是 changelog，例如修复了哪些问题、增加了哪些功能。 
 // `trigger`：更新触发来源，例如 `manual` 手动触发、`auto` 自动检查、`startup` 启动时触发等。 
 // `updated_at` ：状态最后更新时间，通常是 Unix 时间戳。具体是秒还是毫秒要看实现约定。 
 // `downloaded_bytes`：已下载的字节数。 
 // `total_bytes`：需要下载的总字节数。可用于计算下载百分比。 
 message UpdateInfo {
-  string state = 1;
-  string current_version = 2;
-  string target_version = 3;
-  uint32 progress = 4;
-  string message = 5;
-  string error = 6;
-  repeated string changes = 7;
-  string trigger = 8;
-  uint64 updated_at = 9;
-  uint64 downloaded_bytes = 10;
-  uint64 total_bytes = 11;
+  optional string state            = 1;
+  optional string current_version  = 2;
+  optional string target_version   = 3;
+  optional uint32 progress         = 4;
+  optional string message          = 5;
+  optional string error            = 6;
+  repeated string changes          = 7;
+  optional string trigger          = 8;
+  optional uint64 updated_at       = 9;
+  optional uint64 downloaded_bytes = 10;
+  optional uint64 total_bytes      = 11;
 }
 
 // face -> brain
 message FaceToBrain {
   oneof cmd {
-    StateToggle voice_state = 1; // 音频播放开始/结束，brain 据此控制麦克风静音
-    UpdateAction update_action = 2;//更新动作
+    StateToggle           voice_state          = 1; // 音频播放开始/结束，brain 据此控制麦克风静音
+    UpdateAction          update_action        = 2;//更新动作
     // face 重启后内存缓存是空的，用它主动要一次（本文件里空请求一律用 Empty，见 show_qr_code）
     google.protobuf.Empty get_binance_settings = 3;
+    // 🔴 **模块就绪了，请把初始化数据推给我。** brain 收到才推 RobotInit + 全量关系列表。
+    //
+    // 为什么由模块主动要，而不是 brain 在「看到它上线」时自己推：
+    // **brain 不知道模块准备好了没有。** 上线只说明它的连接建起来了；
+    // 而模块可能还在起自己的界面/缓存，这时候推过去的数据它接不住，
+    // 而 brain 那侧一切正常 —— 又是一次零报错的丢数据。
+    //
+    // ⚠️ 这条也是**重连后的恢复口**：brain 重启过、或模块自己重启过，
+    // 都由模块在准备好之后再要一次，不必让 brain 去猜「这次是新上来的还是一直都在」。
+    google.protobuf.Empty request_init          = 4;
   }
 }
 // 插件下载/安装进度。
@@ -198,15 +209,15 @@ message PluginProgress {
     STATE_DONE        = 3; // 装好了(已热加载,可以用了)
     STATE_FAILED      = 4; // 这一个失败了 —— **不影响其它插件**
   }
-  string uuid   = 1;
-  string title  = 2; // 给用户看的名字;取不到就退回 uuid
-  State  state  = 3;
+  optional string uuid             = 1;
+  optional string title            = 2; // 给用户看的名字;取不到就退回 uuid
+  optional State  state            = 3;
   // 0-100。**总长度未知时恒为 0** —— 服务端不给 Content-Length 是有可能的,
   // 那时候宁可不显示百分比,也别编一个会往回跳的数字。
-  uint32 progress        = 4;
-  uint64 downloaded_bytes = 5;
-  uint64 total_bytes      = 6; // 0 = 未知
-  string message          = 7; // 失败原因(state=FAILED 时)
+  optional uint32 progress         = 4;
+  optional uint64 downloaded_bytes = 5;
+  optional uint64 total_bytes      = 6; // **不传 = 未知**(服务端没给 Content-Length);0 是真实取值:空文件
+  optional string message          = 7; // 失败原因(state=FAILED 时)
 }
 
 //更新动作
@@ -218,6 +229,6 @@ message UpdateAction {
     ACTION_DISMISS = 3;
   }
 
-  Action action = 1;
+  optional Action action = 1;
 }
 

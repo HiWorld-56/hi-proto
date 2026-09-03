@@ -12,15 +12,15 @@ import "hi/options.proto";
 message AgentDelayUnit {
   option (hi.audience) = VIS_SELF; // 商户自家 agent 的各段耗时(AUTH_MERCHANT,只有 owner 看自己的);
                                    // 与 AgentUsageResp(同 owner 运营指标)一致取 SELF —— 无 participant 对端会看别人机器人的延迟
-  string agent         = 1 [(hi.visibility) = VIS_SELF];
-  string uuid          = 2 [(hi.visibility) = VIS_SELF];
-  string type          = 3 [(hi.visibility) = VIS_SELF];
-  int32  llm           = 4 [(hi.visibility) = VIS_SELF];
-  int32  llm2          = 5 [(hi.visibility) = VIS_SELF];
-  int32  stt           = 6 [(hi.visibility) = VIS_SELF];
-  int32  tts           = 7 [(hi.visibility) = VIS_SELF];
-  int32  function_call = 8 [(hi.visibility) = VIS_SELF];
-  int64  test_time     = 9 [(hi.visibility) = VIS_SELF];
+  optional string agent         = 1 [(hi.visibility) = VIS_SELF];
+  optional string uuid          = 2 [(hi.visibility) = VIS_SELF];
+  optional string type          = 3 [(hi.visibility) = VIS_SELF];
+  optional int32  llm           = 4 [(hi.visibility) = VIS_SELF];
+  optional int32  llm2          = 5 [(hi.visibility) = VIS_SELF];
+  optional int32  stt           = 6 [(hi.visibility) = VIS_SELF];
+  optional int32  tts           = 7 [(hi.visibility) = VIS_SELF];
+  optional int32  function_call = 8 [(hi.visibility) = VIS_SELF];
+  optional int64  test_time     = 9 [(hi.visibility) = VIS_SELF];
 }
 
 // 概览:**每台机器人各一条**(各自最新)。要看某一台的历次记录用 ListHistory。
@@ -29,20 +29,20 @@ message AgentDelayUnit {
 // 而且**连分页都忽略、total 恒为 1**:一个方法两种语义、靠参数空不空隐式分支,
 // proto 上完全看不出来。已拆成 ListHistory,**别再把 agent 加回这里**。
 message ListAgentDelaysReq {
-  string        type       = 1; // 可选:按类型过滤(**空 = 全部类型**)
-  hi.Pagination pagination = 2;
+  optional string type       = 1; // 可选:按类型过滤(**不传 = 全部类型**)
+  hi.Pagination   pagination = 2;
 }
 
 // 明细:**某一台机器人的历次**测时记录,按时间倒序分页。
 message ListAgentDelayHistoryReq {
-  string        agent      = 1 [(buf.validate.field).string.pattern="^\\S+$"];
-  string        type       = 2; // 可选:按类型过滤(**空 = 全部类型**)
-  hi.Pagination pagination = 3;
+  optional string agent      = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  optional string type       = 2; // 可选:按类型过滤(**不传 = 全部类型**)
+  hi.Pagination   pagination = 3;
 }
 
 message ListAgentDelaysResp {
   option (hi.audience) = VIS_SELF; // 我的机器人延迟统计列表
-  int32                   total = 1 [(hi.visibility) = VIS_SELF];
+  optional int32          total = 1 [(hi.visibility) = VIS_SELF];
   repeated AgentDelayUnit units = 2 [(hi.visibility) = VIS_SELF];
 }
 
