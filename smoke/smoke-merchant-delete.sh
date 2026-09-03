@@ -52,7 +52,7 @@ TA="DBUserInformationExtension_$A"
 cleanup() {
   mysqlq hi_did "delete from hi_superadmin where did='$ADMIN' and note like '冒烟:%';
                  delete from hi_merchant_grant where merchant like 'zSMK${SFX}%' or grantee like 'zSMK${SFX}%';
-                 delete from hi_merchant where did like 'zSMK${SFX}%';
+                 delete from hi_merchant where did like 'zSMK${SFX}%' or token='tokself${SFX}';
                  drop table if exists \`$TA\`;" >/dev/null
 }
 trap cleanup EXIT
@@ -81,6 +81,56 @@ sleep 70
 # 那时探针会红成"权限没生效",指错方向。用一个必定走到 handler 的 Delete 代替:
 # 拿到「商户不存在」就说明已经穿过拦截器了(没穿过的话是 PermissionDenied)。
 eq "超管权限已生效" "$(g '{"id":"znosuchmerchant"}' hi.did.MerchantManage/Delete | grep -c '商户不存在')" "1"
+
+# ── ①.5 一条坏数据不该毁掉整页 ──────────────────────────────────────────
+# 夹具商户在 hi_user 里没有对应行(它们不是登录出来的),正好是天然的坏数据。
+# 原来 List 会为此整页 500「user not found」—— 超管台于是**连删都删不了**,
+# 因为那个坏商户根本列不出来。现在的口径:did 照出,name/avatar 补不到就 absent。
+echo "── 坏数据(hi_user 里没有对应行)不该毁掉整页 ──"
+LST=$(g '{"pagination":{"page":1,"limit":200}}' hi.did.MerchantManage/List)
+eq "List 没有整页失败" "$(echo "$LST" | grep -c 'user not found')" "0"
+echo "$LST" | python3 -c '
+import json,sys
+want = sys.argv[1]
+try:
+    d = json.load(sys.stdin)
+except Exception as e:
+    print("PARSE_FAIL", e); sys.exit()
+hit = [u for u in d.get("list", []) if u.get("base", {}).get("master", {}).get("did") == want]
+if not hit:
+    print("MISSING")           # 被静默丢掉了 —— 正是我们不要的那种"修法"
+else:
+    m = hit[0]["base"]["master"]
+    print("NAME_PRESENT" if "name" in m else "OK_DID_ONLY")
+' "$A" > /tmp/smk_$$.out
+eq "坏商户仍列得出来,且 name 是 absent(不是空串)" "$(cat /tmp/smk_$$.out)" "OK_DID_ONLY"
+rm -f /tmp/smk_$$.out
+
+# ── ①.6 商户面同一处:结算实体查不到用户,不许把 Server.did 冲成空串 ──────
+# Merchant.Get 原来给 payer 兜的是 `&model.UserModel{}` —— 于是 Server.did 变成
+# 空串,商户后台再也看不出钱要打给谁,而接口一声不响地回 200。
+# 拿 $A(没有 hi_user 行)当结算实体来验。
+echo "── 商户面:结算实体查不到用户 ──"
+if [ "$(mysqlq hi_did "select count(*) from hi_merchant where did='$ADMIN'")" != "0" ]; then
+  echo "  \033[33m—\033[0m 跳过:$ADMIN 本来就是商户,不动真数据"
+else
+  mysqlq hi_did "insert into hi_merchant (token,did,name,btc,eth,trx,sol,apt,server_did,extend_table,created_at,updated_at)
+                 values ('tokself$SFX','$ADMIN','冒烟自己当商户',1,3,3,3,1,'$A','',now(),now())" >/dev/null
+  g '{}' hi.did.Merchant/Get > /tmp/smk_get_$$.out 2>&1
+  python3 -c '
+import json,sys
+try: d=json.load(open(sys.argv[2]))
+except Exception as e: print("PARSE_FAIL",e); sys.exit()
+srv=d.get("info",{}).get("server",{})
+if srv.get("did")!=sys.argv[1]: print("DID_LOST:"+repr(srv.get("did")))
+elif "name" in srv: print("NAME_PRESENT")
+else: print("OK_DID_ONLY")
+' "$A" /tmp/smk_get_$$.out > /tmp/smk_get2_$$.out
+  eq "Merchant.Get 的 Server.did 没被冲成空串,name 是 absent" "$(cat /tmp/smk_get2_$$.out)" "OK_DID_ONLY"
+  rm -f /tmp/smk_get_$$.out /tmp/smk_get2_$$.out
+  mysqlq hi_did "delete from hi_merchant where did='$ADMIN' and token='tokself$SFX'" >/dev/null
+  eq "收尾:自建的商户行已删" "$(mysqlq hi_did "select count(*) from hi_merchant where token='tokself$SFX'")" "0"
+fi
 
 # ── ② 删完整商户:商户行 / 扩展表 / **两个方向的授权行** 都要没 ────────────
 echo "── 删完整商户 ──"
