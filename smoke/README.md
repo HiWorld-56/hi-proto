@@ -55,6 +55,7 @@ magic 值,答复里出现了才算数。
 | `smoke-lua.sh` | lua 插件:发版认成 LUA → 制品当场就绪 → **进下发清单**(按架构筛) |
 | `smoke-lua-onrobot.sh` | lua 的**最后一环**:真机器人上模型点得动它(判据是 magic 值) |
 | `smoke-plugin-lifecycle.sh` | 插件**发版之后**那 10 条路由(切版/开关/删版本/reload_api_key) |
+| `smoke-lua-deps.sh` | lua 的 **C 模块依赖**五段全链(requirements.txt → 集合 → 下发 → require) |
 | `null_static.sh` | 「空值改造」的**四道静态闸**,一条命令跑完 |
 | `empty_in_resp.sh` | 「空值改造」的**最后一道**:真调接口,数回包里的 `"字段": ""` |
 
