@@ -52,6 +52,8 @@ magic 值,答复里出现了才算数。
 | `smoke-chain-fc.sh` | 链式 function call(第二步依赖第一步的输出) |
 | `smoke-external.sh` | EXTERNAL 结算:商户 Pull/Notify + 四道闸 |
 | `smoke-order-onchain.sh` | **订单制真钱闭环**(Aptos FA)。⚠️ 会真花钱 |
+| `smoke-lua.sh` | lua 插件:发版认成 LUA → 制品当场就绪 → **进下发清单**(按架构筛) |
+| `smoke-lua-onrobot.sh` | lua 的**最后一环**:真机器人上模型点得动它(判据是 magic 值) |
 | `null_static.sh` | 「空值改造」的**四道静态闸**,一条命令跑完 |
 | `empty_in_resp.sh` | 「空值改造」的**最后一道**:真调接口,数回包里的 `"字段": ""` |
 

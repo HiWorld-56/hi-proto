@@ -3,6 +3,11 @@
 set -uo pipefail
 source "$(dirname "$0")/_endpoints.sh"
 TOK="$1"; PKG="$2"
+# 下发清单那步要走 grpc:protoset 由 _endpoints.sh 解析成 $PS;
+# 端点用**内网明文**(9536)而不是 hi.lan:443 —— 与 null_test.sh 同一套,
+# 免得再拖一份 CA 进来。
+CLUB_GRPC_PLAIN=${CLUB_GRPC_PLAIN:-192.168.1.65:9536}
+command -v grpcurl >/dev/null || PATH=$PATH:/home/lo/go/bin
 MAGIC="HI-LUA-8K4PZ2"
 pass=0; fail=0
 ok(){ printf "  \033[32m✓\033[0m %s\n" "$1"; pass=$((pass+1)); }
@@ -61,8 +66,48 @@ has "**制品发版当场就是 SUCCEEDED**(不需要编译)" "$ART" 'PLUGIN_ART
 
 echo
 echo "── 下发清单(机器人问「我该装什么」)──"
+#
+# `hi.club.AgentPlugin` 整个 service 在 http_optout 里(机器人经 core 的 grpc 通道调),
+# 所以 http 那条**必然** code 5 —— 先把这个"对的 404"钉住,免得哪天它变成 200 都没人发现。
 ND=$(cj agent_plugin/list_on_device '{"arch":"aarch64"}')
-echo "  list_on_device(这个 service 整个不上 http 网关,code 5 是对的;grpc 那条见文件末尾):$(echo "$ND"|head -c 200)"
+case "$ND" in
+  *'"code":5'*) ok "http 面确实没有这条(整个 service 在 http_optout 里)";;
+  *) bad "list_on_device 不该上 http 网关" "$(echo "$ND"|head -c 150)";;
+esac
+
+# 真正的下发清单走 grpc,用**机器人自己的 token**。
+#
+# ⚠️ 这一步以前只 echo 不断言 —— 也就是**从来没被验过**。
+#    它恰恰是 lua 那条链最关键的一环:发版认出了 LUA、制品也就绪了,
+#    但只要下发清单里没有它,机器人就永远装不上,而**没有任何报错**
+#    (清单为空对机器人的含义是「这插件我不该有」,它会把本地那份删掉)。
+RTOK=$(ssh -o ConnectTimeout=10 192.168.1.66 \
+        "cd /tmp/tokgen && MN_FILE=/tmp/65_vclient_mn.txt DEV=embedded ./target/release/tokgen 2>/dev/null" \
+       | grep '^TOKEN=' | cut -d= -f2-)
+if [ -z "$RTOK" ]; then
+  printf "  \033[33m—\033[0m 没验:拿不到机器人 token(.66 的 /tmp/tokgen)\n"
+else
+  # arch 传 x86_64:清单要按机器人架构筛 —— lua 的 target=any 通吃,rust 的必须同架构。
+  DEV_LIST=$(grpcurl -plaintext -protoset "$PS" -H "Authorization: Bearer $RTOK" \
+               -d '{"arch":"x86_64"}' "$CLUB_GRPC_PLAIN" hi.club.AgentPlugin/ListOnDevice 2>&1)
+  case "$DEV_LIST" in
+    *'"list"'*)
+      ok "grpc 下发清单拿得到(机器人 token)"
+      has "清单里有 **LUA** 条目" "$DEV_LIST" 'PLUGIN_LANG_LUA'
+      # lua 制品与架构无关 —— 这是 lua 相对 rust 的核心差别,必须钉住。
+      # 同时验 RUST 条目**按架构筛过**:两者在同一份清单里并存才说明筛法是对的。
+      OUT=$(printf '%s' "$DEV_LIST" | python3 "$(dirname "$0")/_devlist_check.py" x86_64)
+      RC=$?
+      printf '%s\n' "$OUT"
+      case $RC in
+        0) pass=$((pass+2));;
+        2) pass=$((pass+1));;   # lua 对了,但这台机器人身上没有 RUST 插件可比
+        *) fail=$((fail+1));;
+      esac
+      ;;
+    *) bad "grpc 下发清单" "$(echo "$DEV_LIST"|head -c 200)";;
+  esac
+fi
 
 echo
 # ⚠️ **这里故意不断言"模型调得动"。**
