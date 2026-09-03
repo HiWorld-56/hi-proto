@@ -349,5 +349,70 @@ else
 fi
 
 echo
+echo "══════ 六、core 那一层也要能表达「不传=不动」 ══════"
+#
+# 前面几节验的是**后端**的 presence 语义。但客户端够不着后端 ——
+# 它经 `hiclub-core-mqtt` 的 `update_my_profile`,而那个方法原来收三个裸 `&str`,
+# 进去一律 `Some(...)`:**物理上表达不了"不传"**,于是每个调用方都被迫
+# 先 GetCurrentUser 拿现值、把不打算改的字段 `unwrap_or_default()` 之后原样回写。
+#
+# 那套绕法关不住一个洞:`unwrap_or_default()` 把"没有头像"摊成 `""`,
+# 而 `""` 在后端是**清空**。只要那一刻读回来是空的(刚登录还没刷新、或那次读失败),
+# 一次「只改验证方式」就能把用户真实的头像抹掉,**而且全程没有任何报错**。
+#
+# 2026-09-03 改成四个字段各自 `Option`。这一节把三种取值都钉住 ——
+# 少了它,下次有人"顺手"把签名改回裸 String,前面五节照样全绿。
+UMP_MN=${UMP_MN_FILE:-/tmp/cam_mn.txt}
+UMP_DID=${UMP_DID:-zTAYhBG2DfQyKphn1qP3ksRBQWGiZqfbLV}
+NEXT=${NEXT_HOST:-192.168.1.66}
+pc(){ ssh -o ConnectTimeout=15 "$NEXT" \
+        "cd ~/wip/hiclub-core-mqtt && ./target/release/peer_cli $1 \"\$(cat $UMP_MN)\" $2" 2>&1 | tail -1; }
+umpq(){ sql "select concat(ifnull(name,'<NULL>'),'|',ifnull(avatar,'<NULL>'),'|',ifnull(friend_verify_policy,'<NULL>')) from hi_club.hi_chat_user where did='$UMP_DID'"; }
+
+if ! ssh -o ConnectTimeout=10 "$NEXT" "test -x ~/wip/hiclub-core-mqtt/target/release/peer_cli" 2>/dev/null; then
+  sk "core 的 update_my_profile 三态" "$NEXT 上没有 peer_cli(cargo build --release --features testkit --bin peer_cli)"
+else
+  # 先把三样设成已知值 —— **断言之前先把前提摆平**,否则"没变"是二义的。
+  pc profile "ump-base http://x/UMP.png" >/dev/null
+  pc accept-on "" >/dev/null
+  BASE=$(umpq)
+  case "$BASE" in
+    "ump-base|http://x/UMP.png|auto_accept") ok "前提:name/avatar/policy 三样都设好了";;
+    *) sk "core 的 update_my_profile 三态" "前提没摆平(got=$BASE),这一节没验"; BASE="";;
+  esac
+
+  if [ -n "$BASE" ]; then
+    # ① 只改名字 → 另外两样**一个都不许动**
+    pc profile "ump-renamed" >/dev/null
+    A=$(umpq)
+    [ "$A" = "ump-renamed|http://x/UMP.png|auto_accept" ] \
+      && ok "只改 name → avatar / policy **原样不动**(不传=不动)" \
+      || no "只改 name 却动了别的" "want=ump-renamed|http://x/UMP.png|auto_accept got=$A"
+
+    # ② 只改验证方式 → name/avatar 不许动。
+    #    这条是老写法最危险的那个入口:它只想改 policy,却被迫回写 avatar。
+    pc accept-on "" >/dev/null
+    B=$(umpq)
+    [ "$B" = "ump-renamed|http://x/UMP.png|auto_accept" ] \
+      && ok "只改 policy → name / avatar **原样不动**" \
+      || no "只改 policy 却动了别的" "got=$B"
+
+    # ③ 显式传空串 → **真的清空,而且落 NULL 不是空串**。
+    #    别从一个极端跑到另一个极端:改成 Option 之后"清空"这条路必须还在。
+    pc profile "ump-renamed ''" >/dev/null
+    C=$(sql "select if(avatar is null,'<NULL>',concat('[',avatar,']')) from hi_club.hi_chat_user where did='$UMP_DID'")
+    [ "$C" = "<NULL>" ] \
+      && ok "显式传空串 → 真的清空,且落 **NULL** 不是空串" \
+      || no "传空串没清干净" "got=$C"
+
+    # 收尾:设回去,别给下一个用这个账号的人留一个没头像的用户
+    pc profile "ump-base http://x/UMP.png" >/dev/null
+    D=$(sql "select ifnull(avatar,'<NULL>') from hi_club.hi_chat_user where did='$UMP_DID'")
+    [ "$D" = "http://x/UMP.png" ] && ok "收尾:头像设得回来(不是一去不回)" \
+                                  || no "收尾没设回去" "got=$D"
+  fi
+fi
+
+echo
 printf "结果:通过 ${G}%d${N},失败 ${R}%d${N},跳过 ${Y}%d${N}\n" "$pass" "$fail" "$skip"
 [ "$fail" -eq 0 ]
