@@ -156,14 +156,32 @@ PYEOF
 case $? in 0) pass=$((pass+2));; *) fail=$((fail+1));; esac
 
 echo
-echo "── 清理(撤权 → 删挂牌 → 删壳 → 删机器人)──"
-# ⚠️ 依赖按**引用计数**回收,不按"这个插件的清单" —— 撤权之后集合里那份
+echo "── 清理(撤权 → 下架 → 删壳 → 删机器人)──"
+#
+# 🔴 **清理也要断言。** 这一段原来把四个调用全 `>/dev/null` 了 ——
+#    2026-09-03 实测:token 中途失效,四步全失败,而脚本照样报「11 / 0」,
+#    在**真机器人上**留下一个 ldep-demo 和一条 INSTALLED 的授权。
+#    这台机器人同事也在用,残留会让他们看到不该有的能力,
+#    而且 `delete_shell` 在还有引用时本来就会被拒 —— 撤权一旦失败,后面必然连锁失败。
+#
+# ⚠️ 依赖按**引用计数**回收,不按"这个插件的清单":撤权之后集合里那份
 #    可能还被别的插件用着,brain 不该删它。这里只清我们自己造的东西。
+cleanup_fail=0
+step(){ # step <说明> <路由> <body>
+  local r; r=$(cj "$2" "$3")
+  case "$r" in
+    *'"code":0'*) printf "  ${G}✓${N} 清理:%s\n" "$1";;
+    *) printf "  ${R}✗${N} 清理没做掉:%s\n     → %s\n" "$1" "$(echo "$r"|head -c 160)"
+       cleanup_fail=1;;
+  esac
+}
 GR=$(printf '%s' "$OF" | g data grantUuid)
-[ -n "$GR" ] && cj market/revoke "{\"grant_uuid\":\"$GR\"}" >/dev/null
-[ -n "$L" ]  && cj market/set_listing_status "{\"uuid\":\"$L\",\"status\":4}" >/dev/null
-cj plugin/delete_shell "{\"agent\":\"$B\",\"uuid\":\"$P\"}" >/dev/null
-cj agent/delete "{\"agent\":\"$B\"}" >/dev/null
+[ -n "$GR" ] && step "撤回机器人上的授权" market/revoke "{\"grant_uuid\":\"$GR\"}"
+[ -n "$L" ]  && step "挂牌下架"           market/set_listing_status "{\"uuid\":\"$L\",\"status\":4}"
+step "删插件壳"   plugin/delete_shell "{\"agent\":\"$B\",\"uuid\":\"$P\"}"
+step "删测试机器人" agent/delete "{\"agent\":\"$B\"}"
+# 清理失败要计进失败数 —— 否则"跑通了但把环境弄脏了"会一直显示满分。
+[ "$cleanup_fail" = 0 ] || fail=$((fail+1))
 
 echo
 printf "结果:通过 ${G}%d${N},失败 ${R}%d${N}\n" "$pass" "$fail"

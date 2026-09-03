@@ -184,8 +184,19 @@ esac
 
 echo
 echo "── 清理 ──"
-cj plugin/delete_shell "{\"agent\":\"$B\",\"uuid\":\"$P\"}" >/dev/null
-cj agent/delete "{\"agent\":\"$B\"}" >/dev/null
+# 🔴 **清理也要断言**(同 smoke-lua-deps.sh 里那段的理由):
+#    把它 `>/dev/null` 掉的话,token 中途失效时脚本照样满分,而环境被留脏。
+cleanup_fail=0
+for spec in "删插件壳|plugin/delete_shell|{\"agent\":\"$B\",\"uuid\":\"$P\"}" \
+            "删测试机器人|agent/delete|{\"agent\":\"$B\"}"; do
+  name=${spec%%|*}; rest=${spec#*|}; route=${rest%%|*}; body=${rest#*|}
+  r=$(cj "$route" "$body")
+  case "$r" in
+    *'"code":0'*) printf "  ${G}✓${N} 清理:%s\n" "$name";;
+    *) printf "  ${R}✗${N} 清理没做掉:%s\n     → %s\n" "$name" "$(echo "$r"|head -c 160)"; cleanup_fail=1;;
+  esac
+done
+[ "$cleanup_fail" = 0 ] || fail=$((fail+1))
 
 echo
 printf "结果:通过 ${G}%d${N},失败 ${R}%d${N}\n" "$pass" "$fail"
