@@ -161,18 +161,41 @@ def main():
     # 占位符**从线上现取**,不硬造 —— 造出来的 id 查不到,同样什么都没验到,
     # 而且会以「记录不存在」的样子被当成"接口没成功"跳过,看不出是夹具的问题。
     ph = {"did": os.environ.get("CLUB_DID", "")}
-    try:
-        d = json.loads(call("club", "post", "agent/list", '{"pagination":{"page":1,"limit":1}}'))
-        ph["agent"] = d["data"]["agents"][0]["base"]["did"]
-    except Exception:
-        pass
-    if ph.get("agent"):
+
+    def pick(api, route, body, *path):
         try:
-            d = json.loads(call("club", "post", "plugin/list",
-                                '{"agent":"%s","pagination":{"page":1,"limit":1}}' % ph["agent"]))
-            ph["plugin"] = d["data"]["list"][0]["uuid"]
+            d = json.loads(call(api, "post", route, body))
+            for k in path:
+                d = d[k] if not isinstance(k, int) else d[k]
+            return d
         except Exception:
-            pass
+            return ""
+
+    ph["agent"] = pick("club", "agent/list", '{"pagination":{"page":1,"limit":1}}',
+                       "data", "agents", 0, "base", "did")
+    # 🔴 **拿不到就自己造一个。**
+    #
+    # 原来是"这个账号名下没有机器人 → 那二十几条全部跳过"。于是覆盖面**取决于
+    # 拿到的是哪个测试账号** —— 同一个脚本,换个 token 就从 26 条掉到 10 条,
+    # 而两次都显示"0 失败"。**跳过不是通过**,但一堆跳过同样会让人以为验过了。
+    #
+    # 建一个软件助手是免费且幂等的(重复跑只是多几台 smk- 开头的),
+    # 比"等着某个账号碰巧有数据"可靠得多。
+    if not ph["agent"]:
+        ph["agent"] = pick("club", "agent/create_assistant",
+                           '{"name":"smk-emptyprobe"}', "data", "base", "did")
+        if ph["agent"]:
+            print("  夹具:这个账号名下没有机器人,现建了一台 smk-emptyprobe")
+    if ph.get("agent"):
+        ph["plugin"] = pick("club", "plugin/list",
+                            '{"agent":"%s","pagination":{"page":1,"limit":1}}' % ph["agent"],
+                            "data", "list", 0, "uuid")
+        # 插件壳同理:建一个空壳就够让 Plugin.Get / ListVersions 有东西可查。
+        # (不发版本 —— 那要传包,而这条脚本只验读路径。)
+        if not ph["plugin"]:
+            ph["plugin"] = pick("club", "plugin/create_shell",
+                                '{"agent":"%s","name":"smk-emptyprobe"}' % ph["agent"],
+                                "data", "uuid")
     try:
         d = json.loads(call("club", "post", "market_directory/search_listings",
                             '{"pagination":{"page":1,"limit":1}}'))
