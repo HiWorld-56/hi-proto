@@ -76,9 +76,9 @@ service Register {
 // 超管在 hisrv 后台管理所有商户。
 
 message MerchantManageListReq {
-  optional string name       = 1; // 按商户名称精确查询;不传=不筛
+  optional string name       = 1; // 按商户名称模糊查询;不传=不筛
   hi.Pagination   pagination = 2;
-  optional string did        = 3 [(buf.validate.field).string.pattern="^\\S+$"]; // 按商户 DID 精确查询;不传=不筛
+  optional string did        = 3 [(buf.validate.field).string.pattern="^\\S+$"]; // 按商户 DID 模糊查询;不传=不筛
 }
 
 message MerchantManageListResp {
