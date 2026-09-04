@@ -12,6 +12,20 @@
 #
 # 用法:bash smoke-market.sh          非 0 退出 = 有失败项
 #      SKIP_CHAT=1 bash smoke-market.sh   跳过耗时的对话用例
+#
+# ## 四个必传的环境变量从哪儿来(每次都要现拿,别抄旧值 —— token 一周过期)
+#
+#   SELLER_TOK / BUYER_TOK   在 **.66** 上现签(tokgen 里写死打 192.168.1.65):
+#       cd /tmp/tokgen && MN_FILE=/tmp/65_seller_mn.txt DEV=app ./target/release/tokgen
+#       cd /tmp/tokgen && MN_FILE=/tmp/65_buyer_mn.txt  DEV=app ./target/release/tokgen
+#     (`65_` 前缀那批助记词就是对着 .65 那套账号的;输出里 DID= 那行就是下面的 SELLER_DID)
+#   SELLER_DID               上一条里卖方的 DID(**用户的 did,不是机器人的**)——
+#                            付费那段要拿它核对"软件机器人的钱落到主人账户"
+#   PKG                      测试插件包,现造:python3 ~/ci/hi-proto/smoke/build_testpkg.py
+#                            (它打完直接吐 url;包里那个 magic 值就是 MAGIC)
+#
+# ⚠️ **本脚本只能在 .65 上跑**(一半断言要 mysql 客户端,.64 没有;而 smoke.sh 反过来
+#    只能在 .64 —— 它要 grpcurl)。两台各跑一半,别在一台上全跑。
 set -uo pipefail
 
 source "$(dirname "$0")/_endpoints.sh"   # 端点/CA 统一约定(前端可达→域名 TLS,内部→内网 IP)
