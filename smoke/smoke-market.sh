@@ -215,6 +215,28 @@ chk "重复申请(付费):**订单没有多开一张**" "$(q hi_club "SELECT COU
 chk "重复申请(付费):**授权没有多长一笔**" "$(q hi_club "SELECT COUNT(*) FROM hi_club_market_grant WHERE listing_uuid='$LID2' AND to_agent='$BB';")" "1"
 
 echo
+echo "── 五、删机器人的两道守卫 ──"
+# 这两条判据都**只在后端**成立才算数:任何客户端都调得到 agent/delete,
+# 前端把按钮藏起来不作数(判据要跟执行在同一侧)。
+#
+# ⚠️ 生产上真出现过绕过它们的后果:一个挂牌的摊主机器人被删掉了(清商户时按 did 删库,
+#    没走接口),市场里于是立着一个查不到主人的鬼摊 —— 那不是这两道判据失效,
+#    而是**根本没走判据**。所以这里钉住的是"走接口时它一定拦得住"。
+has "负面:还有插件挂在市场上的机器人不许删" "$(cj agent/delete "{\"agent\":\"$SB\"}" "$SELLER_TOK")" "挂在市场上"
+
+# 硬件机器人只能解绑、不能删。冒烟环境里没有真硬件机器人可用,所以**现造一台**:
+# 判据读的就是 club 自己这两行(`hi_chat_user.type` + v_master 的归属),
+# 造出来正好把守卫那一支走通;用完删掉。
+FAKEBOT="zSMKROBOT$(date +%s)"
+q hi_club "INSERT INTO hi_chat_user (name,did,type,created_at,updated_at) VALUES ('smk-fake-robot','$FAKEBOT','robot',NOW(),NOW()); INSERT INTO hi_chat_relation (did_a,did_b,kind,subordinate_did,created_at,updated_at) VALUES ('$SELLER_DID','$FAKEBOT','master','$FAKEBOT',NOW(),NOW());"
+# 先证明前提:这台假机器人**确实算卖家名下的**(否则下面那条会因为"不属于你"而变绿,
+# 报的却是另一回事 —— 断言必须先证明自己的前提)。
+chk "前提:假机器人已挂到卖家名下" "$(q hi_club "SELECT COUNT(*) FROM v_master WHERE sub_did='$FAKEBOT' AND master_did='$SELLER_DID';")" "1"
+has "负面:硬件机器人不许删,只能解绑" "$(cj agent/delete "{\"agent\":\"$FAKEBOT\"}" "$SELLER_TOK")" "请改用解绑"
+chk "被拒之后那台机器人还在" "$(q hi_club "SELECT COUNT(*) FROM hi_chat_user WHERE did='$FAKEBOT';")" "1"
+q hi_club "DELETE FROM hi_chat_relation WHERE subordinate_did='$FAKEBOT'; DELETE FROM hi_chat_user WHERE did='$FAKEBOT';"
+
+echo
 echo "── 清理 ──"
 cj market/set_listing_status "{\"uuid\":\"$LID\",\"status\":4}" "$SELLER_TOK" >/dev/null
 cj market/set_listing_status "{\"uuid\":\"$LID2\",\"status\":4}" "$SELLER_TOK" >/dev/null
