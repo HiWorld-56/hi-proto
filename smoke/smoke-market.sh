@@ -136,6 +136,26 @@ G=$(echo "$A"|g data grantUuid)
 chk "ai 侧确实插了引用行" "$(q hi_ai "SELECT COUNT(*) FROM hi_ai_plugin_using WHERE uuid='$P' AND source='reference' AND deleted_at IS NULL;")" "1"
 has "负面:有引用时卖方删壳被拒" "$(cj plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P\"}" "$SELLER_TOK")" "个引用方"
 
+# ── 重复购买 / 重复分享:**不是错误,是一句话** ────────────────────────────────
+# 2026-09-05 前这里有两个洞,都只在**行为**上,编译与校验一个都拦不住:
+#   ① 已经装了再买 → 以 gRPC Internal + 一句中文回,前端只能匹配字符串;
+#   ② **已经有一笔在办的再买 → 直接又开一笔**(Apply 少了 Offer 那道 GetLiveGrant)。
+#      付费档于是各开一张订单、各发一个付款码 —— 同一个插件能付两次钱。
+#      生产上真攒出过同一台机器人 3 笔 APPROVED(相隔 9 秒)、2 笔 PENDING(相隔 11 秒)。
+# 判据现在收在 grantPreflight 一处(Apply 与 Offer 共用),两条路都要验。
+ADUP=$(cj market/apply "{\"listing_uuid\":\"$LID\",\"to_agent\":\"$BB\"}" "$BUYER_TOK")
+chk "重复购买:不报错,回 code 0" "$(echo "$ADUP"|g code)" "0"
+chk "重复购买:状态说已装载" "$(echo "$ADUP"|g data status)" "GRANT_STATUS_INSTALLED"
+has "重复购买:reason 是给人看的那句话" "$(echo "$ADUP"|g data reason)" "不用重复购买"
+chk "重复购买:**没有多长出一笔授权**" "$(q hi_club "SELECT COUNT(*) FROM hi_club_market_grant WHERE listing_uuid='$LID' AND to_agent='$BB';")" "1"
+ODUP=$(cj market/offer "{\"listing_uuid\":\"$LID\",\"to_agent\":\"$BB\"}" "$SELLER_TOK")
+chk "重复分享:同一套判据(已装载)" "$(echo "$ODUP"|g data status)" "GRANT_STATUS_INSTALLED"
+has "重复分享:reason 说不用再送" "$(echo "$ODUP"|g data reason)" "不用再送"
+chk "重复分享:**没有多长出一笔授权**" "$(q hi_club "SELECT COUNT(*) FROM hi_club_market_grant WHERE listing_uuid='$LID' AND to_agent='$BB';")" "1"
+# 引用行的跟版开关:**买来的插件默认不跟版**(与手工装一个插件一致,由用户自己在那一行上开)。
+# 唯一默认跟版的是 club 给新硬件机器人自动引用的内置插件(club 建引用时显式传 true)。
+chk "买来的引用行默认不跟版(follow_latest=0)" "$(q hi_ai "SELECT follow_latest FROM hi_ai_plugin_using WHERE uuid='$P' AND agent_did='$BB' AND deleted_at IS NULL;")" "0"
+
 if [ "${SKIP_CHAT:-0}" != "1" ]; then
   R=$(cj chat/converse "{\"agent\":\"$BB\",\"cid\":\"smk-4\",\"conts\":[{\"type\":\"text\",\"chat\":{\"content\":\"用工具取校验令牌,原样告诉我\"}}]}" "$BUYER_TOK")
   has "**买方机器人真的用上了卖方的插件**(magic 值)" "$(echo "$R"|g data result)" "$MAGIC"
@@ -183,6 +203,16 @@ OMCH2=$(echo "$A2"|g data order merchant)
 PAYID=$(echo "$A2"|g data order payment payId)
 case "$PAYID" in MKP-*) ok "订单带出付款凭据号(MKP- 前缀)";; *) bad "订单没带凭据号" "got=$PAYID";; esac
 chk "没人付款,授权仍是待处理(1)" "$(q hi_club "SELECT status FROM hi_club_market_grant WHERE uuid='$G2';")" "1"
+
+# ⭐ **付费档重复点购买:给回同一张单,不再开第二张。**
+# 这是"同一个插件能付两次钱"那个洞的正面判据 —— 只验 grant 不增不够,
+# 关键是**订单**不增:人手里两张付款码,付哪张都对得上,钱就出去两笔。
+A2DUP=$(cj market/apply "{\"listing_uuid\":\"$LID2\",\"to_agent\":\"$BB\"}" "$BUYER_TOK")
+chk "重复申请(付费):回的是同一笔授权" "$(echo "$A2DUP"|g data grantUuid)" "$G2"
+chk "重复申请(付费):回的是同一张业务单" "$(echo "$A2DUP"|g data order orderId)" "$OID2"
+has "重复申请(付费):reason 说已经有一笔在办" "$(echo "$A2DUP"|g data reason)" "已经有一笔"
+chk "重复申请(付费):**订单没有多开一张**" "$(q hi_club "SELECT COUNT(*) FROM hi_club_market_order WHERE grant_uuid='$G2';")" "1"
+chk "重复申请(付费):**授权没有多长一笔**" "$(q hi_club "SELECT COUNT(*) FROM hi_club_market_grant WHERE listing_uuid='$LID2' AND to_agent='$BB';")" "1"
 
 echo
 echo "── 清理 ──"
