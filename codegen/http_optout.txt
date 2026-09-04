@@ -56,9 +56,6 @@ hi.did.Merchant.UploadLogo
 hi.did.Merchant.GetUser
 hi.did.Merchant.UploadUserAvatar
 hi.did.Merchant.GetUserMqtt
-hi.did.Merchant.ListGrants
-hi.did.Merchant.AddGrant
-hi.did.Merchant.RemoveGrant
 
 # ── 整个 service 不导出 http(service:<全名>)────────────────────────────
 # 判据见 check_auth.py:整体不导出确实存在,但必须**显式声明**,不能和"忘了配"

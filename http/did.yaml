@@ -73,6 +73,19 @@ http:
   - selector: hi.did.MerchantGranted.ListGreeters
     post: /api/v1/merchant_granted/list_greeters
     body: "*"
+  - selector: hi.did.MerchantGranted.AddUsers
+    post: /api/v1/merchant_granted/add_users
+    body: "*"
+# Merchant 互授权(hisrv 商户后台的「授权管理」页)—— 原先三条都没配路由,
+# 商户在后台根本看不到、也改不了自己授权给了谁,只能靠建号时那条系统默认。
+  - selector: hi.did.Merchant.ListGrants
+    get: /api/v1/merchant/list_grants
+  - selector: hi.did.Merchant.AddGrant
+    post: /api/v1/merchant/add_grant
+    body: "*"
+  - selector: hi.did.Merchant.RemoveGrant
+    post: /api/v1/merchant/remove_grant
+    body: "*"
   - selector: hi.did.Merchant.RemoveUsers
     post: /api/v1/merchant/remove_users
     body: "*"
