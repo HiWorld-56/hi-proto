@@ -218,7 +218,11 @@ echo
 echo "── 清理 ──"
 cj market/set_listing_status "{\"uuid\":\"$LID\",\"status\":4}" "$SELLER_TOK" >/dev/null
 cj market/set_listing_status "{\"uuid\":\"$LID2\",\"status\":4}" "$SELLER_TOK" >/dev/null
-q hi_club "DELETE FROM hi_club_market_flow WHERE grant_uuid IN ('$G','$G2'); DELETE FROM hi_club_market_grant WHERE uuid IN ('$G','$G2'); DELETE FROM hi_club_market_listing WHERE uuid IN ('$LID','$LID2');"
+# ⚠️ **自己开的单也要自己清。** 原来只删 flow/grant/listing,而付费那一段
+#    每跑一次都会开一张订单 + 一张付款凭据 —— grant 一删,它们就成了指向空气的孤儿。
+#    开发库里因此攒了 25 张已作废的孤儿订单(2026-09-05 清的时候才发现)。
+#    **顺序:凭据 → 订单 → flow → grant → listing**(子行先走,否则每一步都在造新孤儿)。
+q hi_club "DELETE p FROM hi_club_market_payment p JOIN hi_club_market_order o ON o.order_id=p.order_id WHERE o.grant_uuid IN ('$G','$G2'); DELETE FROM hi_club_market_order WHERE grant_uuid IN ('$G','$G2'); DELETE FROM hi_club_market_flow WHERE grant_uuid IN ('$G','$G2'); DELETE FROM hi_club_market_grant WHERE uuid IN ('$G','$G2'); DELETE FROM hi_club_market_listing WHERE uuid IN ('$LID','$LID2');"
 cj plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P\"}" "$SELLER_TOK" >/dev/null
 cj plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P2\"}" "$SELLER_TOK" >/dev/null
 cj agent/delete "{\"agent\":\"$SB\"}" "$SELLER_TOK" >/dev/null
