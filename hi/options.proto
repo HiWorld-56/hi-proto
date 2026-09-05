@@ -36,7 +36,7 @@ enum Auth {
   AUTH_MERCHANT    = 3; // 商户:did 用 ExtendToken 或**商户主人的登录 token** 解;ai 用 apikey 或 token 解
                         // (hisrv_merchant 以主人的用户 did 为键,故两种凭证解出同一个 did,handler 无需区分)
   AUTH_SUPERADMIN  = 4; // 超管 = **二级验证**:先认出人,再查超管名单。内部后门,与业务无关。
-                        // 名单**唯一权威在 hidid**(hi_wallet.hi_superadmin);兄弟服务(ai/club/media)
+                        // 名单**唯一权威在 hidid**(hi_did.hi_superadmin);兄弟服务(ai/club/media)
                         // 不得自建超管表,一律穿透 hidid `SuperAdmin.List` 取名单。
                         // ⚠️ 商户身份与超管**无关**:某商户恰好也在名单里只是巧合,两个概念别混。
                         // ⚠️ 也别与 hiai 的 `type="super"` 混 —— 那是「高级」**套餐档**(能否用高级模型),
