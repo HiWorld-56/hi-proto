@@ -67,21 +67,28 @@ retry git -C "$CODE" fetch -q --all --tags --prune
 git -C "$CODE" checkout -fq dev
 git -C "$CODE" reset --hard -q origin/dev
 
-# ── 路径过滤:只有真正影响生成物的改动,才重生成 + 打 tag ──────────────────────
-# 踩过两次:只改 smoke/ 也照样产 tag —— v1.5.0-dev.166/167/168 三个 tag 指向同一个
-# 生成物 commit(c2faf3e4),v1.5.1 / v1.5.1-dev.1 / v1.5.1-dev.2 又是同一个(563f7e58)。
-# 后果不是"多几个 tag 不好看":
-#   · 下游每次都得停下来判断"这个新号要不要跟",而答案几乎总是"不用" —— 判断成本全白付;
-#   · deps.md 为此专门备案了一节("三个 tag 同一个 commit,不用跟");
-#   · 最糟的是它训练出"新 tag 大概率是空的"这种直觉,真正该跟的那一次就会被一起忽略。
+# ── 路径过滤:只有真正影响生成物的改动才**重生成**;**tag 照打** ────────────────
+#
+# ⭐ 2026-09-05 改口径。原来这条过滤是"跳过生成**与打 tag**",于是只改 smoke/ 那类提交
+#    在 dev 上没有任何号 —— 而 CLAUDE.md 的规矩是「推了 dev 就必须打 tag,一次都不能省」,
+#    理由是"没打 tag 的提交消费方根本够不着,等于没发布,而且没有任何报错"。
+#    两者只能留一个,留规矩:**每一个 dev 提交都要有号**,而生成仍然按需。
+#
+# 那么"空 tag 训练出坏直觉"这条老问题怎么办(v1.5.0-dev.166/167/168 三个 tag 指向同一个
+# 生成物 commit c2faf3e4,v1.5.1 / -dev.1 / -dev.2 又是同一个 563f7e58)——
+# **靠判据,不靠不打号**:两仓同号,而 hi-proto-code 侧的两个号会指向**同一个 commit**,
+# `git rev-list -n1 <tag>` 一比就知道"这个号不用跟"(deps.md「唯一的例外」那节就是这条)。
+# 打号是廉价且可核对的;不打号是隐性的、且违反规矩。
 #
 # 参照点用**本分支上最近一个 CI 打的 tag**(每轮 CI 都会给 hi-proto 自己打一个),
 # 它天然就是"上一次成功生成"的水位线;而且 tag 是整轮最后才推的,中途失败下一轮会重跑。
 #
 # ⚠️ main(正式发布)**不过滤** —— 发版必须出 tag,哪怕这一版 .proto 与上一个 dev tag 一模一样。
 # ⚠️ VERSION **不在触发集里**:release.sh 压根不读它(基号只用来拼 tag 名;生成物里没有基号,
-#    rust crate 的 version 是写死的 0.1.0)。所以**推基号本身不产 tag**,
-#    要等下一个真正的 .proto 改动才出 vX.Y.Z-dev.1 —— 这是预期行为,不是漏打。
+#    rust crate 的 version 是写死的 0.1.0)。所以推基号**不会触发重生成** ——
+#    但按新口径它照样会出一个号(`vX.Y.(Z+1)-dev.1`,落在与上一号相同的生成物上)。
+#    (2026-09-05 前这里写的是"推基号本身不产 tag,这是预期行为" —— 那条随着
+#     "每个 dev 提交都要有号"一起作废了。)
 GEN_PATHS=("*.proto" "codegen/" "http/" "buf.yaml" "buf.lock" "Makefile" "release.sh")
 if [ "$BR" != main ]; then
   LAST_TAG=$(git -C "$HP" describe --tags --abbrev=0 --match "v[0-9]*" "origin/$BR" 2>/dev/null || true)
@@ -91,21 +98,29 @@ if [ "$BR" != main ]; then
     ALL_CHANGED=$(git -C "$HP" diff --name-only "$LAST_TAG" "origin/$BR")
     GEN_CHANGED=$(git -C "$HP" diff --name-only "$LAST_TAG" "origin/$BR" -- "${GEN_PATHS[@]}")
     if [ -z "$GEN_CHANGED" ]; then
-      echo "[ci] 自 $LAST_TAG 起没有影响生成物的改动,跳过生成与打 tag。"
+      # 只跳**生成**,不跳打号。生成物与上一个号完全一致,所以 hi-proto-code 那边
+      # 新号会落在同一个 commit 上 —— 那正是下游"这个号不用跟"的凭据。
+      SKIP_GEN=1
+      echo "[ci] 自 $LAST_TAG 起没有影响生成物的改动 → **只打号,不重生成**。"
       echo "[ci] 本次变动的文件(全部不在触发集里):"
       printf "      %s
 " $ALL_CHANGED
-      echo "[ci] done. (skipped)"
-      exit 0
-    fi
-    echo "[ci] 自 $LAST_TAG 起,影响生成物的改动:"
-    printf "      %s
+    else
+      echo "[ci] 自 $LAST_TAG 起,影响生成物的改动:"
+      printf "      %s
 " $GEN_CHANGED
+    fi
   fi
 fi
 
-# 生成 + 推 hi-proto-code dev
-( cd "$HP" && ./release.sh )
+# 生成 + 推 hi-proto-code dev。**只打号那一档跳过这一步** ——
+# 生成物没变,重跑 release.sh 只会产生一个空 commit 或者什么都不产生,
+# 而它要花的是整轮里最长的那段时间。
+if [ "${SKIP_GEN:-0}" = 1 ]; then
+  echo "[ci] 跳过生成(生成物与上一个号一致)"
+else
+  ( cd "$HP" && ./release.sh )
+fi
 
 BASE=$(tr -d "[:space:]" < "$HP/VERSION")
 [ -z "$BASE" ] && { echo "VERSION 为空"; exit 1; }
@@ -178,7 +193,28 @@ else
   #    `v1.4.0-dev.103` 和零填充的 `v1.4.0-dev0103` 都**仍然小于** `v1.4.0-dev99`
   #    ('.' 和 '0' 的 ASCII 都小于 '9')。只有抬高 base 才能盖过整段旧序列。
   load_tags
-  N=1
+  # ⚠️ **N = 已用过的最大号 + 1,不是"第一个没被占的号"。**
+  #
+  # 旧写法是 `N=1; while tag_exists_any …; do N++; done` —— 它找的是**最小空号**,
+  # 于是号段里一旦出现空洞(某个号被删掉、或某轮 CI 推了一半),下一次 CI 就会
+  # **把新代码打成一个更小的号**,版本序当场倒过来:
+  #
+  #   2026-09-05 实测:v1.5.12 段已有 dev.1 / dev.3 / dev.5(dev.2、dev.4 是空洞),
+  #   新提交 10f7ff0 拿到的号是 **dev.2** —— 最新的代码在 semver 里排在
+  #   dev.3 / dev.5 **前面**。后果与上面那条"点号"注释里说的完全一样:
+  #   go 的 MVS 取最大,解出来的是 dev.5(旧代码),缺符号编译失败或者静默跑旧码;
+  #   人去看"最新 tag"也会拿错。
+  #
+  # 空洞本身不一定是 bug(删过 tag、CI 中途失败都会留洞),所以**判据不是"补洞"**,
+  # 而是"新号必须比所有旧号大"。补洞是舍本逐末,单调才是要的东西。
+  MAXN=0
+  # BASE 里的点要转义,否则 `1.5.12` 里的 `.` 在正则里是"任意字符"。
+  for _t in $(printf '%s\n' "$REMOTE_TAGS" | grep -E "^v${BASE//./\\.}-dev\.[0-9]+$" || true); do
+    _n=${_t##*-dev.}
+    if [ "$_n" -gt "$MAXN" ] 2>/dev/null; then MAXN=$_n; fi
+  done
+  N=$((MAXN + 1))
+  # 兜一层:两轮 CI 撞在一起时(脚本开头那把锁失效的极端情况)别覆盖已存在的号。
   while tag_exists_any "v${BASE}-dev.${N}"; do N=$((N+1)); done
   TAG="v${BASE}-dev.${N}"
   echo "[ci] 预发布 $TAG"

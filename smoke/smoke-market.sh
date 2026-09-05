@@ -12,6 +12,20 @@
 #
 # 用法:bash smoke-market.sh          非 0 退出 = 有失败项
 #      SKIP_CHAT=1 bash smoke-market.sh   跳过耗时的对话用例
+#
+# ## 四个必传的环境变量从哪儿来(每次都要现拿,别抄旧值 —— token 一周过期)
+#
+#   SELLER_TOK / BUYER_TOK   在 **.66** 上现签(tokgen 里写死打 192.168.1.65):
+#       cd /tmp/tokgen && MN_FILE=/tmp/65_seller_mn.txt DEV=app ./target/release/tokgen
+#       cd /tmp/tokgen && MN_FILE=/tmp/65_buyer_mn.txt  DEV=app ./target/release/tokgen
+#     (`65_` 前缀那批助记词就是对着 .65 那套账号的;输出里 DID= 那行就是下面的 SELLER_DID)
+#   SELLER_DID               上一条里卖方的 DID(**用户的 did,不是机器人的**)——
+#                            付费那段要拿它核对"软件机器人的钱落到主人账户"
+#   PKG                      测试插件包,现造:python3 ~/ci/hi-proto/smoke/build_testpkg.py
+#                            (它打完直接吐 url;包里那个 magic 值就是 MAGIC)
+#
+# ⚠️ **本脚本只能在 .65 上跑**(一半断言要 mysql 客户端,.64 没有;而 smoke.sh 反过来
+#    只能在 .64 —— 它要 grpcurl)。两台各跑一半,别在一台上全跑。
 set -uo pipefail
 
 source "$(dirname "$0")/_endpoints.sh"   # 端点/CA 统一约定(前端可达→域名 TLS,内部→内网 IP)
@@ -136,6 +150,26 @@ G=$(echo "$A"|g data grantUuid)
 chk "ai 侧确实插了引用行" "$(q hi_ai "SELECT COUNT(*) FROM hi_ai_plugin_using WHERE uuid='$P' AND source='reference' AND deleted_at IS NULL;")" "1"
 has "负面:有引用时卖方删壳被拒" "$(cj plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P\"}" "$SELLER_TOK")" "个引用方"
 
+# ── 重复购买 / 重复分享:**不是错误,是一句话** ────────────────────────────────
+# 2026-09-05 前这里有两个洞,都只在**行为**上,编译与校验一个都拦不住:
+#   ① 已经装了再买 → 以 gRPC Internal + 一句中文回,前端只能匹配字符串;
+#   ② **已经有一笔在办的再买 → 直接又开一笔**(Apply 少了 Offer 那道 GetLiveGrant)。
+#      付费档于是各开一张订单、各发一个付款码 —— 同一个插件能付两次钱。
+#      生产上真攒出过同一台机器人 3 笔 APPROVED(相隔 9 秒)、2 笔 PENDING(相隔 11 秒)。
+# 判据现在收在 grantPreflight 一处(Apply 与 Offer 共用),两条路都要验。
+ADUP=$(cj market/apply "{\"listing_uuid\":\"$LID\",\"to_agent\":\"$BB\"}" "$BUYER_TOK")
+chk "重复购买:不报错,回 code 0" "$(echo "$ADUP"|g code)" "0"
+chk "重复购买:状态说已装载" "$(echo "$ADUP"|g data status)" "GRANT_STATUS_INSTALLED"
+has "重复购买:reason 是给人看的那句话" "$(echo "$ADUP"|g data reason)" "不用重复购买"
+chk "重复购买:**没有多长出一笔授权**" "$(q hi_club "SELECT COUNT(*) FROM hi_club_market_grant WHERE listing_uuid='$LID' AND to_agent='$BB';")" "1"
+ODUP=$(cj market/offer "{\"listing_uuid\":\"$LID\",\"to_agent\":\"$BB\"}" "$SELLER_TOK")
+chk "重复分享:同一套判据(已装载)" "$(echo "$ODUP"|g data status)" "GRANT_STATUS_INSTALLED"
+has "重复分享:reason 说不用再送" "$(echo "$ODUP"|g data reason)" "不用再送"
+chk "重复分享:**没有多长出一笔授权**" "$(q hi_club "SELECT COUNT(*) FROM hi_club_market_grant WHERE listing_uuid='$LID' AND to_agent='$BB';")" "1"
+# 引用行的跟版开关:**买来的插件默认不跟版**(与手工装一个插件一致,由用户自己在那一行上开)。
+# 唯一默认跟版的是 club 给新硬件机器人自动引用的内置插件(club 建引用时显式传 true)。
+chk "买来的引用行默认不跟版(follow_latest=0)" "$(q hi_ai "SELECT follow_latest FROM hi_ai_plugin_using WHERE uuid='$P' AND agent_did='$BB' AND deleted_at IS NULL;")" "0"
+
 if [ "${SKIP_CHAT:-0}" != "1" ]; then
   R=$(cj chat/converse "{\"agent\":\"$BB\",\"cid\":\"smk-4\",\"conts\":[{\"type\":\"text\",\"chat\":{\"content\":\"用工具取校验令牌,原样告诉我\"}}]}" "$BUYER_TOK")
   has "**买方机器人真的用上了卖方的插件**(magic 值)" "$(echo "$R"|g data result)" "$MAGIC"
@@ -184,11 +218,47 @@ PAYID=$(echo "$A2"|g data order payment payId)
 case "$PAYID" in MKP-*) ok "订单带出付款凭据号(MKP- 前缀)";; *) bad "订单没带凭据号" "got=$PAYID";; esac
 chk "没人付款,授权仍是待处理(1)" "$(q hi_club "SELECT status FROM hi_club_market_grant WHERE uuid='$G2';")" "1"
 
+# ⭐ **付费档重复点购买:给回同一张单,不再开第二张。**
+# 这是"同一个插件能付两次钱"那个洞的正面判据 —— 只验 grant 不增不够,
+# 关键是**订单**不增:人手里两张付款码,付哪张都对得上,钱就出去两笔。
+A2DUP=$(cj market/apply "{\"listing_uuid\":\"$LID2\",\"to_agent\":\"$BB\"}" "$BUYER_TOK")
+chk "重复申请(付费):回的是同一笔授权" "$(echo "$A2DUP"|g data grantUuid)" "$G2"
+chk "重复申请(付费):回的是同一张业务单" "$(echo "$A2DUP"|g data order orderId)" "$OID2"
+has "重复申请(付费):reason 说已经有一笔在办" "$(echo "$A2DUP"|g data reason)" "已经有一笔"
+chk "重复申请(付费):**订单没有多开一张**" "$(q hi_club "SELECT COUNT(*) FROM hi_club_market_order WHERE grant_uuid='$G2';")" "1"
+chk "重复申请(付费):**授权没有多长一笔**" "$(q hi_club "SELECT COUNT(*) FROM hi_club_market_grant WHERE listing_uuid='$LID2' AND to_agent='$BB';")" "1"
+
+echo
+echo "── 五、删机器人的两道守卫 ──"
+# 这两条判据都**只在后端**成立才算数:任何客户端都调得到 agent/delete,
+# 前端把按钮藏起来不作数(判据要跟执行在同一侧)。
+#
+# ⚠️ 生产上真出现过绕过它们的后果:一个挂牌的摊主机器人被删掉了(清商户时按 did 删库,
+#    没走接口),市场里于是立着一个查不到主人的鬼摊 —— 那不是这两道判据失效,
+#    而是**根本没走判据**。所以这里钉住的是"走接口时它一定拦得住"。
+has "负面:还有插件挂在市场上的机器人不许删" "$(cj agent/delete "{\"agent\":\"$SB\"}" "$SELLER_TOK")" "挂在市场上"
+
+# 硬件机器人只能解绑、不能删。冒烟环境里没有真硬件机器人可用,所以**现造一台**:
+# 判据读的就是 club 自己这两行(`hi_chat_user.type` + v_master 的归属),
+# 造出来正好把守卫那一支走通;用完删掉。
+FAKEBOT="zSMKROBOT$(date +%s)"
+q hi_club "INSERT INTO hi_chat_user (name,did,type,created_at,updated_at) VALUES ('smk-fake-robot','$FAKEBOT','robot',NOW(),NOW()); INSERT INTO hi_chat_relation (did_a,did_b,kind,subordinate_did,created_at,updated_at) VALUES ('$SELLER_DID','$FAKEBOT','master','$FAKEBOT',NOW(),NOW());"
+# 先证明前提:这台假机器人**确实算卖家名下的**(否则下面那条会因为"不属于你"而变绿,
+# 报的却是另一回事 —— 断言必须先证明自己的前提)。
+chk "前提:假机器人已挂到卖家名下" "$(q hi_club "SELECT COUNT(*) FROM v_master WHERE sub_did='$FAKEBOT' AND master_did='$SELLER_DID';")" "1"
+has "负面:硬件机器人不许删,只能解绑" "$(cj agent/delete "{\"agent\":\"$FAKEBOT\"}" "$SELLER_TOK")" "请改用解绑"
+chk "被拒之后那台机器人还在" "$(q hi_club "SELECT COUNT(*) FROM hi_chat_user WHERE did='$FAKEBOT';")" "1"
+q hi_club "DELETE FROM hi_chat_relation WHERE subordinate_did='$FAKEBOT'; DELETE FROM hi_chat_user WHERE did='$FAKEBOT';"
+
 echo
 echo "── 清理 ──"
 cj market/set_listing_status "{\"uuid\":\"$LID\",\"status\":4}" "$SELLER_TOK" >/dev/null
 cj market/set_listing_status "{\"uuid\":\"$LID2\",\"status\":4}" "$SELLER_TOK" >/dev/null
-q hi_club "DELETE FROM hi_club_market_flow WHERE grant_uuid IN ('$G','$G2'); DELETE FROM hi_club_market_grant WHERE uuid IN ('$G','$G2'); DELETE FROM hi_club_market_listing WHERE uuid IN ('$LID','$LID2');"
+# ⚠️ **自己开的单也要自己清。** 原来只删 flow/grant/listing,而付费那一段
+#    每跑一次都会开一张订单 + 一张付款凭据 —— grant 一删,它们就成了指向空气的孤儿。
+#    开发库里因此攒了 25 张已作废的孤儿订单(2026-09-05 清的时候才发现)。
+#    **顺序:凭据 → 订单 → flow → grant → listing**(子行先走,否则每一步都在造新孤儿)。
+q hi_club "DELETE p FROM hi_club_market_payment p JOIN hi_club_market_order o ON o.order_id=p.order_id WHERE o.grant_uuid IN ('$G','$G2'); DELETE FROM hi_club_market_order WHERE grant_uuid IN ('$G','$G2'); DELETE FROM hi_club_market_flow WHERE grant_uuid IN ('$G','$G2'); DELETE FROM hi_club_market_grant WHERE uuid IN ('$G','$G2'); DELETE FROM hi_club_market_listing WHERE uuid IN ('$LID','$LID2');"
 cj plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P\"}" "$SELLER_TOK" >/dev/null
 cj plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P2\"}" "$SELLER_TOK" >/dev/null
 cj agent/delete "{\"agent\":\"$SB\"}" "$SELLER_TOK" >/dev/null

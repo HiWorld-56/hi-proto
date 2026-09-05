@@ -160,16 +160,21 @@ fi
 
 echo
 echo "══════ 二、改资料(hi.did):不传=不动,传空串=真清空 ══════"
-E(){ sql "select concat(ifnull(name,''),'|',ifnull(avatar,'')) from hi_did.hi_user where did='$DID_DID'"; }
+# 🔴 **不能用 `ifnull(avatar,'')`。** 那正是这一整轮要消灭的东西:它把 NULL 摊成空串,
+# 于是「清成 NULL」(对)和「写成空串」(错)在断言里长得**一模一样** ——
+# 这条用例本来就是验"清空要写 NULL",结果自己的判据把两者摊平了。
+# (2026-09-03 发现:同一个毛病在 SQL 里叫 COALESCE、在 Go 里叫 GetX()、
+#  在这儿叫 ifnull —— 三处都踩过。)
+E(){ sql "select concat(ifnull(name,'<NULL>'),'|',if(avatar is null,'<NULL>',concat('[',avatar,']'))) from hi_did.hi_user where did='$DID_DID'"; }
 
 if must "Edit 两个都传" "$(cdid 'hi.did.User/Edit' '{"name":"用例甲","avatar":"http://x/a.png"}')"; then
-  s=$(E); [ "$s" = "用例甲|http://x/a.png" ] && ok "两个都传 → 都写进去" || no "两个都传" "库里=[$s]"
+  s=$(E); [ "$s" = "用例甲|[http://x/a.png]" ] && ok "两个都传 → 都写进去" || no "两个都传" "库里=[$s]"
 fi
 if must "Edit 只传 name" "$(cdid 'hi.did.User/Edit' '{"name":"用例乙"}')"; then
-  s=$(E); [ "$s" = "用例乙|http://x/a.png" ] && ok "只传 name → avatar **不动**(以前会被摊成空串)" || no "只传 name" "库里=[$s]"
+  s=$(E); [ "$s" = "用例乙|[http://x/a.png]" ] && ok "只传 name → avatar **不动**(以前会被摊成空串)" || no "只传 name" "库里=[$s]"
 fi
 if must "Edit 传空头像" "$(cdid 'hi.did.User/Edit' '{"avatar":""}')"; then
-  s=$(E); [ "$s" = "用例乙|" ] && ok "传 avatar=\"\" → **真的清空**(以前物理上写不进去)" || no "传空串清空头像" "库里=[$s]"
+  s=$(E); [ "$s" = "用例乙|<NULL>" ] && ok "传 avatar=\"\" → **真的清空,而且落 NULL 不是空串**" || no "传空串清空头像" "库里=[$s]"
 fi
 # updated_at 必须前进 —— Entity.update 是资料惰性传播的唯一依据
 U(){ sql "select cast(unix_timestamp(updated_at)*1000 as signed) from hi_did.hi_user where did='$DID_DID'"; }
@@ -180,7 +185,7 @@ if must "Edit 推进 updated_at" "$(cdid 'hi.did.User/Edit' '{"name":"用例丙"
   else no "updated_at 没前进 → 资料改了但**不会惰性传播**" "before=$u1 after=$u2"; fi
 fi
 if must "Edit 空请求" "$(cdid 'hi.did.User/Edit' '{}')"; then
-  s=$(E); [ "$s" = "用例丙|" ] && ok "什么都不传 → 一列都不动" || no "空请求改动了数据" "库里=[$s]"
+  s=$(E); [ "$s" = "用例丙|<NULL>" ] && ok "什么都不传 → 一列都不动" || no "空请求改动了数据" "库里=[$s]"
 fi
 
 echo

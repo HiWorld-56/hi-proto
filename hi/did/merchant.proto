@@ -96,16 +96,51 @@ message UserExtensionUnit {
 // ── 商户互授权 ───────────────────────────────────────────────────────
 // 我(=ExtendToken 认出的商户)允许 grantee 访问我的数据。
 // ⚠️ 入参里**没有授权方 did** —— 授权方永远取自 token,故商户只能改自己的授权列表。
-message GrantReq {
+
+// 授权项(位图)。商户 A 授权给商户 B 时,一项项给,不是"授了就是全授"。
+//
+// 照 MerchantPermission(见 admin.proto)的位图写法,**不另造机制** —— 区别只在轴:
+//   · MerchantPermission:超管 → 商户,给的是**全局能力**(如能不能读用户 mqtt 凭证);
+//   · MerchantGrantScope:商户 A → 商户 B,给的是**对 A 自己这份数据**的操作范围。
+//
+// ⚠️ 存量语义:本枚举落地之前,`hi_merchant_grant` 里每一行的含义都是"可读我名下的用户"。
+//    迁移必须把存量行回填成 READ_USERS(bit0),**不能留 0** —— 留 0 会让所有现存的跨商户读
+//    当场失效,而症状只是 PermissionDenied,看不出是迁移干的。
+//
+// ⚠️ 加新项时**只加枚举值,不动旧值的号** —— 这个号是**落库的位**,改一个就是把库里
+//    存量行的含义整体挪位,且零报错(见 CLAUDE.md「落库的枚举写死数字」)。
+enum MerchantGrantScope {
+  MERCHANT_GRANT_SCOPE_UNSPECIFIED = 0; // 占位:漏传的语义是"空集合",不是这个值
+  MERCHANT_GRANT_SCOPE_READ_USERS  = 1; // bit0:读我名下的用户(MerchantGranted.GetUser/ListUsers/ListGreeters)
+  MERCHANT_GRANT_SCOPE_ADD_USERS   = 2; // bit1:把用户加到我名下(MerchantGranted.AddUsers)
+}
+
+// 授权/改授权项。**upsert**:同一个 grantee 重复调 = 改这一行。
+//
+// ⚠️ scopes 是**覆盖式**写入,不是并入 —— 要撤掉其中一项,重发"剩下的那些项";
+//    整行撤销走 RemoveGrant。两种写法各有各的方法,不靠某个字段的空值分叉。
+// ⚠️ scopes 不许为空:空集合的语义是"什么都不许",那等于 RemoveGrant,
+//    两条路走到同一个结果正是分支写岔的来源。服务端按 min_items 拒掉。
+message AddGrantReq {
+  optional string             grantee = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}, (buf.validate.field).required = true]; // 被授权方商户 did
+  optional string             note    = 2; // 备注,给人看的
+  repeated MerchantGrantScope scopes  = 3 [(buf.validate.field).repeated.min_items = 1]; // 授权项;覆盖式,至少一项
+}
+
+// 撤销对 grantee 的**整行**授权。
+// ⚠️ **没有 scopes** —— 撤单项走 AddGrant 重发剩下的项。原先与 AddGrant 共用一个
+//    GrantReq,note 在这边从来就是被忽略的死字段;加了 scopes 之后再共用,
+//    就成了"同一个字段在两个方法里两种语义",拆开。
+message RemoveGrantReq {
   optional string grantee = 1 [(buf.validate.field).string = {pattern: "^\\S+$"}, (buf.validate.field).required = true]; // 被授权方商户 did
-  optional string note    = 2; // 备注,给人看的
 }
 
 message GrantUnit {
   option (hi.audience) = VIS_SELF;
-  hi.Entity       grantee    = 1 [(hi.visibility) = VIS_PUBLIC]; // 被授权方
-  optional string note       = 2 [(hi.visibility) = VIS_SELF];
-  optional int64  created_at = 3 [(hi.visibility) = VIS_SELF]; // ms
+  hi.Entity                   grantee    = 1 [(hi.visibility) = VIS_PUBLIC]; // 被授权方
+  optional string             note       = 2 [(hi.visibility) = VIS_SELF];
+  optional int64              created_at = 3 [(hi.visibility) = VIS_SELF]; // ms
+  repeated MerchantGrantScope scopes     = 4 [(hi.visibility) = VIS_SELF]; // 授权项
 }
 
 message ListGrantsResp {
@@ -143,6 +178,13 @@ message GrantedListUsersReq {
   optional string merchant   = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
   optional string user       = 2; // 可选:按用户 did 过滤
   hi.Pagination   pagination = 3;
+}
+
+// 把用户加到**别家商户**名下(MerchantGranted.AddUsers)。
+// 需要目标商户授予 MERCHANT_GRANT_SCOPE_ADD_USERS,只有 READ_USERS 是调不动的。
+message GrantedAddUsersReq {
+  optional string merchant = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true]; // 目标商户(须授予"加用户"这一项给我)
+  repeated string users    = 2 [(buf.validate.field).repeated.min_items = 1];                                        // 用户 did:加到 merchant 名下
 }
 
 message GrantedListGreetersReq {
@@ -285,12 +327,12 @@ service Merchant {
   rpc ListGrants(google.protobuf.Empty) returns (ListGrantsResp) {
     option (hi.auth) = AUTH_MERCHANT;
   } // 我授权了哪些商户
-  rpc AddGrant(GrantReq) returns (google.protobuf.Empty) {
+  rpc AddGrant(AddGrantReq) returns (google.protobuf.Empty) {
     option (hi.auth) = AUTH_MERCHANT;
-  } // 授权某商户访问我的数据
-  rpc RemoveGrant(GrantReq) returns (google.protobuf.Empty) {
+  } // 授权某商户访问我的数据(upsert;scopes 覆盖式)
+  rpc RemoveGrant(RemoveGrantReq) returns (google.protobuf.Empty) {
     option (hi.auth) = AUTH_MERCHANT;
-  } // 取消授权
+  } // 取消整行授权(撤单项走 AddGrant 重发剩下的项)
 }
 
 // ── 商户公开信息 ─────────────────────────────────────────────────────
@@ -402,23 +444,41 @@ service OrderNotify {
   } // 商户触发付款通知
 }
 
-// 跨商户读用户数据(**整个 service 走 requireGrant**)。
+// 跨商户访问用户数据(**整个 service 的每个方法都先过授权校验**)。
 //
 // 与 Merchant 拆开而不是共用一个 `merchant` 字段:那样"空=自己免 grant / 非空=别家走
 // grant"是**两条鉴权分支挤在一个方法里**,handler 里分支写岔就是静默跨商户读。
 // 拆开之后,"要不要 grant"由 service 决定,不由某个字段的空值决定 ——
 // 范式同 Merchant/MerchantManage、Gateway/GatewayAdmin。
 //
-// 授权方向:商户 A 执行 AddGrant(grantee=B) 后,B 才能用这里的方法读 A 名下的用户。
+// 授权方向:商户 A 执行 AddGrant(grantee=B) 后,B 才能用这里的方法访问 A 名下的用户。
 // 判据是 hi_merchant_grant 里 (merchant=A, grantee=B) 一行,授权方永远取自 token。
+//
+// ⚠️ **有没有那一行不够,还要看那一行给了哪些授权项**(MerchantGrantScope):
+//    三个读方法要 READ_USERS,AddUsers 要 ADD_USERS。授权项与方法的对应关系写死在
+//    handler 的方法入口,**不由入参决定** —— 与"要不要 grant 由 service 决定"同一个道理:
+//    让调用方传"我要用哪一项",等于让它自己声明权限。
 service MerchantGranted {
   rpc GetUser(GrantedGetUserReq) returns (UserExtensionUnit) {
     option (hi.auth) = AUTH_MERCHANT;
-  } // 拿别家商户下某用户的扩展信息(须先获授权)
+  } // 拿别家商户下某用户的扩展信息(须 READ_USERS)
   rpc ListUsers(GrantedListUsersReq) returns (ListUsersResp) {
     option (hi.auth) = AUTH_MERCHANT;
-  } // 列别家商户下的用户(须先获授权)
+  } // 列别家商户下的用户(须 READ_USERS)
   rpc ListGreeters(GrantedListGreetersReq) returns (ListUsersResp) {
     option (hi.auth) = AUTH_MERCHANT;
-  } // 列别家商户下的 greeter(须先获授权)
+  } // 列别家商户下的 greeter(须 READ_USERS)
+  // 把用户加到别家商户名下(须 ADD_USERS)。
+  //
+  // 用途:club 的用户在 app 里"加入某商户" —— 链路是
+  //   app --用户token--> club后台 --club的ExtendToken--> did.MerchantGranted.AddUsers。
+  // 到了 did 这一侧,主体是**club 这个商户**,目标商户是入参里的 merchant,
+  // 所以它和三个读方法是同一类事(跨商户),只是要的授权项不同,不单开 service。
+  //
+  // ⚠️ 用户是谁由 club 侧从**登录 token** 解出后填进 users,did 这一侧无从校验 ——
+  //    这正是 ADD_USERS 要单独一项、且默认不给的原因:给了这一项,就等于允许 grantee
+  //    替任意用户决定"加入我名下"。
+  rpc AddUsers(GrantedAddUsersReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 把用户加到别家商户名下(须 ADD_USERS)
 }

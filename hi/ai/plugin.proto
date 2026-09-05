@@ -451,6 +451,14 @@ message CreateReferenceReq {
   optional string        version      = 3; // 不传 = 取出让方当前激活版
   google.protobuf.Struct data         = 4; // c.data(club 注入受让方自己的 api_key)
   google.protobuf.Struct version_data = 5; // d.data
+  // c.follow_latest 的初值。**不传 = 按 hi.ai 的默认(false)**,不是"传了个 false"。
+  //
+  // 为什么要能传:新硬件机器人注册时 club 自动给它引用内置插件(那是内置**唯一**的特殊之处),
+  // 而内置插件之后就是个普通插件 —— 作者发新版靠 `propagateToFollowers` 按这个开关推。
+  // 建引用时不置 true 的话,那批机器人**一台都不跟版**,而且零报错:
+  // 库里默认 0,新版发出去谁也不动,只有人工去比 d.active 才看得出来。
+  // (2026-09-05 前是 club 用 `SetActiveAll` 无视这个开关全网强推的,已删。)
+  optional bool          follow_latest = 6;
 }
 
 // ── 展示面:市场要拿插件自己的名字/图/简介 ──────────────────────────────────

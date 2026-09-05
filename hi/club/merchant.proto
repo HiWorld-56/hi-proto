@@ -20,6 +20,16 @@ message ListGreetersReq {
   hi.Pagination   pagination = 2;
 }
 
+// 用户把**自己**加入某商户。
+//
+// ⚠️ **没有 user 字段,且永远不要加** —— 用户 did 恒取自登录 token。
+//    加了它,任何登录用户都能把别人塞进任意商户名下,而这个动作在 did 那一侧
+//    是以 **club 这个商户**的身份做的、did 无从分辨真正的发起人。
+//    身份必须来自 token,不能来自入参(同 hi.did.Merchant.Get 那个越权教训)。
+message JoinMerchantReq {
+  optional string merchant = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true]; // 要加入的商户 did
+}
+
 // 商户(用户档)。**club 侧目前没有商户的概念** —— 本 service 只是**转发 hidid 的商户方法**。
 service Merchant {
   rpc List (google.protobuf.Empty) returns (hi.did.MerchantListResp) { option (hi.auth) = AUTH_USER; } // 查询用户所在的商户列表(转发 did.Merchant.ListMerchants)
@@ -29,6 +39,14 @@ service Merchant {
   // 必须由目标商户先授权给 club(did 侧 requireGrant 校验)。
   // club 侧不再叠鉴权:所有登录用户都能调。
   rpc ListGreeters (ListGreetersReq) returns (hi.did.ListUsersResp) { option (hi.auth) = AUTH_USER; } // 列某商户的 greeter(转发 did.Merchant.ListGreeters)
+
+  // 用户把自己加入某商户。链路:app --用户token--> club后台 --club的ExtendToken-->
+  // did.MerchantGranted.AddUsers(merchant=目标商户, users=[登录用户]).
+  //
+  // club 侧同样不叠鉴权(与 ListGreeters 一致):真正的门在 did 侧 ——
+  // 目标商户必须把 **MERCHANT_GRANT_SCOPE_ADD_USERS** 这一项授权给 club,
+  // 没给就是 PermissionDenied,不是静默成功。
+  rpc Join (JoinMerchantReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 用户加入某商户(转发 did.MerchantGranted.AddUsers)
 }
 
 // 商户管理(超管)。原 `Merchant.ListAll` —— 超管方法蹲在用户面 service 里(混档),
