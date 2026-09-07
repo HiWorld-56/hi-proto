@@ -328,9 +328,23 @@ message MarketGrantView {
 // ⚠️ **只公开"有在售挂牌"的那些机器人的主人** —— 开店即自愿露出。
 //    这不是一个"任意 did → 查它主人"的反查口子(那个当年正是因为泄露归属被删掉的);
 //    没挂牌的机器人不会出现在这里。
+// 卖家目录中的主人资料。保留 Entity 的字段布局,动态仅在这个公开目录视图扩展,
+// 不加入跨业务共用的 hi.Entity,也不复用含本人私有字段的 UserInfo。
+message MarketSellerMaster {
+  option (hi.audience) = VIS_PUBLIC;
+  optional string type        = 1 [(hi.visibility) = VIS_PUBLIC];
+  string          did         = 2 [(hi.visibility) = VIS_PUBLIC];
+  optional string name        = 3 [(hi.visibility) = VIS_PUBLIC];
+  optional string avatar      = 4 [(hi.visibility) = VIS_PUBLIC];
+  optional int64  update      = 5 [(hi.visibility) = VIS_PUBLIC];
+  // 有在售挂牌的用户主人在目录中公开的动态,取自 hi_chat_user_moment。
+  // 仅 type=user 时返回;未设置或已清空时不传。其它用户动态接口仍保持关系可见。
+  optional string user_moment = 6 [(hi.visibility) = VIS_PUBLIC];
+}
+
 message MarketSeller {
   option (hi.audience) = VIS_PUBLIC;
-  hi.Entity          master        = 1 [(hi.visibility) = VIS_PUBLIC]; // 卖家(主人)
+  MarketSellerMaster master        = 1 [(hi.visibility) = VIS_PUBLIC]; // 卖家(主人);无主机器人不传
   repeated hi.Entity agents        = 2 [(hi.visibility) = VIS_PUBLIC]; // 他名下**有在售挂牌**的摊位
   optional int32     listing_count = 3 [(hi.visibility) = VIS_PUBLIC]; // 在售挂牌总数
 }
@@ -878,8 +892,8 @@ message ForceDelistReq {
 
 // 市场公开目录(免鉴权):逛市场不需要登录。
 //
-// ⚠️ **公开面不吐 master did。** `AgentDirectory.GetAgentMaster` 当初就是因为
-//    「不该随便让人反查某机器人的主人」被删掉的。挂牌页只吐机器人 Entity + 公开文案。
+// ListSellers 公开有在售挂牌的主人资料及用户动态;其它挂牌页只吐机器人 Entity + 公开文案。
+// 不提供任意机器人 DID 反查主人的接口。
 service MarketDirectory {
   rpc SearchListings (SearchListingsReq) returns (SearchListingsResp) { option (hi.auth) = AUTH_NONE; }        // 搜插件
   rpc ListSellers (hi.Pagination) returns (ListSellersResp) { option (hi.auth) = AUTH_NONE; }                  // 列卖家(有在售挂牌的主人 + 他的摊位)
