@@ -84,6 +84,9 @@ http:
   - selector: hi.club.Merchant.ListGreeters
     post: /api/v1/merchant/list_greeters
     body: "*"
+  - selector: hi.club.Merchant.ListUsers
+    post: /api/v1/merchant/list_users
+    body: "*"
   - selector: hi.club.Merchant.Join
     post: /api/v1/merchant/join
     body: "*"
