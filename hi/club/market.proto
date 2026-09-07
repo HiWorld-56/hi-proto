@@ -329,6 +329,7 @@ message MarketGrantView {
 //    这不是一个"任意 did → 查它主人"的反查口子(那个当年正是因为泄露归属被删掉的);
 //    没挂牌的机器人不会出现在这里。
 message MarketStall {
+  option (hi.audience) = VIS_PUBLIC;
   hi.Entity       agent  = 1 [(hi.visibility) = VIS_PUBLIC]; // 摊主
   optional string moment = 2 [(hi.visibility) = VIS_PUBLIC]; // 摊主动态
 }
