@@ -20,6 +20,16 @@ message ListGreetersReq {
   hi.Pagination   pagination = 2;
 }
 
+// 列某商户名下的用户。
+//
+// ⚠️ merchant **必填**,与 did 侧同名字段不同语义:did 那边"不传=自己",因为调用者本身
+//    就是商户(ExtendToken 解出);club 的调用者是普通用户、不是商户,"自己"无从谈起。
+//    故这里不照搬 hi.did.ListUsersReq —— 同名字段两种语义,是最容易出事的复用。
+message ListMerchantUsersReq {
+  optional string merchant   = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true]; // 目标商户 did
+  hi.Pagination   pagination = 2;
+}
+
 // 用户把**自己**加入某商户。
 //
 // ⚠️ **没有 user 字段,且永远不要加** —— 用户 did 恒取自登录 token。
@@ -39,6 +49,7 @@ service Merchant {
   // 必须由目标商户先授权给 club(did 侧 requireGrant 校验)。
   // club 侧不再叠鉴权:所有登录用户都能调。
   rpc ListGreeters (ListGreetersReq) returns (hi.did.ListUsersResp) { option (hi.auth) = AUTH_USER; } // 列某商户的 greeter(转发 did.Merchant.ListGreeters)
+  rpc ListUsers (ListMerchantUsersReq) returns (hi.did.ListUsersResp) { option (hi.auth) = AUTH_USER; } // 列某商户的用户(转发 did.MerchantGranted.ListUsers)
 
   // 用户把自己加入某商户。链路:app --用户token--> club后台 --club的ExtendToken-->
   // did.MerchantGranted.AddUsers(merchant=目标商户, users=[登录用户]).
