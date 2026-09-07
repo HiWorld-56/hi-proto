@@ -339,7 +339,7 @@ message MarketSellerMaster {
   optional int64  update      = 5 [(hi.visibility) = VIS_PUBLIC];
   // 有在售挂牌的用户主人在目录中公开的动态,取自 hi_chat_user_moment。
   // 仅 type=user 时返回;未设置或已清空时不传。其它用户动态接口仍保持关系可见。
-  optional string user_moment = 6 [(hi.visibility) = VIS_PUBLIC];
+  optional string moment = 6 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message MarketSeller {
