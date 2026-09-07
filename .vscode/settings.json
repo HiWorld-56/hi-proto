@@ -1,5 +1,7 @@
 {
   "files.exclude": {
     "v1": true
-  }
+  },
+  "protobuf.formatter.alignFields": true,
+  "protobuf.formatOnSave": true
 }
