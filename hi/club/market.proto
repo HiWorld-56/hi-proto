@@ -330,8 +330,9 @@ message MarketGrantView {
 //    没挂牌的机器人不会出现在这里。
 message MarketStall {
   option (hi.audience) = VIS_PUBLIC;
-  hi.Entity       agent  = 1 [(hi.visibility) = VIS_PUBLIC]; // 摊主
-  optional string moment = 2 [(hi.visibility) = VIS_PUBLIC]; // 摊主动态
+  hi.Entity       agent         = 1 [(hi.visibility) = VIS_PUBLIC]; // 摊主
+  optional string moment        = 2 [(hi.visibility) = VIS_PUBLIC]; // 摊主动态
+  optional int32  listing_count = 4 [(hi.visibility) = VIS_PUBLIC]; // 摊主在售挂牌数
 }
 
 message MarketSeller {
@@ -339,7 +340,7 @@ message MarketSeller {
   hi.Entity            master        = 1 [(hi.visibility) = VIS_PUBLIC]; // 卖家(主人);无主机器人不传
   optional string      moment        = 2 [(hi.visibility) = VIS_PUBLIC]; // 卖家动态
   repeated MarketStall stalls        = 3 [(hi.visibility) = VIS_PUBLIC]; // 他名下**有在售挂牌**的摊位
-  optional int32       listing_count = 4 [(hi.visibility) = VIS_PUBLIC]; // 在售挂牌总数
+  optional int32       listing_count = 4 [(hi.visibility) = VIS_PUBLIC]; // 在售挂牌总数 = 摊主挂牌数总和
 }
 
 message ListSellersResp {
