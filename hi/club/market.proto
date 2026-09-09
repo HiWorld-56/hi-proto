@@ -347,7 +347,7 @@ message MarketGrantView {
 message MarketStall {
   option (hi.audience) = VIS_PUBLIC;
   hi.Entity       agent         = 1 [(hi.visibility) = VIS_PUBLIC]; // 摊主
-  optional string moment        = 2 [(hi.visibility) = VIS_PUBLIC]; // 摊主动态
+  optional string moment        = 2 [(hi.visibility) = VIS_PUBLIC]; // 摊主动态(机器人也有动态,与人同一张表)
   optional int32  listing_count = 4 [(hi.visibility) = VIS_PUBLIC]; // 摊主在售挂牌数
 }
 
@@ -356,7 +356,7 @@ message MarketStall {
 message MarketSellerUser {
   option (hi.audience) = VIS_PUBLIC;
   hi.Entity       user   = 1 [(hi.visibility) = VIS_PUBLIC]; // 用户(name/avatar)
-  optional string moment = 2 [(hi.visibility) = VIS_PUBLIC]; // 用户动态(club 自己的 hi_chat_user_moment)
+  optional string moment = 2 [(hi.visibility) = VIS_PUBLIC]; // 用户动态(club 自己的 hi_chat_user_moment;人和机器人同一张表)
 }
 
 // MarketSeller 卖家资料 —— 目录里的一行,也是详情页的头部(GetSeller 回的就是它)。
