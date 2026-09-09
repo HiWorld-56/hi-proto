@@ -50,6 +50,9 @@ http:
   - selector: hi.club.AgentDirectory.ListOnline
     post: /api/v1/agent_directory/list_online
     body: "*"
+  - selector: hi.club.AgentDirectory.GetMoment
+    post: /api/v1/agent_directory/get_moment
+    body: "*"
   - selector: hi.club.UserDirectory.ListOnline
     post: /api/v1/user_directory/list_online
     body: "*"
