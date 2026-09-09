@@ -204,6 +204,16 @@ message GrantedListGreetersReq {
 }
 
 // 读**别家商户**支持的币种(MerchantGranted.ListCoins,须 READ_MERCHANT)。
+//
+// ⚠️ 三种结果各有各的含义,**调用方靠它们区分"不是商户"和"没授权"**:
+//   · OK               = 是商户,且授权了我 → 币种就是回的这些;
+//   · PermissionDenied = 是商户,但没把 READ_MERCHANT 给我 → 币种取不到,
+//                        **不能当成"他没配币种"**;
+//   · NotFound         = **不是商户**。
+// 为此本方法**先查商户存不存在、再校验授权**(与本 service 其它方法的顺序相反)。
+// 代价是任一持 ExtendToken 的商户能探"某个 did 是不是商户" —— 商户本就对外经营
+// (插件市场里挂着、endpoint 也是公开的),这点可见性可接受;换来的是调用方
+// 不必再单开一个"是不是商户"的探针接口(hi.club.MarketSeller.is_merchant 就靠它)。
 message GrantedListCoinsReq {
   optional string merchant = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true]; // 目标商户(须先授权给我)
 }
