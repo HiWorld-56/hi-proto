@@ -7,6 +7,7 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/struct.proto";
 import "hi/common.proto";
 import "hi/options.proto";
+import "hi/did/base.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
@@ -320,7 +321,7 @@ message MarketGrantView {
 
 // ── 公开面入参 ───────────────────────────────────────────────────────────────
 
-// ListSellersResp 卖家目录:**谁在卖** + 他有哪些摊位。
+// ── 卖家目录:「人 → 摊位 → 货」的前两跳 ──────────────────────────────────────
 //
 // 逛市场的顺序是「人 → 摊位 → 货」:先看见是谁在卖,再进他的摊位,再看待售的插件。
 // 直接铺一页插件的话,买家没法判断"这东西是谁出的"，而插件是要装进自己机器人里的三方代码。
@@ -328,6 +329,21 @@ message MarketGrantView {
 // ⚠️ **只公开"有在售挂牌"的那些机器人的主人** —— 开店即自愿露出。
 //    这不是一个"任意 did → 查它主人"的反查口子(那个当年正是因为泄露归属被删掉的);
 //    没挂牌的机器人不会出现在这里。
+//
+// ⭐ **四个方法,一个卖家资料 + 三个列表,每个列表都自带分页**(2026-09-09 拆开):
+//      `ListSellers`      卖家目录(分页)
+//      `GetSeller`        单个卖家的资料 —— 详情页头部,刷新/直开都能单独拿
+//      `ListSellerStalls` 他的摊位(分页)      ← 详情页「摊位」tab
+//      `ListSellerUsers`  他名下的用户(分页)  ← 详情页「用户」tab
+//    原先想把摊位与用户塞进"卖家详情"一次全给:响应大小随"摊位数 × 用户数"放大,
+//    商户名下上千人时那一次调用就下不来,而两个 tab 各自只画一屏。
+//    **列表一律带分页,不留"以后再加"** —— 后加分页就是改返回体,下游全部重写。
+//
+// ⭐ **无主机器人合并成一个"空卖家"**:现网大多数硬件机器人无主,它们的摊位全归到
+//    这一档下,整个目录里只占一行 —— 判据就是 `MarketSeller.master` 不传。
+//    另外三个方法同一个判据:入参 `master` 不传 = 那一档。
+
+// MarketStall 摊位 = 一台**有在售挂牌**的机器人。只在详情页的「摊位」tab 出现。
 message MarketStall {
   option (hi.audience) = VIS_PUBLIC;
   hi.Entity       agent         = 1 [(hi.visibility) = VIS_PUBLIC]; // 摊主
@@ -335,18 +351,79 @@ message MarketStall {
   optional int32  listing_count = 4 [(hi.visibility) = VIS_PUBLIC]; // 摊主在售挂牌数
 }
 
+// MarketSellerUser 卖家(商户)名下的一个用户 —— 只有基本资料 + 动态,没有任何金额。
+// 用户在这个商户下的余额/消费是**商户自己的账**,与"谁在卖插件"无关,不从这里出。
+message MarketSellerUser {
+  option (hi.audience) = VIS_PUBLIC;
+  hi.Entity       user   = 1 [(hi.visibility) = VIS_PUBLIC]; // 用户(name/avatar)
+  optional string moment = 2 [(hi.visibility) = VIS_PUBLIC]; // 用户动态(club 自己的 hi_chat_user_moment)
+}
+
+// MarketSeller 卖家资料 —— 目录里的一行,也是详情页的头部(GetSeller 回的就是它)。
+//
+// support_coins = 这个卖家收得了的币种,从 hi-did 现取,判据是 `is_merchant`:
+//   · 非商户(含空卖家)= 常规币种(`hi.did.Base.ListCoins` 里 category=public 的那些);
+//   · 商户 = 常规币种 + 他自己配的自定义币种(`hi.did.MerchantInfo.custom_tokens`)。
+// 商户那一半走**授权**取:`hi.did.MerchantGranted.ListCoins`,要目标商户授权过 club
+// (`MERCHANT_GRANT_SCOPE_READ_MERCHANT`)—— 与 club 读别家商户用户是同一条路。
+// **不许拿 club 自己的 ExtendToken 去冒充那个商户查**,那是"借用别家凭据",零报错。
+//
+// ⚠️ `is_merchant` 与"支持币种多不多"是两件事:没授权给 club 的商户,这里也只发常规币种,
+//    但它仍然 `is_merchant = true`。前端标"非商户"只能看这个字段,不许照币种/用户数猜。
 message MarketSeller {
   option (hi.audience) = VIS_PUBLIC;
-  hi.Entity            master        = 1 [(hi.visibility) = VIS_PUBLIC]; // 卖家(主人);无主机器人不传
+  // 卖家(主人)。**不传 = 空卖家**(全部无主机器人聚成的那一档),不是"这一行坏了"。
+  hi.Entity            master        = 1 [(hi.visibility) = VIS_PUBLIC];
   optional string      moment        = 2 [(hi.visibility) = VIS_PUBLIC]; // 卖家动态
-  repeated MarketStall stalls        = 3 [(hi.visibility) = VIS_PUBLIC]; // 他名下**有在售挂牌**的摊位
-  optional int32       listing_count = 4 [(hi.visibility) = VIS_PUBLIC]; // 在售挂牌总数 = 摊主挂牌数总和
+  optional int32       stalls_count  = 3 [(hi.visibility) = VIS_PUBLIC]; // 他名下**有在售挂牌**的摊位数
+  optional int32       listing_count = 4 [(hi.visibility) = VIS_PUBLIC]; // 在售挂牌总数 = 各摊主挂牌数之和
+  repeated hi.did.Coin support_coins = 5 [(hi.visibility) = VIS_PUBLIC]; // 支持的支付币种;非商户 = 常规币种
+  optional bool        is_merchant   = 6 [(hi.visibility) = VIS_PUBLIC]; // 是不是 hi-did 商户;前端按它标"非商户"
 }
 
 message ListSellersResp {
   option (hi.audience) = VIS_PUBLIC;
   optional int32        total   = 1 [(hi.visibility) = VIS_PUBLIC];
   repeated MarketSeller sellers = 2 [(hi.visibility) = VIS_PUBLIC];
+}
+
+// ── 三个"按卖家取"的入参 ──────────────────────────────────────────────────
+//
+// `master` **不传 = 空卖家**(无主机器人那一档)—— 与 `MarketSeller.master` 同一个判据。
+// 所以三处都**不能加 required**:"不传"本身就是一个合法的查询,加了就查不到那一档。
+
+message GetSellerReq {
+  optional string master = 1 [(buf.validate.field).string.pattern = "^\\S+$"]; // 卖家(主人)did;不传 = 空卖家
+}
+
+message ListSellerStallsReq {
+  optional string master     = 1 [(buf.validate.field).string.pattern = "^\\S+$"]; // 卖家(主人)did;不传 = 空卖家
+  hi.Pagination   pagination = 2;
+}
+
+message ListSellerStallsResp {
+  option (hi.audience) = VIS_PUBLIC;
+  optional int32       total  = 1 [(hi.visibility) = VIS_PUBLIC];
+  repeated MarketStall stalls = 2 [(hi.visibility) = VIS_PUBLIC];
+}
+
+message ListSellerUsersReq {
+  optional string master     = 1 [(buf.validate.field).string.pattern = "^\\S+$"]; // 卖家(主人)did;不传 = 空卖家
+  hi.Pagination   pagination = 2;
+}
+
+// ListSellerUsersResp 商户名下的用户。
+//
+// 数据源 `hi.did.MerchantGranted.ListUsers` —— club 拿自己的 ExtendToken 跨商户读,
+// 要目标商户授权过 club(`MERCHANT_GRANT_SCOPE_READ_USERS`;新商户建号时默认给)。
+//
+// ⚠️ **空列表不是"非商户"的判据** —— 至少三种成因:非商户、商户名下确实没人、
+//    商户把授权撤了(那一侧返 PermissionDenied,不是空列表)。要标"非商户"看
+//    `MarketSeller.is_merchant`。
+message ListSellerUsersResp {
+  option (hi.audience) = VIS_PUBLIC;
+  optional int32            total = 1 [(hi.visibility) = VIS_PUBLIC];
+  repeated MarketSellerUser users = 2 [(hi.visibility) = VIS_PUBLIC]; // 非商户 / 空卖家为空列表
 }
 
 message SearchListingsReq {
@@ -942,13 +1019,27 @@ message ForceDelistReq {
 //
 // ListSellers 公开有在售挂牌的主人资料及用户动态;其它挂牌页只吐机器人 Entity + 公开文案。
 // 不提供任意机器人 DID 反查主人的接口。
+//
+// ⚠️ **四个卖家方法都免鉴权,所以它们吐出去的就是全网可见的**:摊位(机器人 Entity)
+//    与**商户名下的用户名单**。前者本就是"开店即自愿露出";后者是商户自己的用户列表 ——
+//    之所以敢公开,是因为它由那个商户**主动授权给 club**(MERCHANT_GRANT_SCOPE_READ_USERS)
+//    才拿得到,没授权就是空。要收紧就改成 AUTH_USER,别指望"没人知道这个 did"。
 service MarketDirectory {
   rpc SearchListings(SearchListingsReq) returns (SearchListingsResp) {
     option (hi.auth) = AUTH_NONE;
   } // 搜插件
   rpc ListSellers(hi.Pagination) returns (ListSellersResp) {
     option (hi.auth) = AUTH_NONE;
-  } // 列卖家(有在售挂牌的主人 + 他的摊位)
+  } // 列卖家(有在售挂牌的主人 + 两个计数 + 支持币种;**不带摊位/用户**)
+  rpc GetSeller(GetSellerReq) returns (MarketSeller) {
+    option (hi.auth) = AUTH_NONE;
+  } // 单个卖家的资料(详情页头部);master 不传 = 空卖家(无主机器人那一档)
+  rpc ListSellerStalls(ListSellerStallsReq) returns (ListSellerStallsResp) {
+    option (hi.auth) = AUTH_NONE;
+  } // 详情页「摊位」tab:他名下有在售挂牌的机器人(分页)
+  rpc ListSellerUsers(ListSellerUsersReq) returns (ListSellerUsersResp) {
+    option (hi.auth) = AUTH_NONE;
+  } // 详情页「用户」tab:商户名下的用户(分页);非商户为空
   rpc ListAgentListings(ListAgentListingsReq) returns (SearchListingsResp) {
     option (hi.auth) = AUTH_NONE;
   } // 逛某台机器人的"店"

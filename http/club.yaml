@@ -147,6 +147,15 @@ http:
   - selector: hi.club.MarketDirectory.ListSellers
     post: /api/v1/market_directory/list_sellers
     body: "*"
+  - selector: hi.club.MarketDirectory.GetSeller
+    post: /api/v1/market_directory/get_seller
+    body: "*"
+  - selector: hi.club.MarketDirectory.ListSellerStalls
+    post: /api/v1/market_directory/list_seller_stalls
+    body: "*"
+  - selector: hi.club.MarketDirectory.ListSellerUsers
+    post: /api/v1/market_directory/list_seller_users
+    body: "*"
   - selector: hi.club.MarketDirectory.ListAgentListings
     post: /api/v1/market_directory/list_agent_listings
     body: "*"
