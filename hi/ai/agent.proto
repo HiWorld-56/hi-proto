@@ -101,6 +101,7 @@ message EditAgentReq {
   optional string avatar = 5;
   AgentConfig     config = 2;
   optional string note   = 3;
+  optional string moment = 6; // 机器人动态(存 hi_chat_user_moment,公开可见)
 }
 
 // 商户档的列表:**不带 marked**。标记是超管的概念(见 AgentBrief),
