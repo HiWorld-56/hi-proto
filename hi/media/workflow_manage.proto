@@ -1,0 +1,315 @@
+syntax = "proto3";
+
+package hi.media;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
+
+import "buf/validate/validate.proto";
+import "hi/common.proto";
+import "hi/media/task.proto";
+import "hi/options.proto";
+
+message ImportMediaWorkflowReq {
+  optional string request_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  optional string feature_key = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  optional string name = 3 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  optional string change_notes = 4;
+  optional string api_json = 5 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+}
+
+message ImportMediaWorkflowResp {
+  option (hi.audience) = VIS_SELF;
+  optional string workflow_version_id = 1 [(hi.visibility) = VIS_SELF];
+}
+
+message MediaWorkflowInputBinding {
+  option (hi.audience) = VIS_SELF;
+  optional string node_id = 1 [(hi.visibility) = VIS_SELF];
+  optional string input_name = 2 [(hi.visibility) = VIS_SELF];
+}
+
+message MediaWorkflowOutputConfig {
+  option (hi.audience) = VIS_SELF;
+  optional string node_id = 1 [(hi.visibility) = VIS_SELF];
+}
+
+message MediaWorkflowResolutionConfig {
+  option (hi.audience) = VIS_SELF;
+  MediaWorkflowInputBinding width = 1 [(hi.visibility) = VIS_SELF];
+  MediaWorkflowInputBinding height = 2 [(hi.visibility) = VIS_SELF];
+  repeated MediaResolution allowed_values = 3 [(hi.visibility) = VIS_PUBLIC];
+  MediaResolution default_value = 4 [(hi.visibility) = VIS_PUBLIC];
+}
+
+message MediaWorkflowIntOptionConfig {
+  option (hi.audience) = VIS_SELF;
+  MediaWorkflowInputBinding binding = 1 [(hi.visibility) = VIS_SELF];
+  repeated int32 allowed_values = 2 [(hi.visibility) = VIS_SELF];
+  optional int32 default_value = 3 [(hi.visibility) = VIS_SELF];
+}
+
+message TextToImageWorkflowConfig {
+  option (hi.audience) = VIS_SELF;
+  MediaWorkflowInputBinding prompt = 1 [(hi.visibility) = VIS_SELF];
+  optional int32 prompt_max_length = 2 [(hi.visibility) = VIS_SELF];
+  MediaWorkflowInputBinding negative_prompt = 3 [(hi.visibility) = VIS_SELF];
+  optional int32 negative_prompt_max_length = 4 [(hi.visibility) = VIS_SELF];
+  MediaWorkflowResolutionConfig resolution = 5 [(hi.visibility) = VIS_SELF];
+}
+
+message ImageToVideoWorkflowConfig {
+  option (hi.audience) = VIS_SELF;
+  MediaWorkflowInputBinding input_image = 1 [(hi.visibility) = VIS_SELF];
+  MediaWorkflowInputBinding prompt = 2 [(hi.visibility) = VIS_SELF];
+  optional int32 prompt_max_length = 3 [(hi.visibility) = VIS_SELF];
+  MediaWorkflowInputBinding negative_prompt = 4 [(hi.visibility) = VIS_SELF];
+  optional int32 negative_prompt_max_length = 5 [(hi.visibility) = VIS_SELF];
+  MediaWorkflowResolutionConfig resolution = 6 [(hi.visibility) = VIS_SELF];
+  MediaWorkflowIntOptionConfig duration_seconds = 7 [(hi.visibility) = VIS_SELF];
+  MediaWorkflowIntOptionConfig fps = 8 [(hi.visibility) = VIS_SELF];
+}
+
+message MediaWorkflowConfig {
+  option (hi.audience) = VIS_SELF;
+  oneof feature_config {
+    TextToImageWorkflowConfig text_to_image = 1 [(hi.visibility) = VIS_SELF];
+    ImageToVideoWorkflowConfig image_to_video = 2 [(hi.visibility) = VIS_SELF];
+  }
+  MediaWorkflowOutputConfig output = 3 [(hi.visibility) = VIS_SELF];
+  optional int32 execution_timeout_seconds = 4 [(hi.visibility) = VIS_SELF];
+  optional uint64 output_reservation_bytes = 5 [(hi.visibility) = VIS_SELF];
+}
+
+message UpdateMediaWorkflowReq {
+  optional string workflow_version_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  optional string expected_content_hash = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  MediaWorkflowConfig config = 3 [(buf.validate.field).required = true];
+}
+
+message UpdateMediaWorkflowResp {
+  option (hi.audience) = VIS_SELF;
+  optional string content_hash = 1 [(hi.visibility) = VIS_SELF];
+}
+
+message MediaWorkflowInputCandidate {
+  option (hi.audience) = VIS_SELF;
+  optional string input_name = 1 [(hi.visibility) = VIS_SELF];
+  optional string value_json = 2 [(hi.visibility) = VIS_SELF];
+  optional bool is_link = 3 [(hi.visibility) = VIS_SELF];
+  optional string source_node_id = 4 [(hi.visibility) = VIS_SELF];
+  optional int32 source_output_index = 5 [(hi.visibility) = VIS_SELF];
+  optional string declared_type = 6 [(hi.visibility) = VIS_SELF];
+}
+
+message MediaWorkflowNode {
+  option (hi.audience) = VIS_SELF;
+  optional string node_id = 1 [(hi.visibility) = VIS_SELF];
+  optional string class_type = 2 [(hi.visibility) = VIS_SELF];
+  optional string title = 3 [(hi.visibility) = VIS_SELF];
+  repeated MediaWorkflowInputCandidate inputs = 4 [(hi.visibility) = VIS_SELF];
+  optional bool supported_main_output = 5 [(hi.visibility) = VIS_SELF];
+}
+
+enum MediaWorkflowDependencyKind {
+  MEDIA_WORKFLOW_DEPENDENCY_KIND_UNSPECIFIED = 0;
+  MEDIA_WORKFLOW_DEPENDENCY_KIND_NODE_CLASS = 1;
+  MEDIA_WORKFLOW_DEPENDENCY_KIND_LOADER_FILE = 2;
+}
+
+message MediaWorkflowDependencyUsage {
+  option (hi.audience) = VIS_SELF;
+  optional string node_id = 1 [(hi.visibility) = VIS_SELF];
+  optional string input_name = 2 [(hi.visibility) = VIS_SELF];
+}
+
+message MediaWorkflowDependency {
+  option (hi.audience) = VIS_SELF;
+  optional MediaWorkflowDependencyKind kind = 1 [(hi.visibility) = VIS_SELF];
+  optional string identifier = 2 [(hi.visibility) = VIS_SELF];
+  repeated MediaWorkflowDependencyUsage usages = 3 [(hi.visibility) = VIS_SELF];
+}
+
+enum MediaWorkflowIssueSeverity {
+  MEDIA_WORKFLOW_ISSUE_SEVERITY_UNSPECIFIED = 0;
+  MEDIA_WORKFLOW_ISSUE_SEVERITY_ERROR = 1;
+  MEDIA_WORKFLOW_ISSUE_SEVERITY_WARNING = 2;
+}
+
+message MediaWorkflowIssue {
+  option (hi.audience) = VIS_SELF;
+  optional string code = 1 [(hi.visibility) = VIS_SELF];
+  optional MediaWorkflowIssueSeverity severity = 2 [(hi.visibility) = VIS_SELF];
+  optional string message = 3 [(hi.visibility) = VIS_SELF];
+  optional string node_id = 4 [(hi.visibility) = VIS_SELF];
+  optional string input_name = 5 [(hi.visibility) = VIS_SELF];
+}
+
+enum MediaWorkflowStatus {
+  MEDIA_WORKFLOW_STATUS_UNSPECIFIED = 0;
+  MEDIA_WORKFLOW_STATUS_DRAFT = 1;
+  MEDIA_WORKFLOW_STATUS_READY = 2;
+}
+
+enum MediaWorkflowValidationStatus {
+  MEDIA_WORKFLOW_VALIDATION_STATUS_UNSPECIFIED = 0;
+  MEDIA_WORKFLOW_VALIDATION_STATUS_PASSED = 1;
+  MEDIA_WORKFLOW_VALIDATION_STATUS_FAILED = 2;
+}
+
+message MediaWorkflowValidationSummary {
+  option (hi.audience) = VIS_SELF;
+  optional MediaWorkflowValidationStatus status = 1 [(hi.visibility) = VIS_SELF];
+  optional int32 error_count = 2 [(hi.visibility) = VIS_SELF];
+  optional int32 warning_count = 3 [(hi.visibility) = VIS_SELF];
+  optional string content_hash = 4 [(hi.visibility) = VIS_SELF];
+  optional int64 validated_at = 5 [(hi.visibility) = VIS_SELF];
+}
+
+message MediaWorkflowValidationResult {
+  option (hi.audience) = VIS_SELF;
+  MediaWorkflowValidationSummary summary = 1 [(hi.visibility) = VIS_SELF];
+  repeated MediaWorkflowIssue issues = 2 [(hi.visibility) = VIS_SELF];
+}
+
+message MediaWorkflowSummary {
+  option (hi.audience) = VIS_SELF;
+  optional string workflow_version_id = 1 [(hi.visibility) = VIS_SELF];
+  optional string feature_key = 2 [(hi.visibility) = VIS_SELF];
+  optional string name = 3 [(hi.visibility) = VIS_SELF];
+  optional MediaWorkflowStatus status = 4 [(hi.visibility) = VIS_SELF];
+  optional bool is_active = 5 [(hi.visibility) = VIS_SELF];
+  MediaWorkflowValidationSummary latest_validation = 6 [(hi.visibility) = VIS_SELF];
+  optional string created_by = 7 [(hi.visibility) = VIS_SELF];
+  optional int64 created_at = 8 [(hi.visibility) = VIS_SELF];
+}
+
+message ListMediaWorkflowsReq {
+  hi.Pagination pagination = 1;
+  optional string feature_key = 2;
+  optional MediaWorkflowStatus status = 3;
+  optional bool is_active = 4;
+}
+
+message ListMediaWorkflowsResp {
+  option (hi.audience) = VIS_SELF;
+  optional int32 total = 1 [(hi.visibility) = VIS_SELF];
+  repeated MediaWorkflowSummary workflows = 2 [(hi.visibility) = VIS_SELF];
+}
+
+message MediaWorkflowDetail {
+  option (hi.audience) = VIS_SELF;
+  optional string workflow_version_id = 1 [(hi.visibility) = VIS_SELF];
+  optional string feature_key = 2 [(hi.visibility) = VIS_SELF];
+  optional string name = 3 [(hi.visibility) = VIS_SELF];
+  optional string change_notes = 4 [(hi.visibility) = VIS_SELF];
+  optional MediaWorkflowStatus status = 5 [(hi.visibility) = VIS_SELF];
+  optional bool is_active = 6 [(hi.visibility) = VIS_SELF];
+  optional string api_json = 7 [(hi.visibility) = VIS_SELF];
+  optional string content_hash = 8 [(hi.visibility) = VIS_SELF];
+  MediaWorkflowConfig config = 9 [(hi.visibility) = VIS_SELF];
+  repeated MediaWorkflowNode nodes = 10 [(hi.visibility) = VIS_SELF];
+  repeated MediaWorkflowDependency dependencies = 11 [(hi.visibility) = VIS_SELF];
+  MediaWorkflowValidationResult latest_validation = 12 [(hi.visibility) = VIS_SELF];
+  optional string ready_test_task_id = 13 [(hi.visibility) = VIS_SELF];
+  optional string ready_by = 14 [(hi.visibility) = VIS_SELF];
+  optional int64 ready_at = 15 [(hi.visibility) = VIS_SELF];
+  optional string created_by = 16 [(hi.visibility) = VIS_SELF];
+  optional int64 created_at = 17 [(hi.visibility) = VIS_SELF];
+}
+
+message GetMediaWorkflowReq {
+  optional string workflow_version_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+}
+
+message GetMediaWorkflowResp {
+  option (hi.audience) = VIS_SELF;
+  MediaWorkflowDetail workflow = 1 [(hi.visibility) = VIS_SELF];
+}
+
+message ValidateMediaWorkflowReq {
+  optional string workflow_version_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+}
+
+message ValidateMediaWorkflowResp {
+  option (hi.audience) = VIS_SELF;
+  MediaWorkflowValidationResult validation = 1 [(hi.visibility) = VIS_SELF];
+}
+
+message TextToImageWorkflowTestInput {
+  optional string prompt = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+}
+
+message ImageToVideoWorkflowTestInput {
+  optional string input_asset_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  optional string prompt = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+}
+
+message TestMediaWorkflowReq {
+  optional string request_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  optional string workflow_version_id = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  optional string expected_content_hash = 3 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  oneof input {
+    TextToImageWorkflowTestInput text_to_image = 4;
+    ImageToVideoWorkflowTestInput image_to_video = 5;
+  }
+}
+
+message TestMediaWorkflowResp {
+  option (hi.audience) = VIS_SELF;
+  optional string task_id = 1 [(hi.visibility) = VIS_SELF];
+}
+
+message MediaWorkflowTestRecord {
+  option (hi.audience) = VIS_SELF;
+  MediaTaskSummary task = 1 [(hi.visibility) = VIS_SELF];
+  optional string content_hash = 2 [(hi.visibility) = VIS_SELF];
+}
+
+message ListMediaWorkflowTestsReq {
+  hi.Pagination pagination = 1;
+  optional string workflow_version_id = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+}
+
+message ListMediaWorkflowTestsResp {
+  option (hi.audience) = VIS_SELF;
+  optional int32 total = 1 [(hi.visibility) = VIS_SELF];
+  repeated MediaWorkflowTestRecord tests = 2 [(hi.visibility) = VIS_SELF];
+}
+
+message SetMediaWorkflowReadyReq {
+  optional string workflow_version_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  optional string expected_content_hash = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  optional string test_task_id = 3 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+}
+
+message SetMediaWorkflowReadyResp {
+  option (hi.audience) = VIS_SELF;
+  optional string workflow_version_id = 1 [(hi.visibility) = VIS_SELF];
+  optional MediaWorkflowStatus status = 2 [(hi.visibility) = VIS_SELF];
+  optional string content_hash = 3 [(hi.visibility) = VIS_SELF];
+  optional string ready_test_task_id = 4 [(hi.visibility) = VIS_SELF];
+  optional int64 ready_at = 5 [(hi.visibility) = VIS_SELF];
+}
+
+message SetActiveMediaWorkflowReq {
+  optional string workflow_version_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+}
+
+message SetActiveMediaWorkflowResp {
+  option (hi.audience) = VIS_SELF;
+  optional string feature_key = 1 [(hi.visibility) = VIS_SELF];
+  optional string active_workflow_version_id = 2 [(hi.visibility) = VIS_SELF];
+  optional int64 activated_at = 3 [(hi.visibility) = VIS_SELF];
+}
+
+service MediaWorkflowManage {
+  rpc ImportWorkflow (ImportMediaWorkflowReq) returns (ImportMediaWorkflowResp) { option (hi.auth) = AUTH_SUPERADMIN; }
+  rpc Update (UpdateMediaWorkflowReq) returns (UpdateMediaWorkflowResp) { option (hi.auth) = AUTH_SUPERADMIN; }
+  rpc List (ListMediaWorkflowsReq) returns (ListMediaWorkflowsResp) { option (hi.auth) = AUTH_SUPERADMIN; }
+  rpc Get (GetMediaWorkflowReq) returns (GetMediaWorkflowResp) { option (hi.auth) = AUTH_SUPERADMIN; }
+  rpc Validate (ValidateMediaWorkflowReq) returns (ValidateMediaWorkflowResp) { option (hi.auth) = AUTH_SUPERADMIN; }
+  rpc Test (TestMediaWorkflowReq) returns (TestMediaWorkflowResp) { option (hi.auth) = AUTH_SUPERADMIN; }
+  rpc ListTests (ListMediaWorkflowTestsReq) returns (ListMediaWorkflowTestsResp) { option (hi.auth) = AUTH_SUPERADMIN; }
+  rpc SetReady (SetMediaWorkflowReadyReq) returns (SetMediaWorkflowReadyResp) { option (hi.auth) = AUTH_SUPERADMIN; }
+  rpc SetActive (SetActiveMediaWorkflowReq) returns (SetActiveMediaWorkflowResp) { option (hi.auth) = AUTH_SUPERADMIN; }
+}

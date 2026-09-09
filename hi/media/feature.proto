@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package hi.media;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
+
+import "buf/validate/validate.proto";
+import "hi/media/task.proto";
+import "hi/options.proto";
+
+message GetMediaFeatureReq {
+  optional string feature_key = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+}
+
+message TextToImageFeatureConfig {
+  option (hi.audience) = VIS_PUBLIC;
+  optional int32 prompt_max_length = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional int32 negative_prompt_max_length = 2 [(hi.visibility) = VIS_PUBLIC];
+  repeated MediaResolution allowed_resolutions = 3 [(hi.visibility) = VIS_PUBLIC];
+  MediaResolution default_resolution = 4 [(hi.visibility) = VIS_PUBLIC];
+}
+
+message ImageToVideoFeatureConfig {
+  option (hi.audience) = VIS_PUBLIC;
+  optional int32 prompt_max_length = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional int32 negative_prompt_max_length = 2 [(hi.visibility) = VIS_PUBLIC];
+  repeated MediaResolution allowed_resolutions = 3 [(hi.visibility) = VIS_PUBLIC];
+  MediaResolution default_resolution = 4 [(hi.visibility) = VIS_PUBLIC];
+  repeated int32 allowed_duration_seconds = 5 [(hi.visibility) = VIS_PUBLIC];
+  optional int32 default_duration_seconds = 6 [(hi.visibility) = VIS_PUBLIC];
+  repeated int32 allowed_fps = 7 [(hi.visibility) = VIS_PUBLIC];
+  optional int32 default_fps = 8 [(hi.visibility) = VIS_PUBLIC];
+}
+
+message GetMediaFeatureResp {
+  option (hi.audience) = VIS_PUBLIC;
+  optional string feature_key = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional string workflow_version_id = 2 [(hi.visibility) = VIS_PUBLIC];
+  oneof feature_config {
+    TextToImageFeatureConfig text_to_image = 3 [(hi.visibility) = VIS_PUBLIC];
+    ImageToVideoFeatureConfig image_to_video = 4 [(hi.visibility) = VIS_PUBLIC];
+  }
+}
+
+service MediaFeature {
+  rpc Get (GetMediaFeatureReq) returns (GetMediaFeatureResp) { option (hi.auth) = AUTH_USER; }
+}

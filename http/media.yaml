@@ -17,3 +17,69 @@ http:
     body: "*"
   - selector: hi.media.Base.ServerVersion
     get: /api/v1/base/server_version
+  - selector: hi.media.SuperAdmin.List
+    get: /api/v1/super_admin/list
+  - selector: hi.media.MediaFeature.Get
+    get: /api/v1/media_feature/get
+  - selector: hi.media.MediaTask.CreateTextToImage
+    post: /api/v1/media_task/create_text_to_image
+    body: "*"
+  - selector: hi.media.MediaTask.CreateImageToVideo
+    post: /api/v1/media_task/create_image_to_video
+    body: "*"
+  - selector: hi.media.MediaTask.Get
+    get: /api/v1/media_task/get
+  - selector: hi.media.MediaTask.List
+    post: /api/v1/media_task/list
+    body: "*"
+  - selector: hi.media.MediaTask.Cancel
+    post: /api/v1/media_task/cancel
+    body: "*"
+  - selector: hi.media.MediaTask.RecoverSave
+    post: /api/v1/media_task/recover_save
+    body: "*"
+  - selector: hi.media.MediaFile.GetUpload
+    get: /api/v1/media_file/get_upload
+  - selector: hi.media.MediaFile.List
+    post: /api/v1/media_file/list
+    body: "*"
+  - selector: hi.media.MediaFile.Delete
+    post: /api/v1/media_file/delete
+    body: "*"
+  - selector: hi.media.MediaFile.GetAccessUrls
+    post: /api/v1/media_file/get_access_urls
+    body: "*"
+  - selector: hi.media.MediaQuota.Get
+    get: /api/v1/media_quota/get
+  - selector: hi.media.MediaWorkflowManage.ImportWorkflow
+    post: /api/v1/media_workflow_manage/import_workflow
+    body: "*"
+  - selector: hi.media.MediaWorkflowManage.Update
+    post: /api/v1/media_workflow_manage/update
+    body: "*"
+  - selector: hi.media.MediaWorkflowManage.List
+    post: /api/v1/media_workflow_manage/list
+    body: "*"
+  - selector: hi.media.MediaWorkflowManage.Get
+    post: /api/v1/media_workflow_manage/get
+    body: "*"
+  - selector: hi.media.MediaWorkflowManage.Validate
+    post: /api/v1/media_workflow_manage/validate
+    body: "*"
+  - selector: hi.media.MediaWorkflowManage.Test
+    post: /api/v1/media_workflow_manage/test
+    body: "*"
+  - selector: hi.media.MediaWorkflowManage.ListTests
+    post: /api/v1/media_workflow_manage/list_tests
+    body: "*"
+  - selector: hi.media.MediaWorkflowManage.SetReady
+    post: /api/v1/media_workflow_manage/set_ready
+    body: "*"
+  - selector: hi.media.MediaWorkflowManage.SetActive
+    post: /api/v1/media_workflow_manage/set_active
+    body: "*"
+  - selector: hi.media.MediaManage.GetMaintenance
+    get: /api/v1/media_manage/get_maintenance
+  - selector: hi.media.MediaManage.SetMaintenance
+    post: /api/v1/media_manage/set_maintenance
+    body: "*"

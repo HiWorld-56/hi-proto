@@ -1,0 +1,180 @@
+syntax = "proto3";
+
+package hi.media;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
+
+import "buf/validate/validate.proto";
+import "hi/common.proto";
+import "hi/options.proto";
+
+enum MediaTaskPurpose {
+  MEDIA_TASK_PURPOSE_UNSPECIFIED = 0;
+  MEDIA_TASK_PURPOSE_NORMAL = 1;
+  MEDIA_TASK_PURPOSE_WORKFLOW_TEST = 2;
+}
+
+enum MediaTaskStatus {
+  MEDIA_TASK_STATUS_UNSPECIFIED = 0;
+  MEDIA_TASK_STATUS_PENDING = 1;
+  MEDIA_TASK_STATUS_RUNNING = 2;
+  MEDIA_TASK_STATUS_SAVING = 3;
+  MEDIA_TASK_STATUS_CANCELLING = 4;
+  MEDIA_TASK_STATUS_SUCCESS = 5;
+  MEDIA_TASK_STATUS_FAILED = 6;
+  MEDIA_TASK_STATUS_CANCELLED = 7;
+}
+
+enum MediaType {
+  MEDIA_TYPE_UNSPECIFIED = 0;
+  MEDIA_TYPE_IMAGE = 1;
+  MEDIA_TYPE_VIDEO = 2;
+}
+
+message MediaResolution {
+  option (hi.audience) = VIS_PUBLIC;
+  optional int32 width = 1 [(buf.validate.field).int32.gt = 0, (buf.validate.field).required = true, (hi.visibility) = VIS_PUBLIC];
+  optional int32 height = 2 [(buf.validate.field).int32.gt = 0, (buf.validate.field).required = true, (hi.visibility) = VIS_PUBLIC];
+}
+
+message CreateTextToImageTaskReq {
+  optional string request_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  optional string workflow_version_id = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  optional string source_task_id = 3;
+  optional string prompt = 4 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  optional string negative_prompt = 5;
+  MediaResolution resolution = 6;
+}
+
+message CreateImageToVideoTaskReq {
+  optional string request_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  optional string workflow_version_id = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  optional string source_task_id = 3;
+  optional string input_asset_id = 4 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  optional string prompt = 5 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  optional string negative_prompt = 6;
+  MediaResolution resolution = 7;
+  optional int32 duration_seconds = 8;
+  optional int32 fps = 9;
+}
+
+message CreateMediaTaskResp {
+  option (hi.audience) = VIS_SELF;
+  optional string task_id = 1 [(hi.visibility) = VIS_SELF];
+}
+
+message TextToImageTaskParams {
+  option (hi.audience) = VIS_SELF;
+  optional string prompt = 1 [(hi.visibility) = VIS_SELF];
+  optional string negative_prompt = 2 [(hi.visibility) = VIS_SELF];
+  MediaResolution resolution = 3 [(hi.visibility) = VIS_PUBLIC];
+}
+
+message ImageToVideoTaskParams {
+  option (hi.audience) = VIS_SELF;
+  optional string input_asset_id = 1 [(hi.visibility) = VIS_SELF];
+  optional string prompt = 2 [(hi.visibility) = VIS_SELF];
+  optional string negative_prompt = 3 [(hi.visibility) = VIS_SELF];
+  MediaResolution resolution = 4 [(hi.visibility) = VIS_PUBLIC];
+  optional int32 duration_seconds = 5 [(hi.visibility) = VIS_SELF];
+  optional int32 fps = 6 [(hi.visibility) = VIS_SELF];
+}
+
+message MediaTaskOutput {
+  option (hi.audience) = VIS_SELF;
+  optional string asset_id = 1 [(hi.visibility) = VIS_SELF];
+  optional string filename = 2 [(hi.visibility) = VIS_SELF];
+  optional MediaType media_type = 3 [(hi.visibility) = VIS_SELF];
+  optional string mime_type = 4 [(hi.visibility) = VIS_SELF];
+  optional uint64 size_bytes = 5 [(hi.visibility) = VIS_SELF];
+  optional bool available = 6 [(hi.visibility) = VIS_SELF];
+}
+
+message MediaTaskSummary {
+  option (hi.audience) = VIS_SELF;
+  optional string task_id = 1 [(hi.visibility) = VIS_SELF];
+  optional MediaTaskPurpose purpose = 2 [(hi.visibility) = VIS_SELF];
+  optional string feature_key = 3 [(hi.visibility) = VIS_SELF];
+  optional string workflow_version_id = 4 [(hi.visibility) = VIS_SELF];
+  optional string workflow_name = 5 [(hi.visibility) = VIS_SELF];
+  optional MediaTaskStatus status = 6 [(hi.visibility) = VIS_SELF];
+  optional string status_message = 7 [(hi.visibility) = VIS_SELF];
+  MediaTaskOutput output = 8 [(hi.visibility) = VIS_SELF];
+  optional bool can_cancel = 9 [(hi.visibility) = VIS_SELF];
+  optional bool can_recover_save = 10 [(hi.visibility) = VIS_SELF];
+  optional int64 save_recovery_expires_at = 11 [(hi.visibility) = VIS_SELF];
+  optional int64 created_at = 12 [(hi.visibility) = VIS_SELF];
+  optional int64 started_at = 13 [(hi.visibility) = VIS_SELF];
+  optional int64 completed_at = 14 [(hi.visibility) = VIS_SELF];
+  optional int32 elapsed_seconds = 15 [(hi.visibility) = VIS_SELF];
+}
+
+message MediaTaskProcessingRecord {
+  option (hi.audience) = VIS_SELF;
+  optional int64 occurred_at = 1 [(hi.visibility) = VIS_SELF];
+  optional string message = 2 [(hi.visibility) = VIS_SELF];
+}
+
+message MediaTaskDetail {
+  option (hi.audience) = VIS_SELF;
+  MediaTaskSummary summary = 1 [(hi.visibility) = VIS_SELF];
+  optional string source_task_id = 2 [(hi.visibility) = VIS_SELF];
+  oneof effective_params {
+    TextToImageTaskParams text_to_image = 3 [(hi.visibility) = VIS_SELF];
+    ImageToVideoTaskParams image_to_video = 4 [(hi.visibility) = VIS_SELF];
+  }
+  repeated MediaTaskProcessingRecord processing_records = 5 [(hi.visibility) = VIS_SELF];
+}
+
+message GetMediaTaskReq {
+  optional string task_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+}
+
+message GetMediaTaskResp {
+  option (hi.audience) = VIS_SELF;
+  MediaTaskDetail task = 1 [(hi.visibility) = VIS_SELF];
+}
+
+message ListMediaTasksReq {
+  hi.Pagination pagination = 1;
+  optional string feature_key = 2;
+  repeated MediaTaskStatus statuses = 3;
+}
+
+message ListMediaTasksResp {
+  option (hi.audience) = VIS_SELF;
+  optional int32 total = 1 [(hi.visibility) = VIS_SELF];
+  repeated MediaTaskSummary tasks = 2 [(hi.visibility) = VIS_SELF];
+}
+
+message CancelMediaTaskReq {
+  optional string task_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+}
+
+message CancelMediaTaskResp {
+  option (hi.audience) = VIS_SELF;
+  optional string task_id = 1 [(hi.visibility) = VIS_SELF];
+  optional MediaTaskStatus status = 2 [(hi.visibility) = VIS_SELF];
+  optional string status_message = 3 [(hi.visibility) = VIS_SELF];
+}
+
+message RecoverSaveMediaTaskReq {
+  optional string request_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  optional string task_id = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+}
+
+message RecoverSaveMediaTaskResp {
+  option (hi.audience) = VIS_SELF;
+  optional string task_id = 1 [(hi.visibility) = VIS_SELF];
+  optional MediaTaskStatus status = 2 [(hi.visibility) = VIS_SELF];
+  optional string status_message = 3 [(hi.visibility) = VIS_SELF];
+}
+
+service MediaTask {
+  rpc CreateTextToImage (CreateTextToImageTaskReq) returns (CreateMediaTaskResp) { option (hi.auth) = AUTH_USER; }
+  rpc CreateImageToVideo (CreateImageToVideoTaskReq) returns (CreateMediaTaskResp) { option (hi.auth) = AUTH_USER; }
+  rpc Get (GetMediaTaskReq) returns (GetMediaTaskResp) { option (hi.auth) = AUTH_USER; }
+  rpc List (ListMediaTasksReq) returns (ListMediaTasksResp) { option (hi.auth) = AUTH_USER; }
+  rpc Cancel (CancelMediaTaskReq) returns (CancelMediaTaskResp) { option (hi.auth) = AUTH_USER; }
+  rpc RecoverSave (RecoverSaveMediaTaskReq) returns (RecoverSaveMediaTaskResp) { option (hi.auth) = AUTH_USER; }
+}

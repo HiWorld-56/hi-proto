@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package hi.media;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
+
+import "google/protobuf/empty.proto";
+import "buf/validate/validate.proto";
+import "hi/options.proto";
+
+message MediaMaintenanceState {
+  option (hi.audience) = VIS_SELF;
+  optional bool enabled = 1 [(hi.visibility) = VIS_SELF];
+  optional string reason = 2 [(hi.visibility) = VIS_SELF];
+  optional int64 started_at = 3 [(hi.visibility) = VIS_SELF];
+  optional int64 updated_at = 4 [(hi.visibility) = VIS_SELF];
+}
+
+message GetMediaMaintenanceResp {
+  option (hi.audience) = VIS_SELF;
+  MediaMaintenanceState state = 1 [(hi.visibility) = VIS_SELF];
+}
+
+message SetMediaMaintenanceReq {
+  optional bool enabled = 1 [(buf.validate.field).required = true];
+  optional string reason = 2;
+}
+
+message SetMediaMaintenanceResp {
+  option (hi.audience) = VIS_SELF;
+  MediaMaintenanceState state = 1 [(hi.visibility) = VIS_SELF];
+}
+
+service MediaManage {
+  rpc GetMaintenance (google.protobuf.Empty) returns (GetMediaMaintenanceResp) { option (hi.auth) = AUTH_SUPERADMIN; }
+  rpc SetMaintenance (SetMediaMaintenanceReq) returns (SetMediaMaintenanceResp) { option (hi.auth) = AUTH_SUPERADMIN; }
+}
