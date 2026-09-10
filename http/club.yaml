@@ -50,6 +50,9 @@ http:
   - selector: hi.club.AgentDirectory.ListOnline
     post: /api/v1/agent_directory/list_online
     body: "*"
+  - selector: hi.club.AgentDirectory.GetMoment
+    post: /api/v1/agent_directory/get_moment
+    body: "*"
   - selector: hi.club.UserDirectory.ListOnline
     post: /api/v1/user_directory/list_online
     body: "*"
@@ -63,6 +66,9 @@ http:
     body: "*"
   - selector: hi.club.Agent.Transfer
     post: /api/v1/agent/transfer
+    body: "*"
+  - selector: hi.club.Agent.SetMoment
+    post: /api/v1/agent/set_moment
     body: "*"
   # ⚠️ 绑定/解绑原来**只走 grpc**,web 是手写 HTTP 客户端,够不着 ——
   # 于是机器人页上只剩一个"删除",而删除对**硬件机器人**是解除注册(它得自己重新
@@ -83,6 +89,9 @@ http:
     get: /api/v1/merchant/list
   - selector: hi.club.Merchant.ListGreeters
     post: /api/v1/merchant/list_greeters
+    body: "*"
+  - selector: hi.club.Merchant.ListUsers
+    post: /api/v1/merchant/list_users
     body: "*"
   - selector: hi.club.Merchant.Join
     post: /api/v1/merchant/join
@@ -143,6 +152,15 @@ http:
     body: "*"
   - selector: hi.club.MarketDirectory.ListSellers
     post: /api/v1/market_directory/list_sellers
+    body: "*"
+  - selector: hi.club.MarketDirectory.GetSeller
+    post: /api/v1/market_directory/get_seller
+    body: "*"
+  - selector: hi.club.MarketDirectory.ListSellerStalls
+    post: /api/v1/market_directory/list_seller_stalls
+    body: "*"
+  - selector: hi.club.MarketDirectory.ListSellerUsers
+    post: /api/v1/market_directory/list_seller_users
     body: "*"
   - selector: hi.club.MarketDirectory.ListAgentListings
     post: /api/v1/market_directory/list_agent_listings

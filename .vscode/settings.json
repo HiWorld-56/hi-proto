@@ -1,5 +1,11 @@
 {
   "files.exclude": {
     "v1": true
-  }
+  },
+  "[proto]": {
+    "editor.defaultFormatter": "DrBlury.protobuf-vsc",
+    "editor.formatOnSave": true
+  },
+  "protobuf.diagnostics.importChecks": false, // import 解析交给 Buf
+  "protobuf.diagnostics.referenceChecks": false, // 同理，它看不见 BSR 依赖里的类型
 }

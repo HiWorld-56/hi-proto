@@ -1,0 +1,131 @@
+syntax = "proto3";
+
+package hi.media;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
+
+import "buf/validate/validate.proto";
+import "hi/common.proto";
+import "hi/media/task.proto";
+import "hi/options.proto";
+
+enum MediaFileSource {
+  MEDIA_FILE_SOURCE_UNSPECIFIED = 0;
+  MEDIA_FILE_SOURCE_UPLOAD = 1;
+  MEDIA_FILE_SOURCE_GENERATED = 2;
+}
+
+enum MediaFileAccessPurpose {
+  MEDIA_FILE_ACCESS_PURPOSE_UNSPECIFIED = 0;
+  MEDIA_FILE_ACCESS_PURPOSE_PREVIEW = 1;
+  MEDIA_FILE_ACCESS_PURPOSE_DOWNLOAD = 2;
+}
+
+enum MediaUploadStatus {
+  MEDIA_UPLOAD_STATUS_UNSPECIFIED = 0;
+  MEDIA_UPLOAD_STATUS_PROCESSING = 1;
+  MEDIA_UPLOAD_STATUS_COMPLETED = 2;
+}
+
+enum MediaUploadFileStatus {
+  MEDIA_UPLOAD_FILE_STATUS_UNSPECIFIED = 0;
+  MEDIA_UPLOAD_FILE_STATUS_PENDING = 1;
+  MEDIA_UPLOAD_FILE_STATUS_PROCESSING = 2;
+  MEDIA_UPLOAD_FILE_STATUS_SUCCESS = 3;
+  MEDIA_UPLOAD_FILE_STATUS_FAILED = 4;
+}
+
+message MediaFileSummary {
+  option (hi.audience) = VIS_SELF;
+  optional string asset_id = 1 [(hi.visibility) = VIS_SELF];
+  optional string filename = 2 [(hi.visibility) = VIS_SELF];
+  optional MediaType media_type = 3 [(hi.visibility) = VIS_SELF];
+  optional string mime_type = 4 [(hi.visibility) = VIS_SELF];
+  optional uint64 size_bytes = 5 [(hi.visibility) = VIS_SELF];
+  optional MediaFileSource source = 6 [(hi.visibility) = VIS_SELF];
+  optional int64 created_at = 7 [(hi.visibility) = VIS_SELF];
+}
+
+message ListMediaFilesReq {
+  hi.Pagination pagination = 1;
+  optional MediaType media_type = 2;
+  optional MediaFileSource source = 3;
+}
+
+message ListMediaFilesResp {
+  option (hi.audience) = VIS_SELF;
+  optional int32 total = 1 [(hi.visibility) = VIS_SELF];
+  repeated MediaFileSummary files = 2 [(hi.visibility) = VIS_SELF];
+}
+
+message DeleteMediaFileReq {
+  optional string asset_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+}
+
+message DeleteMediaFileResp {
+  option (hi.audience) = VIS_SELF;
+  optional string asset_id = 1 [(hi.visibility) = VIS_SELF];
+}
+
+message GetMediaFileAccessUrlsReq {
+  repeated string asset_ids = 1 [(buf.validate.field).repeated = {min_items: 1, unique: true}];
+  optional MediaFileAccessPurpose purpose = 2 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}, (buf.validate.field).required = true];
+}
+
+message MediaFileAccessUrl {
+  option (hi.audience) = VIS_SELF;
+  optional string asset_id = 1 [(hi.visibility) = VIS_SELF];
+  optional string url = 2 [(hi.visibility) = VIS_SELF];
+  optional int64 expire_at = 3 [(hi.visibility) = VIS_SELF];
+}
+
+message GetMediaFileAccessUrlsResp {
+  option (hi.audience) = VIS_SELF;
+  repeated MediaFileAccessUrl files = 1 [(hi.visibility) = VIS_SELF];
+}
+
+message MediaUploadFileMetadata {
+  optional string client_file_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  optional string filename = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  optional uint64 size_bytes = 3 [(buf.validate.field).uint64.gt = 0, (buf.validate.field).required = true];
+}
+
+message MediaUploadMetadata {
+  optional string request_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  repeated MediaUploadFileMetadata files = 2 [(buf.validate.field).repeated = {min_items: 1}];
+}
+
+message MediaUploadFileResult {
+  option (hi.audience) = VIS_SELF;
+  optional string client_file_id = 1 [(hi.visibility) = VIS_SELF];
+  optional string filename = 2 [(hi.visibility) = VIS_SELF];
+  optional MediaUploadFileStatus status = 3 [(hi.visibility) = VIS_SELF];
+  optional string asset_id = 4 [(hi.visibility) = VIS_SELF];
+  optional string mime_type = 5 [(hi.visibility) = VIS_SELF];
+  optional uint64 size_bytes = 6 [(hi.visibility) = VIS_SELF];
+  optional string error_code = 7 [(hi.visibility) = VIS_SELF];
+  optional string error_message = 8 [(hi.visibility) = VIS_SELF];
+}
+
+message MediaUploadBatchResult {
+  option (hi.audience) = VIS_SELF;
+  optional string request_id = 1 [(hi.visibility) = VIS_SELF];
+  optional MediaUploadStatus status = 2 [(hi.visibility) = VIS_SELF];
+  repeated MediaUploadFileResult files = 3 [(hi.visibility) = VIS_SELF];
+}
+
+message GetMediaUploadReq {
+  optional string request_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+}
+
+message GetMediaUploadResp {
+  option (hi.audience) = VIS_SELF;
+  MediaUploadBatchResult upload = 1 [(hi.visibility) = VIS_SELF];
+}
+
+service MediaFile {
+  rpc GetUpload (GetMediaUploadReq) returns (GetMediaUploadResp) { option (hi.auth) = AUTH_USER; }
+  rpc List (ListMediaFilesReq) returns (ListMediaFilesResp) { option (hi.auth) = AUTH_USER; }
+  rpc Delete (DeleteMediaFileReq) returns (DeleteMediaFileResp) { option (hi.auth) = AUTH_USER; }
+  rpc GetAccessUrls (GetMediaFileAccessUrlsReq) returns (GetMediaFileAccessUrlsResp) { option (hi.auth) = AUTH_USER; }
+}

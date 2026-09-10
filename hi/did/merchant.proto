@@ -110,9 +110,20 @@ message UserExtensionUnit {
 // ⚠️ 加新项时**只加枚举值,不动旧值的号** —— 这个号是**落库的位**,改一个就是把库里
 //    存量行的含义整体挪位,且零报错(见 CLAUDE.md「落库的枚举写死数字」)。
 enum MerchantGrantScope {
-  MERCHANT_GRANT_SCOPE_UNSPECIFIED = 0; // 占位:漏传的语义是"空集合",不是这个值
-  MERCHANT_GRANT_SCOPE_READ_USERS  = 1; // bit0:读我名下的用户(MerchantGranted.GetUser/ListUsers/ListGreeters)
-  MERCHANT_GRANT_SCOPE_ADD_USERS   = 2; // bit1:把用户加到我名下(MerchantGranted.AddUsers)
+  MERCHANT_GRANT_SCOPE_UNSPECIFIED   = 0; // 占位:漏传的语义是"空集合",不是这个值
+  MERCHANT_GRANT_SCOPE_READ_USERS    = 1; // bit0:读我名下的用户(MerchantGranted.GetUser/ListUsers/ListGreeters)
+  MERCHANT_GRANT_SCOPE_ADD_USERS     = 2; // bit1:把用户加到我名下(MerchantGranted.AddUsers)
+  // bit2:读我这个商户自己的配置(目前只有支持币种,MerchantGranted.ListCoins)。
+  //
+  // 与 READ_USERS 分开而不是搭它的车:那一项给的是"我名下的**用户**",这一项给的是
+  // "我这个**商户**自己"—— 两类数据、两个主体。搭车的话,商户撤掉读用户的授权时
+  // 会连带把币种也撤了,而它根本不知道自己撤了两样。
+  //
+  // ⚠️ 这一位是 2026-09-09 加的,**存量授权行里没有它** —— 已有商户对 club 的授权
+  //    只有 bit0|bit1。不回填的话,插件市场里这些商户只会显示常规币种、
+  //    自定义币种一个都不出,**且零报错**(拿到的是 PermissionDenied,被当成"没配")。
+  //    回填 = 给 `hi_merchant_grant` 里 grantee=club 的存量行按位或上 4。
+  MERCHANT_GRANT_SCOPE_READ_MERCHANT = 4;
 }
 
 // 授权/改授权项。**upsert**:同一个 grantee 重复调 = 改这一行。
@@ -190,6 +201,31 @@ message GrantedAddUsersReq {
 message GrantedListGreetersReq {
   optional string merchant   = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
   hi.Pagination   pagination = 2;
+}
+
+// 读**别家商户**支持的币种(MerchantGranted.ListCoins,须 READ_MERCHANT)。
+//
+// ⚠️ 三种结果各有各的含义,**调用方靠它们区分"不是商户"和"没授权"**:
+//   · OK               = 是商户,且授权了我 → 币种就是回的这些;
+//   · PermissionDenied = 是商户,但没把 READ_MERCHANT 给我 → 币种取不到,
+//                        **不能当成"他没配币种"**;
+//   · NotFound         = **不是商户**。
+// 为此本方法**先查商户存不存在、再校验授权**(与本 service 其它方法的顺序相反)。
+// 代价是任一持 ExtendToken 的商户能探"某个 did 是不是商户" —— 商户本就对外经营
+// (插件市场里挂着、endpoint 也是公开的),这点可见性可接受;换来的是调用方
+// 不必再单开一个"是不是商户"的探针接口(hi.club.MarketSeller.is_merchant 就靠它)。
+message GrantedListCoinsReq {
+  optional string merchant = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true]; // 目标商户(须先授权给我)
+}
+
+// 某商户支持的币种。**只有币种**,不带 master/endpoint/scheme 那些 ——
+// 用途是"这个商户收得了哪些币"(插件市场按卖家显示支持币种),不是商户信息的门面。
+// 要别的字段就另开方法,别把这里扩成第二个 MerchantInfo:那正是 Merchant.Get
+// 当年带出 extension_token 的路子(返回体越宽,越容易漏)。
+message MerchantCoinsResp {
+  option (hi.audience) = VIS_PARTICIPANT;
+  repeated Coin public_coins  = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 公共币种(他勾选的那些)
+  repeated Coin custom_tokens = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 自定义币种
 }
 
 // 列某商户名下的 greeter —— 即扩展表里 level >= 8 的用户。
@@ -455,9 +491,10 @@ service OrderNotify {
 // 判据是 hi_merchant_grant 里 (merchant=A, grantee=B) 一行,授权方永远取自 token。
 //
 // ⚠️ **有没有那一行不够,还要看那一行给了哪些授权项**(MerchantGrantScope):
-//    三个读方法要 READ_USERS,AddUsers 要 ADD_USERS。授权项与方法的对应关系写死在
-//    handler 的方法入口,**不由入参决定** —— 与"要不要 grant 由 service 决定"同一个道理:
-//    让调用方传"我要用哪一项",等于让它自己声明权限。
+//    三个读用户的方法要 READ_USERS,AddUsers 要 ADD_USERS,ListCoins 要 READ_MERCHANT。
+//    授权项与方法的对应关系写死在 handler 的方法入口,**不由入参决定** ——
+//    与"要不要 grant 由 service 决定"同一个道理:让调用方传"我要用哪一项",
+//    等于让它自己声明权限。
 service MerchantGranted {
   rpc GetUser(GrantedGetUserReq) returns (UserExtensionUnit) {
     option (hi.auth) = AUTH_MERCHANT;
@@ -468,6 +505,9 @@ service MerchantGranted {
   rpc ListGreeters(GrantedListGreetersReq) returns (ListUsersResp) {
     option (hi.auth) = AUTH_MERCHANT;
   } // 列别家商户下的 greeter(须 READ_USERS)
+  rpc ListCoins(GrantedListCoinsReq) returns (MerchantCoinsResp) {
+    option (hi.auth) = AUTH_MERCHANT;
+  } // 别家商户支持的币种(须 READ_MERCHANT)
   // 把用户加到别家商户名下(须 ADD_USERS)。
   //
   // 用途:club 的用户在 app 里"加入某商户" —— 链路是

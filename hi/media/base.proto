@@ -4,10 +4,16 @@ package hi.media;
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "hi/did/base.proto";
 import "hi/options.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
 
 service Base {
   rpc ServerVersion (google.protobuf.Empty) returns (hi.ServerVersionResp) { option (hi.auth) = AUTH_NONE; }
+}
+
+// 超管名单只用于已登录前端显隐管理入口；真正的管理 RPC 仍逐次执行 AUTH_SUPERADMIN 二级验证。
+service SuperAdmin {
+  rpc List (google.protobuf.Empty) returns (hi.did.ListSuperAdminUsersResp) { option (hi.auth) = AUTH_USER; }
 }

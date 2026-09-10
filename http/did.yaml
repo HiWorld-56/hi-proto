@@ -73,6 +73,9 @@ http:
   - selector: hi.did.MerchantGranted.ListGreeters
     post: /api/v1/merchant_granted/list_greeters
     body: "*"
+  - selector: hi.did.MerchantGranted.ListCoins
+    post: /api/v1/merchant_granted/list_coins
+    body: "*"
   - selector: hi.did.MerchantGranted.AddUsers
     post: /api/v1/merchant_granted/add_users
     body: "*"
