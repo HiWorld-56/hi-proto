@@ -30,6 +30,27 @@ message ListMerchantUsersReq {
   hi.Pagination   pagination = 2;
 }
 
+// 商户名下的用户(含动态)。
+//
+// ⚠️ 不直接复用 hi.did.UserExtensionUnit —— 那个类型只含 user + info,没有 moment。
+//    moment 是 club 自己的数据(hi_chat_user_moment,人和机器人同一张表),
+//    在 club 侧补充,不穿透到 hi.did。
+message MerchantUserUnit {
+  option (hi.audience) = VIS_PUBLIC;
+  hi.Entity                      user   = 1 [(hi.visibility) = VIS_PUBLIC];         // 用户实体(name/avatar)
+  hi.did.UserExtensionInfo       info   = 2 [(hi.visibility) = VIS_PARTICIPANT];    // 扩展信息(该商户维护)
+  optional string                moment = 3 [(hi.visibility) = VIS_PUBLIC];         // 用户动态(hi_chat_user_moment)
+}
+
+// 商户名下的用户列表(含动态)。
+//
+// 不直接复用 hi.did.ListUsersResp —— 内部的 UserExtensionUnit 没有 moment。
+message MerchantListUsersResp {
+  option (hi.audience) = VIS_PUBLIC;
+  optional int32             total = 1 [(hi.visibility) = VIS_PUBLIC];
+  repeated MerchantUserUnit  units = 2 [(hi.visibility) = VIS_PUBLIC];
+}
+
 // 用户把**自己**加入某商户。
 //
 // ⚠️ **没有 user 字段,且永远不要加** —— 用户 did 恒取自登录 token。
@@ -49,7 +70,7 @@ service Merchant {
   // 必须由目标商户先授权给 club(did 侧 requireGrant 校验)。
   // club 侧不再叠鉴权:所有登录用户都能调。
   rpc ListGreeters (ListGreetersReq) returns (hi.did.ListUsersResp) { option (hi.auth) = AUTH_USER; } // 列某商户的 greeter(转发 did.Merchant.ListGreeters)
-  rpc ListUsers (ListMerchantUsersReq) returns (hi.did.ListUsersResp) { option (hi.auth) = AUTH_USER; } // 列某商户的用户(转发 did.MerchantGranted.ListUsers)
+  rpc ListUsers (ListMerchantUsersReq) returns (MerchantListUsersResp) { option (hi.auth) = AUTH_USER; } // 列某商户的用户(转发 did.MerchantGranted.ListUsers + club 本地 moment)
 
   // 用户把自己加入某商户。链路:app --用户token--> club后台 --club的ExtendToken-->
   // did.MerchantGranted.AddUsers(merchant=目标商户, users=[登录用户]).
