@@ -34,11 +34,19 @@ http:
 # Base
   - selector: hi.did.SuperAdmin.List
     get: /api/v1/super_admin/list
-# Release(产品发布;两个流式方法配不了 http,见 codegen/http_optout.txt)
+# Release(产品发布)。两个流式方法**只有一半**上得了 http,别一概而论:
+#   · UploadPackage 是 client-streaming,gateway 收得下 —— 请求体是**连续拼接的 JSON 值**
+#     (首帧 {"meta":{…}}、其后 N 帧 {"chunk":"<base64>"}),它逐帧 stream.Send,
+#     **不是**一个 JSON 对象、也不是数组;正文格式见 release.proto 的 UploadStreamReq;
+#   · Download 是二进制 server-stream,gateway 只会吐 JSON,搬不动 —— 它仍在
+#     codegen/http_optout.txt,web 下包走 Latest 给的预签名 url。
   - selector: hi.did.Release.Latest
     get: /api/v1/release/latest
   - selector: hi.did.ReleaseManage.Publish
     post: /api/v1/release_manage/publish
+    body: "*"
+  - selector: hi.did.ReleaseManage.UploadPackage
+    post: /api/v1/release_manage/upload_package
     body: "*"
 # MerchantOwner(原 MerchantExDB;商户主人主体,登录 token)
   - selector: hi.did.MerchantOwner.RefreshExDB
