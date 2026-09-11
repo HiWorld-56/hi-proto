@@ -1,20 +1,20 @@
 # hi-proto 接口全量核对表
 
-**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.10-dev.5` @ `c12a0a6`)。
+**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.15-dev.2` @ `065a6ba`)。
 上一版是手写的,内容停在重构前 —— 档位名、rpc 数量、方法名全部过时,当成当前清单会被误导,故改为随发布自动重生成。
 
-共 **357** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
+共 **393** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
 
 ## 档位分布
 
 | 档位 | 数量 |
 |---|---|
-| `AUTH_USER` | 147 |
-| `AUTH_MERCHANT` | 95 |
-| `AUTH_NONE` | 57 |
-| `AUTH_SUPERADMIN` | 32 |
+| `AUTH_USER` | 163 |
+| `AUTH_MERCHANT` | 97 |
+| `AUTH_NONE` | 61 |
+| `AUTH_SUPERADMIN` | 43 |
 | `AUTH_WEB3` | 17 |
-| `AUTH_INTERNAL` | 11 |
+| `AUTH_INTERNAL` | 14 |
 
 ## 全量清单
 
@@ -132,7 +132,7 @@
 | Edit | `AUTH_MERCHANT` | EditPluginReq | google.protobuf.Empty | POST /api/v1/plugin/edit |
 | Get | `AUTH_MERCHANT` | GetPluginReq | GetPluginResp | GET /api/v1/plugin/get |
 | List | `AUTH_MERCHANT` | ListPluginsReq | ListPluginsResp | POST /api/v1/plugin/list |
-| ListNative | `AUTH_MERCHANT` | ListNativeReq | ListNativeResp | — |
+| ListOnDevice | `AUTH_MERCHANT` | ListOnDeviceReq | ListOnDeviceResp | — |
 | ListVersions | `AUTH_MERCHANT` | ListVersionsReq | ListVersionsResp | POST /api/v1/plugin/list_versions |
 | PublicBriefs | `AUTH_MERCHANT` | PublicBriefsReq | PublicBriefsResp | — |
 | RetryBuild | `AUTH_MERCHANT` | RetryBuildReq | google.protobuf.Empty | POST /api/v1/plugin/retry_build |
@@ -202,6 +202,9 @@
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | Build | `AUTH_INTERNAL` | BuildReq | BuildResp | — |
+| BuildLuaDep | `AUTH_INTERNAL` | BuildLuaDepReq | BuildLuaDepResp | — |
+| LuaDepRequires | `AUTH_INTERNAL` | LuaDepRequiresReq | LuaDepRequiresResp | — |
+| VerifyLua | `AUTH_INTERNAL` | VerifyLuaReq | VerifyLuaResp | — |
 
 ### hi.ai.plugin.Runner
 
@@ -223,6 +226,7 @@
 | GetDefaultConfig | `AUTH_USER` | google.protobuf.Empty | hi.ai.DefaultConfigResp | GET /api/v1/agent/get_default_config |
 | GetUsage | `AUTH_USER` | hi.ai.AgentUsageReq | hi.ai.AgentUsageResp | POST /api/v1/agent/get_usage |
 | List | `AUTH_USER` | hi.ai.ListAgentsReq | ListAgentsResp | POST /api/v1/agent/list |
+| SetMoment | `AUTH_USER` | SetAgentMomentReq | google.protobuf.Empty | POST /api/v1/agent/set_moment |
 | Transfer | `AUTH_USER` | TransferReq | google.protobuf.Empty | POST /api/v1/agent/transfer |
 | UnbindMaster | `AUTH_USER` | MasterBindReq | google.protobuf.Empty | POST /api/v1/agent/unbind_master |
 
@@ -230,6 +234,7 @@
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
+| GetMoment | `AUTH_NONE` | GetAgentMomentReq | GetAgentMomentResp | POST /api/v1/agent_directory/get_moment |
 | ListOnline | `AUTH_NONE` | ListOnlineReq | ListOnlineResp | POST /api/v1/agent_directory/list_online |
 
 ### hi.club.AgentManage
@@ -242,7 +247,7 @@
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
-| ListNative | `AUTH_USER` | ListNativeReq | hi.ai.ListNativeResp | — |
+| ListOnDevice | `AUTH_USER` | ListOnDeviceReq | hi.ai.ListOnDeviceResp | — |
 
 ### hi.club.ApiKey
 
@@ -351,7 +356,10 @@
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | GetListing | `AUTH_NONE` | GetListingReq | GetListingResp | POST /api/v1/market_directory/get_listing |
+| GetSeller | `AUTH_NONE` | GetSellerReq | MarketSeller | POST /api/v1/market_directory/get_seller |
 | ListAgentListings | `AUTH_NONE` | ListAgentListingsReq | SearchListingsResp | POST /api/v1/market_directory/list_agent_listings |
+| ListSellerStalls | `AUTH_NONE` | ListSellerStallsReq | ListSellerStallsResp | POST /api/v1/market_directory/list_seller_stalls |
+| ListSellerUsers | `AUTH_NONE` | ListSellerUsersReq | ListSellerUsersResp | POST /api/v1/market_directory/list_seller_users |
 | ListSellers | `AUTH_NONE` | hi.Pagination | ListSellersResp | POST /api/v1/market_directory/list_sellers |
 | SearchListings | `AUTH_NONE` | SearchListingsReq | SearchListingsResp | POST /api/v1/market_directory/search_listings |
 
@@ -367,8 +375,10 @@
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
+| Join | `AUTH_USER` | JoinMerchantReq | google.protobuf.Empty | POST /api/v1/merchant/join |
 | List | `AUTH_USER` | google.protobuf.Empty | hi.did.MerchantListResp | GET /api/v1/merchant/list |
 | ListGreeters | `AUTH_USER` | ListGreetersReq | hi.did.ListUsersResp | POST /api/v1/merchant/list_greeters |
+| ListUsers | `AUTH_USER` | ListMerchantUsersReq | MerchantListUsersResp | POST /api/v1/merchant/list_users |
 
 ### hi.club.MerchantManage
 
@@ -644,16 +654,16 @@
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
-| AddGrant | `AUTH_MERCHANT` | GrantReq | google.protobuf.Empty | — |
+| AddGrant | `AUTH_MERCHANT` | AddGrantReq | google.protobuf.Empty | POST /api/v1/merchant/add_grant |
 | AddUsers | `AUTH_MERCHANT` | AddUsersReq | google.protobuf.Empty | POST /api/v1/merchant/add_users |
 | Get | `AUTH_MERCHANT` | google.protobuf.Empty | MerchantGetResp | GET /api/v1/merchant/get |
 | GetUser | `AUTH_MERCHANT` | GetUserReq | UserExtensionUnit | — |
 | GetUserMqtt | `AUTH_MERCHANT` | GetUserMqttReq | GetUserMqttResp | — |
 | List | `AUTH_MERCHANT` | ListMerchantsReq | MerchantListResp | POST /api/v1/merchant/list |
-| ListGrants | `AUTH_MERCHANT` | google.protobuf.Empty | ListGrantsResp | — |
+| ListGrants | `AUTH_MERCHANT` | google.protobuf.Empty | ListGrantsResp | GET /api/v1/merchant/list_grants |
 | ListGreeters | `AUTH_MERCHANT` | ListGreetersReq | ListUsersResp | POST /api/v1/merchant/list_greeters |
 | ListUsers | `AUTH_MERCHANT` | ListUsersReq | ListUsersResp | POST /api/v1/merchant/list_users |
-| RemoveGrant | `AUTH_MERCHANT` | GrantReq | google.protobuf.Empty | — |
+| RemoveGrant | `AUTH_MERCHANT` | RemoveGrantReq | google.protobuf.Empty | POST /api/v1/merchant/remove_grant |
 | RemoveUsers | `AUTH_MERCHANT` | RemoveUsersReq | google.protobuf.Empty | POST /api/v1/merchant/remove_users |
 | SetUserCard | `AUTH_MERCHANT` | SetUserCardReq | google.protobuf.Empty | POST /api/v1/merchant/set_user_card |
 | SetUsers | `AUTH_MERCHANT` | SetUsersReq | SetUsersResp | POST /api/v1/merchant/set_users |
@@ -663,7 +673,9 @@
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
+| AddUsers | `AUTH_MERCHANT` | GrantedAddUsersReq | google.protobuf.Empty | POST /api/v1/merchant_granted/add_users |
 | GetUser | `AUTH_MERCHANT` | GrantedGetUserReq | UserExtensionUnit | POST /api/v1/merchant_granted/get_user |
+| ListCoins | `AUTH_MERCHANT` | GrantedListCoinsReq | MerchantCoinsResp | POST /api/v1/merchant_granted/list_coins |
 | ListGreeters | `AUTH_MERCHANT` | GrantedListGreetersReq | ListUsersResp | POST /api/v1/merchant_granted/list_greeters |
 | ListUsers | `AUTH_MERCHANT` | GrantedListUsersReq | ListUsersResp | POST /api/v1/merchant_granted/list_users |
 
@@ -759,7 +771,7 @@
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | Publish | `AUTH_SUPERADMIN` | PublishReq | google.protobuf.Empty | POST /api/v1/release_manage/publish |
-| UploadPackage ⇄ | `AUTH_SUPERADMIN` | hi.UploadStreamReq | UploadPackageResp | — |
+| UploadPackage ⇄ | `AUTH_SUPERADMIN` | hi.UploadStreamReq | UploadPackageResp | POST /api/v1/release_manage/upload_package |
 
 ### hi.did.Source
 
@@ -814,6 +826,65 @@
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | ServerVersion | `AUTH_NONE` | google.protobuf.Empty | hi.ServerVersionResp | GET /api/v1/base/server_version |
+
+### hi.media.MediaFeature
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| Get | `AUTH_USER` | GetMediaFeatureReq | GetMediaFeatureResp | GET /api/v1/media_feature/get |
+
+### hi.media.MediaFile
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| Delete | `AUTH_USER` | DeleteMediaFileReq | DeleteMediaFileResp | POST /api/v1/media_file/delete |
+| GetAccessUrls | `AUTH_USER` | GetMediaFileAccessUrlsReq | GetMediaFileAccessUrlsResp | POST /api/v1/media_file/get_access_urls |
+| GetUpload | `AUTH_USER` | GetMediaUploadReq | GetMediaUploadResp | GET /api/v1/media_file/get_upload |
+| List | `AUTH_USER` | ListMediaFilesReq | ListMediaFilesResp | POST /api/v1/media_file/list |
+
+### hi.media.MediaManage
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| GetMaintenance | `AUTH_SUPERADMIN` | google.protobuf.Empty | GetMediaMaintenanceResp | GET /api/v1/media_manage/get_maintenance |
+| SetMaintenance | `AUTH_SUPERADMIN` | SetMediaMaintenanceReq | SetMediaMaintenanceResp | POST /api/v1/media_manage/set_maintenance |
+
+### hi.media.MediaQuota
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| Get | `AUTH_USER` | google.protobuf.Empty | GetMediaQuotaResp | GET /api/v1/media_quota/get |
+
+### hi.media.MediaTask
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| Cancel | `AUTH_USER` | CancelMediaTaskReq | CancelMediaTaskResp | POST /api/v1/media_task/cancel |
+| CreateImageToVideo | `AUTH_USER` | CreateImageToVideoTaskReq | CreateMediaTaskResp | POST /api/v1/media_task/create_image_to_video |
+| CreateTextToImage | `AUTH_USER` | CreateTextToImageTaskReq | CreateMediaTaskResp | POST /api/v1/media_task/create_text_to_image |
+| Get | `AUTH_USER` | GetMediaTaskReq | GetMediaTaskResp | GET /api/v1/media_task/get |
+| List | `AUTH_USER` | ListMediaTasksReq | ListMediaTasksResp | POST /api/v1/media_task/list |
+| RecoverSave | `AUTH_USER` | RecoverSaveMediaTaskReq | RecoverSaveMediaTaskResp | POST /api/v1/media_task/recover_save |
+
+### hi.media.MediaWorkflowManage
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| Get | `AUTH_SUPERADMIN` | GetMediaWorkflowReq | GetMediaWorkflowResp | POST /api/v1/media_workflow_manage/get |
+| ImportWorkflow | `AUTH_SUPERADMIN` | ImportMediaWorkflowReq | ImportMediaWorkflowResp | POST /api/v1/media_workflow_manage/import_workflow |
+| List | `AUTH_SUPERADMIN` | ListMediaWorkflowsReq | ListMediaWorkflowsResp | POST /api/v1/media_workflow_manage/list |
+| ListTests | `AUTH_SUPERADMIN` | ListMediaWorkflowTestsReq | ListMediaWorkflowTestsResp | POST /api/v1/media_workflow_manage/list_tests |
+| SetActive | `AUTH_SUPERADMIN` | SetActiveMediaWorkflowReq | SetActiveMediaWorkflowResp | POST /api/v1/media_workflow_manage/set_active |
+| SetReady | `AUTH_SUPERADMIN` | SetMediaWorkflowReadyReq | SetMediaWorkflowReadyResp | POST /api/v1/media_workflow_manage/set_ready |
+| Test | `AUTH_SUPERADMIN` | TestMediaWorkflowReq | TestMediaWorkflowResp | POST /api/v1/media_workflow_manage/test |
+| Update | `AUTH_SUPERADMIN` | UpdateMediaWorkflowReq | UpdateMediaWorkflowResp | POST /api/v1/media_workflow_manage/update |
+| Validate | `AUTH_SUPERADMIN` | ValidateMediaWorkflowReq | ValidateMediaWorkflowResp | POST /api/v1/media_workflow_manage/validate |
+
+### hi.media.SuperAdmin
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| List | `AUTH_USER` | google.protobuf.Empty | hi.did.ListSuperAdminUsersResp | GET /api/v1/super_admin/list |
 
 ### hi.source.Base
 
