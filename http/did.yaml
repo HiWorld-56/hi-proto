@@ -110,6 +110,9 @@ http:
   - selector: hi.did.Auth.RefreshToken
     post: /api/v1/auth/refresh_token
     body: "*"
+  - selector: hi.did.Auth.Logout
+    post: /api/v1/auth/logout
+    body: "*"
 # Merchant
   - selector: hi.did.Merchant.Get
     get: /api/v1/merchant/get
