@@ -81,7 +81,6 @@ service:hi.did.PayCallback    # 同上
 service:hi.club.Assets
 service:hi.club.Order
 service:hi.club.Price
-service:hi.club.Publisher
 service:hi.club.PushManager
 service:hi.club.Wallet
 service:hi.did.Pay
