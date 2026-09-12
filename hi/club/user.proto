@@ -66,11 +66,21 @@ message AddFriendReq {
   optional string type = 2;
 }
 
+// AddFriend 的结果。**五种都是"关系现在处于什么状态",不是"调用出了问题"** ——
+// 所以它们一律走 status,不走 error。
+//
+// 🔴 `ALREADY_FRIEND` / `PENDING_EXISTS` 原来是以 error 形式回的(而且 service 层还用
+//    裸 `fmt.Errorf` 把哨兵丢了,最终落成 `Internal: 添加好友失败`)。那是错的:
+//    "早就是好友了"和"上次申请还没被处理"都是**本来就会发生**的正常结果,调用方要据此
+//    决定下一步(直接发消息 / 继续等),而不是把它当故障重试或报给用户。
+//    错误留给真正的非预期:对方不存在、库挂了、没权限。
 enum FriendRequestStatus {
-  FRIEND_REQUEST_STATUS_UNSPECIFIED = 0; // 未设置
-  FRIEND_REQUEST_STATUS_REJECTED    = 1; // 好友申请拒绝
-  FRIEND_REQUEST_STATUS_SENT        = 2; // 好友申请已发送
-  FRIEND_REQUEST_STATUS_ADDED       = 3; // 好友添加成功
+  FRIEND_REQUEST_STATUS_UNSPECIFIED    = 0; // 未设置
+  FRIEND_REQUEST_STATUS_REJECTED       = 1; // 对方设了自动拒绝,这次申请当场被拒
+  FRIEND_REQUEST_STATUS_SENT           = 2; // 申请已发出,等对方处理
+  FRIEND_REQUEST_STATUS_ADDED          = 3; // 已是好友(对方自动同意 / 软件机器人免验证)
+  FRIEND_REQUEST_STATUS_ALREADY_FRIEND = 4; // 早就是好友了(含主从关系),什么都没做
+  FRIEND_REQUEST_STATUS_PENDING_EXISTS = 5; // 上一次的申请还没被处理,这次不重复发
 }
 
 message AddFriendResp {
