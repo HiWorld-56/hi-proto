@@ -145,3 +145,14 @@ service:hi.did.PayRequestPayer
 # 浏览器里没有钱包、也没有私钥,web 端不存在"我刚付完一笔"这件事。
 # 挂到 http 网关上只多一个暴露面:一个能往任意 did 的 MQTT 单聊主题投递通知的公开口子。
 service:hi.did.Notify
+
+# AppendHistory:**给机器人自己用的**,不是前端接口。
+#
+# 机器人到点做完主人交代的事(「等王总通过好友就带话给他」),要把这件既成事实
+# 补进模型的上下文,否则它下次对话时对自己刚做过的事一无所知。brain 走 grpc 直连。
+#
+# ⚠️ 不给 web 开这条路是**有意的**:它能凭空往会话里塞一句"机器人说过的话",
+#    而上下文是模型下一轮的依据 —— 挂到 http 网关等于给了任何登录者一支笔,
+#    可以替别人的机器人编造它"说过"的内容。
+hi.ai.Chat.AppendHistory
+hi.club.Chat.AppendHistory
