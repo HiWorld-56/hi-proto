@@ -96,6 +96,9 @@ service Chat {
   rpc NewSession (google.protobuf.Empty) returns (hi.ai.NewSessionResp) { option (hi.auth) = AUTH_USER; }      // 原 GenerateCid
   rpc GetHistory (hi.ai.GetHistoryReq) returns (GetHistoryResp) { option (hi.auth) = AUTH_USER; }              // 原 GetContext
   rpc ClearHistory (hi.ai.ClearHistoryReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }   // 原 ClearContext
+  // 补一对问答进上下文。机器人到点自己做完一件事之后用它 —— 不这么做的话,
+  // 模型下次对话时对自己刚做过的事一无所知(见 hi/ai/chat.proto 的 AppendHistoryReq)。
+  rpc AppendHistory (hi.ai.AppendHistoryReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
   // ── 对话:一轮 = 一个循环,中途只在"轮到客户端"时返回(详见 hi/ai/chat.proto)──
   rpc Converse (ChatReq) returns (hi.ai.ChatResp) { option (hi.auth) = AUTH_USER; }                                  // 一轮对话(原 Complete + 原 Converse)
   rpc ConverseStream (ChatReq) returns (stream hi.ai.ConverseStreamResp) { option (hi.auth) = AUTH_USER; }           // 同上,流式(原 CompleteStream)
