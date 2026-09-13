@@ -116,6 +116,16 @@ message HostCallReq {
   optional string name      = 1; // 能力名，与 `.so` 插件那条路同一份白名单
   optional string args_json = 2;
   optional bytes  input     = 3; // 送字节的那几个（upload_image）
+  // 🔴 **这次调用是在谁的环境里发生的** —— 执行器把 `InvokeReq.ctx` 原样带回来。
+  //
+  // 为什么必须由执行器带:brain 收到这条时**已经不知道它属于哪次 invoke** 了
+  // (host call 是执行器反过来发起的，走的是另一个 req_id)。而有些能力要认这个环境 ——
+  // 比如"记一件事等条件到了再做"，登记的就是**此刻这份环境**，触发时照它执行。
+  //
+  // ⚠️ 不能让**插件**把环境当参数传进来:lua 脚本是三方代码，它可以填一个假的 asker，
+  //    把"别人让我做的"说成"主人让我做的"。执行器不是三方代码，它手里那份来自
+  //    brain 发过去的 InvokeReq，脚本碰不到。
+  optional LuaCtx ctx       = 4;
 }
 
 message HostCallResp {
