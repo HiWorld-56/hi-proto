@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package hi.media;
+
+import "buf/validate/validate.proto";
+import "hi/common.proto";
+import "hi/options.proto";
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
+
+message UserManageListReq {
+  // 可选：按用户 DID 模糊查询；不传表示不筛选。
+  optional string did = 1 [(buf.validate.field).string = {
+    pattern: "^\\S+$"
+    max_len: 255
+  }];
+  hi.Pagination pagination = 2;
+}
+
+message UserManageListResp {
+  option (hi.audience) = VIS_SELF;
+
+  message Unit {
+    option (hi.audience) = VIS_SELF;
+    optional string did = 1 [(hi.visibility) = VIS_SELF];
+    optional int64 registered_at = 2 [(hi.visibility) = VIS_SELF]; // Unix 秒
+  }
+
+  optional int32 total = 1 [(hi.visibility) = VIS_SELF];
+  repeated Unit users = 2 [(hi.visibility) = VIS_SELF];
+}
+
+// HiMedia 本地准入用户目录。只表达用户是否已进入 HiMedia，不代替 HiDID 用户资料。
+service UserManage {
+  rpc List(UserManageListReq) returns (UserManageListResp) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
+}

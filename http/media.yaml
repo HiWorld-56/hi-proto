@@ -15,13 +15,16 @@ http:
   - selector: hi.media.Auth.Logout
     post: /api/v1/auth/logout
     body: "*"
-  - selector: hi.media.MediaRegister.Verify
-    post: /api/v1/media_register/verify
+  - selector: hi.media.Register.Verify
+    post: /api/v1/register/verify
     body: "*"
   - selector: hi.media.Base.ServerVersion
     get: /api/v1/base/server_version
   - selector: hi.media.SuperAdmin.List
     get: /api/v1/super_admin/list
+  - selector: hi.media.UserManage.List
+    post: /api/v1/user_manage/list
+    body: "*"
   - selector: hi.media.MediaFeature.Get
     get: /api/v1/media_feature/get
   - selector: hi.media.MediaTask.CreateTextToImage
@@ -86,14 +89,14 @@ http:
   - selector: hi.media.MediaManage.SetMaintenance
     post: /api/v1/media_manage/set_maintenance
     body: "*"
-  - selector: hi.media.MediaInviteCode.Create
-    post: /api/v1/media_invite_code/create
-  - selector: hi.media.MediaInviteCode.Edit
-    post: /api/v1/media_invite_code/edit
+  - selector: hi.media.InviteCode.Create
+    post: /api/v1/invite_code/create
+  - selector: hi.media.InviteCode.Edit
+    post: /api/v1/invite_code/edit
     body: "*"
-  - selector: hi.media.MediaInviteCode.List
-    post: /api/v1/media_invite_code/list
+  - selector: hi.media.InviteCode.List
+    post: /api/v1/invite_code/list
     body: "*"
-  - selector: hi.media.MediaInviteCode.Delete
-    post: /api/v1/media_invite_code/delete
+  - selector: hi.media.InviteCode.Delete
+    post: /api/v1/invite_code/delete
     body: "*"
