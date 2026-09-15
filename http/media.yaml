@@ -15,6 +15,9 @@ http:
   - selector: hi.media.Auth.Logout
     post: /api/v1/auth/logout
     body: "*"
+  - selector: hi.media.MediaRegister.Verify
+    post: /api/v1/media_register/verify
+    body: "*"
   - selector: hi.media.Base.ServerVersion
     get: /api/v1/base/server_version
   - selector: hi.media.SuperAdmin.List
@@ -82,4 +85,15 @@ http:
     get: /api/v1/media_manage/get_maintenance
   - selector: hi.media.MediaManage.SetMaintenance
     post: /api/v1/media_manage/set_maintenance
+    body: "*"
+  - selector: hi.media.MediaInviteCode.Create
+    post: /api/v1/media_invite_code/create
+  - selector: hi.media.MediaInviteCode.Edit
+    post: /api/v1/media_invite_code/edit
+    body: "*"
+  - selector: hi.media.MediaInviteCode.List
+    post: /api/v1/media_invite_code/list
+    body: "*"
+  - selector: hi.media.MediaInviteCode.Delete
+    post: /api/v1/media_invite_code/delete
     body: "*"
