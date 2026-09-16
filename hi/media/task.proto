@@ -2,27 +2,31 @@ syntax = "proto3";
 
 package hi.media;
 
-option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
-
 import "buf/validate/validate.proto";
 import "hi/common.proto";
+import "hi/media/feature.proto";
 import "hi/options.proto";
 
-enum MediaTaskPurpose {
-  MEDIA_TASK_PURPOSE_UNSPECIFIED = 0;
-  MEDIA_TASK_PURPOSE_NORMAL = 1;
-  MEDIA_TASK_PURPOSE_WORKFLOW_TEST = 2;
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
+
+enum TaskPurpose {
+  TASK_PURPOSE_UNSPECIFIED = 0;
+  TASK_PURPOSE_NORMAL = 1;
+  TASK_PURPOSE_WORKFLOW_TEST = 2;
 }
 
-enum MediaTaskStatus {
-  MEDIA_TASK_STATUS_UNSPECIFIED = 0;
-  MEDIA_TASK_STATUS_PENDING = 1;
-  MEDIA_TASK_STATUS_RUNNING = 2;
-  MEDIA_TASK_STATUS_SAVING = 3;
-  MEDIA_TASK_STATUS_CANCELLING = 4;
-  MEDIA_TASK_STATUS_SUCCESS = 5;
-  MEDIA_TASK_STATUS_FAILED = 6;
-  MEDIA_TASK_STATUS_CANCELLED = 7;
+enum TaskStatus {
+  TASK_STATUS_UNSPECIFIED = 0;
+  // 等待派发；维护模式下也保持此状态。
+  TASK_STATUS_PENDING = 1;
+  // 覆盖提交、排队、状态核对和 ComfyUI 执行过程，具体文案见 status_message。
+  TASK_STATUS_RUNNING = 2;
+  TASK_STATUS_SAVING = 3;
+  TASK_STATUS_CANCELLING = 4;
+  TASK_STATUS_SUCCESS = 5;
+  // 上游失败、执行超时、输出无效或保存失败都归入 FAILED，由 error_code 区分。
+  TASK_STATUS_FAILED = 6;
+  TASK_STATUS_CANCELLED = 7;
 }
 
 enum MediaType {
@@ -31,150 +35,213 @@ enum MediaType {
   MEDIA_TYPE_VIDEO = 2;
 }
 
-message MediaResolution {
-  option (hi.audience) = VIS_PUBLIC;
-  optional int32 width = 1 [(buf.validate.field).int32.gt = 0, (buf.validate.field).required = true, (hi.visibility) = VIS_PUBLIC];
-  optional int32 height = 2 [(buf.validate.field).int32.gt = 0, (buf.validate.field).required = true, (hi.visibility) = VIS_PUBLIC];
-}
-
-message CreateTextToImageTaskReq {
-  optional string request_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-  optional string workflow_version_id = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-  optional string source_task_id = 3;
-  optional string prompt = 4 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-  optional string negative_prompt = 5;
-  MediaResolution resolution = 6;
+message VideoResolution {
+  // ResolutionSelector 的完整选项字符串，例如 "16:9 (Widescreen)"，不能只传 "16:9"。
+  optional string aspect_ratio = 1 [(buf.validate.field).string.min_len = 1];
+  // 十进制字符串，例如 "0.9" 或 "0.98"；客户端不得转为浮点后重新格式化。
+  optional string megapixels = 2 [(buf.validate.field).string.min_len = 1];
 }
 
 message CreateImageToVideoTaskReq {
-  optional string request_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-  optional string workflow_version_id = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-  optional string source_task_id = 3;
-  optional string input_asset_id = 4 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-  optional string prompt = 5 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-  optional string negative_prompt = 6;
-  MediaResolution resolution = 7;
-  optional int32 duration_seconds = 8;
-  optional int32 fps = 9;
+  optional string request_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  optional string model_mapping_id = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  optional string input_asset_id = 3 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  optional string prompt = 4 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  VideoResolution resolution = 5;
+  optional int32 duration_seconds = 6 [(buf.validate.field).int32.gt = 0];
+  optional int32 frame_rate = 7 [(buf.validate.field).int32.gt = 0];
 }
 
-message CreateMediaTaskResp {
+message CreateTextToVideoTaskReq {
+  optional string request_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  optional string model_mapping_id = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  optional string prompt = 3 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  VideoResolution resolution = 4;
+  optional int32 duration_seconds = 5 [(buf.validate.field).int32.gt = 0];
+  optional int32 frame_rate = 6 [(buf.validate.field).int32.gt = 0];
+}
+
+message CreateTaskResp {
   option (hi.audience) = VIS_SELF;
+  // 成功响应必有；响应字段不使用 buf.validate 约束。
   optional string task_id = 1 [(hi.visibility) = VIS_SELF];
-}
-
-message TextToImageTaskParams {
-  option (hi.audience) = VIS_SELF;
-  optional string prompt = 1 [(hi.visibility) = VIS_SELF];
-  optional string negative_prompt = 2 [(hi.visibility) = VIS_SELF];
-  MediaResolution resolution = 3 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message ImageToVideoTaskParams {
   option (hi.audience) = VIS_SELF;
   optional string input_asset_id = 1 [(hi.visibility) = VIS_SELF];
   optional string prompt = 2 [(hi.visibility) = VIS_SELF];
-  optional string negative_prompt = 3 [(hi.visibility) = VIS_SELF];
-  MediaResolution resolution = 4 [(hi.visibility) = VIS_PUBLIC];
+  optional string aspect_ratio = 3 [(hi.visibility) = VIS_SELF];
+  optional string megapixels = 4 [(hi.visibility) = VIS_SELF];
   optional int32 duration_seconds = 5 [(hi.visibility) = VIS_SELF];
-  optional int32 fps = 6 [(hi.visibility) = VIS_SELF];
+  optional int32 frame_rate = 6 [(hi.visibility) = VIS_SELF];
 }
 
-message MediaTaskOutput {
+message TextToVideoTaskParams {
+  option (hi.audience) = VIS_SELF;
+  optional string prompt = 1 [(hi.visibility) = VIS_SELF];
+  optional string aspect_ratio = 2 [(hi.visibility) = VIS_SELF];
+  optional string megapixels = 3 [(hi.visibility) = VIS_SELF];
+  optional int32 duration_seconds = 4 [(hi.visibility) = VIS_SELF];
+  optional int32 frame_rate = 5 [(hi.visibility) = VIS_SELF];
+}
+
+message TaskOutput {
   option (hi.audience) = VIS_SELF;
   optional string asset_id = 1 [(hi.visibility) = VIS_SELF];
   optional string filename = 2 [(hi.visibility) = VIS_SELF];
   optional MediaType media_type = 3 [(hi.visibility) = VIS_SELF];
   optional string mime_type = 4 [(hi.visibility) = VIS_SELF];
   optional uint64 size_bytes = 5 [(hi.visibility) = VIS_SELF];
-  optional bool available = 6 [(hi.visibility) = VIS_SELF];
+  optional int64 duration_ms = 6 [(hi.visibility) = VIS_SELF];
+  // 资产删除后任务仍可保持成功，但该值为 false 且不能播放。
+  optional bool available = 7 [(hi.visibility) = VIS_SELF];
 }
 
-message MediaTaskSummary {
+message TaskSummary {
   option (hi.audience) = VIS_SELF;
   optional string task_id = 1 [(hi.visibility) = VIS_SELF];
-  optional MediaTaskPurpose purpose = 2 [(hi.visibility) = VIS_SELF];
-  optional string feature_key = 3 [(hi.visibility) = VIS_SELF];
-  optional string workflow_version_id = 4 [(hi.visibility) = VIS_SELF];
-  optional string workflow_name = 5 [(hi.visibility) = VIS_SELF];
-  optional MediaTaskStatus status = 6 [(hi.visibility) = VIS_SELF];
+  optional TaskPurpose purpose = 2 [(hi.visibility) = VIS_SELF];
+  optional FeatureKey feature_key = 3 [(hi.visibility) = VIS_SELF];
+  optional string model_mapping_id = 4 [(hi.visibility) = VIS_SELF];
+  optional string model_name = 5 [(hi.visibility) = VIS_SELF];
+  optional TaskStatus status = 6 [(hi.visibility) = VIS_SELF];
+  // 面向用户的脱敏状态说明；前端应优先展示该字段。
   optional string status_message = 7 [(hi.visibility) = VIS_SELF];
-  MediaTaskOutput output = 8 [(hi.visibility) = VIS_SELF];
-  optional bool can_cancel = 9 [(hi.visibility) = VIS_SELF];
-  optional bool can_recover_save = 10 [(hi.visibility) = VIS_SELF];
-  optional int64 save_recovery_expires_at = 11 [(hi.visibility) = VIS_SELF];
-  optional int64 created_at = 12 [(hi.visibility) = VIS_SELF];
-  optional int64 started_at = 13 [(hi.visibility) = VIS_SELF];
-  optional int64 completed_at = 14 [(hi.visibility) = VIS_SELF];
-  optional int32 elapsed_seconds = 15 [(hi.visibility) = VIS_SELF];
+  // 稳定异步错误码：QUEUE_TIMEOUT、INPUT_UPLOAD_FAILED、UPSTREAM_SUBMISSION_FAILED、
+  // UPSTREAM_SUBMISSION_UNKNOWN、UPSTREAM_EXECUTION_FAILED、EXECUTION_TIMEOUT、
+  // OUTPUT_INVALID、OUTPUT_SAVE_FAILED、OUTPUT_SAVE_UNCERTAIN、SAVE_RECOVERY_FAILED。
+  optional string error_code = 8 [(hi.visibility) = VIS_SELF];
+  // 仅在任务已经产生主资产时存在。
+  TaskOutput output = 9 [(hi.visibility) = VIS_SELF];
+  optional bool can_cancel = 10 [(hi.visibility) = VIS_SELF];
+  // 前端只能依据该字段决定是否显示唯一一次“恢复保存”入口。
+  optional bool can_recover_save = 11 [(hi.visibility) = VIS_SELF];
+  optional int64 save_recovery_expires_at = 12 [(hi.visibility) = VIS_SELF];
+  // Unix 秒；恢复保存不会改写 created_at 或 started_at。
+  optional int64 created_at = 13 [(hi.visibility) = VIS_SELF];
+  optional int64 started_at = 14 [(hi.visibility) = VIS_SELF];
+  // Unix 秒；恢复受理时清空，恢复得到最终结果时重新写入。
+  optional int64 completed_at = 15 [(hi.visibility) = VIS_SELF];
+  // 从 created_at 到当前时间或 completed_at 的墙钟秒数。
+  optional int64 elapsed_seconds = 16 [(hi.visibility) = VIS_SELF];
 }
 
-message MediaTaskProcessingRecord {
+message TaskDetail {
   option (hi.audience) = VIS_SELF;
-  optional int64 occurred_at = 1 [(hi.visibility) = VIS_SELF];
-  optional string message = 2 [(hi.visibility) = VIS_SELF];
-}
-
-message MediaTaskDetail {
-  option (hi.audience) = VIS_SELF;
-  MediaTaskSummary summary = 1 [(hi.visibility) = VIS_SELF];
-  optional string source_task_id = 2 [(hi.visibility) = VIS_SELF];
+  TaskSummary summary = 1 [(hi.visibility) = VIS_SELF];
   oneof effective_params {
-    TextToImageTaskParams text_to_image = 3 [(hi.visibility) = VIS_SELF];
-    ImageToVideoTaskParams image_to_video = 4 [(hi.visibility) = VIS_SELF];
+    ImageToVideoTaskParams image_to_video = 2 [(hi.visibility) = VIS_SELF];
+    TextToVideoTaskParams text_to_video = 3 [(hi.visibility) = VIS_SELF];
   }
-  repeated MediaTaskProcessingRecord processing_records = 5 [(hi.visibility) = VIS_SELF];
 }
 
-message GetMediaTaskReq {
-  optional string task_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+message GetTaskReq {
+  optional string task_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
 }
 
-message GetMediaTaskResp {
+message GetTaskResp {
   option (hi.audience) = VIS_SELF;
-  MediaTaskDetail task = 1 [(hi.visibility) = VIS_SELF];
+  TaskDetail task = 1 [(hi.visibility) = VIS_SELF];
 }
 
-message ListMediaTasksReq {
+message ListTasksReq {
   hi.Pagination pagination = 1;
-  optional string feature_key = 2;
-  repeated MediaTaskStatus statuses = 3;
+  // 不传表示不过滤；显式传值时不能为 UNSPECIFIED。
+  optional FeatureKey feature_key = 2 [(buf.validate.field).enum = {
+    defined_only: true
+    not_in: [0]
+  }];
+  repeated TaskStatus statuses = 3 [(buf.validate.field).repeated = {
+    unique: true
+    items: {
+      enum: {
+        defined_only: true
+        not_in: [0]
+      }
+    }
+  }];
 }
 
-message ListMediaTasksResp {
+message ListTasksResp {
   option (hi.audience) = VIS_SELF;
   optional int32 total = 1 [(hi.visibility) = VIS_SELF];
-  repeated MediaTaskSummary tasks = 2 [(hi.visibility) = VIS_SELF];
+  repeated TaskSummary tasks = 2 [(hi.visibility) = VIS_SELF];
 }
 
-message CancelMediaTaskReq {
-  optional string task_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+message CancelTaskReq {
+  optional string task_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
 }
 
-message CancelMediaTaskResp {
+message CancelTaskResp {
   option (hi.audience) = VIS_SELF;
   optional string task_id = 1 [(hi.visibility) = VIS_SELF];
-  optional MediaTaskStatus status = 2 [(hi.visibility) = VIS_SELF];
+  optional TaskStatus status = 2 [(hi.visibility) = VIS_SELF];
   optional string status_message = 3 [(hi.visibility) = VIS_SELF];
 }
 
-message RecoverSaveMediaTaskReq {
-  optional string request_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-  optional string task_id = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+message RecoverSaveTaskReq {
+  optional string request_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  optional string task_id = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
 }
 
-message RecoverSaveMediaTaskResp {
+message RecoverSaveTaskResp {
   option (hi.audience) = VIS_SELF;
   optional string task_id = 1 [(hi.visibility) = VIS_SELF];
-  optional MediaTaskStatus status = 2 [(hi.visibility) = VIS_SELF];
+  optional TaskStatus status = 2 [(hi.visibility) = VIS_SELF];
   optional string status_message = 3 [(hi.visibility) = VIS_SELF];
 }
 
-service MediaTask {
-  rpc CreateTextToImage (CreateTextToImageTaskReq) returns (CreateMediaTaskResp) { option (hi.auth) = AUTH_USER; }
-  rpc CreateImageToVideo (CreateImageToVideoTaskReq) returns (CreateMediaTaskResp) { option (hi.auth) = AUTH_USER; }
-  rpc Get (GetMediaTaskReq) returns (GetMediaTaskResp) { option (hi.auth) = AUTH_USER; }
-  rpc List (ListMediaTasksReq) returns (ListMediaTasksResp) { option (hi.auth) = AUTH_USER; }
-  rpc Cancel (CancelMediaTaskReq) returns (CancelMediaTaskResp) { option (hi.auth) = AUTH_USER; }
-  rpc RecoverSave (RecoverSaveMediaTaskReq) returns (RecoverSaveMediaTaskResp) { option (hi.auth) = AUTH_USER; }
+service Task {
+  rpc CreateImageToVideo(CreateImageToVideoTaskReq) returns (CreateTaskResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  rpc CreateTextToVideo(CreateTextToVideoTaskReq) returns (CreateTaskResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  rpc Get(GetTaskReq) returns (GetTaskResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  rpc List(ListTasksReq) returns (ListTasksResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  rpc Cancel(CancelTaskReq) returns (CancelTaskResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  rpc RecoverSave(RecoverSaveTaskReq) returns (RecoverSaveTaskResp) {
+    option (hi.auth) = AUTH_USER;
+  }
 }

@@ -2,96 +2,232 @@ syntax = "proto3";
 
 package hi.media;
 
-option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
-
 import "buf/validate/validate.proto";
 import "hi/common.proto";
+import "hi/media/feature.proto";
 import "hi/media/task.proto";
 import "hi/options.proto";
 
-message ImportMediaWorkflowReq {
-  optional string request_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-  optional string feature_key = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-  optional string name = 3 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-  optional string change_notes = 4;
-  optional string api_json = 5 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
+
+message WorkflowInputBinding {
+  option (hi.audience) = VIS_SELF;
+  optional string node_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  optional string input_name = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
 }
 
-message ImportMediaWorkflowResp {
+message WorkflowOutputConfig {
   option (hi.audience) = VIS_SELF;
-  optional string workflow_version_id = 1 [(hi.visibility) = VIS_SELF];
+  // 主输出只绑定节点；后端按节点 class_type 使用固定 history 解析器。
+  optional string node_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
 }
 
-message MediaWorkflowInputBinding {
+message WorkflowStringOptionInput {
   option (hi.audience) = VIS_SELF;
-  optional string node_id = 1 [(hi.visibility) = VIS_SELF];
-  optional string input_name = 2 [(hi.visibility) = VIS_SELF];
+  WorkflowInputBinding binding = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  StringOptionConfig values = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
 }
 
-message MediaWorkflowOutputConfig {
+message WorkflowDecimalOptionInput {
   option (hi.audience) = VIS_SELF;
-  optional string node_id = 1 [(hi.visibility) = VIS_SELF];
+  WorkflowInputBinding binding = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  DecimalOptionConfig values = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
 }
 
-message MediaWorkflowResolutionConfig {
+message WorkflowIntRangeInput {
   option (hi.audience) = VIS_SELF;
-  MediaWorkflowInputBinding width = 1 [(hi.visibility) = VIS_SELF];
-  MediaWorkflowInputBinding height = 2 [(hi.visibility) = VIS_SELF];
-  repeated MediaResolution allowed_values = 3 [(hi.visibility) = VIS_PUBLIC];
-  MediaResolution default_value = 4 [(hi.visibility) = VIS_PUBLIC];
+  WorkflowInputBinding binding = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  IntRangeConfig values = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
 }
 
-message MediaWorkflowIntOptionConfig {
+message WorkflowFixedTextInput {
   option (hi.audience) = VIS_SELF;
-  MediaWorkflowInputBinding binding = 1 [(hi.visibility) = VIS_SELF];
-  repeated int32 allowed_values = 2 [(hi.visibility) = VIS_SELF];
-  optional int32 default_value = 3 [(hi.visibility) = VIS_SELF];
+  WorkflowInputBinding binding = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  optional string value = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
 }
 
-message TextToImageWorkflowConfig {
+message WorkflowSelectableFrameRate {
   option (hi.audience) = VIS_SELF;
-  MediaWorkflowInputBinding prompt = 1 [(hi.visibility) = VIS_SELF];
-  optional int32 prompt_max_length = 2 [(hi.visibility) = VIS_SELF];
-  MediaWorkflowInputBinding negative_prompt = 3 [(hi.visibility) = VIS_SELF];
-  optional int32 negative_prompt_max_length = 4 [(hi.visibility) = VIS_SELF];
-  MediaWorkflowResolutionConfig resolution = 5 [(hi.visibility) = VIS_SELF];
+  WorkflowInputBinding binding = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  IntRangeConfig values = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+}
+
+message WorkflowFrameRateInput {
+  option (hi.audience) = VIS_SELF;
+  oneof mode {
+    option (buf.validate.oneof).required = true;
+
+    WorkflowSelectableFrameRate selectable = 1 [(hi.visibility) = VIS_SELF];
+    int32 fixed_value = 2 [
+      (buf.validate.field).int32.gt = 0,
+      (hi.visibility) = VIS_SELF
+    ];
+  }
 }
 
 message ImageToVideoWorkflowConfig {
   option (hi.audience) = VIS_SELF;
-  MediaWorkflowInputBinding input_image = 1 [(hi.visibility) = VIS_SELF];
-  MediaWorkflowInputBinding prompt = 2 [(hi.visibility) = VIS_SELF];
-  optional int32 prompt_max_length = 3 [(hi.visibility) = VIS_SELF];
-  MediaWorkflowInputBinding negative_prompt = 4 [(hi.visibility) = VIS_SELF];
-  optional int32 negative_prompt_max_length = 5 [(hi.visibility) = VIS_SELF];
-  MediaWorkflowResolutionConfig resolution = 6 [(hi.visibility) = VIS_SELF];
-  MediaWorkflowIntOptionConfig duration_seconds = 7 [(hi.visibility) = VIS_SELF];
-  MediaWorkflowIntOptionConfig fps = 8 [(hi.visibility) = VIS_SELF];
+  WorkflowInputBinding input_image = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  WorkflowInputBinding prompt = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  optional uint32 prompt_max_length = 3 [
+    (buf.validate.field).uint32.gt = 0,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // 可选的管理员固定负向提示词；普通用户接口不接收也不返回该值。
+  WorkflowFixedTextInput negative_prompt = 4 [(hi.visibility) = VIS_SELF];
+  WorkflowStringOptionInput aspect_ratio = 5 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  WorkflowDecimalOptionInput megapixels = 6 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  WorkflowIntRangeInput duration_seconds = 7 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  WorkflowFrameRateInput frame_rate = 8 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
 }
 
-message MediaWorkflowConfig {
+message TextToVideoWorkflowConfig {
+  option (hi.audience) = VIS_SELF;
+  WorkflowInputBinding prompt = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  optional uint32 prompt_max_length = 2 [
+    (buf.validate.field).uint32.gt = 0,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // 可选的管理员固定负向提示词；普通用户接口不接收也不返回该值。
+  WorkflowFixedTextInput negative_prompt = 3 [(hi.visibility) = VIS_SELF];
+  WorkflowStringOptionInput aspect_ratio = 4 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  WorkflowDecimalOptionInput megapixels = 5 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  WorkflowIntRangeInput duration_seconds = 6 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  WorkflowFrameRateInput frame_rate = 7 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+}
+
+message WorkflowExecutionConfig {
   option (hi.audience) = VIS_SELF;
   oneof feature_config {
-    TextToImageWorkflowConfig text_to_image = 1 [(hi.visibility) = VIS_SELF];
-    ImageToVideoWorkflowConfig image_to_video = 2 [(hi.visibility) = VIS_SELF];
+    option (buf.validate.oneof).required = true;
+
+    ImageToVideoWorkflowConfig image_to_video = 1 [(hi.visibility) = VIS_SELF];
+    TextToVideoWorkflowConfig text_to_video = 2 [(hi.visibility) = VIS_SELF];
   }
-  MediaWorkflowOutputConfig output = 3 [(hi.visibility) = VIS_SELF];
-  optional int32 execution_timeout_seconds = 4 [(hi.visibility) = VIS_SELF];
-  optional uint64 output_reservation_bytes = 5 [(hi.visibility) = VIS_SELF];
+  WorkflowOutputConfig output = 3 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  optional uint32 execution_timeout_seconds = 4 [
+    (buf.validate.field).uint32.gt = 0,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  optional uint64 output_reservation_bytes = 5 [
+    (buf.validate.field).uint64.gt = 0,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
 }
 
-message UpdateMediaWorkflowReq {
-  optional string workflow_version_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-  optional string expected_content_hash = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-  MediaWorkflowConfig config = 3 [(buf.validate.field).required = true];
+enum WorkflowStatus {
+  WORKFLOW_STATUS_UNSPECIFIED = 0;
+  WORKFLOW_STATUS_DRAFT = 1;
+  // 最近校验通过的草稿在管理试跑完整成功后自动进入 ENABLED；是否对用户可用仍由映射决定。
+  WORKFLOW_STATUS_ENABLED = 2;
 }
 
-message UpdateMediaWorkflowResp {
+enum WorkflowValidationStatus {
+  // 尚未校验。
+  WORKFLOW_VALIDATION_STATUS_UNSPECIFIED = 0;
+  WORKFLOW_VALIDATION_STATUS_PASSED = 1;
+  WORKFLOW_VALIDATION_STATUS_FAILED = 2;
+}
+
+enum WorkflowIssueSeverity {
+  WORKFLOW_ISSUE_SEVERITY_UNSPECIFIED = 0;
+  WORKFLOW_ISSUE_SEVERITY_WARNING = 1;
+  WORKFLOW_ISSUE_SEVERITY_ERROR = 2;
+}
+
+message WorkflowIssue {
   option (hi.audience) = VIS_SELF;
-  optional string content_hash = 1 [(hi.visibility) = VIS_SELF];
+  optional string code = 1 [(hi.visibility) = VIS_SELF];
+  optional WorkflowIssueSeverity severity = 2 [(hi.visibility) = VIS_SELF];
+  optional string message = 3 [(hi.visibility) = VIS_SELF];
+  optional string node_id = 4 [(hi.visibility) = VIS_SELF];
+  optional string input_name = 5 [(hi.visibility) = VIS_SELF];
 }
 
-message MediaWorkflowInputCandidate {
+message WorkflowNodeInput {
   option (hi.audience) = VIS_SELF;
   optional string input_name = 1 [(hi.visibility) = VIS_SELF];
   optional string value_json = 2 [(hi.visibility) = VIS_SELF];
@@ -101,215 +237,224 @@ message MediaWorkflowInputCandidate {
   optional string declared_type = 6 [(hi.visibility) = VIS_SELF];
 }
 
-message MediaWorkflowNode {
+message WorkflowNode {
   option (hi.audience) = VIS_SELF;
   optional string node_id = 1 [(hi.visibility) = VIS_SELF];
   optional string class_type = 2 [(hi.visibility) = VIS_SELF];
   optional string title = 3 [(hi.visibility) = VIS_SELF];
-  repeated MediaWorkflowInputCandidate inputs = 4 [(hi.visibility) = VIS_SELF];
+  repeated WorkflowNodeInput inputs = 4 [(hi.visibility) = VIS_SELF];
   optional bool supported_main_output = 5 [(hi.visibility) = VIS_SELF];
 }
 
-enum MediaWorkflowDependencyKind {
-  MEDIA_WORKFLOW_DEPENDENCY_KIND_UNSPECIFIED = 0;
-  MEDIA_WORKFLOW_DEPENDENCY_KIND_NODE_CLASS = 1;
-  MEDIA_WORKFLOW_DEPENDENCY_KIND_LOADER_FILE = 2;
+enum WorkflowDependencyKind {
+  WORKFLOW_DEPENDENCY_KIND_UNSPECIFIED = 0;
+  WORKFLOW_DEPENDENCY_KIND_NODE_CLASS = 1;
+  WORKFLOW_DEPENDENCY_KIND_LOADER_FILE = 2;
 }
 
-message MediaWorkflowDependencyUsage {
+message WorkflowDependencyUsage {
   option (hi.audience) = VIS_SELF;
   optional string node_id = 1 [(hi.visibility) = VIS_SELF];
   optional string input_name = 2 [(hi.visibility) = VIS_SELF];
 }
 
-message MediaWorkflowDependency {
+message WorkflowDependency {
   option (hi.audience) = VIS_SELF;
-  optional MediaWorkflowDependencyKind kind = 1 [(hi.visibility) = VIS_SELF];
+  optional WorkflowDependencyKind kind = 1 [(hi.visibility) = VIS_SELF];
   optional string identifier = 2 [(hi.visibility) = VIS_SELF];
-  repeated MediaWorkflowDependencyUsage usages = 3 [(hi.visibility) = VIS_SELF];
+  repeated WorkflowDependencyUsage usages = 3 [(hi.visibility) = VIS_SELF];
+  // false 表示仅存在于当前固定关闭的惰性分支；缺失时校验只产生警告。
+  optional bool required = 4 [(hi.visibility) = VIS_SELF];
 }
 
-enum MediaWorkflowIssueSeverity {
-  MEDIA_WORKFLOW_ISSUE_SEVERITY_UNSPECIFIED = 0;
-  MEDIA_WORKFLOW_ISSUE_SEVERITY_ERROR = 1;
-  MEDIA_WORKFLOW_ISSUE_SEVERITY_WARNING = 2;
-}
-
-message MediaWorkflowIssue {
-  option (hi.audience) = VIS_SELF;
-  optional string code = 1 [(hi.visibility) = VIS_SELF];
-  optional MediaWorkflowIssueSeverity severity = 2 [(hi.visibility) = VIS_SELF];
-  optional string message = 3 [(hi.visibility) = VIS_SELF];
-  optional string node_id = 4 [(hi.visibility) = VIS_SELF];
-  optional string input_name = 5 [(hi.visibility) = VIS_SELF];
-}
-
-enum MediaWorkflowStatus {
-  MEDIA_WORKFLOW_STATUS_UNSPECIFIED = 0;
-  MEDIA_WORKFLOW_STATUS_DRAFT = 1;
-  MEDIA_WORKFLOW_STATUS_READY = 2;
-}
-
-enum MediaWorkflowValidationStatus {
-  MEDIA_WORKFLOW_VALIDATION_STATUS_UNSPECIFIED = 0;
-  MEDIA_WORKFLOW_VALIDATION_STATUS_PASSED = 1;
-  MEDIA_WORKFLOW_VALIDATION_STATUS_FAILED = 2;
-}
-
-message MediaWorkflowValidationSummary {
-  option (hi.audience) = VIS_SELF;
-  optional MediaWorkflowValidationStatus status = 1 [(hi.visibility) = VIS_SELF];
-  optional int32 error_count = 2 [(hi.visibility) = VIS_SELF];
-  optional int32 warning_count = 3 [(hi.visibility) = VIS_SELF];
-  optional string content_hash = 4 [(hi.visibility) = VIS_SELF];
-  optional int64 validated_at = 5 [(hi.visibility) = VIS_SELF];
-}
-
-message MediaWorkflowValidationResult {
-  option (hi.audience) = VIS_SELF;
-  MediaWorkflowValidationSummary summary = 1 [(hi.visibility) = VIS_SELF];
-  repeated MediaWorkflowIssue issues = 2 [(hi.visibility) = VIS_SELF];
-}
-
-message MediaWorkflowSummary {
+message WorkflowSummary {
   option (hi.audience) = VIS_SELF;
   optional string workflow_version_id = 1 [(hi.visibility) = VIS_SELF];
-  optional string feature_key = 2 [(hi.visibility) = VIS_SELF];
+  optional FeatureKey feature_key = 2 [(hi.visibility) = VIS_SELF];
   optional string name = 3 [(hi.visibility) = VIS_SELF];
-  optional MediaWorkflowStatus status = 4 [(hi.visibility) = VIS_SELF];
-  optional bool is_active = 5 [(hi.visibility) = VIS_SELF];
-  MediaWorkflowValidationSummary latest_validation = 6 [(hi.visibility) = VIS_SELF];
+  optional WorkflowStatus status = 4 [(hi.visibility) = VIS_SELF];
+  optional WorkflowValidationStatus validation_status = 5 [(hi.visibility) = VIS_SELF];
+  optional int64 enabled_at = 6 [(hi.visibility) = VIS_SELF];
   optional string created_by = 7 [(hi.visibility) = VIS_SELF];
   optional int64 created_at = 8 [(hi.visibility) = VIS_SELF];
+  optional int64 updated_at = 9 [(hi.visibility) = VIS_SELF];
 }
 
-message ListMediaWorkflowsReq {
-  hi.Pagination pagination = 1;
-  optional string feature_key = 2;
-  optional MediaWorkflowStatus status = 3;
-  optional bool is_active = 4;
-}
-
-message ListMediaWorkflowsResp {
+message WorkflowDetail {
   option (hi.audience) = VIS_SELF;
-  optional int32 total = 1 [(hi.visibility) = VIS_SELF];
-  repeated MediaWorkflowSummary workflows = 2 [(hi.visibility) = VIS_SELF];
+  WorkflowSummary summary = 1 [(hi.visibility) = VIS_SELF];
+  optional string description = 2 [(hi.visibility) = VIS_SELF];
+  optional string api_json = 3 [(hi.visibility) = VIS_SELF];
+  WorkflowExecutionConfig config = 4 [(hi.visibility) = VIS_SELF];
+  repeated WorkflowNode nodes = 5 [(hi.visibility) = VIS_SELF];
+  repeated WorkflowDependency dependencies = 6 [(hi.visibility) = VIS_SELF];
+  repeated WorkflowIssue validation_issues = 7 [(hi.visibility) = VIS_SELF];
+  optional int64 validated_at = 8 [(hi.visibility) = VIS_SELF];
 }
 
-message MediaWorkflowDetail {
+message ImportWorkflowReq {
+  optional FeatureKey feature_key = 1 [
+    (buf.validate.field).enum = {
+      defined_only: true
+      not_in: [0]
+    },
+    (buf.validate.field).required = true
+  ];
+  optional string name = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  optional string api_json = 3 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  optional string description = 4;
+}
+
+message ImportWorkflowResp {
   option (hi.audience) = VIS_SELF;
   optional string workflow_version_id = 1 [(hi.visibility) = VIS_SELF];
-  optional string feature_key = 2 [(hi.visibility) = VIS_SELF];
-  optional string name = 3 [(hi.visibility) = VIS_SELF];
-  optional string change_notes = 4 [(hi.visibility) = VIS_SELF];
-  optional MediaWorkflowStatus status = 5 [(hi.visibility) = VIS_SELF];
-  optional bool is_active = 6 [(hi.visibility) = VIS_SELF];
-  optional string api_json = 7 [(hi.visibility) = VIS_SELF];
-  optional string content_hash = 8 [(hi.visibility) = VIS_SELF];
-  MediaWorkflowConfig config = 9 [(hi.visibility) = VIS_SELF];
-  repeated MediaWorkflowNode nodes = 10 [(hi.visibility) = VIS_SELF];
-  repeated MediaWorkflowDependency dependencies = 11 [(hi.visibility) = VIS_SELF];
-  MediaWorkflowValidationResult latest_validation = 12 [(hi.visibility) = VIS_SELF];
-  optional string ready_test_task_id = 13 [(hi.visibility) = VIS_SELF];
-  optional string ready_by = 14 [(hi.visibility) = VIS_SELF];
-  optional int64 ready_at = 15 [(hi.visibility) = VIS_SELF];
-  optional string created_by = 16 [(hi.visibility) = VIS_SELF];
-  optional int64 created_at = 17 [(hi.visibility) = VIS_SELF];
 }
 
-message GetMediaWorkflowReq {
-  optional string workflow_version_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+message UpdateWorkflowReq {
+  option (buf.validate.message).cel = {
+    id: "update_workflow.content"
+    message: "api_json or config must be provided"
+    expression: "has(this.api_json) || has(this.config)"
+  };
+
+  optional string workflow_version_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // api_json 与 config 至少提交一项；只允许修改草稿。
+  optional string api_json = 2 [(buf.validate.field).string.min_len = 1];
+  WorkflowExecutionConfig config = 3;
 }
 
-message GetMediaWorkflowResp {
+message UpdateWorkflowResp {
   option (hi.audience) = VIS_SELF;
-  MediaWorkflowDetail workflow = 1 [(hi.visibility) = VIS_SELF];
+  WorkflowDetail workflow = 1 [(hi.visibility) = VIS_SELF];
 }
 
-message ValidateMediaWorkflowReq {
-  optional string workflow_version_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+message UpdateWorkflowDescriptionReq {
+  optional string workflow_version_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 必须显式提交；空字符串表示清空说明。
+  optional string description = 2 [(buf.validate.field).required = true];
 }
 
-message ValidateMediaWorkflowResp {
+message UpdateWorkflowDescriptionResp {
   option (hi.audience) = VIS_SELF;
-  MediaWorkflowValidationResult validation = 1 [(hi.visibility) = VIS_SELF];
+  WorkflowDetail workflow = 1 [(hi.visibility) = VIS_SELF];
 }
 
-message TextToImageWorkflowTestInput {
-  optional string prompt = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+message GetWorkflowReq {
+  optional string workflow_version_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
 }
 
-message ImageToVideoWorkflowTestInput {
-  optional string input_asset_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-  optional string prompt = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+message GetWorkflowResp {
+  option (hi.audience) = VIS_SELF;
+  WorkflowDetail workflow = 1 [(hi.visibility) = VIS_SELF];
 }
 
-message TestMediaWorkflowReq {
-  optional string request_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-  optional string workflow_version_id = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-  optional string expected_content_hash = 3 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-  oneof input {
-    TextToImageWorkflowTestInput text_to_image = 4;
-    ImageToVideoWorkflowTestInput image_to_video = 5;
-  }
+message ListWorkflowsReq {
+  hi.Pagination pagination = 1;
+  optional FeatureKey feature_key = 2 [(buf.validate.field).enum = {
+    defined_only: true
+    not_in: [0]
+  }];
+  optional WorkflowStatus status = 3 [(buf.validate.field).enum = {
+    defined_only: true
+    not_in: [0]
+  }];
 }
 
-message TestMediaWorkflowResp {
+message ListWorkflowsResp {
+  option (hi.audience) = VIS_SELF;
+  optional int32 total = 1 [(hi.visibility) = VIS_SELF];
+  repeated WorkflowSummary workflows = 2 [(hi.visibility) = VIS_SELF];
+}
+
+message ValidateWorkflowReq {
+  optional string workflow_version_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+}
+
+message ValidateWorkflowResp {
+  option (hi.audience) = VIS_SELF;
+  optional WorkflowValidationStatus status = 1 [(hi.visibility) = VIS_SELF];
+  repeated WorkflowIssue issues = 2 [(hi.visibility) = VIS_SELF];
+  optional int64 validated_at = 3 [(hi.visibility) = VIS_SELF];
+}
+
+message TestWorkflowReq {
+  optional string request_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  optional string workflow_version_id = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  optional string prompt = 3 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 图生视频必须提交管理员本人的图片资产；文生视频必须省略。
+  // 分辨率、时长和帧率统一使用工作流默认值或固定值。
+  optional string input_asset_id = 4 [(buf.validate.field).string.min_len = 1];
+}
+
+message TestWorkflowResp {
   option (hi.audience) = VIS_SELF;
   optional string task_id = 1 [(hi.visibility) = VIS_SELF];
 }
 
-message MediaWorkflowTestRecord {
-  option (hi.audience) = VIS_SELF;
-  MediaTaskSummary task = 1 [(hi.visibility) = VIS_SELF];
-  optional string content_hash = 2 [(hi.visibility) = VIS_SELF];
-}
-
-message ListMediaWorkflowTestsReq {
+message ListWorkflowTestsReq {
   hi.Pagination pagination = 1;
-  optional string workflow_version_id = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+  optional string workflow_version_id = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
 }
 
-message ListMediaWorkflowTestsResp {
+message ListWorkflowTestsResp {
   option (hi.audience) = VIS_SELF;
   optional int32 total = 1 [(hi.visibility) = VIS_SELF];
-  repeated MediaWorkflowTestRecord tests = 2 [(hi.visibility) = VIS_SELF];
+  repeated TaskSummary tasks = 2 [(hi.visibility) = VIS_SELF];
 }
 
-message SetMediaWorkflowReadyReq {
-  optional string workflow_version_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-  optional string expected_content_hash = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-  optional string test_task_id = 3 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-}
-
-message SetMediaWorkflowReadyResp {
-  option (hi.audience) = VIS_SELF;
-  optional string workflow_version_id = 1 [(hi.visibility) = VIS_SELF];
-  optional MediaWorkflowStatus status = 2 [(hi.visibility) = VIS_SELF];
-  optional string content_hash = 3 [(hi.visibility) = VIS_SELF];
-  optional string ready_test_task_id = 4 [(hi.visibility) = VIS_SELF];
-  optional int64 ready_at = 5 [(hi.visibility) = VIS_SELF];
-}
-
-message SetActiveMediaWorkflowReq {
-  optional string workflow_version_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-}
-
-message SetActiveMediaWorkflowResp {
-  option (hi.audience) = VIS_SELF;
-  optional string feature_key = 1 [(hi.visibility) = VIS_SELF];
-  optional string active_workflow_version_id = 2 [(hi.visibility) = VIS_SELF];
-  optional int64 activated_at = 3 [(hi.visibility) = VIS_SELF];
-}
-
-service MediaWorkflowManage {
-  rpc ImportWorkflow (ImportMediaWorkflowReq) returns (ImportMediaWorkflowResp) { option (hi.auth) = AUTH_SUPERADMIN; }
-  rpc Update (UpdateMediaWorkflowReq) returns (UpdateMediaWorkflowResp) { option (hi.auth) = AUTH_SUPERADMIN; }
-  rpc List (ListMediaWorkflowsReq) returns (ListMediaWorkflowsResp) { option (hi.auth) = AUTH_SUPERADMIN; }
-  rpc Get (GetMediaWorkflowReq) returns (GetMediaWorkflowResp) { option (hi.auth) = AUTH_SUPERADMIN; }
-  rpc Validate (ValidateMediaWorkflowReq) returns (ValidateMediaWorkflowResp) { option (hi.auth) = AUTH_SUPERADMIN; }
-  rpc Test (TestMediaWorkflowReq) returns (TestMediaWorkflowResp) { option (hi.auth) = AUTH_SUPERADMIN; }
-  rpc ListTests (ListMediaWorkflowTestsReq) returns (ListMediaWorkflowTestsResp) { option (hi.auth) = AUTH_SUPERADMIN; }
-  rpc SetReady (SetMediaWorkflowReadyReq) returns (SetMediaWorkflowReadyResp) { option (hi.auth) = AUTH_SUPERADMIN; }
-  rpc SetActive (SetActiveMediaWorkflowReq) returns (SetActiveMediaWorkflowResp) { option (hi.auth) = AUTH_SUPERADMIN; }
+service WorkflowManage {
+  rpc ImportWorkflow(ImportWorkflowReq) returns (ImportWorkflowResp) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
+  rpc UpdateWorkflow(UpdateWorkflowReq) returns (UpdateWorkflowResp) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
+  rpc UpdateDescription(UpdateWorkflowDescriptionReq) returns (UpdateWorkflowDescriptionResp) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
+  rpc Validate(ValidateWorkflowReq) returns (ValidateWorkflowResp) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
+  rpc Test(TestWorkflowReq) returns (TestWorkflowResp) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
+  rpc ListTests(ListWorkflowTestsReq) returns (ListWorkflowTestsResp) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
+  rpc List(ListWorkflowsReq) returns (ListWorkflowsResp) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
+  rpc Get(GetWorkflowReq) returns (GetWorkflowResp) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
 }

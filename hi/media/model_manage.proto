@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package hi.media;
+
+import "buf/validate/validate.proto";
+import "hi/common.proto";
+import "hi/options.proto";
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
+
+message Model {
+  option (hi.audience) = VIS_SELF;
+  optional string model_id = 1 [(hi.visibility) = VIS_SELF];
+  // 用户可见的产品模型名称，不是 ComfyUI 工作流中的原始模型文件名。
+  optional string name = 2 [(hi.visibility) = VIS_SELF];
+  optional int64 created_at = 3 [(hi.visibility) = VIS_SELF];
+  optional int64 updated_at = 4 [(hi.visibility) = VIS_SELF];
+}
+
+message CreateModelReq {
+  optional string name = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+}
+
+message CreateModelResp {
+  option (hi.audience) = VIS_SELF;
+  Model model = 1 [(hi.visibility) = VIS_SELF];
+}
+
+message UpdateModelReq {
+  optional string model_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  optional string name = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+}
+
+message UpdateModelResp {
+  option (hi.audience) = VIS_SELF;
+  Model model = 1 [(hi.visibility) = VIS_SELF];
+}
+
+message GetModelReq {
+  optional string model_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+}
+
+message GetModelResp {
+  option (hi.audience) = VIS_SELF;
+  Model model = 1 [(hi.visibility) = VIS_SELF];
+}
+
+message ListModelsReq {
+  hi.Pagination pagination = 1;
+}
+
+message ListModelsResp {
+  option (hi.audience) = VIS_SELF;
+  optional int32 total = 1 [(hi.visibility) = VIS_SELF];
+  repeated Model models = 2 [(hi.visibility) = VIS_SELF];
+}
+
+service ModelManage {
+  rpc Create(CreateModelReq) returns (CreateModelResp) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
+  rpc Update(UpdateModelReq) returns (UpdateModelResp) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
+  rpc List(ListModelsReq) returns (ListModelsResp) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
+  rpc Get(GetModelReq) returns (GetModelResp) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
+}
