@@ -138,20 +138,26 @@ message UploadBatchResult {
   repeated UploadFileResult files = 3 [(hi.visibility) = VIS_SELF];
 }
 
-message GetUploadReq {
+// 使用前端生成的 request_id 标识一次上传批次；只能查询当前登录用户自己的批次。
+message GetUploadResultReq {
+  // 调用上传接口时提交的同一个 request_id。
   optional string request_id = 1 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
 }
 
-message GetUploadResp {
+// 返回上传批次及全部文件的当前结果；已完成批次中可以同时存在成功和失败文件。
+message GetUploadResultResp {
   option (hi.audience) = VIS_SELF;
-  UploadBatchResult upload = 1 [(hi.visibility) = VIS_SELF];
+  // 当前批次状态及每个文件的处理结果。
+  UploadBatchResult result = 1 [(hi.visibility) = VIS_SELF];
 }
 
 service File {
-  rpc GetUpload(GetUploadReq) returns (GetUploadResp) {
+  // 按 request_id 查询已持久化的上传结果，供正常返回后复查或在超时、响应丢失后确认结果。
+  // 此接口不上传文件，也不返回上传地址。
+  rpc GetUploadResult(GetUploadResultReq) returns (GetUploadResultResp) {
     option (hi.auth) = AUTH_USER;
   }
   rpc List(ListFilesReq) returns (ListFilesResp) {

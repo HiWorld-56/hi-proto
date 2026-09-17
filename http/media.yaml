@@ -44,8 +44,8 @@ http:
   - selector: hi.media.Task.RecoverSave
     post: /api/v1/task/recover_save
     body: "*"
-  - selector: hi.media.File.GetUpload
-    get: /api/v1/file/get_upload
+  - selector: hi.media.File.GetUploadResult
+    get: /api/v1/file/get_upload_result
   - selector: hi.media.File.List
     post: /api/v1/file/list
     body: "*"
