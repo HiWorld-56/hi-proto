@@ -44,6 +44,12 @@ http:
   - selector: hi.media.Task.RecoverSave
     post: /api/v1/task/recover_save
     body: "*"
+# File upload 是 HiMedia 手写的 AUTH_USER multipart/form-data HTTP 接口：
+#   POST /api/v1/file/upload
+# 它不是 gRPC RPC，因此不能在此添加 selector，也不由 grpc-gateway 生成。
+# multipart 第一项是 application/json metadata（UploadMetadata）且不携带 filename，
+# 后续文件项的 form name 与 client_file_id 一致；成功响应 data 是 UploadBatchResult。
+# 超时或响应丢失后用同一 request_id 调用 File.GetUploadResult 查询。
   - selector: hi.media.File.GetUploadResult
     get: /api/v1/file/get_upload_result
   - selector: hi.media.File.List
