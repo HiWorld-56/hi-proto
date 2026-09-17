@@ -62,13 +62,21 @@ message ListOnlineReq {
   hi.Pagination   pagination = 2;
 }
 
+// 在线机器人目录的一项。基础名片与动态分开:Entity 是跨业务共用的身份门面,
+// moment 是 club 自己的数据,不应为了这个目录塞进公共 Entity。
+message OnlineAgentInfo {
+  option (hi.audience) = VIS_PUBLIC;
+  hi.Entity       agent  = 1 [(hi.visibility) = VIS_PUBLIC]; // 机器人公开身份(name/avatar/did/type/update)
+  optional string moment = 2 [(hi.visibility) = VIS_PUBLIC]; // 机器人动态;未设置或已清空时不传
+}
+
 message ListOnlineResp {
   option (hi.audience) = VIS_PUBLIC; // 在线机器人目录(AgentDirectory.ListOnline 免鉴权 AUTH_NONE)
-  // ⚠️ 只吐机器人**公开身份**(Entity:name/avatar/did),不复用 hi.ai.AgentInfo ——
+  // ⚠️ 只吐机器人**公开身份**(Entity:name/avatar/did)与公开动态,不复用 hi.ai.AgentInfo ——
   //    后者含 AgentConfig(prompt/模型/记忆)是 owner 私密配置(VIS_SELF),放进公开目录=泄漏。
   //    此前误用 AgentInfo,由可见性 lint 反向校验查出并收窄为 Entity。
-  optional int32     total = 1 [(hi.visibility) = VIS_PUBLIC];
-  repeated hi.Entity infos = 2 [(hi.visibility) = VIS_PUBLIC];
+  optional int32            total = 1 [(hi.visibility) = VIS_PUBLIC];
+  repeated OnlineAgentInfo infos = 2 [(hi.visibility) = VIS_PUBLIC];
 }
 
 // 超管按用户搜机器人。users 是**过滤条件**(空=不过滤,即全部)——

@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+package hi.media;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+import "hi/options.proto";
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
+
+// HiMedia 邀请码只控制用户能否进入 HiMedia。它不复用或修改 HiDID、HiAI 的
+// 邀请码数据，也不会把用户升级为 HiDID 商户。
+enum InviteCodeStatus {
+  INVITE_CODE_STATUS_UNSPECIFIED = 0;
+  INVITE_CODE_STATUS_AVAILABLE = 1;
+  INVITE_CODE_STATUS_USED = 2;
+  INVITE_CODE_STATUS_EXPIRED = 3;
+}
+
+message InviteCodeInfo {
+  option (hi.audience) = VIS_SELF;
+  optional string code = 1 [(hi.visibility) = VIS_SELF];
+  optional string note = 2 [(hi.visibility) = VIS_SELF];
+  optional InviteCodeStatus status = 3 [(hi.visibility) = VIS_SELF];
+  optional string created_by_did = 4 [(hi.visibility) = VIS_SELF];
+  optional int64 created_at = 5 [(hi.visibility) = VIS_SELF];
+  optional int64 expires_at = 6 [(hi.visibility) = VIS_SELF];
+  optional string used_by_did = 7 [(hi.visibility) = VIS_SELF];
+  optional int64 used_at = 8 [(hi.visibility) = VIS_SELF];
+}
+
+message InviteCodeCreateResp {
+  option (hi.audience) = VIS_SELF;
+  InviteCodeInfo invite_code = 1 [(hi.visibility) = VIS_SELF];
+}
+
+message InviteCodeEditReq {
+  optional string code = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 32,
+    (buf.validate.field).required = true
+  ];
+  // 不传=不修改，传空字符串=清空备注。
+  optional string note = 2 [(buf.validate.field).string.max_len = 255];
+}
+
+message InviteCodeListResp {
+  option (hi.audience) = VIS_SELF;
+  optional int32 total = 1 [(hi.visibility) = VIS_SELF];
+  repeated InviteCodeInfo invite_codes = 2 [(hi.visibility) = VIS_SELF];
+}
+
+message InviteCodeDeleteReq {
+  optional string code = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 32,
+    (buf.validate.field).required = true
+  ];
+}
+
+// 不接受前端提交 DID。服务端必须从已经完成 HiDID 验签、状态为
+// invite_required 的 request_id 登录会话中取得准入用户身份。
+message InviteCodeVerifyReq {
+  optional string request_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  optional string code = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 32,
+    (buf.validate.field).required = true
+  ];
+}
+
+// 邀请码管理属于 HiMedia 超管面。超管身份仍以 HiDID 全局超管名单为权威，
+// HiMedia 不维护本地管理员名单。
+service InviteCode {
+  rpc Create(google.protobuf.Empty) returns (InviteCodeCreateResp) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
+  rpc Edit(InviteCodeEditReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
+  rpc List(hi.Pagination) returns (InviteCodeListResp) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
+  rpc Delete(InviteCodeDeleteReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
+}
+
+// 注册主体尚未持有 HiMedia token，因此接口公开；有效 request_id 中已经验签的
+// DID 是其身份边界，邀请码核销成功后才返回 HiMedia token。
+service Register {
+  rpc Verify(InviteCodeVerifyReq) returns (hi.AuthToken) {
+    option (hi.auth) = AUTH_NONE;
+  }
+}

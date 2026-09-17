@@ -22,8 +22,13 @@ service:hi.ai.plugin.Builder
 # 只走 grpc 就等于前端根本够不着 —— 实测调默认路径 /hi.club.Base/ListCoins 是
 # nginx 的 405「请求方法未被允许」,后端日志里一行都没有。
 
-# 流式方法:grpc-gateway 不适合搬二进制流,web 端不经它们(发布页面用 Latest/Publish 即可)。
-hi.did.ReleaseManage.UploadPackage
+# 流式方法:grpc-gateway 搬不动**二进制** server-stream,web 端不经它
+# (发布页面下包走 Latest 给的预签名 url)。
+#
+# ⚠️ UploadPackage **不在此列了**(2026-09-11 确认删除):它是 client-streaming,
+#    而帧内容就是 JSON,gateway 的 client-streaming 支持收得下 —— 已配
+#    POST /api/v1/release_manage/upload_package(见 http/did.yaml)。
+#    原来写"两个流式方法配不了 http"是错的:配不了的是**二进制**那条,不是"流式"。
 hi.did.Release.Download
 
 # 内部面:三方(club)认款成功后作废自己登记的付款号。只走 grpc(商户后端 → hidid),
@@ -76,7 +81,6 @@ service:hi.did.PayCallback    # 同上
 service:hi.club.Assets
 service:hi.club.Order
 service:hi.club.Price
-service:hi.club.Publisher
 service:hi.club.PushManager
 service:hi.club.Wallet
 service:hi.did.Pay
@@ -141,3 +145,14 @@ service:hi.did.PayRequestPayer
 # 浏览器里没有钱包、也没有私钥,web 端不存在"我刚付完一笔"这件事。
 # 挂到 http 网关上只多一个暴露面:一个能往任意 did 的 MQTT 单聊主题投递通知的公开口子。
 service:hi.did.Notify
+
+# AppendHistory:**给机器人自己用的**,不是前端接口。
+#
+# 机器人到点做完主人交代的事(「等王总通过好友就带话给他」),要把这件既成事实
+# 补进模型的上下文,否则它下次对话时对自己刚做过的事一无所知。brain 走 grpc 直连。
+#
+# ⚠️ 不给 web 开这条路是**有意的**:它能凭空往会话里塞一句"机器人说过的话",
+#    而上下文是模型下一轮的依据 —— 挂到 http 网关等于给了任何登录者一支笔,
+#    可以替别人的机器人编造它"说过"的内容。
+hi.ai.Chat.AppendHistory
+hi.club.Chat.AppendHistory

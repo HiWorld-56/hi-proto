@@ -28,6 +28,24 @@ message GetHistoryReq {
   optional string cid = 1; // cid 已唯一定位会话,不再带 agent
 }
 
+// 往会话上下文里补一对问答。
+//
+// 🔴 **给"机器人自己做完一件事"用的。** 主人交代过「等王总通过就带话给他」,
+// 机器人到点自己做了 —— 这件事得让模型知道,否则下次对话时它对自己刚做过的事一无所知,
+// 主人问起来只能瞎猜。
+//
+// 为什么不走一轮 `Converse`:那要真跑一次模型(慢、花钱),而且它可能把
+// "做成了"说成别的样子。这里补的是**既成事实**,内容在登记那一刻就写好了。
+//
+// ⚠️ 上下文只保留最近 30 对,补进来的会挤掉最老的 —— 所以**别拿它记流水账**
+// (高频的周期任务就不该往这里补,否则机器人会"只记得自己在提醒吃药,
+//  不记得主人昨天说过什么")。
+message AppendHistoryReq {
+  optional string cid       = 1;
+  optional string user      = 2; // 摆成"用户问的"那一句,通常是「执行结果查询：<摘要>」
+  optional string assistant = 3; // 摆成"机器人答的"那一句,即真正要让它记住的内容
+}
+
 message QA {
   option (hi.audience) = VIS_SELF;
   optional string  a = 1 [(hi.visibility) = VIS_SELF]; // assistant
@@ -227,6 +245,7 @@ service Chat {
   rpc NewSession (google.protobuf.Empty) returns (NewSessionResp) { option (hi.auth) = AUTH_MERCHANT; }   // 建会话(原 GenerateCid)
   rpc GetHistory (GetHistoryReq) returns (GetHistoryResp) { option (hi.auth) = AUTH_MERCHANT; }            // 取会话上下文(原 GetContext)
   rpc ClearHistory (ClearHistoryReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 清上下文(原 ClearContext)
+  rpc AppendHistory (AppendHistoryReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 补一对问答(机器人自己做完事之后,见 AppendHistoryReq)
   // ── 对话:一轮 = 一个循环,中途只在"轮到客户端"时返回 ──
   rpc Converse (ChatReq) returns (ChatResp) { option (hi.auth) = AUTH_MERCHANT; }                          // 一轮对话(原 Complete + 原 Converse)
   rpc ConverseStream (ChatReq) returns (stream ConverseStreamResp) { option (hi.auth) = AUTH_MERCHANT; }   // 同上,流式(原 CompleteStream)

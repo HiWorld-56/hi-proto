@@ -2,46 +2,165 @@ syntax = "proto3";
 
 package hi.media;
 
-option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
-
 import "buf/validate/validate.proto";
-import "hi/media/task.proto";
 import "hi/options.proto";
 
-message GetMediaFeatureReq {
-  optional string feature_key = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
+
+enum FeatureKey {
+  FEATURE_KEY_UNSPECIFIED = 0;
+
+  // 文生图；内部键 image.txt2img；当前没有创建接口。
+  FEATURE_KEY_TEXT_TO_IMAGE = 1;
+
+  // 图生视频；内部键 video.img2vid；创建时需要输入图片。
+  FEATURE_KEY_IMAGE_TO_VIDEO = 2;
+
+  // 文生视频；内部键 video.txt2vid；不接受输入图片。
+  FEATURE_KEY_TEXT_TO_VIDEO = 3;
 }
 
-message TextToImageFeatureConfig {
+message TextLimit {
   option (hi.audience) = VIS_PUBLIC;
-  optional int32 prompt_max_length = 1 [(hi.visibility) = VIS_PUBLIC];
-  optional int32 negative_prompt_max_length = 2 [(hi.visibility) = VIS_PUBLIC];
-  repeated MediaResolution allowed_resolutions = 3 [(hi.visibility) = VIS_PUBLIC];
-  MediaResolution default_resolution = 4 [(hi.visibility) = VIS_PUBLIC];
+  // 按 Unicode 码点计算的正向提示词最大长度。
+  optional uint32 max_length = 1 [
+    (buf.validate.field).uint32.gt = 0,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_PUBLIC
+  ];
 }
 
-message ImageToVideoFeatureConfig {
+message DecimalOptionConfig {
   option (hi.audience) = VIS_PUBLIC;
-  optional int32 prompt_max_length = 1 [(hi.visibility) = VIS_PUBLIC];
-  optional int32 negative_prompt_max_length = 2 [(hi.visibility) = VIS_PUBLIC];
-  repeated MediaResolution allowed_resolutions = 3 [(hi.visibility) = VIS_PUBLIC];
-  MediaResolution default_resolution = 4 [(hi.visibility) = VIS_PUBLIC];
-  repeated int32 allowed_duration_seconds = 5 [(hi.visibility) = VIS_PUBLIC];
-  optional int32 default_duration_seconds = 6 [(hi.visibility) = VIS_PUBLIC];
-  repeated int32 allowed_fps = 7 [(hi.visibility) = VIS_PUBLIC];
-  optional int32 default_fps = 8 [(hi.visibility) = VIS_PUBLIC];
+  option (buf.validate.message).cel = {
+    id: "decimal_option.default_value"
+    message: "default_value must be one of allowed_values"
+    expression: "this.allowed_values.exists(value, value == this.default_value)"
+  };
+
+  // 为避免浮点格式变化，允许值和默认值都使用十进制字符串传输。
+  repeated string allowed_values = 1 [
+    (buf.validate.field).repeated = {
+      min_items: 1
+      unique: true
+      items: {
+        string: {min_len: 1}
+      }
+    },
+    (hi.visibility) = VIS_PUBLIC
+  ];
+  optional string default_value = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_PUBLIC
+  ];
 }
 
-message GetMediaFeatureResp {
+message StringOptionConfig {
   option (hi.audience) = VIS_PUBLIC;
-  optional string feature_key = 1 [(hi.visibility) = VIS_PUBLIC];
-  optional string workflow_version_id = 2 [(hi.visibility) = VIS_PUBLIC];
-  oneof feature_config {
-    TextToImageFeatureConfig text_to_image = 3 [(hi.visibility) = VIS_PUBLIC];
-    ImageToVideoFeatureConfig image_to_video = 4 [(hi.visibility) = VIS_PUBLIC];
+  option (buf.validate.message).cel = {
+    id: "string_option.default_value"
+    message: "default_value must be one of allowed_values"
+    expression: "this.allowed_values.exists(value, value == this.default_value)"
+  };
+
+  repeated string allowed_values = 1 [
+    (buf.validate.field).repeated = {
+      min_items: 1
+      unique: true
+      items: {
+        string: {min_len: 1}
+      }
+    },
+    (hi.visibility) = VIS_PUBLIC
+  ];
+  optional string default_value = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_PUBLIC
+  ];
+}
+
+message IntRangeConfig {
+  option (hi.audience) = VIS_PUBLIC;
+  option (buf.validate.message).cel = {
+    id: "int_range.bounds"
+    message: "min_value must not exceed max_value and default_value must be within the range"
+    expression: "this.min_value <= this.max_value && this.default_value >= this.min_value && this.default_value <= this.max_value"
+  };
+
+  optional int32 min_value = 1 [
+    (buf.validate.field).int32.gt = 0,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_PUBLIC
+  ];
+  optional int32 max_value = 2 [
+    (buf.validate.field).int32.gt = 0,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_PUBLIC
+  ];
+  optional int32 default_value = 3 [
+    (buf.validate.field).int32.gt = 0,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_PUBLIC
+  ];
+}
+
+message FrameRateConfig {
+  option (hi.audience) = VIS_PUBLIC;
+  oneof mode {
+    option (buf.validate.oneof).required = true;
+
+    // 用户可以在工作流配置的整数范围内选择帧率。
+    IntRangeConfig selectable = 1 [(hi.visibility) = VIS_PUBLIC];
+    // 工作流没有帧率绑定；前端只读展示该值，创建时可以省略帧率。
+    int32 fixed_value = 2 [
+      (buf.validate.field).int32.gt = 0,
+      (hi.visibility) = VIS_PUBLIC
+    ];
   }
 }
 
-service MediaFeature {
-  rpc Get (GetMediaFeatureReq) returns (GetMediaFeatureResp) { option (hi.auth) = AUTH_USER; }
+message VideoParameterConfig {
+  option (hi.audience) = VIS_PUBLIC;
+  TextLimit prompt = 1 [(hi.visibility) = VIS_PUBLIC];
+  StringOptionConfig aspect_ratio = 2 [(hi.visibility) = VIS_PUBLIC];
+  DecimalOptionConfig megapixels = 3 [(hi.visibility) = VIS_PUBLIC];
+  IntRangeConfig duration_seconds = 4 [(hi.visibility) = VIS_PUBLIC];
+  FrameRateConfig frame_rate = 5 [(hi.visibility) = VIS_PUBLIC];
+}
+
+message ModelOption {
+  option (hi.audience) = VIS_PUBLIC;
+  // 创建任务时提交的唯一选择；客户端不能自行组合模型 ID 与工作流 ID。
+  optional string model_mapping_id = 1 [(hi.visibility) = VIS_PUBLIC];
+  // 管理员维护的用户可见模型名称，不是 ComfyUI 原始文件名。
+  optional string name = 2 [(hi.visibility) = VIS_PUBLIC];
+  optional bool is_default = 3 [(hi.visibility) = VIS_PUBLIC];
+  // 映射工作流的 Markdown 说明；客户端应使用安全 Markdown 渲染。
+  optional string description = 4 [(hi.visibility) = VIS_PUBLIC];
+  VideoParameterConfig parameter_config = 5 [(hi.visibility) = VIS_PUBLIC];
+}
+
+message GetFeatureReq {
+  optional FeatureKey feature_key = 1 [
+    (buf.validate.field).enum = {
+      defined_only: true
+      not_in: [0]
+    },
+    (buf.validate.field).required = true
+  ];
+}
+
+message GetFeatureResp {
+  option (hi.audience) = VIS_PUBLIC;
+  optional FeatureKey feature_key = 1 [(hi.visibility) = VIS_PUBLIC];
+  // 空列表表示该功能当前没有可用映射，客户端不得创建任务。
+  repeated ModelOption model_options = 2 [(hi.visibility) = VIS_PUBLIC];
+}
+
+service Feature {
+  rpc Get(GetFeatureReq) returns (GetFeatureResp) {
+    option (hi.auth) = AUTH_USER;
+  }
 }

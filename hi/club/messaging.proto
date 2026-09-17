@@ -160,8 +160,8 @@ message Prompt {
 
    · **不许**把 `from` 填成别人。填了这条消息就发不出去 —— 而且在 MQTT 3.1.1 下
      **发送端连报错都看不到**(QoS2 握手照常走完,只是没有任何人收得到)。
-   · 后端代发(`Publisher.Publish`)同样:`from` 由后端按调用方身份**覆盖**,
-     入参里带的那份不作数。
+   · **没有"后端代发"这条路**(原来的 `Publisher.Publish` 已删,见文件末尾)——
+     发包的只可能是持有那条连接的进程,于是这条不变量没有第二个入口要堵。
 
    ## `ghost` 是**显示覆盖**,纯前端的事
 
@@ -264,11 +264,15 @@ message Content {
   }
 }
 
-message PublishReq {
-  optional string topic   = 1;
-  Packet          payload = 2;
-}
-
-service Publisher {
-  rpc Publish (PublishReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // Token鉴权
-}
+// ⚠️ **没有「请后端代发一条 mqtt 消息」这种 rpc,不要再加回来。**
+//
+// 这里原先有一个 `Publisher.Publish(topic, payload)`:调用方给 topic 和包,后端以
+// 自己的身份投进 broker。它是为插件写的,而那是条**方向错了**的路 ——
+// 实时消息是"别人客户端收到就当真"的东西,能发它的只该是**持有那条连接的那个进程**
+// (机器人是 hinj-brain,人是自己的 app)。后端代发等于把 broker 的全部权限借出去:
+// 谁拿到一把凭据,谁就能以任意身份、向任意 topic 投递。
+//
+// 后来给它补的三道守卫(from 由后端按调用方覆盖、内置通知整类拒、topic 写权限查 ACL)
+// 只是把这条路收窄到"勉强不出事",并没有让它变成对的 —— 2026-09-12 整个删掉。
+// 机器人发消息现在走 brain 的宿主能力 `send_message`(插件给 conts,brain 拼信封、
+// 经 core 的 mqtt 连接自己发)。

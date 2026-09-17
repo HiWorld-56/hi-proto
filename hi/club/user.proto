@@ -54,11 +54,20 @@ message RelationInfo {
   optional string moment = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 用户动态(关系可见)
 }
 
-// 一次拿好友+仆从(同表,一次调用拿全);已删按关系拆开的 ListFriends/ListServitors(重叠)。
+// 一次拿全我的关系:好友 + 仆从 + 我的主人。
+// (已删按关系拆开的 ListFriends/ListServitors —— 它们重叠,而且各打一次同一个 rpc。)
 message ListRelationsResp {
   option (hi.audience) = VIS_SELF; // 我的好友+仆从列表(RelationInfo=SELF,含私有备注)
   repeated RelationInfo friend   = 1 [(hi.visibility) = VIS_SELF]; // 好友(friend 关系)
   repeated RelationInfo servitor = 2 [(hi.visibility) = VIS_SELF]; // 仆从(master 关系,人或 agent)
+  // 🔴 **我的主人。至多一个**(`hi_chat_relation` 每对实体只有一行,kind 要么 friend
+  //    要么 master),没有就不带这个字段。人通常没有主人,机器人有。
+  //
+  //    为什么单独一个字段、而不是塞进上面两半:那两半是「我的好友」和「我的**仆从**」,
+  //    主人哪一半都不是 —— 漏掉它的后果是实打实的:消费方(core)判单聊"关系还在不在"
+  //    用的就是这两半,于是**机器人的主人那个聊天窗每次刷新都被标成"关系已解除"**,
+  //    再往下就是"两周后自动清掉和主人的全部聊天记录"(2026-09-12 在 .66 实测到)。
+  optional RelationInfo master = 3 [(hi.visibility) = VIS_SELF];
 }
 
 message AddFriendReq {
@@ -66,11 +75,21 @@ message AddFriendReq {
   optional string type = 2;
 }
 
+// AddFriend 的结果。**五种都是"关系现在处于什么状态",不是"调用出了问题"** ——
+// 所以它们一律走 status,不走 error。
+//
+// 🔴 `ALREADY_FRIEND` / `PENDING_EXISTS` 原来是以 error 形式回的(而且 service 层还用
+//    裸 `fmt.Errorf` 把哨兵丢了,最终落成 `Internal: 添加好友失败`)。那是错的:
+//    "早就是好友了"和"上次申请还没被处理"都是**本来就会发生**的正常结果,调用方要据此
+//    决定下一步(直接发消息 / 继续等),而不是把它当故障重试或报给用户。
+//    错误留给真正的非预期:对方不存在、库挂了、没权限。
 enum FriendRequestStatus {
-  FRIEND_REQUEST_STATUS_UNSPECIFIED = 0; // 未设置
-  FRIEND_REQUEST_STATUS_REJECTED    = 1; // 好友申请拒绝
-  FRIEND_REQUEST_STATUS_SENT        = 2; // 好友申请已发送
-  FRIEND_REQUEST_STATUS_ADDED       = 3; // 好友添加成功
+  FRIEND_REQUEST_STATUS_UNSPECIFIED    = 0; // 未设置
+  FRIEND_REQUEST_STATUS_REJECTED       = 1; // 对方设了自动拒绝,这次申请当场被拒
+  FRIEND_REQUEST_STATUS_SENT           = 2; // 申请已发出,等对方处理
+  FRIEND_REQUEST_STATUS_ADDED          = 3; // 已是好友(对方自动同意 / 软件机器人免验证)
+  FRIEND_REQUEST_STATUS_ALREADY_FRIEND = 4; // 早就是好友了(含主从关系),什么都没做
+  FRIEND_REQUEST_STATUS_PENDING_EXISTS = 5; // 上一次的申请还没被处理,这次不重复发
 }
 
 message AddFriendResp {

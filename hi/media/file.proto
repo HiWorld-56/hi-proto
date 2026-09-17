@@ -2,104 +2,128 @@ syntax = "proto3";
 
 package hi.media;
 
-option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
-
 import "buf/validate/validate.proto";
 import "hi/common.proto";
 import "hi/media/task.proto";
 import "hi/options.proto";
 
-enum MediaFileSource {
-  MEDIA_FILE_SOURCE_UNSPECIFIED = 0;
-  MEDIA_FILE_SOURCE_UPLOAD = 1;
-  MEDIA_FILE_SOURCE_GENERATED = 2;
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
+
+enum FileSource {
+  FILE_SOURCE_UNSPECIFIED = 0;
+  FILE_SOURCE_UPLOAD = 1;
+  FILE_SOURCE_GENERATED = 2;
 }
 
-enum MediaFileAccessPurpose {
-  MEDIA_FILE_ACCESS_PURPOSE_UNSPECIFIED = 0;
-  MEDIA_FILE_ACCESS_PURPOSE_PREVIEW = 1;
-  MEDIA_FILE_ACCESS_PURPOSE_DOWNLOAD = 2;
+enum FileAccessPurpose {
+  FILE_ACCESS_PURPOSE_UNSPECIFIED = 0;
+  FILE_ACCESS_PURPOSE_PREVIEW = 1;
+  FILE_ACCESS_PURPOSE_DOWNLOAD = 2;
 }
 
-enum MediaUploadStatus {
-  MEDIA_UPLOAD_STATUS_UNSPECIFIED = 0;
-  MEDIA_UPLOAD_STATUS_PROCESSING = 1;
-  MEDIA_UPLOAD_STATUS_COMPLETED = 2;
+enum UploadStatus {
+  UPLOAD_STATUS_UNSPECIFIED = 0;
+  UPLOAD_STATUS_PROCESSING = 1;
+  UPLOAD_STATUS_COMPLETED = 2;
 }
 
-enum MediaUploadFileStatus {
-  MEDIA_UPLOAD_FILE_STATUS_UNSPECIFIED = 0;
-  MEDIA_UPLOAD_FILE_STATUS_PENDING = 1;
-  MEDIA_UPLOAD_FILE_STATUS_PROCESSING = 2;
-  MEDIA_UPLOAD_FILE_STATUS_SUCCESS = 3;
-  MEDIA_UPLOAD_FILE_STATUS_FAILED = 4;
+enum UploadFileStatus {
+  UPLOAD_FILE_STATUS_UNSPECIFIED = 0;
+  UPLOAD_FILE_STATUS_PENDING = 1;
+  UPLOAD_FILE_STATUS_PROCESSING = 2;
+  UPLOAD_FILE_STATUS_SUCCESS = 3;
+  UPLOAD_FILE_STATUS_FAILED = 4;
 }
 
-message MediaFileSummary {
+message FileSummary {
   option (hi.audience) = VIS_SELF;
   optional string asset_id = 1 [(hi.visibility) = VIS_SELF];
   optional string filename = 2 [(hi.visibility) = VIS_SELF];
   optional MediaType media_type = 3 [(hi.visibility) = VIS_SELF];
   optional string mime_type = 4 [(hi.visibility) = VIS_SELF];
   optional uint64 size_bytes = 5 [(hi.visibility) = VIS_SELF];
-  optional MediaFileSource source = 6 [(hi.visibility) = VIS_SELF];
+  optional FileSource source = 6 [(hi.visibility) = VIS_SELF];
   optional int64 created_at = 7 [(hi.visibility) = VIS_SELF];
 }
 
-message ListMediaFilesReq {
+message ListFilesReq {
   hi.Pagination pagination = 1;
   optional MediaType media_type = 2;
-  optional MediaFileSource source = 3;
+  optional FileSource source = 3;
 }
 
-message ListMediaFilesResp {
+message ListFilesResp {
   option (hi.audience) = VIS_SELF;
   optional int32 total = 1 [(hi.visibility) = VIS_SELF];
-  repeated MediaFileSummary files = 2 [(hi.visibility) = VIS_SELF];
+  repeated FileSummary files = 2 [(hi.visibility) = VIS_SELF];
 }
 
-message DeleteMediaFileReq {
-  optional string asset_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+message DeleteFileReq {
+  optional string asset_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
 }
 
-message DeleteMediaFileResp {
+message DeleteFileResp {
   option (hi.audience) = VIS_SELF;
   optional string asset_id = 1 [(hi.visibility) = VIS_SELF];
 }
 
-message GetMediaFileAccessUrlsReq {
-  repeated string asset_ids = 1 [(buf.validate.field).repeated = {min_items: 1, unique: true}];
-  optional MediaFileAccessPurpose purpose = 2 [(buf.validate.field).enum = {defined_only: true, not_in: [0]}, (buf.validate.field).required = true];
+message GetFileAccessUrlsReq {
+  repeated string asset_ids = 1 [(buf.validate.field).repeated = {
+    min_items: 1
+    unique: true
+  }];
+  optional FileAccessPurpose purpose = 2 [
+    (buf.validate.field).enum = {
+      defined_only: true
+      not_in: [0]
+    },
+    (buf.validate.field).required = true
+  ];
 }
 
-message MediaFileAccessUrl {
+message FileAccessUrl {
   option (hi.audience) = VIS_SELF;
   optional string asset_id = 1 [(hi.visibility) = VIS_SELF];
   optional string url = 2 [(hi.visibility) = VIS_SELF];
   optional int64 expire_at = 3 [(hi.visibility) = VIS_SELF];
 }
 
-message GetMediaFileAccessUrlsResp {
+message GetFileAccessUrlsResp {
   option (hi.audience) = VIS_SELF;
-  repeated MediaFileAccessUrl files = 1 [(hi.visibility) = VIS_SELF];
+  repeated FileAccessUrl files = 1 [(hi.visibility) = VIS_SELF];
 }
 
-message MediaUploadFileMetadata {
-  optional string client_file_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-  optional string filename = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-  optional uint64 size_bytes = 3 [(buf.validate.field).uint64.gt = 0, (buf.validate.field).required = true];
+message UploadFileMetadata {
+  optional string client_file_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  optional string filename = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  optional uint64 size_bytes = 3 [
+    (buf.validate.field).uint64.gt = 0,
+    (buf.validate.field).required = true
+  ];
 }
 
-message MediaUploadMetadata {
-  optional string request_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
-  repeated MediaUploadFileMetadata files = 2 [(buf.validate.field).repeated = {min_items: 1}];
+message UploadMetadata {
+  optional string request_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  repeated UploadFileMetadata files = 2 [(buf.validate.field).repeated = {min_items: 1}];
 }
 
-message MediaUploadFileResult {
+message UploadFileResult {
   option (hi.audience) = VIS_SELF;
   optional string client_file_id = 1 [(hi.visibility) = VIS_SELF];
   optional string filename = 2 [(hi.visibility) = VIS_SELF];
-  optional MediaUploadFileStatus status = 3 [(hi.visibility) = VIS_SELF];
+  optional UploadFileStatus status = 3 [(hi.visibility) = VIS_SELF];
   optional string asset_id = 4 [(hi.visibility) = VIS_SELF];
   optional string mime_type = 5 [(hi.visibility) = VIS_SELF];
   optional uint64 size_bytes = 6 [(hi.visibility) = VIS_SELF];
@@ -107,25 +131,42 @@ message MediaUploadFileResult {
   optional string error_message = 8 [(hi.visibility) = VIS_SELF];
 }
 
-message MediaUploadBatchResult {
+message UploadBatchResult {
   option (hi.audience) = VIS_SELF;
   optional string request_id = 1 [(hi.visibility) = VIS_SELF];
-  optional MediaUploadStatus status = 2 [(hi.visibility) = VIS_SELF];
-  repeated MediaUploadFileResult files = 3 [(hi.visibility) = VIS_SELF];
+  optional UploadStatus status = 2 [(hi.visibility) = VIS_SELF];
+  repeated UploadFileResult files = 3 [(hi.visibility) = VIS_SELF];
 }
 
-message GetMediaUploadReq {
-  optional string request_id = 1 [(buf.validate.field).string.min_len = 1, (buf.validate.field).required = true];
+// 使用前端生成的 request_id 标识一次上传批次；只能查询当前登录用户自己的批次。
+message GetUploadResultReq {
+  // 调用上传接口时提交的同一个 request_id。
+  optional string request_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
 }
 
-message GetMediaUploadResp {
+// 返回上传批次及全部文件的当前结果；已完成批次中可以同时存在成功和失败文件。
+message GetUploadResultResp {
   option (hi.audience) = VIS_SELF;
-  MediaUploadBatchResult upload = 1 [(hi.visibility) = VIS_SELF];
+  // 当前批次状态及每个文件的处理结果。
+  UploadBatchResult result = 1 [(hi.visibility) = VIS_SELF];
 }
 
-service MediaFile {
-  rpc GetUpload (GetMediaUploadReq) returns (GetMediaUploadResp) { option (hi.auth) = AUTH_USER; }
-  rpc List (ListMediaFilesReq) returns (ListMediaFilesResp) { option (hi.auth) = AUTH_USER; }
-  rpc Delete (DeleteMediaFileReq) returns (DeleteMediaFileResp) { option (hi.auth) = AUTH_USER; }
-  rpc GetAccessUrls (GetMediaFileAccessUrlsReq) returns (GetMediaFileAccessUrlsResp) { option (hi.auth) = AUTH_USER; }
+service File {
+  // 按 request_id 查询已持久化的上传结果，供正常返回后复查或在超时、响应丢失后确认结果。
+  // 此接口不上传文件，也不返回上传地址。
+  rpc GetUploadResult(GetUploadResultReq) returns (GetUploadResultResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  rpc List(ListFilesReq) returns (ListFilesResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  rpc Delete(DeleteFileReq) returns (DeleteFileResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  rpc GetAccessUrls(GetFileAccessUrlsReq) returns (GetFileAccessUrlsResp) {
+    option (hi.auth) = AUTH_USER;
+  }
 }
