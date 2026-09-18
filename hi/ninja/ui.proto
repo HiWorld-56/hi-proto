@@ -10,6 +10,7 @@ import "hi/club/group.proto";
 import "hi/club/messaging.proto";
 import "hi/ai/plugin.proto";
 import "hi/did/transfer.proto";
+import "hi/ninja/updater.proto";
 
 // **hinj_brain ←→ hinj_ui（face）** 这一条线。
 //
@@ -131,8 +132,9 @@ message BrainToFace {
 
     // 系统状态：NTP 时间同步 + 网络连通性（face 上线推送 + 状态变化时推送）
     StatusEvent           event_status           = 18;
-    //资源更新信息同步
-    UpdateInfo            event_update           = 19;
+    // 固件 OTA 更新的状态。**brain 原样转发 updater 的那份**，不自己攒、不自己改；
+    // 定义在 `hi/ninja/updater.proto`（那条线的契约在那儿）。
+    UpdateStatus          event_update           = 19;
 
     // 币安设置同步（凭证 + 初始本金；仅限本地 face IPC）
     BinanceSettings       event_binance_settings = 21;
@@ -148,37 +150,12 @@ message StatusEvent {
   optional bool wifi = 2;
   optional bool usb  = 3;
 }
-//资源更新进度信息
-// `state`：当前更新状态，例如 `idle`、`checking`、`downloading`、`installing`、`success`、`failed` 等。 
-// `current_version`：当前已安装/正在运行的版本号。 
-// `target_version`：目标版本号，也就是准备更新到的版本。 
-// `progress`： 更新进度，通常是 `0-100` 的百分比。 
-// `message` ： 给用户或前端展示的状态说明，例如“正在下载更新包”。 
-// `error` ：错误信息。更新失败时记录失败原因；正常情况下不传。 
-// `changes` ：版本变更列表，通常是 changelog，例如修复了哪些问题、增加了哪些功能。 
-// `trigger`：更新触发来源，例如 `manual` 手动触发、`auto` 自动检查、`startup` 启动时触发等。 
-// `updated_at` ：状态最后更新时间，通常是 Unix 时间戳。具体是秒还是毫秒要看实现约定。 
-// `downloaded_bytes`：已下载的字节数。 
-// `total_bytes`：需要下载的总字节数。可用于计算下载百分比。 
-message UpdateInfo {
-  optional string state            = 1;
-  optional string current_version  = 2;
-  optional string target_version   = 3;
-  optional uint32 progress         = 4;
-  optional string message          = 5;
-  optional string error            = 6;
-  repeated string changes          = 7;
-  optional string trigger          = 8;
-  optional uint64 updated_at       = 9;
-  optional uint64 downloaded_bytes = 10;
-  optional uint64 total_bytes      = 11;
-}
-
 // face -> brain
 message FaceToBrain {
   oneof cmd {
     StateToggle           voice_state          = 1; // 音频播放开始/结束，brain 据此控制麦克风静音
-    UpdateAction          update_action        = 2;//更新动作
+    // 固件更新：人在 face 上点的那一下（查/装/不看了）。
+    UpdateAction          update_action        = 2;
     // face 重启后内存缓存是空的，用它主动要一次（本文件里空请求一律用 Empty，见 show_qr_code）
     google.protobuf.Empty get_binance_settings = 3;
     // 🔴 **模块就绪了，请把初始化数据推给我。** brain 收到才推 RobotInit + 全量关系列表。
@@ -199,7 +176,7 @@ message FaceToBrain {
 // 机器人的网可能很差。没有进度的话,用户在市场点了"购买"之后,face 上什么都不会变,
 // 直到某一刻插件突然出现;中间那段沉默里,用户只会以为没买成、然后再点一次。
 //
-// 字段有意与固件更新(UpdaterStatus)同形:state / progress / 已下/共多少字节。
+// 字段有意与固件更新(`updater.proto` 的 `UpdateStatus`)同形:state / progress / 已下/共多少字节。
 // **face 那边不该为"插件"和"固件"学两套进度模型。**
 message PluginProgress {
   enum State {
@@ -220,12 +197,21 @@ message PluginProgress {
   optional string message          = 7; // 失败原因(state=FAILED 时)
 }
 
-//更新动作
+// 固件更新：人在 face 上点的那一下。
+//
+// brain 收到之后转成 `hi/ninja/updater.proto` 的 `BrainToUpdater` 发给 updater；
+// **做不做得成由 updater 说了算**，结果照常从 `event_update` 回到 face。
 message UpdateAction {
   enum Action {
     ACTION_UNKNOWN = 0;
-    ACTION_CHECK = 1;
-    ACTION_APPLY = 2;
+    // 现在去查有没有新版。→ `Check{trigger: TRIGGER_MANUAL}`
+    ACTION_CHECK   = 1;
+    // 装。**不可逆**：updater 会停 face 和 brain，face 上的进度到此为止
+    // （装完两边都是新起的进程，face 重新 request_init 时会拿到新的状态）。
+    ACTION_APPLY   = 2;
+    // 不看了。**这一条不发给 updater** —— 它是 brain 自己的事：
+    // 把缓着的那份状态丢掉，免得 face 每次 `request_init` 又被推一遍同一个提示。
+    // 下次 updater 再推状态（轮询/广播/开机查到新版）照常显示。
     ACTION_DISMISS = 3;
   }
 
