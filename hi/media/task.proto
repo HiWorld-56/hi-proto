@@ -4,20 +4,21 @@ package hi.media;
 
 import "buf/validate/validate.proto";
 import "hi/common.proto";
-import "hi/media/feature.proto";
 import "hi/options.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
 
+// 任务用途；普通任务和管理试跑共用执行链路。
 enum TaskPurpose {
   TASK_PURPOSE_UNSPECIFIED = 0;
   TASK_PURPOSE_NORMAL = 1;
   TASK_PURPOSE_WORKFLOW_TEST = 2;
 }
 
+// 用户可见任务状态；内部提交与核对细节使用 status_message 说明。
 enum TaskStatus {
   TASK_STATUS_UNSPECIFIED = 0;
-  // 等待派发；维护模式下也保持此状态。
+  // 等待 FIFO 派发。
   TASK_STATUS_PENDING = 1;
   // 覆盖提交、排队、状态核对和 ComfyUI 执行过程，具体文案见 status_message。
   TASK_STATUS_RUNNING = 2;
@@ -29,12 +30,14 @@ enum TaskStatus {
   TASK_STATUS_CANCELLED = 7;
 }
 
+// 资产媒体类型。
 enum MediaType {
   MEDIA_TYPE_UNSPECIFIED = 0;
   MEDIA_TYPE_IMAGE = 1;
   MEDIA_TYPE_VIDEO = 2;
 }
 
+// 视频分辨率选择，不传某项时使用工作流该项默认值。
 message VideoResolution {
   // ResolutionSelector 的完整选项字符串，例如 "16:9 (Widescreen)"，不能只传 "16:9"。
   optional string aspect_ratio = 1 [(buf.validate.field).string.min_len = 1];
@@ -42,12 +45,15 @@ message VideoResolution {
   optional string megapixels = 2 [(buf.validate.field).string.min_len = 1];
 }
 
+// 创建图生视频任务；工作流必须属于 video.img2vid，图片为本人可用的 JPEG/PNG 资产。
 message CreateImageToVideoTaskReq {
+  // 本人范围内的幂等键；同一次操作重发复用，新操作使用新值。
   optional string request_id = 1 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
-  optional string model_mapping_id = 2 [
+  // 来自对应功能的 Function.Get；服务端验证工作流已启用且属于本 RPC 的功能。
+  optional string workflow_id = 2 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
@@ -59,17 +65,23 @@ message CreateImageToVideoTaskReq {
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
+  // 宽高比和像素量各自独立补齐；不传时使用工作流默认值。
   VideoResolution resolution = 5;
+  // 整数秒；不传时使用工作流默认时长。
   optional int32 duration_seconds = 6 [(buf.validate.field).int32.gt = 0];
+  // 帧/秒；不传时使用默认或固定值；固定模式显式提交时必须与固定值相同。
   optional int32 frame_rate = 7 [(buf.validate.field).int32.gt = 0];
 }
 
+// 创建文生视频任务；工作流必须属于 video.txt2vid，不接受输入图片。
 message CreateTextToVideoTaskReq {
+  // 本人范围内的幂等键；同一次操作重发复用，新操作使用新值。
   optional string request_id = 1 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
-  optional string model_mapping_id = 2 [
+  // 来自对应功能的 Function.Get；服务端验证工作流已启用且属于本 RPC 的功能。
+  optional string workflow_id = 2 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
@@ -77,36 +89,47 @@ message CreateTextToVideoTaskReq {
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
+  // 宽高比和像素量各自独立补齐；不传时使用工作流默认值。
   VideoResolution resolution = 4;
+  // 整数秒；不传时使用工作流默认时长。
   optional int32 duration_seconds = 5 [(buf.validate.field).int32.gt = 0];
+  // 帧/秒；不传时使用默认或固定值；固定模式显式提交时必须与固定值相同。
   optional int32 frame_rate = 6 [(buf.validate.field).int32.gt = 0];
 }
 
+// 返回已受理任务的 ID；同一 request_id 重发返回原任务，不比较重发参数。
 message CreateTaskResp {
   option (hi.audience) = VIS_SELF;
   // 成功响应必有；响应字段不使用 buf.validate 约束。
   optional string task_id = 1 [(hi.visibility) = VIS_SELF];
 }
 
+// 图生视频实际参数，包含创建时补齐的默认值或固定值。
 message ImageToVideoTaskParams {
   option (hi.audience) = VIS_SELF;
   optional string input_asset_id = 1 [(hi.visibility) = VIS_SELF];
   optional string prompt = 2 [(hi.visibility) = VIS_SELF];
   optional string aspect_ratio = 3 [(hi.visibility) = VIS_SELF];
   optional string megapixels = 4 [(hi.visibility) = VIS_SELF];
+  // 创建时确定的实际时长，单位为整数秒。
   optional int32 duration_seconds = 5 [(hi.visibility) = VIS_SELF];
+  // 创建时确定的实际帧率，单位为帧/秒。
   optional int32 frame_rate = 6 [(hi.visibility) = VIS_SELF];
 }
 
+// 文生视频实际参数，包含创建时补齐的默认值或固定值。
 message TextToVideoTaskParams {
   option (hi.audience) = VIS_SELF;
   optional string prompt = 1 [(hi.visibility) = VIS_SELF];
   optional string aspect_ratio = 2 [(hi.visibility) = VIS_SELF];
   optional string megapixels = 3 [(hi.visibility) = VIS_SELF];
+  // 创建时确定的实际时长，单位为整数秒。
   optional int32 duration_seconds = 4 [(hi.visibility) = VIS_SELF];
+  // 创建时确定的实际帧率，单位为帧/秒。
   optional int32 frame_rate = 5 [(hi.visibility) = VIS_SELF];
 }
 
+// 唯一主产物；size_bytes 为字节，duration_ms 为毫秒，访问地址通过 File.GetAccessUrls 获取。
 message TaskOutput {
   option (hi.audience) = VIS_SELF;
   optional string asset_id = 1 [(hi.visibility) = VIS_SELF];
@@ -119,35 +142,46 @@ message TaskOutput {
   optional bool available = 7 [(hi.visibility) = VIS_SELF];
 }
 
+// 任务摘要，不暴露模型真实名、工作流对象键或上游 prompt_id。
 message TaskSummary {
   option (hi.audience) = VIS_SELF;
   optional string task_id = 1 [(hi.visibility) = VIS_SELF];
   optional TaskPurpose purpose = 2 [(hi.visibility) = VIS_SELF];
-  optional FeatureKey feature_key = 3 [(hi.visibility) = VIS_SELF];
-  optional string model_mapping_id = 4 [(hi.visibility) = VIS_SELF];
-  optional string model_name = 5 [(hi.visibility) = VIS_SELF];
-  optional TaskStatus status = 6 [(hi.visibility) = VIS_SELF];
+  // 任务受理时确定的功能 ID：video.img2vid 或 video.txt2vid。
+  optional string function_id = 3 [(hi.visibility) = VIS_SELF];
+  // 从当前功能记录读取的用户可见名称。
+  optional string function_display_name = 4 [(hi.visibility) = VIS_SELF];
+  optional string model_id = 5 [(hi.visibility) = VIS_SELF];
+  // 从当前模型记录读取，不是 ComfyUI 真实文件名。
+  optional string model_display_name = 6 [(hi.visibility) = VIS_SELF];
+  // 任务受理时选择的工作流；不返回对象键或完整工作流图。
+  optional string workflow_id = 7 [(hi.visibility) = VIS_SELF];
+  optional TaskStatus status = 8 [(hi.visibility) = VIS_SELF];
   // 面向用户的脱敏状态说明；前端应优先展示该字段。
-  optional string status_message = 7 [(hi.visibility) = VIS_SELF];
-  // 稳定异步错误码：QUEUE_TIMEOUT、INPUT_UPLOAD_FAILED、UPSTREAM_SUBMISSION_FAILED、
+  optional string status_message = 9 [(hi.visibility) = VIS_SELF];
+  // 稳定异步错误码：QUEUE_TIMEOUT、WORKFLOW_FILE_NOT_FOUND、WORKFLOW_FILE_UNAVAILABLE、
+  // WORKFLOW_FILE_INVALID、INPUT_UPLOAD_FAILED、UPSTREAM_SUBMISSION_FAILED、
   // UPSTREAM_SUBMISSION_UNKNOWN、UPSTREAM_EXECUTION_FAILED、EXECUTION_TIMEOUT、
   // OUTPUT_INVALID、OUTPUT_SAVE_FAILED、OUTPUT_SAVE_UNCERTAIN、SAVE_RECOVERY_FAILED。
-  optional string error_code = 8 [(hi.visibility) = VIS_SELF];
+  optional string error_code = 10 [(hi.visibility) = VIS_SELF];
   // 仅在任务已经产生主资产时存在。
-  TaskOutput output = 9 [(hi.visibility) = VIS_SELF];
-  optional bool can_cancel = 10 [(hi.visibility) = VIS_SELF];
+  TaskOutput output = 11 [(hi.visibility) = VIS_SELF];
+  optional bool can_cancel = 12 [(hi.visibility) = VIS_SELF];
   // 前端只能依据该字段决定是否显示唯一一次“恢复保存”入口。
-  optional bool can_recover_save = 11 [(hi.visibility) = VIS_SELF];
-  optional int64 save_recovery_expires_at = 12 [(hi.visibility) = VIS_SELF];
+  optional bool can_recover_save = 13 [(hi.visibility) = VIS_SELF];
+  // Unix 秒；首次可恢复保存失败时确定的截止时间，达到该时刻后不可恢复。
+  optional int64 save_recovery_expires_at = 14 [(hi.visibility) = VIS_SELF];
   // Unix 秒；恢复保存不会改写 created_at 或 started_at。
-  optional int64 created_at = 13 [(hi.visibility) = VIS_SELF];
-  optional int64 started_at = 14 [(hi.visibility) = VIS_SELF];
+  optional int64 created_at = 15 [(hi.visibility) = VIS_SELF];
+  // Unix 秒；首次确认 ComfyUI 真正开始执行时写入，提交和排队期间不写入。
+  optional int64 started_at = 16 [(hi.visibility) = VIS_SELF];
   // Unix 秒；恢复受理时清空，恢复得到最终结果时重新写入。
-  optional int64 completed_at = 15 [(hi.visibility) = VIS_SELF];
+  optional int64 completed_at = 17 [(hi.visibility) = VIS_SELF];
   // 从 created_at 到当前时间或 completed_at 的墙钟秒数。
-  optional int64 elapsed_seconds = 16 [(hi.visibility) = VIS_SELF];
+  optional int64 elapsed_seconds = 18 [(hi.visibility) = VIS_SELF];
 }
 
+// 任务详情及其实际业务参数；重新生成需重新查询 Function.Get 并使用新 request_id。
 message TaskDetail {
   option (hi.audience) = VIS_SELF;
   TaskSummary summary = 1 [(hi.visibility) = VIS_SELF];
@@ -157,6 +191,7 @@ message TaskDetail {
   }
 }
 
+// 查询本人任务。
 message GetTaskReq {
   optional string task_id = 1 [
     (buf.validate.field).string.min_len = 1,
@@ -164,18 +199,17 @@ message GetTaskReq {
   ];
 }
 
+// 返回本人任务详情。
 message GetTaskResp {
   option (hi.audience) = VIS_SELF;
   TaskDetail task = 1 [(hi.visibility) = VIS_SELF];
 }
 
+// 分页查询本人任务，可按功能与状态过滤。
 message ListTasksReq {
   hi.Pagination pagination = 1;
-  // 不传表示不过滤；显式传值时不能为 UNSPECIFIED。
-  optional FeatureKey feature_key = 2 [(buf.validate.field).enum = {
-    defined_only: true
-    not_in: [0]
-  }];
+  // 不传表示不过滤；传入 Function.List 返回的功能 ID。
+  optional string function_id = 2 [(buf.validate.field).string.min_len = 1];
   repeated TaskStatus statuses = 3 [(buf.validate.field).repeated = {
     unique: true
     items: {
@@ -187,12 +221,14 @@ message ListTasksReq {
   }];
 }
 
+// 返回符合条件的任务总数和当前分页。
 message ListTasksResp {
   option (hi.audience) = VIS_SELF;
   optional int32 total = 1 [(hi.visibility) = VIS_SELF];
   repeated TaskSummary tasks = 2 [(hi.visibility) = VIS_SELF];
 }
 
+// 取消本人可取消的任务。
 message CancelTaskReq {
   optional string task_id = 1 [
     (buf.validate.field).string.min_len = 1,
@@ -200,6 +236,7 @@ message CancelTaskReq {
   ];
 }
 
+// 返回取消受理后的当前任务状态，不保证同步终止上游执行。
 message CancelTaskResp {
   option (hi.audience) = VIS_SELF;
   optional string task_id = 1 [(hi.visibility) = VIS_SELF];
@@ -207,7 +244,9 @@ message CancelTaskResp {
   optional string status_message = 3 [(hi.visibility) = VIS_SELF];
 }
 
+// 恢复本人 can_recover_save=true 的普通任务；每个任务最多受理一次，不重新执行 GPU。
 message RecoverSaveTaskReq {
+  // 本人范围内的幂等键；同一次操作重发复用，新操作使用新值。
   optional string request_id = 1 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
@@ -218,6 +257,7 @@ message RecoverSaveTaskReq {
   ];
 }
 
+// 返回原任务 ID 和当前状态；相同恢复 request_id 重发幂等。
 message RecoverSaveTaskResp {
   option (hi.audience) = VIS_SELF;
   optional string task_id = 1 [(hi.visibility) = VIS_SELF];
@@ -225,22 +265,29 @@ message RecoverSaveTaskResp {
   optional string status_message = 3 [(hi.visibility) = VIS_SELF];
 }
 
+// 普通用户视频任务创建、查询、取消和一次性恢复保存。
 service Task {
+  // 创建图生视频任务；只提交 workflow_id 与业务参数，不组合功能或模型 ID。
   rpc CreateImageToVideo(CreateImageToVideoTaskReq) returns (CreateTaskResp) {
     option (hi.auth) = AUTH_USER;
   }
+  // 创建文生视频任务；只提交 workflow_id 与业务参数。
   rpc CreateTextToVideo(CreateTextToVideoTaskReq) returns (CreateTaskResp) {
     option (hi.auth) = AUTH_USER;
   }
+  // 查询本人任务详情及产物资产 ID。
   rpc Get(GetTaskReq) returns (GetTaskResp) {
     option (hi.auth) = AUTH_USER;
   }
+  // 分页查询本人任务。
   rpc List(ListTasksReq) returns (ListTasksResp) {
     option (hi.auth) = AUTH_USER;
   }
+  // 按 can_cancel 取消任务；相同任务重复请求返回当前状态。
   rpc Cancel(CancelTaskReq) returns (CancelTaskResp) {
     option (hi.auth) = AUTH_USER;
   }
+  // 恢复保存复用原任务，不检查存储额度或未完成任务上限，只受保存并发限制。
   rpc RecoverSave(RecoverSaveTaskReq) returns (RecoverSaveTaskResp) {
     option (hi.auth) = AUTH_USER;
   }

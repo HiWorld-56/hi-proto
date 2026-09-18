@@ -25,8 +25,10 @@ http:
   - selector: hi.media.UserManage.List
     post: /api/v1/user_manage/list
     body: "*"
-  - selector: hi.media.Feature.Get
-    get: /api/v1/feature/get
+  - selector: hi.media.Function.List
+    get: /api/v1/function/list
+  - selector: hi.media.Function.Get
+    get: /api/v1/function/get
   - selector: hi.media.Task.CreateImageToVideo
     post: /api/v1/task/create_image_to_video
     body: "*"
@@ -48,8 +50,10 @@ http:
 #   POST /api/v1/file/upload
 # 它不是 gRPC RPC，因此不能在此添加 selector，也不由 grpc-gateway 生成。
 # multipart 第一项是 application/json metadata（UploadMetadata）且不携带 filename，
-# 后续文件项的 form name 与 client_file_id 一致；成功响应 data 是 UploadBatchResult。
-# 超时或响应丢失后用同一 request_id 调用 File.GetUploadResult 查询。
+# metadata 仅接受 lowerCamelCase：requestId/files/clientFileId/filename/sizeBytes，
+# sizeBytes 使用 uint64 十进制字符串，不兼容 snake_case。
+# 后续文件项的 form name 与 clientFileId 一致，filename 必须与清单一致；
+# 成功响应 data 是 UploadBatchResult，超时或响应丢失后用同一 requestId 查询。
   - selector: hi.media.File.GetUploadResult
     get: /api/v1/file/get_upload_result
   - selector: hi.media.File.List
@@ -63,14 +67,18 @@ http:
     body: "*"
   - selector: hi.media.Quota.Get
     get: /api/v1/quota/get
-  - selector: hi.media.WorkflowManage.ImportWorkflow
-    post: /api/v1/workflow_manage/import_workflow
-    body: "*"
-  - selector: hi.media.WorkflowManage.UpdateWorkflow
-    post: /api/v1/workflow_manage/update_workflow
-    body: "*"
-  - selector: hi.media.WorkflowManage.UpdateDescription
-    post: /api/v1/workflow_manage/update_description
+# 工作流文件是 HiMedia 手写的 AUTH_SUPERADMIN multipart/form-data HTTP 接口：
+#   POST /api/v1/workflow_manage/import
+#   POST /api/v1/workflow_manage/replace_file
+# 不是 gRPC RPC，不添加 selector，不由 grpc-gateway 生成。
+# 第一项 metadata：application/json，无 filename，仅接受 lowerCamelCase。
+# Import 使用 WorkflowImportMetadata（functionId/modelId/description）；
+# ReplaceFile 使用 WorkflowReplaceFileMetadata（workflowId）。
+# 第二项 workflow：完整、非空的 UTF-8 API JSON .json 文件，默认上限 10 MiB。
+# 成功响应 data 是 WorkflowFileMutationResp（workflowId），不返回文件对象键。
+# Import 组合已存在或修改与未结束任务冲突时返回 Aborted；替换保留旧文件。
+  - selector: hi.media.WorkflowManage.Update
+    post: /api/v1/workflow_manage/update
     body: "*"
   - selector: hi.media.WorkflowManage.List
     post: /api/v1/workflow_manage/list
@@ -86,39 +94,26 @@ http:
   - selector: hi.media.WorkflowManage.ListTests
     post: /api/v1/workflow_manage/list_tests
     body: "*"
+  - selector: hi.media.WorkflowManage.SetDefault
+    post: /api/v1/workflow_manage/set_default
+    body: "*"
+  - selector: hi.media.WorkflowManage.UpdateSortOrder
+    post: /api/v1/workflow_manage/update_sort_order
+    body: "*"
   - selector: hi.media.ModelManage.Create
     post: /api/v1/model_manage/create
     body: "*"
   - selector: hi.media.ModelManage.Update
     post: /api/v1/model_manage/update
     body: "*"
+  - selector: hi.media.ModelManage.Delete
+    post: /api/v1/model_manage/delete
+    body: "*"
   - selector: hi.media.ModelManage.List
     post: /api/v1/model_manage/list
     body: "*"
   - selector: hi.media.ModelManage.Get
     get: /api/v1/model_manage/get
-  - selector: hi.media.ModelMappingManage.Create
-    post: /api/v1/model_mapping_manage/create
-    body: "*"
-  - selector: hi.media.ModelMappingManage.Disable
-    post: /api/v1/model_mapping_manage/disable
-    body: "*"
-  - selector: hi.media.ModelMappingManage.SetDefault
-    post: /api/v1/model_mapping_manage/set_default
-    body: "*"
-  - selector: hi.media.ModelMappingManage.UpdateSortOrder
-    post: /api/v1/model_mapping_manage/update_sort_order
-    body: "*"
-  - selector: hi.media.ModelMappingManage.List
-    post: /api/v1/model_mapping_manage/list
-    body: "*"
-  - selector: hi.media.ModelMappingManage.Get
-    get: /api/v1/model_mapping_manage/get
-  - selector: hi.media.MaintenanceManage.Get
-    get: /api/v1/maintenance_manage/get
-  - selector: hi.media.MaintenanceManage.Set
-    post: /api/v1/maintenance_manage/set
-    body: "*"
   - selector: hi.media.InviteCode.Create
     post: /api/v1/invite_code/create
   - selector: hi.media.InviteCode.Edit

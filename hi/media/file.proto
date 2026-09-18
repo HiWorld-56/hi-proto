@@ -9,24 +9,28 @@ import "hi/options.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
 
+// 资产来源，区分用户上传和任务生成。
 enum FileSource {
   FILE_SOURCE_UNSPECIFIED = 0;
   FILE_SOURCE_UPLOAD = 1;
   FILE_SOURCE_GENERATED = 2;
 }
 
+// 临时访问地址的用途，决定预览或下载响应行为。
 enum FileAccessPurpose {
   FILE_ACCESS_PURPOSE_UNSPECIFIED = 0;
   FILE_ACCESS_PURPOSE_PREVIEW = 1;
   FILE_ACCESS_PURPOSE_DOWNLOAD = 2;
 }
 
+// 上传批次状态；COMPLETED 表示所有文件已有结果，不代表全部成功。
 enum UploadStatus {
   UPLOAD_STATUS_UNSPECIFIED = 0;
   UPLOAD_STATUS_PROCESSING = 1;
   UPLOAD_STATUS_COMPLETED = 2;
 }
 
+// 批次内单文件的处理状态。
 enum UploadFileStatus {
   UPLOAD_FILE_STATUS_UNSPECIFIED = 0;
   UPLOAD_FILE_STATUS_PENDING = 1;
@@ -35,6 +39,7 @@ enum UploadFileStatus {
   UPLOAD_FILE_STATUS_FAILED = 4;
 }
 
+// 本人可用资产摘要；size_bytes 为字节，created_at 为 Unix 秒。
 message FileSummary {
   option (hi.audience) = VIS_SELF;
   optional string asset_id = 1 [(hi.visibility) = VIS_SELF];
@@ -46,18 +51,21 @@ message FileSummary {
   optional int64 created_at = 7 [(hi.visibility) = VIS_SELF];
 }
 
+// 分页查询本人 available 资产，不传筛选字段表示不过滤。
 message ListFilesReq {
   hi.Pagination pagination = 1;
   optional MediaType media_type = 2;
   optional FileSource source = 3;
 }
 
+// 返回符合筛选条件的资产总数与当前分页。
 message ListFilesResp {
   option (hi.audience) = VIS_SELF;
   optional int32 total = 1 [(hi.visibility) = VIS_SELF];
   repeated FileSummary files = 2 [(hi.visibility) = VIS_SELF];
 }
 
+// 删除本人资产；有有效任务引用时拒绝删除。
 message DeleteFileReq {
   optional string asset_id = 1 [
     (buf.validate.field).string.min_len = 1,
@@ -65,11 +73,13 @@ message DeleteFileReq {
   ];
 }
 
+// 返回已完成物理删除和实际占用扣减的资产 ID。
 message DeleteFileResp {
   option (hi.audience) = VIS_SELF;
   optional string asset_id = 1 [(hi.visibility) = VIS_SELF];
 }
 
+// 为本人可用资产申请临时访问地址，资产 ID 不得重复。
 message GetFileAccessUrlsReq {
   repeated string asset_ids = 1 [(buf.validate.field).repeated = {
     min_items: 1
@@ -84,6 +94,7 @@ message GetFileAccessUrlsReq {
   ];
 }
 
+// 临时访问地址，expire_at 为 Unix 秒；不暴露内部存储定位信息。
 message FileAccessUrl {
   option (hi.audience) = VIS_SELF;
   optional string asset_id = 1 [(hi.visibility) = VIS_SELF];
@@ -91,6 +102,7 @@ message FileAccessUrl {
   optional int64 expire_at = 3 [(hi.visibility) = VIS_SELF];
 }
 
+// 按资产返回临时访问地址及其过期时间。
 message GetFileAccessUrlsResp {
   option (hi.audience) = VIS_SELF;
   repeated FileAccessUrl files = 1 [(hi.visibility) = VIS_SELF];
@@ -98,8 +110,9 @@ message GetFileAccessUrlsResp {
 
 // POST /api/v1/file/upload 的单文件清单项。该上传口为 HiMedia 手写的
 // multipart/form-data HTTP 接口，不是 gRPC RPC；文件项的 form name
-// 必须与 client_file_id 一致。
+// 必须与 metadata 中的 clientFileId 一致，filename 也必须与清单一致。
 message UploadFileMetadata {
+  // 本批内唯一的客户端文件标识，也是对应文件项的 form name。
   optional string client_file_id = 1 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
@@ -108,6 +121,7 @@ message UploadFileMetadata {
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
+  // 文件实际字节数；JSON 字段 sizeBytes 必须使用 uint64 十进制字符串。
   optional uint64 size_bytes = 3 [
     (buf.validate.field).uint64.gt = 0,
     (buf.validate.field).required = true
@@ -116,9 +130,12 @@ message UploadFileMetadata {
 
 // POST /api/v1/file/upload 的 metadata 项。metadata 必须是 multipart 第一项，
 // Content-Type 必须是 application/json，且 Content-Disposition 不能携带 filename。
-// JSON 使用 request_id/client_file_id/filename/size_bytes 这些 snake_case 字段，
-// 其中 size_bytes 按 uint64 十进制字符串传递。
+// JSON 仅接受 lowerCamelCase：requestId/files/clientFileId/filename/sizeBytes，
+// 不兼容 snake_case；其中 sizeBytes 按 uint64 十进制字符串传递。
+// 例：{"requestId":"upload-001","files":[{"clientFileId":"input","filename":"input.png","sizeBytes":"167483"}]}。
+// 同一 requestId 重发相同清单返回原批次，内容不一致返回 Aborted。
 message UploadMetadata {
+  // 本人范围内的上传幂等键；超时或响应丢失后查询或重发时复用。
   optional string request_id = 1 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
@@ -126,6 +143,7 @@ message UploadMetadata {
   repeated UploadFileMetadata files = 2 [(buf.validate.field).repeated = {min_items: 1}];
 }
 
+// 单文件上传结果；成功时提供资产、类型和字节数，失败时提供稳定错误码及说明。
 message UploadFileResult {
   option (hi.audience) = VIS_SELF;
   optional string client_file_id = 1 [(hi.visibility) = VIS_SELF];
@@ -176,12 +194,15 @@ service File {
   rpc GetUploadResult(GetUploadResultReq) returns (GetUploadResultResp) {
     option (hi.auth) = AUTH_USER;
   }
+  // 分页查询本人 available 资产。
   rpc List(ListFilesReq) returns (ListFilesResp) {
     option (hi.auth) = AUTH_USER;
   }
+  // 同步删除本人资产并扣减实际占用；仍被任务引用时拒绝，重复删除幂等。
   rpc Delete(DeleteFileReq) returns (DeleteFileResp) {
     option (hi.auth) = AUTH_USER;
   }
+  // 为本人 available 资产签发预览或下载地址，不返回内部存储地址或对象键。
   rpc GetAccessUrls(GetFileAccessUrlsReq) returns (GetFileAccessUrlsResp) {
     option (hi.auth) = AUTH_USER;
   }
