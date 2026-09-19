@@ -139,6 +139,7 @@ message Notice {
   //    已换成专门的公开摘要 hi.ai.PluginLoaded。合法载荷见上面的类型表。
   google.protobuf.Any extra      = 7 [(hi.visibility) = VIS_PARTICIPANT];
   optional string     ex_type    = 8 [(hi.visibility) = VIS_PARTICIPANT];
+  optional uint32     dark       = 9 [(hi.visibility) = VIS_PARTICIPANT]; // 暗语等级,不带 = 0 = 普通;见 Message 上方「暗语」那段
 }
 
 message Prompt {
@@ -150,9 +151,9 @@ message Prompt {
 /*
    Message.type —— 这条消息是什么。取值就是下面这几个,**别自己发明**。
 
-     chat     常规消息。**唯一会在聊天里显示的类型**
-     draft    草稿:后端照常落档,但**不推送、不触发 assistant**
-              (backend `isQ3GroupDraft`,目前只用在 Q3 群)
+     chat     常规消息。各端实际用到的只有这一个
+     draft    历史遗留,**没有任何一端实现,新代码别用**。这里原来写着「后端照常落档,
+              但不推送、不触发 assistant」,依据的 backend `isQ3GroupDraft` 早已删除 —— 那句是空话。
      invalid  历史遗留,**没有任何一端实现,新代码别用**。
               原意是"未通过安全验证的消息",但伪造包现在一律在 broker 就被拒掉、
               根本不进网,不存在"投出来一条 invalid 让端自己判"这回事。
@@ -192,9 +193,26 @@ message Prompt {
    我们维护的端里当时没有任何一处设置 `ghost`(core-mqtt 全是 `ghost: None`,
    backend 只是原样转发),所以反转不影响存量。
    ----------------------------------------------------------------------------------------------------
-   任意聊天中:
-   type != chat 时: 一律不显示
-   type == chat 时: 发送者显示为 ghost,ghost 为空则显示 from
+   任意聊天中:发送者显示为 ghost,ghost 为空则显示 from。
+   **显不显示看 `dark`(见下面「暗语」那段),不看 type。**
+*/
+/*
+   ## dark:暗语等级 —— **UI 忽略它,别的流程照走**
+
+   `dark` 是一个等级:**不带 = 0 = 普通(明)**,1 = 1 级暗语,依此类推。Message 与 Notice 各有一个。
+
+   · **暗 ≠ 保密。** 内容照常明文过 MQTT、照常进历史记录和各端本地库,会话里的人换个
+     不过滤的客户端就能读到。它只表示「界面上别显示」—— 典型用途:两个 agent 在群里协商,
+     不需要让群里的人看到。
+   · **只有显示这一步跳过**:进历史记录、补拉同步、机器人触发 AI 回复、回调……一律照走。
+   · **过滤在 core**:core 只把 `dark <= 阈值` 的交给 UI(阈值默认 0,可随时切换),
+     所以不认识暗语的 app 不用改就看不到。事件照发(带着 dark),机器人靠事件做事。
+   · 后端离线推送:`dark > 0` 不推(手机通知栏也是显示)。
+   · 回复一条暗语:**收到几级,回复就用几级**(后端 AI 助手、机器人都照此)。
+   · 分级是留给以后按层级分支处理的,现在只用到 0 / 1。
+
+   ⚠️ **不带就是 0,这是有意的缺省语义**,不是「拿零值冒充没有」:老的发送方从来不填这个字段,
+   它们发的就是 0 级(普通)消息。读的时候 `GetDark()` / `unwrap_or(0)` 是对的。
 */
 message Message {
   option (hi.audience) = VIS_PARTICIPANT; // 群消息,群成员可见
@@ -207,6 +225,7 @@ message Message {
   optional string     ex_type   = 7 [(hi.visibility) = VIS_PARTICIPANT];
   hi.Entity           ghost     = 8 [(hi.visibility) = VIS_PUBLIC]; // Entity=公开门面
   Prompt              prompt    = 9 [(hi.visibility) = VIS_PARTICIPANT];
+  optional uint32     dark      = 10 [(hi.visibility) = VIS_PARTICIPANT]; // 暗语等级,不带 = 0 = 普通;见上面「暗语」那段
 }
 
 // ⚠️ 被后端 Go 引用(群消息 @ 解析),proto 里无 rpc 引用,勿当死 message 删。
