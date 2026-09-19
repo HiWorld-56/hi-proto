@@ -24,6 +24,7 @@ message UserManageListResp {
     option (hi.audience) = VIS_SELF;
     optional string did = 1 [(hi.visibility) = VIS_SELF];
     optional int64 registered_at = 2 [(hi.visibility) = VIS_SELF]; // Unix 秒
+    optional string name = 3 [(hi.visibility) = VIS_SELF]; // HiDID 当前用户名
   }
 
   optional int32 total = 1 [(hi.visibility) = VIS_SELF];
