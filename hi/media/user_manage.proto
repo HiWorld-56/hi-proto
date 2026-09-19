@@ -9,12 +9,17 @@ import "hi/options.proto";
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
 
 message UserManageListReq {
-  // 可选：按用户 DID 模糊查询；不传表示不筛选。
+  // 可选：按用户 DID 子串模糊查询；不传表示不筛选。
   optional string did = 1 [(buf.validate.field).string = {
     pattern: "^\\S+$"
     max_len: 255
   }];
   hi.Pagination pagination = 2;
+  // 可选：按 HiDID 当前用户名子串模糊查询；不传表示不筛选。
+  optional string name = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 255
+  }];
 }
 
 message UserManageListResp {
