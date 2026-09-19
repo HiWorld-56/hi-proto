@@ -96,21 +96,30 @@ message Packet {
       —— 比值的前提是"我这份是最新的",分布式下并不成立。
 */
 /*
-   ## status:这条通知我处理过没有
+   ## status:这条通知的状态 —— **每条通知都有,发送方在发出时写好**
 
-   `not_processed` / `processed`(邀请类另有 `accept` / `reject`)。**发出时一律写 `not_processed`**,
-   收方处理完调 `User.MarkNoticeProcessed`(按 uuid)置为 `processed`。
+   | 值 | 含义 | 谁写 |
+   |---|---|---|
+   | `not_processed` | 需要收方处理,还没处理 | 发送方(需要处理的通知) |
+   | `processed`     | 不需要处理 / 已处理 | 发送方(纯告知的通知);或收方调 `User.MarkNoticeProcessed` |
+   | `accept` / `reject` | 邀请已被同意 / 拒绝 | 后端(`User.HandleNotice`) |
+   | `invalid`       | 邀请的对象已不存在(如群已解散) | 后端 |
+   | `expired`       | 过了 `expiration` 还是 `not_processed` | **不存储,后端在读取时现算** |
 
-   为什么要落到通知上而不是让端上自己记:端**不在线时发生的事**,上线补拉 `ListSystemMessages`
-   拿到的是同一条通知,状态跟着它走,端就知道这条到底处理过没有 —— 端上自己那份记录,
-   换台设备、重装、清缓存就没了。
+   纯告知的通知(群通知、`robot-update`、`plugin-load`、授权结果……)**发出时就是 `processed`**,
+   于是所有通知都按同一套状态处理,没有"这类通知有没有状态"的分支。
 
-   ⚠️ 补拉走的是**库里的 status**(`ListSystemMessage` 用 `sysMsg.Status` 覆盖 payload 里那份),
-   实时那条则是发出时的快照(恒为 `not_processed`)。所以判据以补拉/回执为准。
+   ## 后端只如实记录,新不新、要不要处理由端上判断
+
+   单聊通知由后端在 **MQTT 收到时**记进历史(不管是谁发的),保存 30 天。端上用
+   `User.ListNotices` 按游标增量拉**全部**通知,自己判断哪些是新的;
+   状态会变的(没处理完的那些),端上定期 + 下拉刷新时用 `User.ListNoticeStatuses` 按 uuid 查最新状态。
+
+   ⚠️ 实时收到的那条是**发出时的快照**,之后的状态以 `ListNotices` / `ListNoticeStatuses` 为准。
 
    典型:`friend-add` —— 我把 A 删了、A 又加回来、我又是"自动同意",
-   那么这条通知就是我唯一能知道"好友回来了"的信号,处理完(清掉会话的 severed)回执一下,
-   免得每次上线都重复处理。
+   那么这条通知就是我唯一能知道"好友回来了"的信号。离线期间发生的,上线增量同步拿到它
+   (状态 `not_processed`),处理完(清掉会话的 severed)回执一下。
 */
 message Notice {
   option (hi.audience) = VIS_PARTICIPANT; // 群/单聊通知,收信域内可见
