@@ -29,6 +29,9 @@ import "hi/options.proto";
 // | `spot.cancel_all_open_orders`       | `hi.binance.BinanceSpotCancelAllOrders`   |
 // | `spot.get_open_orders`              | `hi.binance.BinanceSpotOpenOrders`        |
 // | `spot.account_information`          | `hi.binance.BinanceSpotAccount`           |
+// | `spot.get_order`                    | `hi.binance.BinanceSpotGetOrder`          |
+// | `spot.get_open_order_lists`         | `hi.binance.BinanceSpotOpenOrderLists`    |
+// | `spot.ticker_24h`                   | `hi.binance.BinanceSpotTicker24h`         |
 // | `usds_futures.new_order`            | `hi.binance.BinanceFuturesNewOrder`       |
 // | `usds_futures.cancel_order`         | `hi.binance.BinanceFuturesCancelOrder`    |
 // | `usds_futures.cancel_all_open_orders` | `hi.binance.BinanceFuturesCancelAllOrders` |
@@ -36,6 +39,8 @@ import "hi/options.proto";
 // | `usds_futures.position_information_v3` | `hi.binance.BinanceFuturesPositions`   |
 // | `usds_futures.account_information_v3`  | `hi.binance.BinanceFuturesAccount`     |
 // | `usds_futures.current_all_open_orders` | `hi.binance.BinanceFuturesOpenOrders`  |
+// | `usds_futures.open_algo_orders`     | `hi.binance.BinanceFuturesOpenAlgoOrders` |
+// | `usds_futures.income`               | `hi.binance.BinanceFuturesIncome`         |
 //
 // 操作名就是币安官方 SDK 的「模块.方法」。`ex_type` 与 `extra` 里的类型一一对应 ——
 // 收方不解 `Any` 就能分发和显示。
@@ -164,6 +169,33 @@ message BinanceSpotAccount {
   optional bool omit_zero_balances = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 不传 = 连零余额一起回(几百条)
 }
 
+// 查一张现货订单。`GET /api/v3/order`
+// `order_id` 与 `orig_client_order_id` 给一个即可(都不给由币安报错)。
+message BinanceSpotGetOrder {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string symbol               = 1 [
+    (buf.validate.field).string.pattern = "^[A-Z0-9]+$",
+    (buf.validate.field).required       = true,
+    (hi.visibility)                     = VIS_PARTICIPANT
+  ];
+  optional int64  order_id             = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string orig_client_order_id = 3 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+// 现货的 OCO 挂单组。`GET /api/v3/openOrderList`
+// **没有参数**:它回的是整个账户的挂单组。
+message BinanceSpotOpenOrderLists {
+  option (hi.audience) = VIS_PARTICIPANT;
+}
+
+// 现货 24 小时行情。`GET /api/v3/ticker/24hr`
+// ⚠️ **这是公开接口,不签名** —— 但照样走桥(机器人连不上币安)。
+// 不传 symbol 会把全市场一次回来,权重很高,面板上只该按需要的交易对问。
+message BinanceSpotTicker24h {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string symbol = 1 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
 // ════════════════════ U 本位合约(USDⓈ-M) ════════════════════
 
 // 合约下单。`POST /fapi/v1/order`
@@ -247,6 +279,23 @@ message BinanceFuturesAccount {
 message BinanceFuturesOpenOrders {
   option (hi.audience) = VIS_PARTICIPANT;
   optional string symbol = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 不传 = 全部(权重高)
+}
+
+// 合约的策略委托(止盈止损这类)。`GET /fapi/v1/openAlgoOrders`
+// **与普通挂单是两张表** —— 只查 `openOrders` 的话,面板上会缺掉全部止盈止损单。
+message BinanceFuturesOpenAlgoOrders {
+  option (hi.audience) = VIS_PARTICIPANT;
+}
+
+// 合约资金流水(已实现盈亏、资金费、手续费…)。`GET /fapi/v1/income`
+// 累计收益算的就是它 —— **账户接口只有"现在"**,赚过又提走的钱不在里面。
+message BinanceFuturesIncome {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string symbol      = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 不传 = 全部
+  optional string income_type = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 如 REALIZED_PNL / FUNDING_FEE;不传 = 全部
+  optional int64  start_time  = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 毫秒
+  optional int64  end_time    = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 毫秒
+  optional int64  limit       = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 默认 100,最大 1000
 }
 
 // ════════════════════════════ 结果 ════════════════════════════
