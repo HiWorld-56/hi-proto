@@ -147,7 +147,7 @@ message TaskOutput {
   optional uint32 width = 8 [(hi.visibility) = VIS_SELF];
   // 实际产物高度，单位像素；与 width 一同返回，查询时不重新探测视频。
   optional uint32 height = 9 [(hi.visibility) = VIS_SELF];
-  // 资产可用且有已保存的视频封面；用 asset_id 申请 FILE_ACCESS_PURPOSE_COVER 地址。
+  // 资产可用且有已保存的视频封面；用 asset_id 申请 COVER 地址时为 true 返回封面，否则返回原文件。
   // 无封面或资产不可用时为 false，不影响视频任务的成功状态；size_bytes 不含封面。
   optional bool has_cover = 10 [(hi.visibility) = VIS_SELF];
 }
