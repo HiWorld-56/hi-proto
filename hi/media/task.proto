@@ -3,6 +3,7 @@ syntax = "proto3";
 package hi.media;
 
 import "buf/validate/validate.proto";
+import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/options.proto";
 
@@ -260,6 +261,14 @@ message CancelTaskResp {
   optional string status_message = 3 [(hi.visibility) = VIS_SELF];
 }
 
+// 从本人任务历史中删除一个已经失败的普通生成任务。
+message DeleteTaskReq {
+  optional string task_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+}
+
 // 恢复本人 can_recover_save=true 的普通任务；每个任务最多受理一次，不重新执行 GPU。
 message RecoverSaveTaskReq {
   // 本人范围内的幂等键；同一次操作重发复用，新操作使用新值。
@@ -301,6 +310,10 @@ service Task {
   }
   // 按 can_cancel 取消任务；相同任务重复请求返回当前状态。
   rpc Cancel(CancelTaskReq) returns (CancelTaskResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  // 仅允许删除本人已经失败的普通生成任务；重复删除幂等成功。
+  rpc Delete(DeleteTaskReq) returns (google.protobuf.Empty) {
     option (hi.auth) = AUTH_USER;
   }
   // 恢复保存复用原任务，不检查存储额度或未完成任务上限，只受保存并发限制。
