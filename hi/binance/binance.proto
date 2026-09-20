@@ -1,0 +1,275 @@
+syntax = "proto3";
+
+package hi.binance;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/binance";
+
+import "buf/validate/validate.proto";
+import "hi/options.proto";
+
+// **机器人替人操作币安**的载荷定义。
+//
+// 两条触发路径,落到 brain 里**同一个执行器**:
+//
+//   ① 主人说话 → 模型 → 插件方法 → sdk 方法 `binance_call`(不经过本文件,参数是 JSON)
+//   ② **代理 did** 发一条通知 → brain 直接执行,**不经过 AI** —— 本文件定义的就是这条路的载荷
+//
+// ## 通知长什么样
+//
+//   type       = "binance"
+//   ex_type    = 操作名(下表)
+//   extra      = Any{ 下面对应的那个 message }
+//   status     = "processed"(⚠️ 一律如此,见下)
+//   expiration = 发送方填短(60 秒)
+//
+// | ex_type                             | extra 装的类型                          |
+// |-------------------------------------|-----------------------------------------|
+// | `spot.new_order`                    | `hi.binance.BinanceSpotNewOrder`          |
+// | `spot.cancel_order`                 | `hi.binance.BinanceSpotCancelOrder`       |
+// | `spot.cancel_all_open_orders`       | `hi.binance.BinanceSpotCancelAllOrders`   |
+// | `spot.get_open_orders`              | `hi.binance.BinanceSpotOpenOrders`        |
+// | `spot.account_information`          | `hi.binance.BinanceSpotAccount`           |
+// | `usds_futures.new_order`            | `hi.binance.BinanceFuturesNewOrder`       |
+// | `usds_futures.cancel_order`         | `hi.binance.BinanceFuturesCancelOrder`    |
+// | `usds_futures.cancel_all_open_orders` | `hi.binance.BinanceFuturesCancelAllOrders` |
+// | `usds_futures.change_initial_leverage` | `hi.binance.BinanceFuturesLeverage`    |
+// | `usds_futures.position_information_v3` | `hi.binance.BinanceFuturesPositions`   |
+// | `usds_futures.account_information_v3`  | `hi.binance.BinanceFuturesAccount`     |
+// | `usds_futures.current_all_open_orders` | `hi.binance.BinanceFuturesOpenOrders`  |
+//
+// 操作名就是币安官方 SDK 的「模块.方法」。`ex_type` 与 `extra` 里的类型一一对应 ——
+// 收方不解 `Any` 就能分发和显示。
+//
+// ## 结果走**消息**,不是通知,而且**回到来路那个会话**
+//
+// 通知不触发 AI 回复(机器人这边通知与对话是两条路),所以结果由机器人用一条消息回出去:
+// `Content.type = "binance"`、`Content.kind = binance(BinanceResult)`。
+// 群通知来的回那个群,单聊通知来的回单聊;**暗语等级沿用请求那条**。
+//
+// ## 在哪儿发通知,与载荷无关
+//
+// 单聊通知、群通知**一样有效**。认人只看 `Notice.from == 机器人配置里的代理 did`。
+// 于是**会话即范围**:发进群 = 群里所有认这个代理的机器人一起做,发单聊 = 只有那一台做。
+// ⚠️ 所以这里**没有 `targets` 字段,不要加** —— 「发给谁」由信封(发到哪个会话)表达,
+//    再在载荷里写一份就是同一件事存两份,那正是会漂的形状。
+//
+// ## 状态一律 `processed`
+//
+// 目的只有一个:**机器人绝不执行离线期间攒下的指令**。`processed` 让补拉回来的通知
+// 不再产生事件(core 的规则:补拉只发未处理的),机器人根本看不见它们。
+// brain 那边还有一道不依赖发送方的闸:过了 `expiration` 不执行,系统时钟不可信也不执行。
+//
+// ## 为什么没有 `newClientOrderId`
+//
+// 下单时由 **brain 自己填**,值就是那条通知的 uuid(36 字符,正好是币安的上限)。
+// 发送方填不出比它更好的值,而让两边都能填只会打架。它**不是去重手段**
+// (去重靠通知 uuid:MQTT 是 QoS 2、单聊通知在 core 里还按 uuid 去重),只为**对账** ——
+// 日后在币安看到一笔订单,能对回是哪条指令下的。
+//
+// ## 金额一律字符串
+//
+// 价格与数量**不用浮点**。币安收的就是字符串,浮点会在精度上静默出错 ——
+// 这是钱,不是显示。
+
+// 买卖方向。
+enum BinanceOrderSide {
+  BINANCE_ORDER_SIDE_UNSPECIFIED = 0;
+  BINANCE_ORDER_SIDE_BUY         = 1;
+  BINANCE_ORDER_SIDE_SELL        = 2;
+}
+
+// 订单类型。**第一批只做这两种** —— 要加(止损、跟踪委托……)时在这里加一行,
+// 并同步到 brain 的操作表。
+enum BinanceOrderType {
+  BINANCE_ORDER_TYPE_UNSPECIFIED = 0;
+  BINANCE_ORDER_TYPE_LIMIT       = 1; // 限价:必须给 price 与 time_in_force
+  BINANCE_ORDER_TYPE_MARKET      = 2; // 市价:不给 price
+}
+
+// 订单有效方式(限价单才用得上)。
+enum BinanceTimeInForce {
+  BINANCE_TIME_IN_FORCE_UNSPECIFIED = 0;
+  BINANCE_TIME_IN_FORCE_GTC         = 1; // 成交为止
+  BINANCE_TIME_IN_FORCE_IOC         = 2; // 立即成交,剩余撤销
+  BINANCE_TIME_IN_FORCE_FOK         = 3; // 全部成交,否则撤销
+}
+
+// 持仓方向(合约)。单向持仓模式下只有 BOTH;双向持仓才用 LONG / SHORT。
+enum BinancePositionSide {
+  BINANCE_POSITION_SIDE_UNSPECIFIED = 0;
+  BINANCE_POSITION_SIDE_BOTH        = 1;
+  BINANCE_POSITION_SIDE_LONG        = 2;
+  BINANCE_POSITION_SIDE_SHORT       = 3;
+}
+
+// ════════════════════════════ 现货 ════════════════════════════
+
+// 现货下单。`POST /api/v3/order`
+message BinanceSpotNewOrder {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string             symbol           = 1 [
+    (buf.validate.field).string.pattern = "^[A-Z0-9]+$",
+    (buf.validate.field).required       = true,
+    (hi.visibility)                     = VIS_PARTICIPANT
+  ]; // 交易对,如 BNBUSDT
+  optional BinanceOrderSide   side             = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  optional BinanceOrderType   type             = 3 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  optional BinanceTimeInForce time_in_force    = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 限价单必给;市价单不传
+  optional string             quantity         = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 按**标的数量**下单
+  // 按**金额**下单(市价单专用,如"买 100 USDT 的 BNB")。与 quantity 二选一,
+  // 两个都给或都不给由币安报错 —— 我们不替它判,也不替它猜。
+  optional string             quote_order_qty  = 6 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string             price            = 7 [(hi.visibility) = VIS_PARTICIPANT]; // 限价单必给
+}
+
+// 现货撤单。`DELETE /api/v3/order`
+// `order_id` 与 `orig_client_order_id` 给一个即可(都不给由币安报错)。
+message BinanceSpotCancelOrder {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string symbol                = 1 [
+    (buf.validate.field).string.pattern = "^[A-Z0-9]+$",
+    (buf.validate.field).required       = true,
+    (hi.visibility)                     = VIS_PARTICIPANT
+  ];
+  optional int64  order_id              = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 币安的订单号
+  optional string orig_client_order_id  = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 下单时那条通知的 uuid
+}
+
+// 现货撤掉某个交易对的全部挂单。`DELETE /api/v3/openOrders`
+// ⚠️ **symbol 必填** —— 币安这个接口本来就要求指定交易对,不存在"一把全撤"。
+message BinanceSpotCancelAllOrders {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string symbol = 1 [
+    (buf.validate.field).string.pattern = "^[A-Z0-9]+$",
+    (buf.validate.field).required       = true,
+    (hi.visibility)                     = VIS_PARTICIPANT
+  ];
+}
+
+// 现货当前挂单。`GET /api/v3/openOrders`
+message BinanceSpotOpenOrders {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string symbol = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 不传 = 全部交易对(权重高,币安会降速)
+}
+
+// 现货账户。`GET /api/v3/account`
+message BinanceSpotAccount {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional bool omit_zero_balances = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 不传 = 连零余额一起回(几百条)
+}
+
+// ════════════════════ U 本位合约(USDⓈ-M) ════════════════════
+
+// 合约下单。`POST /fapi/v1/order`
+//
+// ⚠️ **平仓不是一个单独的接口** —— 它就是一张 `reduce_only = true` 的反向市价单。
+//    桌面版的「一键平仓」= 先查持仓,再逐个下这样的单。
+message BinanceFuturesNewOrder {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string              symbol        = 1 [
+    (buf.validate.field).string.pattern = "^[A-Z0-9]+$",
+    (buf.validate.field).required       = true,
+    (hi.visibility)                     = VIS_PARTICIPANT
+  ];
+  optional BinanceOrderSide    side          = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  optional BinanceOrderType    type          = 3 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  optional BinancePositionSide position_side = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 不传 = BOTH(单向持仓)
+  optional BinanceTimeInForce  time_in_force = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 限价单必给
+  optional string              quantity      = 6 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string              price         = 7 [(hi.visibility) = VIS_PARTICIPANT]; // 限价单必给
+  // 只减仓:这张单只能让持仓变小,不会反向开出新仓。**平仓就靠它**。
+  // ⚠️ 双向持仓模式(position_side = LONG / SHORT)下币安不收这个参数,给了会报错。
+  optional bool                reduce_only   = 8 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+// 合约撤单。`DELETE /fapi/v1/order`
+message BinanceFuturesCancelOrder {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string symbol               = 1 [
+    (buf.validate.field).string.pattern = "^[A-Z0-9]+$",
+    (buf.validate.field).required       = true,
+    (hi.visibility)                     = VIS_PARTICIPANT
+  ];
+  optional int64  order_id             = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string orig_client_order_id = 3 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+// 合约撤掉某个交易对的全部挂单。`DELETE /fapi/v1/allOpenOrders`
+message BinanceFuturesCancelAllOrders {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string symbol = 1 [
+    (buf.validate.field).string.pattern = "^[A-Z0-9]+$",
+    (buf.validate.field).required       = true,
+    (hi.visibility)                     = VIS_PARTICIPANT
+  ];
+}
+
+// 调整杠杆倍数。`POST /fapi/v1/leverage`
+message BinanceFuturesLeverage {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string symbol   = 1 [
+    (buf.validate.field).string.pattern = "^[A-Z0-9]+$",
+    (buf.validate.field).required       = true,
+    (hi.visibility)                     = VIS_PARTICIPANT
+  ];
+  optional uint32 leverage = 2 [
+    (buf.validate.field).uint32.gte = 1,
+    (buf.validate.field).required   = true,
+    (hi.visibility)                 = VIS_PARTICIPANT
+  ]; // 上限各交易对不同,由币安判
+}
+
+// 合约持仓。`GET /fapi/v3/positionRisk`
+message BinanceFuturesPositions {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string symbol = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 不传 = 全部
+}
+
+// 合约账户。`GET /fapi/v3/account`
+// **没有参数**:这个接口不收任何业务参数(时间戳与签名是 brain 加的,不属于载荷)。
+message BinanceFuturesAccount {
+  option (hi.audience) = VIS_PARTICIPANT;
+}
+
+// 合约当前挂单。`GET /fapi/v1/openOrders`
+message BinanceFuturesOpenOrders {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string symbol = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 不传 = 全部(权重高)
+}
+
+// ════════════════════════════ 结果 ════════════════════════════
+
+// 一次币安操作的结果。装在**消息**里回给下指令的人:
+// `Content.type = "binance"`、`Content.kind = binance`。
+//
+// ## 为什么 `body` 是一串原始 JSON,而不是结构化的字段
+//
+// 币安返回什么是**币安的契约**,我们再抄一份进 proto 就是同一件事存两份 —— 它一改就漂,
+// 而漂了不报错。这里只保证"原样带回来",怎么显示是端上的事。
+//
+// ## 三种结局,靠字段区分
+//
+//   · 发出去了,币安回了 2xx  → `http_status` = 200,`body` = 它的 JSON
+//   · 发出去了,币安拒了      → `http_status` = 4xx/5xx,`body` = `{"code":-1121,"msg":"Invalid symbol."}`
+//   · **根本没发出去**       → 没有 `http_status`,`error` 写人话
+//     (没配凭据、指令过期、系统时钟不可信、这台机器人没认你当代理……)
+message BinanceResult {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string request     = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 请求那条通知的 uuid,配对用
+  optional string op          = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 操作名,与请求的 ex_type 相同
+  optional uint32 http_status = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 币安的 HTTP 状态码;没发出去就不带
+  optional string body        = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 币安返回的原始 JSON,一个字不改
+  optional string error       = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 没发出去时的原因(人话);发出去了就不带
+}

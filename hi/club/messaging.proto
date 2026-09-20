@@ -7,6 +7,7 @@ import "google/protobuf/empty.proto";
 import "hi/club/trade.proto";
 import "hi/common.proto";
 import "hi/did/transfer.proto";
+import "hi/binance/binance.proto";
 import "hi/options.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
@@ -47,6 +48,13 @@ message Packet {
       plugin-grant-rejected 我的插件申请被拒绝                       / hi.club.MarketGrantBrief
       plugin-grant-expiring 插件授权快到期了(**发给受让方机器人本人**)    / hi.club.MarketRenewBrief
       plugin-grant-expired  插件授权已到期,已解绑                       / hi.club.MarketGrantBrief
+      binance               让机器人做一次币安操作                    / hi.binance.Binance*(按 ex_type,见 hi/binance/binance.proto)
+
+      ⭐ `binance` 与上面每一条都不同:**它是发给机器人、让它去做事的指令**,不是"某件事发生了"。
+         它也是**唯一一条群通知与单聊通知同样有效**的 —— 认人只看 `from` 等不等于机器人配置里的
+         代理 did,与发到哪个 topic 无关。发进群 = 群里所有认这个代理的机器人一起做。
+         结果由机器人用一条**消息**回到来路那个会话(`Content.type = "binance"`)。
+         `status` 一律 `processed`:机器人绝不执行离线期间攒下的指令。细节全在 hi/binance/binance.proto。
 
    ex_type: 附加类型
       扩充主类型，避免主类型产生过多分支。
@@ -255,6 +263,7 @@ message MemberExit {
      transfer    转账卡            kind=trans(hi.did.Transaction)
      trade       交易卡            kind=trade(TradeBase)
      broadcast   广播
+     binance     币安操作结果卡      kind=binance(hi.binance.BinanceResult)
 
    ⚠️ **注意是 `image_url` 不是 `image`、`audio_url` 不是 `audio`。**
 
@@ -289,6 +298,8 @@ message Content {
     Chat               chat  = 2 [(hi.visibility) = VIS_PARTICIPANT];
     hi.did.Transaction trans = 3 [(hi.visibility) = VIS_PUBLIC]; // Transaction=公开
     TradeBase          trade = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 交易卡可入群,基础卡=PARTICIPANT
+    // 币安操作的结果,机器人回给下指令的那个会话。与转账卡同型:载荷定义在别的包里,这里只引用。
+    hi.binance.BinanceResult binance = 5 [(hi.visibility) = VIS_PARTICIPANT];
   }
 }
 
