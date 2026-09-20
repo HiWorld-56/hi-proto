@@ -43,6 +43,9 @@ http:
   - selector: hi.media.Task.Cancel
     post: /api/v1/task/cancel
     body: "*"
+  - selector: hi.media.Task.Delete
+    post: /api/v1/task/delete
+    body: "*"
   - selector: hi.media.Task.RecoverSave
     post: /api/v1/task/recover_save
     body: "*"
