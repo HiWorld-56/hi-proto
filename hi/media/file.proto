@@ -16,11 +16,13 @@ enum FileSource {
   FILE_SOURCE_GENERATED = 2;
 }
 
-// 临时访问地址的用途，决定预览或下载响应行为。
+// 临时访问地址的用途；封面与原文件使用同一视频资产 ID。
 enum FileAccessPurpose {
   FILE_ACCESS_PURPOSE_UNSPECIFIED = 0;
   FILE_ACCESS_PURPOSE_PREVIEW = 1;
   FILE_ACCESS_PURPOSE_DOWNLOAD = 2;
+  // 访问生成视频的第一帧 JPEG 封面；不存在时返回 NotFound，不回退到原文件。
+  FILE_ACCESS_PURPOSE_COVER = 3;
 }
 
 // 上传批次状态；COMPLETED 表示所有文件已有结果，不代表全部成功。
@@ -39,7 +41,7 @@ enum UploadFileStatus {
   UPLOAD_FILE_STATUS_FAILED = 4;
 }
 
-// 本人可用资产摘要；size_bytes 为字节，created_at 为 Unix 秒。
+// 本人可用资产摘要；size_bytes 为原文件字节数（不含封面），created_at 为 Unix 秒。
 message FileSummary {
   option (hi.audience) = VIS_SELF;
   optional string asset_id = 1 [(hi.visibility) = VIS_SELF];
@@ -49,6 +51,9 @@ message FileSummary {
   optional uint64 size_bytes = 5 [(hi.visibility) = VIS_SELF];
   optional FileSource source = 6 [(hi.visibility) = VIS_SELF];
   optional int64 created_at = 7 [(hi.visibility) = VIS_SELF];
+  // 是否有已保存且可访问的视频封面；为 true 时用本资产 ID 申请 COVER 地址。
+  // 用户上传图片、历史未补图视频及封面生成失败的视频为 false。
+  optional bool has_cover = 8 [(hi.visibility) = VIS_SELF];
 }
 
 // 分页查询本人 available 资产，不传筛选字段表示不过滤。
@@ -198,11 +203,12 @@ service File {
   rpc List(ListFilesReq) returns (ListFilesResp) {
     option (hi.auth) = AUTH_USER;
   }
-  // 同步删除本人资产并扣减实际占用；仍被任务引用时拒绝，重复删除幂等。
+  // 同步删除本人资产及附属封面，全部删除后扣减合计占用；仍被任务引用时拒绝，重复删除幂等。
   rpc Delete(DeleteFileReq) returns (DeleteFileResp) {
     option (hi.auth) = AUTH_USER;
   }
-  // 为本人 available 资产签发预览或下载地址，不返回内部存储地址或对象键。
+  // 为本人 available 资产签发预览、下载或封面地址，不返回内部存储地址或对象键。
+  // COVER 仍传视频资产 ID；封面不存在返回 NotFound，PREVIEW/DOWNLOAD 保持访问原文件。
   rpc GetAccessUrls(GetFileAccessUrlsReq) returns (GetFileAccessUrlsResp) {
     option (hi.auth) = AUTH_USER;
   }
