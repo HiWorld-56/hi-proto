@@ -23,6 +23,14 @@ message GroupBase {
   hi.Entity       base       = 1 [(hi.visibility) = VIS_PUBLIC];
   optional string background = 2 [(hi.visibility) = VIS_PUBLIC];
   optional bool   private    = 3 [(hi.visibility) = VIS_PUBLIC]; // true=私密群(只能被邀请加入);false=公开群
+  // **能不能被"按创建者"找到**(`Group.ListByCreator`)。默认 false ——
+  // 新建的群一律找不到,加这个接口不会把谁的群暴露出去。
+  //
+  // 用途:代理建一批群来管机器人,群有 300 人上限,满了就再建一个。
+  // 把它们设成**公开 + 可被找到**,机器人(插件的 install)就能凭代理的 did
+  // 现查出当前可用的那几个,挨个试着加 —— 代理不需要自己跑一个服务,
+  // 也不需要每加一个群就发一版新插件。
+  optional bool   findable   = 4 [(hi.visibility) = VIS_PUBLIC];
 }
 
 // 成员相关属性(**对外可见**:成员列表里人人可见谁是什么角色、谁被禁言)。
@@ -164,6 +172,31 @@ message UpdateGroupReq {
   optional string avatar     = 3; // 群头像 url;不传=不动,传了=设成这个(传空串=清空)
   optional string background = 4; // 群背景 url;**有 presence**:不传=不动,传空串=清空
   optional bool   private    = 5; // true=私密群(只能被邀请);false=公开群。不传=不动
+  optional bool   findable   = 6; // true=可按创建者找到(见 GroupBase.findable)。不传=不动
+}
+
+// 按创建者找群。
+//
+// ⚠️ **只回「公开 且 可被找到」的群**,而这两样默认都不是 —— 所以这个接口
+// 不会把谁的群翻出来:群主得自己在界面上把它设成"可被找到"。
+message ListGroupsByCreatorReq {
+  optional string creator = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+}
+
+// 一个能被找到的群。**不是 GroupBase** —— 这里要的是"还能不能加得进去",
+// 所以带当前人数;群名/头像那些等加进去之后自己会拿到。
+message FindableGroup {
+  option (hi.audience) = VIS_PUBLIC;
+  optional string code         = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional string name         = 2 [(hi.visibility) = VIS_PUBLIC];
+  // 当前人数。**只是个提示,不是判据** —— 从查到到加入之间人数会变,
+  // "满没满"最终由 `Join` 回的 `ResourceExhausted(8)` 说了算。
+  optional int64  member_total = 3 [(hi.visibility) = VIS_PUBLIC];
+}
+
+message ListGroupsByCreatorResp {
+  option (hi.audience) = VIS_PUBLIC;
+  repeated FindableGroup groups = 1 [(hi.visibility) = VIS_PUBLIC]; // **人少的排前面**,省得挨个撞上限
 }
 
 service Group {
@@ -181,6 +214,7 @@ service Group {
   rpc GetMemberTotal (GetGroupMemberTotalReq) returns (GetGroupMemberTotalResp) { option (hi.auth) = AUTH_USER; }   // 群成员总数
   rpc Invite (InviteGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                     // 拉人/拉机器人入群(公开群 member 也可;私密群仅 owner/admin)
   rpc Join (JoinGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                         // 凭 code 申请加入(公开群直进)
+  rpc ListByCreator (ListGroupsByCreatorReq) returns (ListGroupsByCreatorResp) { option (hi.auth) = AUTH_USER; }   // 按创建者找群(只回公开且可被找到的;人少的在前)
   rpc Quit (QuitGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                         // 主动退群;owner 退=解散群
   rpc Remove (RemoveGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                     // 【owner/admin】踢人/踢机器人(只能踢比自己低级别)
   rpc ListMessages (ListGroupMessagesReq) returns (ListGroupMessagesResp) { option (hi.auth) = AUTH_USER; }           // 群消息列表
