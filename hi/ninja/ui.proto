@@ -152,30 +152,19 @@ message BrainToFace {
     // 币安结果。**与通知那条路回给代理的是同一个消息** —— 同一张操作表、
     // 同一份账户快照，face 不该为"看板"再学一套形状。`request` 是 face 给的流水号。
     hi.binance.BinanceResult binance_result      = 22;
-    // **插件没初始化好**(它的 install 跑失败了)。face 照现有警告的样子弹一张卡,
-    // 上面带「重试」—— 点了回 `plugin_init_retry`。
+    // **通用提示**:一句话,不带按钮,到时自动关。
     //
-    // 为什么要人来点:失败的原因往往在机器人**够不着**的地方(代理的群还没开、
-    // 还没绑主人),自动重试多少次都一样;而人知道"什么时候可以再试了"。
-    PluginInitFailed      event_plugin_init_failed = 23;
+    // 现在的用处:有插件没初始化好(install 失败)时提示一句「部分插件未安装成功,详情请在 App 内查询」。
+    // face 上**不做重试** —— 哪个插件、为什么,屏幕上说不清也点不准;
+    // 主人在 App 里问机器人(内置插件的 plugin_status / plugin_retry_install)就能查、能重试。
+    Tip                   show_tip               = 24;
 
   }
 }
 
-// 插件的初始化(install)没成。
-//
-// ⚠️ **这不是"插件坏了"** —— 插件装好了、方法照常可用,只是它的准备工作没做完
-// (典型:交易类插件要加进代理的管理群,而群满了、代理还没开新群)。
-// 所以 brain 不会因此卸载它,也不上报后台;要做的只有一件:**让人看见并能重试**。
-message PluginInitFailed {
-  optional string uuid    = 1; // 插件挂牌 uuid。重试时原样带回来
-  optional string name    = 2; // 插件名(给人看的)
-  optional string message = 3; // 失败原因,**插件自己给的那句人话**(别在 face 上另编一句)
-}
-
-// 人点了「重试」。
-message PluginInitRetry {
-  optional string uuid = 1; // 要重来的那个插件(来自 PluginInitFailed.uuid)
+// 通用提示:给人看的一句话。**文案由 brain 定**,face 不另编。
+message Tip {
+  optional string text = 1;
 }
 
 // 系统状态快照
@@ -206,8 +195,6 @@ message FaceToBrain {
     google.protobuf.Empty request_init          = 4;
     // 替我去币安做一次（face 自己不连币安，见 BinanceRequest 的说明）
     BinanceRequest        binance_request       = 5;
-    // 人在那张「插件没初始化好」的卡上点了重试
-    PluginInitRetry       plugin_init_retry     = 6;
   }
 }
 // 插件下载/安装进度。
