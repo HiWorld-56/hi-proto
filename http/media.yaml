@@ -24,6 +24,7 @@ http:
     get: /api/v1/super_admin/list
   - selector: hi.media.UserManage.List
     post: /api/v1/user_manage/list
+    body: "*"
   - selector: hi.media.UserManage.Edit
     post: /api/v1/user_manage/edit
     body: "*"
