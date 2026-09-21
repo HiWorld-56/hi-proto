@@ -3,6 +3,7 @@ syntax = "proto3";
 package hi.media;
 
 import "buf/validate/validate.proto";
+import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/options.proto";
 
@@ -30,15 +31,47 @@ message UserManageListResp {
     optional string did = 1 [(hi.visibility) = VIS_SELF];
     optional int64 registered_at = 2 [(hi.visibility) = VIS_SELF]; // Unix 秒
     optional string name = 3 [(hi.visibility) = VIS_SELF]; // HiDID 当前用户名
+    optional string note = 4 [(hi.visibility) = VIS_SELF]; // HiMedia 管理员填写的用户备注
+    optional bool deleting = 5 [(hi.visibility) = VIS_SELF]; // 正在清理资产，可用 DID 重试删除
+    optional int64 deleted_at = 6 [(hi.visibility) = VIS_SELF]; // 删除完成时间，Unix 秒；未删除时不返回
   }
 
   optional int32 total = 1 [(hi.visibility) = VIS_SELF];
   repeated Unit users = 2 [(hi.visibility) = VIS_SELF];
 }
 
+message UserManageEditReq {
+  optional string did = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 255,
+    (buf.validate.field).required = true
+  ];
+  // 必填；空字符串表示清空备注，不修改 HiDID 用户资料。
+  optional string note = 2 [
+    (buf.validate.field).string.max_len = 255,
+    (buf.validate.field).required = true
+  ];
+}
+
+message UserManageDeleteReq {
+  optional string did = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 255,
+    (buf.validate.field).required = true
+  ];
+}
+
 // HiMedia 本地准入用户目录。只表达用户是否已进入 HiMedia，不代替 HiDID 用户资料。
 service UserManage {
   rpc List(UserManageListReq) returns (UserManageListResp) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
+  // 修改 HiMedia 本地用户备注，不修改 HiDID 用户名。
+  rpc Edit(UserManageEditReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
+  // 标记删除 HiMedia 用户，清除任务历史与全部私有资产文件；保留本地用户行及 HiDID 账号。
+  rpc Delete(UserManageDeleteReq) returns (google.protobuf.Empty) {
     option (hi.auth) = AUTH_SUPERADMIN;
   }
 }

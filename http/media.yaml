@@ -24,6 +24,11 @@ http:
     get: /api/v1/super_admin/list
   - selector: hi.media.UserManage.List
     post: /api/v1/user_manage/list
+  - selector: hi.media.UserManage.Edit
+    post: /api/v1/user_manage/edit
+    body: "*"
+  - selector: hi.media.UserManage.Delete
+    post: /api/v1/user_manage/delete
     body: "*"
   - selector: hi.media.Function.List
     get: /api/v1/function/list
