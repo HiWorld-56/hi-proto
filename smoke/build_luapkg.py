@@ -20,7 +20,8 @@ REGION, SVC = "us-east-1", "s3"
 
 # ⭐ MAGIC 是"插件真的跑了"的唯一可靠证据 —— 工具没被调用时模型会自己编一个合理答复。
 MAIN_LUA = '''return {
-  contract = 1,
+  -- 与 hinj-brain/hinj-lua 的 CONTRACT 同号;宿主升号这里不跟,包会被机器人拒载(2026-09-20 升 2 时漏过一次)
+  contract = 2,
   manifest = [[
     [{"type":"function","function":{
       "name":"lua_secret",

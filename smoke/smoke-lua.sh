@@ -23,6 +23,16 @@ try:
 except Exception: print("")
 ' "$@"; }
 
+# 收尾:删壳、删测试机器人。挂在 EXIT 上 —— 中途 exit 也得删,否则每跑一次在开发市场留一对
+# (2026-09-22 清过一次:lua-demo / lua-bot 各攒了六十多个)。退出码不受影响。
+B=""; P=""; RDID=""; RP=""; RTOK=""
+cleanup(){
+  [ -n "$P" ] && cj plugin/delete_shell "{\"agent\":\"$B\",\"uuid\":\"$P\"}" >/dev/null
+  [ -n "$B" ] && cj agent/delete "{\"agent\":\"$B\"}" >/dev/null
+  [ -n "$RP" ] && TOK="$RTOK" cj plugin/delete_shell "{\"agent\":\"$RDID\",\"uuid\":\"$RP\"}" >/dev/null
+}
+trap cleanup EXIT
+
 echo "── 发版:上传的是 lua 包 ──"
 B=$(cj agent/create_assistant '{"name":"lua-bot"}' | g data base did)
 [ -z "$B" ] && { echo "建机器人失败"; exit 1; }
@@ -81,11 +91,20 @@ esac
 #    它恰恰是 lua 那条链最关键的一环:发版认出了 LUA、制品也就绪了,
 #    但只要下发清单里没有它,机器人就永远装不上,而**没有任何报错**
 #    (清单为空对机器人的含义是「这插件我不该有」,它会把本地那份删掉)。
-RTOK=$(ssh -o ConnectTimeout=10 192.168.1.66 \
-        "cd /tmp/tokgen && MN_FILE=/tmp/65_vclient_mn.txt DEV=embedded ./target/release/tokgen 2>/dev/null" \
-       | grep '^TOKEN=' | cut -d= -f2-)
-if [ -z "$RTOK" ]; then
-  printf "  \033[33m—\033[0m 没验:拿不到机器人 token(.66 的 /tmp/tokgen)\n"
+RGEN=$(ssh -o ConnectTimeout=10 192.168.1.66 \
+        "cd /tmp/tokgen && MN_FILE=/tmp/65_vclient_mn.txt DEV=embedded ./target/release/tokgen 2>/dev/null")
+RTOK=$(printf '%s\n' "$RGEN" | grep '^TOKEN=' | cut -d= -f2-)
+RDID=$(printf '%s\n' "$RGEN" | grep '^DID=' | cut -d= -f2-)
+# 前提自己造:在**这台机器人自己身上**挂一个 lua 插件(上面那个发在软件助手上,进不了任何机器人的清单)。
+# 原来靠的是 08-30 手工留下的一个 lua-on-robot —— 那个一被清掉,这里就恒红,而且看着像下发坏了。
+if [ -n "$RTOK" ] && [ -n "$RDID" ]; then
+  RP=$(TOK="$RTOK" cj plugin/create_shell "{\"agent\":\"$RDID\",\"name\":\"lua-on-robot\"}" | g data uuid)
+  RCV=$(TOK="$RTOK" cj plugin/create_version "{\"agent\":\"$RDID\",\"version\":{\"uuid\":\"$RP\",\"version\":\"1.0.0\",\"url\":\"$PKG\"}}" | g code)
+  [ -n "$RP" ] && [ "$RCV" = "0" ] && ok "前提:在机器人 $RDID 自己身上挂了 lua 插件 $RP" \
+                                  || bad "前提:在机器人身上挂 lua 插件失败" "shell=$RP create_version code=$RCV"
+fi
+if [ -z "$RTOK" ] || [ -z "$RP" ]; then
+  printf "  \033[33m—\033[0m 没验:拿不到机器人 token(.66 的 /tmp/tokgen)或挂不上插件\n"
 else
   # arch 传 x86_64:清单要按机器人架构筛 —— lua 的 target=any 通吃,rust 的必须同架构。
   DEV_LIST=$(grpcurl -plaintext -protoset "$PS" -H "Authorization: Bearer $RTOK" \
@@ -93,7 +112,7 @@ else
   case "$DEV_LIST" in
     *'"list"'*)
       ok "grpc 下发清单拿得到(机器人 token)"
-      has "清单里有 **LUA** 条目" "$DEV_LIST" 'PLUGIN_LANG_LUA'
+      has "清单里有**刚挂上的那个** lua 插件" "$DEV_LIST" "\"uuid\": \"$RP\""
       # lua 制品与架构无关 —— 这是 lua 相对 rust 的核心差别,必须钉住。
       # 同时验 RUST 条目**按架构筛过**:两者在同一份清单里并存才说明筛法是对的。
       OUT=$(printf '%s' "$DEV_LIST" | python3 "$(dirname "$0")/_devlist_check.py" x86_64)

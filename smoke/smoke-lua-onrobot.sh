@@ -46,8 +46,10 @@ echo "══════ lua 插件:模型点得动吗(真机器人)════
 # ── 前提一:机器人在跑,而且身上真有 lua 插件 ────────────────────────────────
 # **先证明前提**。机器人没在跑 / 身上没有 lua 插件时,下面发消息一定"没反应",
 # 而那和"lua 坏了"长得一模一样。
+# `.66` 2026-09-13 起是 root 级 unit `hinj-brain`(原 user 级 `hinj-brain-local` 已 disable)——
+# 按老名字查会永远报"没在跑",这条就恒为「没验」。
 READY=$(ssh -o ConnectTimeout=10 "$NEXT" \
-  'systemctl --user is-active hinj-brain-local 2>/dev/null' 2>/dev/null)
+  'systemctl is-active hinj-brain 2>/dev/null' 2>/dev/null)
 [ "$READY" = "active" ] || { sk "$NEXT 上的 hinj-brain 没在跑(is-active=$READY)"; exit 2; }
 
 METHOD=$(ssh -o ConnectTimeout=10 "$NEXT" \

@@ -58,7 +58,8 @@ echo "══════ lua 插件的 C 模块依赖:五段全走一遍 ══�
 # ── 前提 ──────────────────────────────────────────────────────────────────
 # **先证明前提**:机器人在跑、构建服务里有这个配方。缺哪个都会让后面
 # 报成"依赖链坏了",而真因是环境没准备好。
-[ "$(ssh -o ConnectTimeout=10 "$NEXT" 'systemctl --user is-active hinj-brain-local' 2>/dev/null)" = active ] \
+# `.66` 2026-09-13 起是 root 级 unit `hinj-brain`;按老的 user 级名字查会恒报"没在跑"。
+[ "$(ssh -o ConnectTimeout=10 "$NEXT" 'systemctl is-active hinj-brain' 2>/dev/null)" = active ] \
   || { sk "$NEXT 上的 hinj-brain 没在跑"; exit 2; }
 ssh -o ConnectTimeout=10 "$NEXT" "docker exec hi-plugin-build ls /opt/hinj/luarecipes" 2>/dev/null | grep -qx "$ROCK" \
   || { sk "构建服务里没有 $ROCK 的配方(有哪些:见容器的 /opt/hinj/luarecipes)"; exit 2; }
