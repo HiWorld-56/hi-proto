@@ -23,10 +23,12 @@ fail=0
 
 have_db || { echo "够不着 mysql(本机没装时会 ssh 到 $DB 去查,检查那条路)" >&2; exit 2; }
 
-echo "── 0. 从各仓源码现抽模型(models.json)──"
-python3 audit_readpath.py > models.json || { echo "audit_readpath.py 失败"; exit 2; }
-COLS=$(python3 -c 'import json;d=json.load(open("models.json"));print(sum(len(v["cols"]) for v in d.values()))')
-TBL=$(python3 -c 'import json;print(len(json.load(open("models.json"))))')
+# 中间产物写 /tmp(与 nullcheck.sql 同处)—— 原来写在本目录,每跑一次在仓里留一个未跟踪文件。
+MODELS=/tmp/hi-proto-models.json
+echo "── 0. 从各仓源码现抽模型($MODELS)──"
+python3 audit_readpath.py > "$MODELS" || { echo "audit_readpath.py 失败"; exit 2; }
+COLS=$(python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(sum(len(v["cols"]) for v in d.values()))' "$MODELS")
+TBL=$(python3 -c 'import json,sys;print(len(json.load(open(sys.argv[1]))))' "$MODELS")
 [ "${COLS:-0}" -gt 0 ] || { echo "models.json 里一列都没有 —— 多半是 ~/wip 下没检出后端仓,没验"; exit 2; }
 printf "  ${G}✓${N} 抽到 %s 张表 / %s 列\n" "$TBL" "$COLS"
 
@@ -81,7 +83,7 @@ for pair in "hi_did" "hi_club" "hi_ai" "hi_club_trade"; do
   mysqlq information_schema "select table_name from tables where table_schema='$pair'" | sort > /tmp/_db.txt
   python3 -c "
 import json
-d = json.load(open('models.json'))
+d = json.load(open('/tmp/hi-proto-models.json'))
 print('\n'.join(sorted(k.split('.', 1)[1] for k in d if k.startswith('$pair.'))))" | sort > /tmp/_mj.txt
   extra=$(comm -23 /tmp/_db.txt /tmp/_mj.txt | grep -Ev "$IGNORE")
   if [ -n "$extra" ]; then
