@@ -16,21 +16,15 @@ import "buf/validate/validate.proto";
 //   · dnd 是**严格私有**(只有本人能看到自己的免打扰),故不进 GroupMemberAttr,
 //     单独挂在 GroupMemberView 顶层 —— 结构上就不会随成员列表泄漏给别人。
 
-// 群公共信息(所有成员一致)。群类型(单聊/群)在 base.type;public/private 见 private 字段。
-// base.update 供前端判断缓存新鲜度。
+// 群公共信息(所有成员一致)。**群的种类只看 base.type**:single / group-private / group-public / group-open
+// (取值与各自的规则见 hi/common.proto 的 Entity 注释)。base.update 供前端判断缓存新鲜度。
+//
+// ⚠️ 原来这里还有 `private`、`findable` 两个布尔,与 base.type 一起描述"这是个什么样的群" ——
+//    三处各管一截,于是私有群只能"先建成公开群、再改成私密",单聊群也一直是公开的。已删,只留 type。
 message GroupBase {
   option (hi.audience) = VIS_PUBLIC; // 群公共信息,所有成员一致
   hi.Entity       base       = 1 [(hi.visibility) = VIS_PUBLIC];
   optional string background = 2 [(hi.visibility) = VIS_PUBLIC];
-  optional bool   private    = 3 [(hi.visibility) = VIS_PUBLIC]; // true=私密群(只能被邀请加入);false=公开群
-  // **能不能被"按创建者"找到**(`Group.ListByCreator`)。默认 false ——
-  // 新建的群一律找不到,加这个接口不会把谁的群暴露出去。
-  //
-  // 用途:代理建一批群来管机器人,群有 300 人上限,满了就再建一个。
-  // 把它们设成**公开 + 可被找到**,机器人(插件的 install)就能凭代理的 did
-  // 现查出当前可用的那几个,挨个试着加 —— 代理不需要自己跑一个服务,
-  // 也不需要每加一个群就发一版新插件。
-  optional bool   findable   = 4 [(hi.visibility) = VIS_PUBLIC];
 }
 
 // 成员相关属性(**对外可见**:成员列表里人人可见谁是什么角色、谁被禁言)。
@@ -66,9 +60,12 @@ message GetGroupReq {
   optional string code = 1;
 }
 
-// 创建群聊
+// 创建群聊。**建的时候就定类型**,不用先建成公开群再改。
 message CreateGroupReq {
   optional string name = 1;
+  // group-private / group-public / group-open。不传 = group-public,但**调用方应当总是传**(界面上让用户选)。
+  // single 不能在这里建(单聊群随关系建,见 CreateSingle)。
+  optional string type = 2 [(buf.validate.field).string = {in: ["group-private", "group-public", "group-open"]}];
 }
 
 // 创建单聊
@@ -171,21 +168,22 @@ message UpdateGroupReq {
   optional string name       = 2; // 群名;不传=不动,传了=设成这个(传空串=清空)
   optional string avatar     = 3; // 群头像 url;不传=不动,传了=设成这个(传空串=清空)
   optional string background = 4; // 群背景 url;**有 presence**:不传=不动,传空串=清空
-  optional bool   private    = 5; // true=私密群(只能被邀请);false=公开群。不传=不动
-  optional bool   findable   = 6; // true=可按创建者找到(见 GroupBase.findable)。不传=不动
+  // 改群类型:group-private / group-public / group-open 之间互换。不传=不动。仅群主。单聊群不能改。
+  optional string type       = 7 [(buf.validate.field).string = {in: ["group-private", "group-public", "group-open"]}]; // 新号:5/6 原是 private/findable(bool),复用会让老客户端的请求解不开
 }
 
-// 按创建者找群。
+// 按创建者找群。**只回透明群(group-open)** —— 私有群、公开群都不会被这样翻出来。
 //
-// ⚠️ **只回「公开 且 可被找到」的群**,而这两样默认都不是 —— 所以这个接口
-// 不会把谁的群翻出来:群主得自己在界面上把它设成"可被找到"。
+// 用途:代理建一批群来管机器人,群有 300 人上限,满了就再建一个。把它们建成透明群,
+// 机器人(插件的 install)就能凭代理的 did 现查出当前可用的那几个,挨个试着加 ——
+// 代理不需要自己跑一个服务,也不需要每加一个群就发一版新插件。
 message ListGroupsByCreatorReq {
   optional string creator = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
 }
 
-// 一个能被找到的群。**不是 GroupBase** —— 这里要的是"还能不能加得进去",
+// 一个透明群(按创建者找到的)。**不是 GroupBase** —— 这里要的是"还能不能加得进去",
 // 所以带当前人数;群名/头像那些等加进去之后自己会拿到。
-message FindableGroup {
+message OpenGroup {
   option (hi.audience) = VIS_PUBLIC;
   optional string code         = 1 [(hi.visibility) = VIS_PUBLIC];
   optional string name         = 2 [(hi.visibility) = VIS_PUBLIC];
@@ -196,25 +194,25 @@ message FindableGroup {
 
 message ListGroupsByCreatorResp {
   option (hi.audience) = VIS_PUBLIC;
-  repeated FindableGroup groups = 1 [(hi.visibility) = VIS_PUBLIC]; // **人少的排前面**,省得挨个撞上限
+  repeated OpenGroup groups = 1 [(hi.visibility) = VIS_PUBLIC]; // **人少的排前面**,省得挨个撞上限
 }
 
 service Group {
   // 群头像/群背景传 `Source.UploadGroupAvatar` / `UploadGroupBackground`(→ hiclub bucket)。
   // 那两个只回 url;把 url 写进群信息仍走本 service 的 Update —— 权限校验在那一步。
-  rpc Get (GetGroupReq) returns (GroupMemberView) { option (hi.auth) = AUTH_USER; }                                 // 群信息(公共 base + 我的 attr + 我的 dnd)
+  rpc Get (GetGroupReq) returns (GroupMemberView) { option (hi.auth) = AUTH_USER; }                                 // 群信息(公共 base + 我的 attr + 我的 dnd)。私有群、单聊群对非成员一律回 NotFound(不替人确认群存在)
   rpc Create (CreateGroupReq) returns (GroupBase) { option (hi.auth) = AUTH_USER; }                                 // 创建群
   rpc CreateSingle (CreateSingleReq) returns (GroupBase) { option (hi.auth) = AUTH_USER; }                          // 创建单聊群
   // **改完回权威资料**(原先返 Empty)。`base.update` 是资料传播的唯一依据:
   // 发消息时 message.from / 群通知的 extra 都带着它,收信方按它比时间戳决定要不要刷缓存
   // (惰性传播,见 hi/club/messaging.proto)。时间戳的权威在服务端,客户端自己造一个就是
   // 两个时钟,会倒退(实测客户端微秒 vs 服务端整秒差 0.6s)。回权威值,调用方不必再查一次。
-  rpc Update (UpdateGroupReq) returns (GroupBase) { option (hi.auth) = AUTH_USER; }                                  // 【owner/admin】改群信息/群类型(private)
+  rpc Update (UpdateGroupReq) returns (GroupBase) { option (hi.auth) = AUTH_USER; }                                  // 【owner/admin】改群信息;改群类型(type)仅 owner
   rpc ListMembers (ListGroupMembersReq) returns (GroupInfo) { option (hi.auth) = AUTH_USER; }                        // 群成员列表
   rpc GetMemberTotal (GetGroupMemberTotalReq) returns (GetGroupMemberTotalResp) { option (hi.auth) = AUTH_USER; }   // 群成员总数
-  rpc Invite (InviteGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                     // 拉人/拉机器人入群(公开群 member 也可;私密群仅 owner/admin)
-  rpc Join (JoinGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                         // 凭 code 申请加入(公开群直进)
-  rpc ListByCreator (ListGroupsByCreatorReq) returns (ListGroupsByCreatorResp) { option (hi.auth) = AUTH_USER; }   // 按创建者找群(只回公开且可被找到的;人少的在前)
+  rpc Invite (InviteGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                     // 拉人/拉机器人入群(公开/透明群 member 也可;私有群仅 owner/admin;单聊群不能)
+  rpc Join (JoinGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                         // 凭 code 申请加入(公开/透明群直进;私有群、单聊群不能)
+  rpc ListByCreator (ListGroupsByCreatorReq) returns (ListGroupsByCreatorResp) { option (hi.auth) = AUTH_USER; }   // 按创建者找群(只回透明群 group-open;人少的在前)
   rpc Quit (QuitGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                         // 主动退群;owner 退=解散群
   rpc Remove (RemoveGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                     // 【owner/admin】踢人/踢机器人(只能踢比自己低级别)
   rpc ListMessages (ListGroupMessagesReq) returns (ListGroupMessagesResp) { option (hi.auth) = AUTH_USER; }           // 群消息列表

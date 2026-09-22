@@ -64,7 +64,7 @@ message Packet {
       type: member-update + ex_type: base.avatar            群成员头像更新
       type: group-update  + ex_type: background             群背景更新
       type: group-update  + ex_type: base.avatar            群头像更新
-      type: group-update  + ex_type: base.name;private      群名字与私有性更新
+      type: group-update  + ex_type: base.name;base.type    群名字与群类型更新
       type: master-update + ex_type: base.name;base.avatar  主人资料更新(推给仆从)
       ...
 

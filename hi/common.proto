@@ -25,9 +25,12 @@ message DID {
        robot      硬件机器人(有 DID、具身、行为同用户)
        assistant  软件机器人(对话由后端接管,无私钥、不在 mqtt 上)
        注:硬件机器人用 robot 而非 agent —— agent 已是 ai 的 AI 机器人子系统统称(hi.ai.Agent),避免撞词。
-     会话型(会话列表)
-       group      群聊
-       single     单聊
+     会话型(会话列表)。**群的种类只在这一个字段里**,没有别的开关(原来的 private / findable 两个布尔已删):
+       single         单聊(二人群)。成员就是这两个人,随关系(加好友 / 主从绑定)建、随关系解除;
+                      不能被搜到、不能申请加入、不能邀请,也不能改成别的类型
+       group-private  私有群:搜不到(按群号、按创建者都找不到);不能主动申请加入,只能由群主/管理员邀请
+       group-public   公开群:只能按群号找到;申请加入不需要验证;任何成员都可以邀请
+       group-open     透明群:按群号、按创建者(`Group.ListByCreator`)都找得到;加入与邀请同公开群
 */
 message Entity {
   option (hi.audience) = VIS_PUBLIC; // 身份门面:名字/头像等,全公开
