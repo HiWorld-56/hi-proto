@@ -95,11 +95,19 @@ message ListUsersAssetsReq {
 
 message ListUsersAssetsResp {
   option (hi.audience) = VIS_PUBLIC;
+  // 一个人 + 他的总资产。
+  //
+  // ⛔ 原来是 `did` + `avatar` + `n` 三个散字段:**把人的门面拉平了,还只拉了一半**
+  // (有头像没名字、没有 `update`,于是这张榜永远显示不了名字,想显示就得改契约);
+  // 而 `n` 其实是"总资产",名字什么也没说。
+  // 对象一律 `hi.Entity`,对象之外的附加信息才单独开字段(见 hi/common.proto 的 Entity 那段)。
   message Unit {
     option (hi.audience) = VIS_PUBLIC;
-    string          did    = 1 [(hi.visibility) = VIS_PUBLIC];
-    optional string avatar = 2 [(hi.visibility) = VIS_PUBLIC];
-    optional string n      = 3 [(hi.visibility) = VIS_PUBLIC];
+    // 这个人(did / 名字 / 头像 / update)。**新号 4** —— 1 原来是 `string did`,
+    // 而 string 与 message 在 wire 上同为 length-delimited,复用同一个号老客户端解出来是乱码。
+    hi.Entity       base  = 4 [(hi.visibility) = VIS_PUBLIC];
+    // 按 `currency` 折算的总资产,十进制字符串(免浮点误差)。沿用 3 号:类型与含义没变,只是改了名字。
+    optional string total = 3 [(hi.visibility) = VIS_PUBLIC];
   }
   optional int32 total = 1 [(hi.visibility) = VIS_PUBLIC];
   repeated Unit  list  = 2 [(hi.visibility) = VIS_PUBLIC];
