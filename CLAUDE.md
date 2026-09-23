@@ -150,6 +150,18 @@ judgement 不是"这个字段缺席合不合法",而是 protobuf 官方口径 �
 >
 > 同一条规矩在 FFI/SDK 那层也成立(core 的 FFI 原样映射 hi-proto,不许拍平、不许自造派生字段)。
 
+**2026-09-23 全仓扫过一遍**(club / did / ai / ninja / source / common;media 是同事的没动),
+判据分三档,按这三档看就不会误判:
+
+| 档 | 判据 | 结论 |
+|---|---|---|
+| ⛔ 拉平 | 响应里把**某个 did 主体**的门面拆成散字段(did + name/avatar…) | 全仓只剩 `ListUsersAssetsResp.Unit`(did+avatar+`n`),已改成 `hi.Entity base` + `total` |
+| ✅ 引用 | 响应里用**裸 did** 指代主体,但那是记账/权限/回调,不渲染门面(`MarketOrder.payee`、`FundsRecord.payer`、`AgentInfo.creator`、`PcOrder.did`…) | 合理。⚠️ 判据是"**这个端要不要显示它的名字头像**":要显示就得给 Entity |
+| ✅ 不适用 | 入参(setter/过滤/点名操作)、**非 did 主体**(插件/挂牌/文件/模型 —— 它们的键是 uuid,Entity 装不下)、链地址(`TxDetailResp.from/to`) | 合理 |
+
+`Entity + 附加信息` 的样板:`MarketSeller`、`MarketStall`、`UserExtensionUnit`、`GroupMemberView`。
+附加信息指**不属于门面**的东西(`moment` / `remark` / `member_total` / `background` / `total`)。
+
 ## 结构化数据传输原则
 
 **payload 是数据的唯一来源，传输层 metadata 不是。**
