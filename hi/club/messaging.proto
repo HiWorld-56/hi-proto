@@ -114,6 +114,19 @@ message Packet {
    | `invalid`       | 邀请的对象已不存在(如群已解散) | 后端 |
    | `expired`       | 过了 `expiration` 还是 `not_processed` | **不存储,后端在读取时现算** |
 
+   `expiration` 是**绝对时刻(微秒)**,与 `timestamp` 同一把尺;不带 = 不过期。
+
+   ## 终态:除了 `not_processed`,其余都是终态
+
+   **未达终态 = `not_processed` 且没过期**,别的都是终态(`processed` / `accept` / `reject` /
+   `invalid` / `expired`)。这条判据有两个用处,端上两处都必须按它来:
+
+   1. **端上删本地通知,只许删终态的。** 还欠着的那条在后端(或对方)那里挂着等一个答复,
+      本地删掉 = 那件事永远没人回,而且零报错(`core` 的 `delete_notice` 会拒,
+      `clear_notices` 只清终态的)。
+   2. **还欠着的通知与游标无关**:端上每轮同步用 `User.ListPendingNotices` 拿全量,
+      所以它不会因为换设备、重装、重新登录而丢。
+
    纯告知的通知(群通知、`robot-update`、`plugin-load`、授权结果……)**发出时就是 `processed`**,
    于是所有通知都按同一套状态处理,没有"这类通知有没有状态"的分支。
 
@@ -122,6 +135,10 @@ message Packet {
    单聊通知由后端在 **MQTT 收到时**记进历史(不管是谁发的),保存 30 天。端上用
    `User.ListNotices` 按游标增量拉**全部**通知,自己判断哪些是新的;
    状态会变的(没处理完的那些),端上定期 + 下拉刷新时用 `User.ListNoticeStatuses` 按 uuid 查最新状态。
+
+   **游标不传 = 由服务端定起点**(重装 / 重新登录 / 换设备),与 `Group.ListMessages` 同一套;
+   服务端那个位置每拉一页只许前进。**端上删掉的通知不会被同步再拉回来**,靠的就是它 ——
+   本地游标在重新登录时随本地数据一起清空,那时若回到"最早一条",删掉的会整批回来。
 
    ⚠️ 实时收到的那条是**发出时的快照**,之后的状态以 `ListNotices` / `ListNoticeStatuses` 为准。
 
