@@ -44,8 +44,13 @@ import "hi/options.proto";
 //   机器人下单时**一律填 `false`** —— 这是产品决定,不是调用方每次要选的东西,所以没有这个字段。
 // · `clientOrderId` 由**机器人**填成那条通知的 uuid(36 字符,落在币安要求的 32–36 位里),
 //   理由与合约下单相同:只为对账。
-// · **持仓没有专门的接口。** 余额看 `wallet.query_user_wallet_balance`
-//   (`BinanceWalletBalance`,见 hi/binance/binance.proto)—— 买入扣的 USDC、卖出回款的 USDC 都在那里。
+// · **持仓在哪都查不到**(2026-09-24 真买了 0.02 股 AAPL 核过):钱包余额、现货账户里都没有买到的股票,
+//   Stocks 模块也没有持仓接口。**持仓只能按成交记录算**(`BinanceStockTradeHistory`:买入股数 − 卖出股数)。
+//   余额看 `wallet.query_user_wallet_balance`(`BinanceWalletBalance`,见 hi/binance/binance.proto)。
+// · **卖出回款、撤单退款都进资金账户**(`CARD` / Funding),不回扣款时选的那个钱包。
+// · **盘前 / 盘后 / 夜盘市价单不成交**(停在 `ACCEPTED`,要撤);那时用限价 + `EXTENDED` / `ALL_DAY` 时段,
+//   限价买 0.02 股在盘前当场成交。
+// · 历史订单的行里**没有均价**(`avgFilledPrice` 只在订单详情里有),均价 = `filledTotal` ÷ `filledQty`。
 // · 行情接口(`exchange_info` / `latest_quote`)**不签名,但要带 API key**
 //   (不带回 `-2014`)—— 与现货/合约的公开接口不一样,所以也需要机器人配过密钥。
 // · 没有 K 线的 REST 接口(只有推送流),这里不提供。
