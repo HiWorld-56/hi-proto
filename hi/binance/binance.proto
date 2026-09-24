@@ -46,6 +46,9 @@ import "hi/options.proto";
 // | `usds_futures.current_all_open_orders` | `hi.binance.BinanceFuturesOpenOrders`  |
 // | `usds_futures.open_algo_orders`     | `hi.binance.BinanceFuturesOpenAlgoOrders` |
 // | `usds_futures.income`               | `hi.binance.BinanceFuturesIncome`         |
+// | `wallet.query_user_wallet_balance`  | `hi.binance.BinanceWalletBalance`         |
+//
+// **美股**(`stocks.*`)是币安单独的一个模块,对象在 hi/binance/stocks.proto。
 //
 // 操作名就是币安官方 SDK 的「模块.方法」。`ex_type` 与 `extra` 里的类型一一对应 ——
 // 收方不解 `Any` 就能分发和显示。
@@ -316,6 +319,17 @@ message BinanceFuturesIncome {
   optional int64  start_time  = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 毫秒
   optional int64  end_time    = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 毫秒
   optional int64  limit       = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 默认 100,最大 1000
+}
+
+// ════════════════════════════ 钱包 ════════════════════════════
+
+// 各钱包的余额(现货、资金、合约、理财…,每个钱包带逐币明细)。`GET /sapi/v1/asset/wallet/balance`
+//
+// **没有参数**:明细(`needBalanceDetail=true`)由机器人一律带上 —— 不带就只有每个钱包折成 BTC 的总额,
+// 看不出里面有什么币,而这个接口要回答的正是"钱在哪个钱包、有多少"。
+// 美股的买入扣款与卖出回款(USDC)都在这里看,美股模块本身没有查余额的接口。
+message BinanceWalletBalance {
+  option (hi.audience) = VIS_PARTICIPANT;
 }
 
 // ════════════════════════════ 结果 ════════════════════════════

@@ -1,0 +1,225 @@
+syntax = "proto3";
+
+package hi.binance;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/binance";
+
+import "buf/validate/validate.proto";
+import "hi/binance/binance.proto";
+import "hi/options.proto";
+
+// **美股(Binance Stocks)** —— 用稳定币买**真股票**。
+//
+// 币安把它做成了一个**独立的模块**(官方 SDK 里是单独的 `stocks` 客户端,
+// 接口全在 `/sapi/v1/equity/*`),与现货、合约是三套东西,所以单开这个文件。
+// 走的路与 hi/binance/binance.proto 完全相同:代理 / app 调 `hi.club.Binance.Send`
+// → 后端代发 `binance` 通知 → 机器人执行 → 结果以 `BinanceResult` 消息回到来路那个会话。
+// 通知的形状、`processed`、过期、暗语,口径全在那个文件,这里不重复。
+//
+// | ex_type                         | extra 装的类型                            | 接口 |
+// |---------------------------------|-------------------------------------------|------|
+// | `stocks.place_equity_order`     | `hi.binance.BinanceStockNewOrder`         | `POST /sapi/v1/equity/order/place` |
+// | `stocks.cancel_equity_order`    | `hi.binance.BinanceStockCancelOrder`      | `POST /sapi/v1/equity/order/cancel` |
+// | `stocks.cancel_all_equity_orders` | `hi.binance.BinanceStockCancelAllOrders` | `POST /sapi/v1/equity/order/cancel-all` |
+// | `stocks.current_open_orders`    | `hi.binance.BinanceStockOpenOrders`       | `GET /sapi/v1/equity/order/open-orders` |
+// | `stocks.equity_order_detail`    | `hi.binance.BinanceStockGetOrder`         | `GET /sapi/v1/equity/order/detail` |
+// | `stocks.equity_order_history`   | `hi.binance.BinanceStockOrderHistory`     | `GET /sapi/v1/equity/order/history` |
+// | `stocks.equity_trade_history`   | `hi.binance.BinanceStockTradeHistory`     | `GET /sapi/v1/equity/trade/history` |
+// | `stocks.exchange_info`          | `hi.binance.BinanceStockExchangeInfo`     | `GET /sapi/v1/equity/market/exchangeInfo` |
+// | `stocks.latest_quote`           | `hi.binance.BinanceStockQuote`            | `GET /sapi/v1/equity/market/quote` |
+//
+// 操作名照旧是官方 SDK 的「模块.方法」。
+//
+// ## 与现货 / 合约不同的地方(都是币安的规则,2026-09-24 用真账号实测过)
+//
+// · **付款只能用 USDC。** 传 `quoteAsset=USDT` 币安回 `486201 This quote asset is not supported`。
+//   币安 App 里「用 USDT 买」是它替你先换成 USDC;接口不替你换。所以这里**没有 `quote_asset` 字段** ——
+//   能填的只有一个值,就是币安的默认值。手里只有 USDT 时,先用现货那条换:
+//   `spot.new_order`(`BinanceSpotNewOrder`,symbol = `USDCUSDT`,BUY,MARKET)。
+//   ⚠️ `USDCUSDT` 的步长是 1、最小名义 5 —— 按金额换出来的是整数个 USDC。
+// · **订单号是 UUID 字符串**,不是现货/合约那种整数。所以撤单、查单不能复用那边的对象。
+// · **买到的是真股票。** 币安的 `tokenize` 默认 `true`(买成 bStocks 代币),
+//   机器人下单时**一律填 `false`** —— 这是产品决定,不是调用方每次要选的东西,所以没有这个字段。
+// · `clientOrderId` 由**机器人**填成那条通知的 uuid(36 字符,落在币安要求的 32–36 位里),
+//   理由与合约下单相同:只为对账。
+// · **持仓没有专门的接口。** 余额看 `wallet.query_user_wallet_balance`
+//   (`BinanceWalletBalance`,见 hi/binance/binance.proto)—— 买入扣的 USDC、卖出回款的 USDC 都在那里。
+// · 行情接口(`exchange_info` / `latest_quote`)**不签名,但要带 API key**
+//   (不带回 `-2014`)—— 与现货/合约的公开接口不一样,所以也需要机器人配过密钥。
+// · 没有 K 线的 REST 接口(只有推送流),这里不提供。
+//
+// ⚠️ **使用前要在币安签美股免责声明**(`POST /sapi/v1/equity/account/disclaimer`)。
+//    这件事按插件整体做,不在这个文件里。
+//
+// ## 股票代码
+//
+// 纯股票代码,**不带计价币**:`AAPL`、`TSLA`。有 12 只带点号(`BRK.B`、`BF.A`…,2026-09-24 数的),
+// 所以格式是 `^[A-Z0-9]+(\.[A-Z0-9]+)?$`,不能照抄现货/合约的 `^[A-Z0-9]+$`。
+
+// 订单有效方式。**与现货/合约的 `BinanceTimeInForce` 不是一回事**(那边是 GTC/IOC/FOK),
+// 并进那个枚举会让合约也收 DAY、到了币安才被拒。
+enum BinanceStockTimeInForce {
+  BINANCE_STOCK_TIME_IN_FORCE_UNSPECIFIED = 0;
+  BINANCE_STOCK_TIME_IN_FORCE_DAY         = 1; // 当日有效(币安的默认)
+  BINANCE_STOCK_TIME_IN_FORCE_GTC         = 2; // 撤销前有效(最长 90 天),**只限限价单**
+}
+
+// 交易时段。**限价单必填,市价单不许填**(由币安判)。
+enum BinanceStockTradingSession {
+  BINANCE_STOCK_TRADING_SESSION_UNSPECIFIED = 0;
+  BINANCE_STOCK_TRADING_SESSION_RTH         = 1; // 常规时段 09:30–16:00 ET
+  BINANCE_STOCK_TRADING_SESSION_EXTENDED    = 2; // 含盘前盘后 04:00–20:00 ET
+  BINANCE_STOCK_TRADING_SESSION_ALL_DAY     = 3; // 24 小时(含夜盘)。币安写作 `24H` —— 标识符不能以数字开头
+}
+
+// 买入时从哪个钱包扣钱。**卖出一律回到 CARD**(币安的规则,不由这里选)。
+enum BinanceStockWallet {
+  BINANCE_STOCK_WALLET_UNSPECIFIED = 0;
+  BINANCE_STOCK_WALLET_CARD        = 1; // 资金账户(币安的默认)
+  BINANCE_STOCK_WALLET_MAIN        = 2; // 现货账户
+}
+
+// 订单状态(查历史时按它筛)。
+enum BinanceStockOrderStatus {
+  BINANCE_STOCK_ORDER_STATUS_UNSPECIFIED      = 0;
+  BINANCE_STOCK_ORDER_STATUS_FILLED           = 1;
+  BINANCE_STOCK_ORDER_STATUS_PARTIALLY_FILLED = 2;
+  BINANCE_STOCK_ORDER_STATUS_CANCELED         = 3;
+  BINANCE_STOCK_ORDER_STATUS_EXPIRED          = 4;
+  BINANCE_STOCK_ORDER_STATUS_REJECTED         = 5;
+}
+
+// 美股下单。
+//
+// 三种填法(币安的规则,我们不替它判,也不替它猜):
+//   · 市价买:给 `notional`(花多少 USDC),不给 quantity / price / trading_session
+//   · 市价卖:给 `quantity`(卖多少股)
+//   · 限价(买卖都一样):给 `quantity` + `price` + `trading_session`
+//
+// ⚠️ 最小名义是 5 USDC,但 `notional = 5` 实测被拒(`486419 below the minimum`)——
+//    订单 ≤ 350 美元另收 0.35 美元平台费,看来是按扣费后的金额判的。
+message BinanceStockNewOrder {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string                     symbol          = 1 [
+    (buf.validate.field).string.pattern = "^[A-Z0-9]+(\\.[A-Z0-9]+)?$",
+    (buf.validate.field).required       = true,
+    (hi.visibility)                     = VIS_PARTICIPANT
+  ]; // 股票代码,如 AAPL、BRK.B
+  optional BinanceOrderSide           side            = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  optional BinanceOrderType           type            = 3 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  optional string                     quantity        = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 股数,可以是小数(碎股)
+  optional string                     notional        = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 金额(USDC),**只用于市价买**
+  optional string                     price           = 6 [(hi.visibility) = VIS_PARTICIPANT]; // 限价,最多 2 位小数
+  optional BinanceStockTimeInForce    time_in_force   = 7 [(hi.visibility) = VIS_PARTICIPANT]; // 不传 = DAY
+  optional BinanceStockTradingSession trading_session = 8 [(hi.visibility) = VIS_PARTICIPANT]; // 限价必给
+  optional BinanceStockWallet         wallet          = 9 [(hi.visibility) = VIS_PARTICIPANT]; // 买入扣款的钱包;不传 = CARD
+}
+
+// 美股撤单。**只收订单号** —— 币安这个接口不收 clientOrderId。
+// 订单号来自下单的回包(`BinanceResult.body` 里的 `orderId`)或查挂单。
+message BinanceStockCancelOrder {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string order_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required       = true,
+    (hi.visibility)                     = VIS_PARTICIPANT
+  ];
+}
+
+// 美股撤掉**全部**挂单。**没有参数** —— 与现货/合约不同,币安这个接口不按股票撤。
+message BinanceStockCancelAllOrders {
+  option (hi.audience) = VIS_PARTICIPANT;
+}
+
+// 美股当前挂单。**没有参数**:回的是整个账户的挂单。
+message BinanceStockOpenOrders {
+  option (hi.audience) = VIS_PARTICIPANT;
+}
+
+// 查一张美股订单。`order_id` 与 `client_order_id` 给一个即可(都不给由币安报错)。
+// `client_order_id` 就是下单那条通知的 uuid(机器人下单时填进去的)。
+message BinanceStockGetOrder {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string order_id        = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string client_order_id = 2 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+// 美股历史订单。**起止时间必填**(币安的要求,不给回 `-1102`)。
+message BinanceStockOrderHistory {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional int64                   start_time = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ]; // 毫秒
+  optional int64                   end_time   = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ]; // 毫秒
+  optional string                  symbol     = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 不传 = 全部
+  optional BinanceOrderType        type       = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  optional BinanceOrderSide        side       = 5 [(hi.visibility) = VIS_PARTICIPANT];
+  repeated BinanceStockOrderStatus statuses   = 6 [(hi.visibility) = VIS_PARTICIPANT]; // 空 = 不按状态筛
+  // 页码,从 1 起(币安叫 `current`)。不传 = 1。
+  optional uint32                  page       = 7 [
+    (buf.validate.field).uint32.gte = 1,
+    (hi.visibility)                 = VIS_PARTICIPANT
+  ];
+  optional uint32                  size       = 8 [
+    (buf.validate.field).uint32 = {gte: 1, lte: 100},
+    (hi.visibility)             = VIS_PARTICIPANT
+  ]; // 每页条数,不传 = 20
+}
+
+// 美股成交记录。**起止时间必填**。
+message BinanceStockTradeHistory {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional int64            start_time = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  optional int64            end_time   = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  optional string           symbol     = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  optional BinanceOrderSide side       = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string           order_id   = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 只看这一张单的成交
+  optional uint32           page       = 6 [
+    (buf.validate.field).uint32.gte = 1,
+    (hi.visibility)                 = VIS_PARTICIPANT
+  ];
+  optional uint32           size       = 7 [
+    (buf.validate.field).uint32 = {gte: 1, lte: 100},
+    (hi.visibility)             = VIS_PARTICIPANT
+  ];
+}
+
+// 一只股票的交易规则(能不能买卖、碎股、夜盘、步长、最小/最大名义)。
+//
+// ⚠️ **`symbol` 必填。** 币安不给 symbol 时回全部 7900 多只,整份 3 MB ——
+//    结果要装进一条消息回来,这个量不该出现在消息里。页面按股票代码逐只问。
+//    查不到的代码币安回 200 + 空的 `symbols`,不是错误。
+message BinanceStockExchangeInfo {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string symbol = 1 [
+    (buf.validate.field).string.pattern = "^[A-Z0-9]+(\\.[A-Z0-9]+)?$",
+    (buf.validate.field).required       = true,
+    (hi.visibility)                     = VIS_PARTICIPANT
+  ];
+}
+
+// 一只股票的最新买卖报价。一次只能问一只。
+message BinanceStockQuote {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string symbol = 1 [
+    (buf.validate.field).string.pattern = "^[A-Z0-9]+(\\.[A-Z0-9]+)?$",
+    (buf.validate.field).required       = true,
+    (hi.visibility)                     = VIS_PARTICIPANT
+  ];
+}

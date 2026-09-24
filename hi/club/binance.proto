@@ -6,6 +6,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 import "buf/validate/validate.proto";
 import "hi/binance/binance.proto";
+import "hi/binance/stocks.proto";
 import "hi/options.proto";
 
 // 给机器人下一条**币安指令**。
@@ -22,7 +23,7 @@ import "hi/options.proto";
 // 发出去的通知与原来一字不差(收方 brain 不用改):
 //   type = "binance"、ex_type = 操作名、extra = Any{对应的 hi.binance.*}、
 //   from = 调用者、status = "processed"、expiration = 现在 + ttl。
-// 形状与各字段的口径见 hi/binance/binance.proto。
+// 形状与各字段的口径见 hi/binance/binance.proto(美股见 hi/binance/stocks.proto)。
 //
 // ## 发到哪
 //
@@ -60,6 +61,18 @@ message BinanceSendReq {
     hi.binance.BinanceFuturesOpenOrders      usds_futures_current_all_open_orders = 26; // usds_futures.current_all_open_orders
     hi.binance.BinanceFuturesOpenAlgoOrders  usds_futures_open_algo_orders      = 27; // usds_futures.open_algo_orders
     hi.binance.BinanceFuturesIncome          usds_futures_income                = 28; // usds_futures.income
+
+    hi.binance.BinanceStockNewOrder          stocks_place_equity_order          = 30; // stocks.place_equity_order
+    hi.binance.BinanceStockCancelOrder       stocks_cancel_equity_order         = 31; // stocks.cancel_equity_order
+    hi.binance.BinanceStockCancelAllOrders   stocks_cancel_all_equity_orders    = 32; // stocks.cancel_all_equity_orders
+    hi.binance.BinanceStockOpenOrders        stocks_current_open_orders         = 33; // stocks.current_open_orders
+    hi.binance.BinanceStockGetOrder          stocks_equity_order_detail         = 34; // stocks.equity_order_detail
+    hi.binance.BinanceStockOrderHistory      stocks_equity_order_history        = 35; // stocks.equity_order_history
+    hi.binance.BinanceStockTradeHistory      stocks_equity_trade_history        = 36; // stocks.equity_trade_history
+    hi.binance.BinanceStockExchangeInfo      stocks_exchange_info               = 37; // stocks.exchange_info
+    hi.binance.BinanceStockQuote             stocks_latest_quote                = 38; // stocks.latest_quote
+
+    hi.binance.BinanceWalletBalance          wallet_query_user_wallet_balance   = 40; // wallet.query_user_wallet_balance
   }
 }
 
