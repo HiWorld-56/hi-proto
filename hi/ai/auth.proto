@@ -11,7 +11,7 @@ import "hi/options.proto";
 
 service Auth {
   rpc RefreshToken (hi.did.RefreshTokenReq) returns (hi.AuthToken) { option (hi.auth) = AUTH_NONE; } // 不鉴权
-  rpc GenerateReqId (hi.did.GenerateReqIdReq) returns (hi.did.LoginQr) { option (hi.auth) = AUTH_NONE; } // 不鉴权;回的就是二维码内容
+  rpc GenerateReqId (hi.did.GenerateReqIdReq) returns (hi.did.LoginQr) { option (hi.auth) = AUTH_NONE; } // 不鉴权;回 reqId 与 hidid 生成的二维码文本
   rpc GetReqStatus (hi.RequestId) returns (hi.did.ReqStatusResp) { option (hi.auth) = AUTH_NONE; }
   // 登出:删该会话的 refresh/access 行。**凭 refresh_token 证明归属**,故不鉴权。
   //
