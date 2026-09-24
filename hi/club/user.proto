@@ -73,14 +73,16 @@ message ListNoticeStatusesResp {
   repeated NoticeStatus list = 1 [(hi.visibility) = VIS_SELF]; // 查不到的 uuid(不是我的 / 超过 30 天)不返回
 }
 
-// 对邀请(好友 / 入群)做决定。uuid 就是那条邀请通知的 uuid。
+// 对要我拍板的通知做决定。uuid 就是那条通知的 uuid。
+// 要拍板的只有三种:friend-invite / group-invite / plugin-grant-request(卖家批准或驳回申请、买家接受或谢绝分享,
+// 后端按授权单的发起方自己分派);其余通知回 InvalidArgument。状态读取时从业务表合并,做完不用再 MarkNoticeProcessed。
 message HandleNoticeReq {
   optional string uuid   = 1 [(buf.validate.field).required = true];
   optional bool   accept = 2 [(buf.validate.field).required = true]; // true = 同意,false = 拒绝
 }
 
 // 通知回执:**我处理完这条通知了**。与 HandleNotice 不是一回事 ——
-// 后者是"我对邀请做决定"(accept/reject,带真加好友/真入群的副作用),
+// 后者是"我对要拍板的通知做决定"(accept/reject,带真加好友/真入群/真授权的副作用),
 // 这里只是"这条我消费过了",没有任何业务副作用,对**任何**需要端上处理的通知都适用。
 // 以通知 uuid 为唯一标识,所以不用按类型各写一个接口。
 message MarkNoticeProcessedReq {
@@ -196,7 +198,7 @@ service User {
   rpc ListNotices (ListNoticesReq) returns (ListNoticesResp) { option (hi.auth) = AUTH_USER; } // 我的通知历史(增量;不传 last_uuid = 由服务端定起点)
   rpc ListPendingNotices (google.protobuf.Empty) returns (ListPendingNoticesResp) { option (hi.auth) = AUTH_USER; } // 还欠着的通知(与游标无关)
   rpc ListNoticeStatuses (ListNoticeStatusesReq) returns (ListNoticeStatusesResp) { option (hi.auth) = AUTH_USER; } // 按 uuid 查通知的最新状态
-  rpc HandleNotice (HandleNoticeReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 对邀请做决定(同意/拒绝);已过期的一律拒绝
+  rpc HandleNotice (HandleNoticeReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 对要拍板的通知做决定(好友邀请/群邀请/插件授权申请);已过期的一律拒绝
   rpc MarkNoticeProcessed (MarkNoticeProcessedReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 通知回执:这条我处理完了(通用,按 uuid)
   rpc ListRelations (google.protobuf.Empty) returns (ListRelationsResp) { option (hi.auth) = AUTH_USER; } // 一次拿好友+仆从(同表;原 ListFriends/ListServitors 已合并进来)
   rpc AddFriend (AddFriendReq) returns (AddFriendResp) { option (hi.auth) = AUTH_USER; } // 添加好友
