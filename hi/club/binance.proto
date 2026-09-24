@@ -61,6 +61,7 @@ message BinanceSendReq {
     hi.binance.BinanceFuturesOpenOrders      usds_futures_current_all_open_orders = 26; // usds_futures.current_all_open_orders
     hi.binance.BinanceFuturesOpenAlgoOrders  usds_futures_open_algo_orders      = 27; // usds_futures.open_algo_orders
     hi.binance.BinanceFuturesIncome          usds_futures_income                = 28; // usds_futures.income
+    hi.binance.BinanceFuturesSignTradfiContract usds_futures_sign_tradfi_contract = 29; // usds_futures.sign_tradfi_contract
 
     hi.binance.BinanceStockNewOrder          stocks_place_equity_order          = 30; // stocks.place_equity_order
     hi.binance.BinanceStockCancelOrder       stocks_cancel_equity_order         = 31; // stocks.cancel_equity_order
@@ -71,6 +72,8 @@ message BinanceSendReq {
     hi.binance.BinanceStockTradeHistory      stocks_equity_trade_history        = 36; // stocks.equity_trade_history
     hi.binance.BinanceStockExchangeInfo      stocks_exchange_info               = 37; // stocks.exchange_info
     hi.binance.BinanceStockQuote             stocks_latest_quote                = 38; // stocks.latest_quote
+    hi.binance.BinanceStockTokenizedAssets   stocks_tokenized_assets            = 39; // stocks.tokenized_assets
+    hi.binance.BinanceStockSignDisclaimer    stocks_sign_us_equity_disclaimer   = 41; // stocks.sign_us_equity_disclaimer
 
     hi.binance.BinanceWalletBalance          wallet_query_user_wallet_balance   = 40; // wallet.query_user_wallet_balance
   }

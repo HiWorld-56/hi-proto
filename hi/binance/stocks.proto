@@ -27,6 +27,8 @@ import "hi/options.proto";
 // | `stocks.equity_trade_history`   | `hi.binance.BinanceStockTradeHistory`     | `GET /sapi/v1/equity/trade/history` |
 // | `stocks.exchange_info`          | `hi.binance.BinanceStockExchangeInfo`     | `GET /sapi/v1/equity/market/exchangeInfo` |
 // | `stocks.latest_quote`           | `hi.binance.BinanceStockQuote`            | `GET /sapi/v1/equity/market/quote` |
+// | `stocks.tokenized_assets`       | `hi.binance.BinanceStockTokenizedAssets`  | `GET /sapi/v1/equity/market/tokenized-assets` |
+// | `stocks.sign_us_equity_disclaimer` | `hi.binance.BinanceStockSignDisclaimer` | `POST /sapi/v1/equity/account/disclaimer` |
 //
 // 操作名照旧是官方 SDK 的「模块.方法」。
 //
@@ -48,8 +50,8 @@ import "hi/options.proto";
 //   (不带回 `-2014`)—— 与现货/合约的公开接口不一样,所以也需要机器人配过密钥。
 // · 没有 K 线的 REST 接口(只有推送流),这里不提供。
 //
-// ⚠️ **使用前要在币安签美股免责声明**(`POST /sapi/v1/equity/account/disclaimer`)。
-//    这件事按插件整体做,不在这个文件里。
+// ⚠️ **交易前要签美股免责声明**(`BinanceStockSignDisclaimer`);查询不用签。
+//    现在由币安插件在 install 时静默签,以后给用户一个「同意」页面。
 //
 // ## 股票代码
 //
@@ -222,4 +224,21 @@ message BinanceStockQuote {
     (buf.validate.field).required       = true,
     (hi.visibility)                     = VIS_PARTICIPANT
   ];
+}
+
+// **bStocks 清单**:哪些股票能换成代币、代币叫什么(`TSLAB` ↔ `TSLA`)。**没有参数**。
+//
+// 这些代币在**现货**上都有对 USDT 的交易对(`TSLABUSDT`),照现货那套对象买卖。
+// ⚠️ 公开的现货清单里**认不出**哪些是 bStocks(字段与普通币一模一样,2026-09-24 比过),
+//    所以只能问这里 —— 它要带 API key(与行情接口一样不签名)。
+message BinanceStockTokenizedAssets {
+  option (hi.audience) = VIS_PARTICIPANT;
+}
+
+// 签 **美股免责声明**。**没有参数**。重复签币安照样回成功。
+//
+// 与 `BinanceFuturesSignTradfiContract` 同一个口径:插件 install 时静默签,以后给用户一个「同意」页面;
+// 它是法律动作,不开放给 AI。
+message BinanceStockSignDisclaimer {
+  option (hi.audience) = VIS_PARTICIPANT;
 }
