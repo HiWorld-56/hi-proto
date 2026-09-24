@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package hi.binance;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/binance";
+
+import "buf/validate/validate.proto";
+import "hi/binance/binance.proto";
+import "hi/binance/stocks.proto";
+import "hi/options.proto";
+
+// 给机器人的一条**币安指令**。装在**消息**里:`Content.type = "binance_cmd"`、`Content.kind = binance_cmd`。
+//
+// ## 指令就是一条普通消息(2026-09-25 定)
+//
+// 消息机制**一处不改**,只是用它传指令:
+//   · 发到哪个会话、@ 谁,与聊天完全一样 —— 群里 @ 要它执行的那台机器人,要所有机器人执行就 @所有人;
+//     单聊就是那一台。群里没 @ 它的,它不处理(与聊天同一条规则)。
+//   · 发令人是信封上的 `from`(broker 验过),**载荷里没有发令人,也不许加**。
+//   · 机器人只处理实时收到的消息,离线期间攒下的不补 —— 同样是消息本来的规则,不另立。
+//   · 送达状态就是消息的状态(进了历史 = 已送达)。
+//
+// 谁能让这台机器人交易,由**币安插件**判(主人或插件配置的代理),brain 不判。
+// 结果由机器人回一条消息到同一个会话:`Content.kind = binance`(`BinanceResult`),
+// `request` = 这条指令**消息**的 uuid,暗语等级沿用指令那条。**任何结局都回一条** ——
+// 不认这个人、没装币安插件、过期、币安报错,原因都在 `BinanceResult.error` / `body` 里。
+//
+// ## 操作名
+//
+// `op` 选中的是哪一个就是哪个操作,操作名是币安官方 SDK 的「模块.方法」,写在每行末尾的注释里:
+// 字段名 = 模块 + `_` + 方法(模块是 `spot` / `usds_futures` / `stocks` / `wallet`)。
+// 结果里的 `BinanceResult.op` 就是这个操作名。
+//
+// ## 为什么没有 `newClientOrderId`
+//
+// 下单时由**机器人**填,值就是这条指令消息的 uuid(36 字符,正好是币安的上限)。
+// 它只为**对账**(日后在币安看到一笔订单,能对回是哪条指令下的),不是去重手段。
+message BinanceCommand {
+  option (hi.audience) = VIS_PARTICIPANT;
+
+  // 过期时刻,**绝对时间,微秒**(与 `Notice.expiration` 同一口径)。过了机器人不执行、回一条失败;
+  // 机器人系统时钟不可信时也不执行。
+  optional int64 expiration = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+
+  oneof op {
+    option (buf.validate.oneof).required = true;
+
+    BinanceSpotNewOrder           spot_new_order                     = 10 [(hi.visibility) = VIS_PARTICIPANT]; // spot.new_order
+    BinanceSpotCancelOrder        spot_cancel_order                  = 11 [(hi.visibility) = VIS_PARTICIPANT]; // spot.cancel_order
+    BinanceSpotCancelAllOrders    spot_cancel_all_open_orders        = 12 [(hi.visibility) = VIS_PARTICIPANT]; // spot.cancel_all_open_orders
+    BinanceSpotOpenOrders         spot_get_open_orders               = 13 [(hi.visibility) = VIS_PARTICIPANT]; // spot.get_open_orders
+    BinanceSpotAccount            spot_account_information           = 14 [(hi.visibility) = VIS_PARTICIPANT]; // spot.account_information
+    BinanceSpotGetOrder           spot_get_order                     = 15 [(hi.visibility) = VIS_PARTICIPANT]; // spot.get_order
+    BinanceSpotOpenOrderLists     spot_get_open_order_lists          = 16 [(hi.visibility) = VIS_PARTICIPANT]; // spot.get_open_order_lists
+    BinanceSpotTicker24h          spot_ticker_24h                    = 17 [(hi.visibility) = VIS_PARTICIPANT]; // spot.ticker_24h
+    BinanceFuturesNewOrder        usds_futures_new_order             = 20 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.new_order
+    BinanceFuturesCancelOrder     usds_futures_cancel_order          = 21 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.cancel_order
+    BinanceFuturesCancelAllOrders usds_futures_cancel_all_open_orders = 22 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.cancel_all_open_orders
+    BinanceFuturesLeverage        usds_futures_change_initial_leverage = 23 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.change_initial_leverage
+    BinanceFuturesPositions       usds_futures_position_information_v3 = 24 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.position_information_v3
+    BinanceFuturesAccount         usds_futures_account_information_v3  = 25 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.account_information_v3
+    BinanceFuturesOpenOrders      usds_futures_current_all_open_orders = 26 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.current_all_open_orders
+    BinanceFuturesOpenAlgoOrders  usds_futures_open_algo_orders      = 27 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.open_algo_orders
+    BinanceFuturesIncome          usds_futures_income                = 28 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.income
+    BinanceFuturesSignTradfiContract usds_futures_sign_tradfi_contract = 29 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.sign_tradfi_contract
+
+    BinanceStockNewOrder          stocks_place_equity_order          = 30 [(hi.visibility) = VIS_PARTICIPANT]; // stocks.place_equity_order
+    BinanceStockCancelOrder       stocks_cancel_equity_order         = 31 [(hi.visibility) = VIS_PARTICIPANT]; // stocks.cancel_equity_order
+    BinanceStockCancelAllOrders   stocks_cancel_all_equity_orders    = 32 [(hi.visibility) = VIS_PARTICIPANT]; // stocks.cancel_all_equity_orders
+    BinanceStockOpenOrders        stocks_current_open_orders         = 33 [(hi.visibility) = VIS_PARTICIPANT]; // stocks.current_open_orders
+    BinanceStockGetOrder          stocks_equity_order_detail         = 34 [(hi.visibility) = VIS_PARTICIPANT]; // stocks.equity_order_detail
+    BinanceStockOrderHistory      stocks_equity_order_history        = 35 [(hi.visibility) = VIS_PARTICIPANT]; // stocks.equity_order_history
+    BinanceStockTradeHistory      stocks_equity_trade_history        = 36 [(hi.visibility) = VIS_PARTICIPANT]; // stocks.equity_trade_history
+    BinanceStockExchangeInfo      stocks_exchange_info               = 37 [(hi.visibility) = VIS_PARTICIPANT]; // stocks.exchange_info
+    BinanceStockQuote             stocks_latest_quote                = 38 [(hi.visibility) = VIS_PARTICIPANT]; // stocks.latest_quote
+    BinanceStockTokenizedAssets   stocks_tokenized_assets            = 39 [(hi.visibility) = VIS_PARTICIPANT]; // stocks.tokenized_assets
+    BinanceStockSignDisclaimer    stocks_sign_us_equity_disclaimer   = 41 [(hi.visibility) = VIS_PARTICIPANT]; // stocks.sign_us_equity_disclaimer
+
+    BinanceWalletBalance          wallet_query_user_wallet_balance   = 40 [(hi.visibility) = VIS_PARTICIPANT]; // wallet.query_user_wallet_balance
+  }
+}
