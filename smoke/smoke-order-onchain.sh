@@ -118,6 +118,16 @@ chk "假 tx:业务单仍待付款(0)" "$(Q hi_club "SELECT status FROM hi_club_m
 PID=$(cb market/issue_payment "{\"order_id\":\"$OID\"}" | g data payment payId)
 case "$PID" in MKP-*) ok "换开了一张新凭据 $PID";; *) bad "换凭据失败" "got=$PID";; esac
 
+# 前三节不花钱(开单、旧转账认新单、查不到的 hash),而且正好走「上报交易号 → 按 hash 占位」那条写入路径。
+# 只想验这一段时给 NO_REAL_TRANSFER=1:到这里如实报「四到六节没验」就停,不往链上转钱。
+if [ "${NO_REAL_TRANSFER:-}" = "1" ]; then
+  echo
+  echo "  — 没验:四、五、六节(NO_REAL_TRANSFER=1,不做真转账)"
+  NO_REAL_TRANSFER_DONE=1
+fi
+
+if [ -z "${NO_REAL_TRANSFER_DONE:-}" ]; then
+
 echo
 echo "── 四、真转账 → 认款 → 履约 ──"
 CHAIN=$(Q hi_did "SELECT chain FROM hi_coin WHERE name='$OCOIN' AND deleted_at IS NULL;")
@@ -176,6 +186,8 @@ hasany "负面:拿别人的 did 当主体被拒" "$(cs market/list_transactions 
 hasany "负面:不相干的凭据号查不到" "$(cb market/get_transaction '{"pay_id":"MKP-not-mine"}')" \
   "不存在或与你无关"
 fi
+
+fi # NO_REAL_TRANSFER_DONE
 
 echo
 echo "── 清理 ──"
