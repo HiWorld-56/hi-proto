@@ -15,6 +15,11 @@ message RefreshTokenReq {
 }
 
 // hidid web/app/pc登录
+//
+// `node` 是**被登录的那一端**(拿 token 的那一端),不是签名的那台设备:
+//   · 自己登录自己(app/pc 自签):就是本机;
+//   · 扫码 / 被唤起替别人授权:是**发起登录的那一端** —— 扫码时照二维码里的 `LoginQr.app/dev` 原样填,
+//     唤起时照发起方在链接里带的 app/dev 填。后端核对它与申请 reqId 时报的那组一致,不一致就拒。
 message LoginReq {
   optional string req_id = 1;
   string          did    = 2;
@@ -31,6 +36,21 @@ message LoginResp {
 message GenerateReqIdReq {
   string        did  = 1;
   hi.ClientInfo node = 2;
+}
+
+// 扫码登录的**二维码内容**(`GenerateReqId` 的返回)。
+//
+// 发起登录的那一端(网页)申请 reqId 时报了自己是谁;后端把 reqId 连同这组 app/dev 原样交回。
+// **前端把这条消息的 JSON 原样编进二维码**(即 HTTP 网关回的 data:`{"reqId":"L…","app":"HiClub","dev":"web"}`),
+// 扫码方原样解出来填进 `LoginReq`:`reqId` → `req_id`,`app`/`dev` → `node.app`/`node.dev`。
+//
+// 原来二维码里只有裸 reqId,扫码方不知道自己在授权哪一端,只能猜(扫网页码就报 web)。
+// 非扫码的(app 唤起 app)由发起方自己把 app/dev 带进链接,不经这里。
+message LoginQr {
+  option (hi.audience) = VIS_PUBLIC; // 二维码上印的东西,无隐私
+  optional string req_id = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional string app    = 2 [(hi.visibility) = VIS_PUBLIC]; // 发起登录的那一端的 app(同 hi.ClientInfo.app)
+  optional string dev    = 3 [(hi.visibility) = VIS_PUBLIC]; // 发起登录的那一端的 dev(同 hi.ClientInfo.dev)
 }
 
 message ReqStatusResp {
@@ -74,7 +94,7 @@ service Auth {
   rpc RefreshToken (RefreshTokenReq) returns (hi.AuthToken) { option (hi.auth) = AUTH_NONE; }      // 公开:用 refresh token 换新 token(内部自校验)
   rpc Verify (hi.SignedData) returns (LoginResp) { option (hi.auth) = AUTH_WEB3; }                 // 验签:助记词/硬件登录,验签后签发 token
   rpc VerifyOffline (hi.SignedData) returns (LoginResp) { option (hi.auth) = AUTH_WEB3; }          // 验签:离线登录变体(内部服务用)
-  rpc GenerateReqId (GenerateReqIdReq) returns (hi.RequestId) { option (hi.auth) = AUTH_NONE; }    // 公开:生成扫码登录的 reqId
+  rpc GenerateReqId (GenerateReqIdReq) returns (LoginQr) { option (hi.auth) = AUTH_NONE; }        // 公开:生成扫码登录的 reqId(连同发起端的 app/dev,即二维码内容)
   rpc GetReqStatus (hi.RequestId) returns (ReqStatusResp) { option (hi.auth) = AUTH_NONE; }        // 公开:轮询扫码登录状态
   // 登出:删该会话的 refresh/access 行,并释放 PC 独占槽位。**凭 refresh_token 证明归属**,故不鉴权。
   //
