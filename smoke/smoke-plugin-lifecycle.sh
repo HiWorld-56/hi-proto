@@ -88,7 +88,9 @@ d = json.load(sys.stdin)["data"]["list"]
 vs = sorted((x["version"]["version"] for x in d))
 act = [x["version"]["version"] for x in d if x.get("active")]
 print("%s|%s" % (",".join(vs), ",".join(act)))')" in
-  "1.0.0,2.0.0|1.0.0") ok "list_versions 出两个版本,且**只有 1.0.0 是 active**(发新版不自动切,follow_latest 才切)";;
+  # 作者自己建的壳**默认跟版**(hi-ai 854b165,2026-09-18):发了 2.0.0 就切到 2.0.0。
+  # 这条原来钉的是「发新版不自动切」—— 那是旧口径,默认改了之后一直红着(2026-09-25 冒烟抓到)。
+  "1.0.0,2.0.0|2.0.0") ok "list_versions 出两个版本,且 active 是 2.0.0(作者的壳默认跟最新版)";;
   *) bad "list_versions" "$(printf '%s' "$LV" | head -c 200)";;
 esac
 # 这条同时也是空值改造的一段:版本列表里不该有 `"字段": ""`。
@@ -108,13 +110,18 @@ case "$E" in 0*) ok "list_versions 回包里没有空串";; *) bad "list_version
 
 echo
 echo "── 二、切版:set_active ──"
-S0=$(state)
-cj plugin/set_active "{\"agent\":\"$B\",\"uuid\":\"$P\",\"version\":\"2.0.0\"}" >/dev/null
-S1=$(state)
 # 🔴 判据是**状态真的变了**,不是接口回了 0。"调用成功但什么都没发生"
-#    和"调用成功且生效了"在返回值上一模一样。
-case "$S1" in *"active=2.0.0"*) ok "set_active 真的切到了 2.0.0(起点 $(printf '%s' "$S0"|grep -oE 'active=[^ ]+'))";;
-  *) bad "set_active 没生效" "改后仍是 $S1";; esac
+#    和"调用成功且生效了"在返回值上一模一样。起点已经是 2.0.0(默认跟版),
+#    所以先切到 1.0.0 再切回来 —— 只切 2.0.0 的话是空操作,证明不了什么。
+S0=$(state)
+cj plugin/set_active "{\"agent\":\"$B\",\"uuid\":\"$P\",\"version\":\"1.0.0\"}" >/dev/null
+S1=$(state)
+case "$S1" in *"active=1.0.0"*) ok "set_active 真的切到了 1.0.0(起点 $(printf '%s' "$S0"|grep -oE 'active=[^ ]+'))";;
+  *) bad "set_active 1.0.0 没生效" "改后是 $S1";; esac
+cj plugin/set_active "{\"agent\":\"$B\",\"uuid\":\"$P\",\"version\":\"2.0.0\"}" >/dev/null
+S2=$(state)
+case "$S2" in *"active=2.0.0"*) ok "set_active 再切回 2.0.0";;
+  *) bad "set_active 2.0.0 没生效" "改后是 $S2";; esac
 
 echo
 echo "── 三、开关:set_enabled ──"
