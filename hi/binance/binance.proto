@@ -14,13 +14,18 @@ import "hi/options.proto";
 //   ① 主人说话 → 模型 → 插件方法 → sdk 方法 `binance_call`(不经过本文件,参数是 JSON)
 //   ② **代理 did** 发一条通知 → brain 直接执行,**不经过 AI** —— 本文件定义的就是这条路的载荷
 //
+// ⛔ **通知由后端发,不由代理的端直接发。** 代理调 `hi.club.Binance.Send`
+//    (见 hi/club/binance.proto),后端核权限与参数后以代理的身份发出下面这条通知。
+//    broker 拦掉设备账号发出的全部通知 —— 通知是系统消息,收方按类型直接动状态,
+//    broker 核得了 from 却核不了"这类通知该不该由你发"。
+//
 // ## 通知长什么样
 //
 //   type       = "binance"
 //   ex_type    = 操作名(下表)
 //   extra      = Any{ 下面对应的那个 message }
 //   status     = "processed"(⚠️ 一律如此,见下)
-//   expiration = 发送方填短(60 秒)
+//   expiration = 现在 + ttl(`BinanceSendReq.ttl_ms`,不传 = 60 秒)
 //
 // | ex_type                             | extra 装的类型                          |
 // |-------------------------------------|-----------------------------------------|

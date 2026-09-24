@@ -56,6 +56,11 @@ message Packet {
          结果由机器人用一条**消息**回到来路那个会话(`Content.type = "binance"`)。
          `status` 一律 `processed`:机器人绝不执行离线期间攒下的指令。细节全在 hi/binance/binance.proto。
 
+   ⛔ **通知一律由后端发。** broker(fromguard)拦掉设备账号发出的全部通知 ——
+      上表除 `binance` 外都是"某件事发生了"的系统通知,收方按类型直接动状态,
+      端上能发就等于任何好友 / 群成员都能冒充后端。`binance` 由端上调
+      `hi.club.Binance.Send`,后端核过之后代发(2026-09-24 定)。
+
    ex_type: 附加类型
       扩充主类型，避免主类型产生过多分支。
       通知示例：

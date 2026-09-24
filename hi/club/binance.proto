@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package hi.club;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
+
+import "buf/validate/validate.proto";
+import "hi/binance/binance.proto";
+import "hi/options.proto";
+
+// 给机器人下一条**币安指令**。
+//
+// ## 通知一律由后端发
+//
+// 端上**不再直接往 MQTT 发通知**:broker 的 fromguard 拦掉设备账号发出的**全部**通知
+// (2026-09-24 定)。理由:通知类型表里除了币安指令,**全部**是"某件事发生了"的系统通知
+// (`robot-bind` / `group-kick` / `group-dissolve` / `plugin-grant-expiring` …),收方按类型
+// 直接动状态 —— 换主人、标群只读、付续费。broker 只核得了 `from` 是不是本人,核不了
+// "这类通知该不该由你发",于是任何一个好友 / 群成员都能冒充后端。
+// 判据归后端:端上把**要做什么**交给这里,由后端核权限、核参数,再以后端身份发出通知。
+//
+// 发出去的通知与原来一字不差(收方 brain 不用改):
+//   type = "binance"、ex_type = 操作名、extra = Any{对应的 hi.binance.*}、
+//   from = 调用者、status = "processed"、expiration = 现在 + ttl。
+// 形状与各字段的口径见 hi/binance/binance.proto。
+//
+// ## 发到哪
+//
+// `code` 是会话号:**群号**或**单聊群号**(单聊群号由两个 did 算出,见各端 `single_group_code`)。
+// 发进群 = 群里所有认这个代理的机器人一起做;发单聊 = 只有对方那一台做。
+// 调用者必须是这个会话的成员 —— 不是就 NotFound(不替人确认这个会话在不在)。
+//
+// ## 操作名不单独传
+//
+// 操作由 `op` 选中的是哪一个决定,后端据此填 `ex_type`。**不再让调用方同时给
+// 操作名和载荷** —— 那是同一件事存两份,原来就得靠端上自己保证两者对得上。
+message BinanceSendReq {
+  optional string code   = 1 [(buf.validate.field).required = true]; // 会话号:群号 / 单聊群号
+  optional uint32 dark   = 2; // 暗语等级;不传 = 0 = 明。机器人回结果时沿用它
+  // 这条指令的有效期(毫秒),过期机器人不执行。不传 = 60 秒;上限 10 分钟。
+  optional int64  ttl_ms = 3 [(buf.validate.field).int64 = {gt: 0, lte: 600000}];
+
+  oneof op {
+    option (buf.validate.oneof).required = true;
+
+    hi.binance.BinanceSpotNewOrder           spot_new_order                     = 10; // spot.new_order
+    hi.binance.BinanceSpotCancelOrder        spot_cancel_order                  = 11; // spot.cancel_order
+    hi.binance.BinanceSpotCancelAllOrders    spot_cancel_all_open_orders        = 12; // spot.cancel_all_open_orders
+    hi.binance.BinanceSpotOpenOrders         spot_get_open_orders               = 13; // spot.get_open_orders
+    hi.binance.BinanceSpotAccount            spot_account_information           = 14; // spot.account_information
+    hi.binance.BinanceSpotGetOrder           spot_get_order                     = 15; // spot.get_order
+    hi.binance.BinanceSpotOpenOrderLists     spot_get_open_order_lists          = 16; // spot.get_open_order_lists
+    hi.binance.BinanceSpotTicker24h          spot_ticker_24h                    = 17; // spot.ticker_24h
+    hi.binance.BinanceFuturesNewOrder        usds_futures_new_order             = 20; // usds_futures.new_order
+    hi.binance.BinanceFuturesCancelOrder     usds_futures_cancel_order          = 21; // usds_futures.cancel_order
+    hi.binance.BinanceFuturesCancelAllOrders usds_futures_cancel_all_open_orders = 22; // usds_futures.cancel_all_open_orders
+    hi.binance.BinanceFuturesLeverage        usds_futures_change_initial_leverage = 23; // usds_futures.change_initial_leverage
+    hi.binance.BinanceFuturesPositions       usds_futures_position_information_v3 = 24; // usds_futures.position_information_v3
+    hi.binance.BinanceFuturesAccount         usds_futures_account_information_v3  = 25; // usds_futures.account_information_v3
+    hi.binance.BinanceFuturesOpenOrders      usds_futures_current_all_open_orders = 26; // usds_futures.current_all_open_orders
+    hi.binance.BinanceFuturesOpenAlgoOrders  usds_futures_open_algo_orders      = 27; // usds_futures.open_algo_orders
+    hi.binance.BinanceFuturesIncome          usds_futures_income                = 28; // usds_futures.income
+  }
+}
+
+message BinanceSendResp {
+  option (hi.audience) = VIS_SELF;
+  // 这条指令(通知)的 uuid。机器人回的结果里 `BinanceResult.request` 就是它 —— 按它配对。
+  optional string uuid = 1 [(hi.visibility) = VIS_SELF];
+}
+
+service Binance {
+  // 下一条币安指令:核权限与参数后,**由后端**以调用者的身份发出 `binance` 通知。
+  rpc Send (BinanceSendReq) returns (BinanceSendResp) { option (hi.auth) = AUTH_USER; }
+}
