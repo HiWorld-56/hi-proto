@@ -38,6 +38,10 @@ message LuaCtx {
   optional string me     = 1; // 机器人自己的 did
   optional string master = 2; // 主人；没有就不给
   optional string asker  = 3; // 这一次是谁在问；匿名就不给
+  // 引起这次调用的那条消息的暗语等级(hi.club.Message.dark;不带 = 0 = 普通)。
+  // **只给宿主用,不给 lua 脚本看**:执行器随 HostCallReq.ctx 原样带回,宿主发消息
+  // (host.send_message)就沿用这个等级 —— 问题是哪一级,发出去的就是哪一级。插件不能自己选。
+  optional uint32 dark   = 4;
 }
 
 // OpenReq 装一个插件：跑一遍顶层，读出 contract 与 manifest。

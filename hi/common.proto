@@ -25,9 +25,31 @@ message DID {
        robot      硬件机器人(有 DID、具身、行为同用户)
        assistant  软件机器人(对话由后端接管,无私钥、不在 mqtt 上)
        注:硬件机器人用 robot 而非 agent —— agent 已是 ai 的 AI 机器人子系统统称(hi.ai.Agent),避免撞词。
-     会话型(会话列表)
-       group      群聊
-       single     单聊
+     会话型(会话列表)。**群的种类只在这一个字段里**,没有别的开关(原来的 private / findable 两个布尔已删):
+       single         单聊(二人群)。成员就是这两个人,随关系(加好友 / 主从绑定)建、随关系解除;
+                      不能被搜到、不能申请加入、不能邀请,也不能改成别的类型
+       group-private  私有群:搜不到(按群号、按创建者都找不到);不能主动申请加入,只能由群主/管理员邀请
+       group-public   公开群:只能按群号找到;申请加入不需要验证;任何成员都可以邀请
+       group-open     透明群:按群号、按创建者(`Group.ListByCreator`)都找得到;加入与邀请同公开群
+
+  ## ⛔ 提到一个对象,就放 `Entity`,不许把 did/name/avatar 拉平成散字段
+
+  **任何消息里要表示"哪个人 / 哪个群 / 哪个机器人",一律放一个 `hi.Entity`(或以 Entity
+  打头的视图,如 `GroupBase` / `GroupMemberView`),不要写 `optional string code` +
+  `optional string name` 这种散字段。** 这是本仓存在的理由:数据一致,先得有对象。
+
+  拉平的三个后果,每一个都不报错:
+  1. **对不上号** —— 同一个群在这里叫 `code`、在别处叫 `base.did`,接的人得自己记住换算;
+  2. **字段缺斤少两** —— 拉平的那份总会漏掉 avatar 之类的,想补就得改契约、下游全体跟版;
+  3. ⭐ **`update` 没了,更新机制就断了** —— 下游(core 身份池、brain 的 is_outdated)
+     一律按 `新.update > 旧.update` 决定要不要刷本地那份资料。散字段里没有 update,
+     这个对象的名字/头像在本地就**永远刷不了**,而且一点异常都看不出来。
+
+  只有"这个对象的附加信息"才配单独开字段(如 `OpenGroup.member_total`、
+  `GroupBase.background`、`RelationInfo.remark`)—— 它们不属于身份门面。
+
+  同一条规矩在 FFI / SDK 那一层也成立:core 的 FFI 原样映射 hi-proto,不许拍平、
+  不许自造派生字段(见 hiclub-simple-app 的 rust/src/api)。
 */
 message Entity {
   option (hi.audience) = VIS_PUBLIC; // 身份门面:名字/头像等,全公开
@@ -71,9 +93,15 @@ message Number {
   optional int64 n = 1;
 }
 
+// 客户端是谁:哪个 app、哪一种端、哪台设备。登录槽位按 (did, app, dev) 一行(mac 不参与),
+// 按端记的东西(消息 / 通知的服务端同步位置)也用 (app, dev)。
+//
+// ⛔ **取值只有下面列的这几个,大小写照写**,由校验拒掉别的写法。后端**原样使用、不改写** ——
+// 原来两个后端各自"纠正"前端传的值(club 一律改成 "hiclub",hidid 把 "hidid" 改成 "HiDID"),
+// 于是同一个 app 在库里有两种写法,前端传错了也没人知道。传错了改前端。
 message ClientInfo {
-  optional string app = 1; // HiDID、HiAI、HiClub、HiMedia、Third
-  optional string dev = 2; // web、app、pc、embeded
+  optional string app = 1 [(buf.validate.field).required = true, (buf.validate.field).string = { in: ["HiDID", "HiAI", "HiClub", "HiMedia", "Third"] }];
+  optional string dev = 2 [(buf.validate.field).required = true, (buf.validate.field).string = { in: ["web", "app", "pc", "embedded"] }]; // embedded = 硬件机器人
   optional string mac = 3; // Null / Mac or Static UUID (Preventing being kicked off)
 }
 

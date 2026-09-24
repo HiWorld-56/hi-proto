@@ -3,7 +3,7 @@
 import json
 import pathlib
 
-d = json.load(open(pathlib.Path(__file__).with_name("models.json")))
+d = json.load(open("/tmp/hi-proto-models.json"))
 parts = []
 meta = []
 for key, v in d.items():

@@ -3,23 +3,12 @@ syntax = "proto3";
 package hi.media;
 
 import "buf/validate/validate.proto";
+import "google/protobuf/empty.proto";
 import "hi/options.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
 
-enum FeatureKey {
-  FEATURE_KEY_UNSPECIFIED = 0;
-
-  // 文生图；内部键 image.txt2img；当前没有创建接口。
-  FEATURE_KEY_TEXT_TO_IMAGE = 1;
-
-  // 图生视频；内部键 video.img2vid；创建时需要输入图片。
-  FEATURE_KEY_IMAGE_TO_VIDEO = 2;
-
-  // 文生视频；内部键 video.txt2vid；不接受输入图片。
-  FEATURE_KEY_TEXT_TO_VIDEO = 3;
-}
-
+// 文本长度约束；服务端按 Unicode 码点计数。
 message TextLimit {
   option (hi.audience) = VIS_PUBLIC;
   // 按 Unicode 码点计算的正向提示词最大长度。
@@ -30,6 +19,7 @@ message TextLimit {
   ];
 }
 
+// 像素量选项，使用规范十进制字符串，默认值必须在允许集合内。
 message DecimalOptionConfig {
   option (hi.audience) = VIS_PUBLIC;
   option (buf.validate.message).cel = {
@@ -38,7 +28,7 @@ message DecimalOptionConfig {
     expression: "this.allowed_values.exists(value, value == this.default_value)"
   };
 
-  // 为避免浮点格式变化，允许值和默认值都使用十进制字符串传输。
+  // 规范十进制字符串，例如 "0.9"；客户端必须原样提交，不转为浮点重新格式化。
   repeated string allowed_values = 1 [
     (buf.validate.field).repeated = {
       min_items: 1
@@ -56,6 +46,7 @@ message DecimalOptionConfig {
   ];
 }
 
+// 字符串选项，保存并传递工作流节点接受的完整值。
 message StringOptionConfig {
   option (hi.audience) = VIS_PUBLIC;
   option (buf.validate.message).cel = {
@@ -81,6 +72,7 @@ message StringOptionConfig {
   ];
 }
 
+// 正整数范围，最小值和最大值均包含在允许范围内。
 message IntRangeConfig {
   option (hi.audience) = VIS_PUBLIC;
   option (buf.validate.message).cel = {
@@ -89,16 +81,19 @@ message IntRangeConfig {
     expression: "this.min_value <= this.max_value && this.default_value >= this.min_value && this.default_value <= this.max_value"
   };
 
+  // 含边界最小值。
   optional int32 min_value = 1 [
     (buf.validate.field).int32.gt = 0,
     (buf.validate.field).required = true,
     (hi.visibility) = VIS_PUBLIC
   ];
+  // 含边界最大值。
   optional int32 max_value = 2 [
     (buf.validate.field).int32.gt = 0,
     (buf.validate.field).required = true,
     (hi.visibility) = VIS_PUBLIC
   ];
+  // 用户省略参数时采用的值。
   optional int32 default_value = 3 [
     (buf.validate.field).int32.gt = 0,
     (buf.validate.field).required = true,
@@ -106,6 +101,7 @@ message IntRangeConfig {
   ];
 }
 
+// 帧率（帧/秒）的可选范围或固定值，两种模式必须选择其一。
 message FrameRateConfig {
   option (hi.audience) = VIS_PUBLIC;
   oneof mode {
@@ -121,6 +117,7 @@ message FrameRateConfig {
   }
 }
 
+// 工作流向普通用户开放的视频参数，不包含管理员固定输入。
 message VideoParameterConfig {
   option (hi.audience) = VIS_PUBLIC;
   TextLimit prompt = 1 [(hi.visibility) = VIS_PUBLIC];
@@ -130,37 +127,67 @@ message VideoParameterConfig {
   FrameRateConfig frame_rate = 5 [(hi.visibility) = VIS_PUBLIC];
 }
 
-message ModelOption {
+// 系统初始化的功能；客户端从 Function.List 获取 ID，不自行按名称推导。
+message FunctionSummary {
   option (hi.audience) = VIS_PUBLIC;
-  // 创建任务时提交的唯一选择；客户端不能自行组合模型 ID 与工作流 ID。
-  optional string model_mapping_id = 1 [(hi.visibility) = VIS_PUBLIC];
-  // 管理员维护的用户可见模型名称，不是 ComfyUI 原始文件名。
-  optional string name = 2 [(hi.visibility) = VIS_PUBLIC];
-  optional bool is_default = 3 [(hi.visibility) = VIS_PUBLIC];
-  // 映射工作流的 Markdown 说明；客户端应使用安全 Markdown 渲染。
-  optional string description = 4 [(hi.visibility) = VIS_PUBLIC];
-  VideoParameterConfig parameter_config = 5 [(hi.visibility) = VIS_PUBLIC];
+  // 固定值：video.img2vid（图生视频）、video.txt2vid（文生视频）。
+  optional string function_id = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional string display_name = 2 [(hi.visibility) = VIS_PUBLIC];
 }
 
-message GetFeatureReq {
-  optional FeatureKey feature_key = 1 [
-    (buf.validate.field).enum = {
-      defined_only: true
-      not_in: [0]
-    },
+// 返回全部固定功能；功能是否可创建任务由 Get 的 workflows 判断。
+message ListFunctionsResp {
+  option (hi.audience) = VIS_PUBLIC;
+  repeated FunctionSummary functions = 1 [(hi.visibility) = VIS_PUBLIC];
+}
+
+// 查询选中功能及其当前启用的工作流。
+message GetFunctionReq {
+  // 必须来自 Function.List：video.img2vid 或 video.txt2vid。
+  optional string function_id = 1 [
+    (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
 }
 
-message GetFeatureResp {
+// 普通用户可见的模型信息，不含 ComfyUI 真实文件名。
+message WorkflowModelOption {
   option (hi.audience) = VIS_PUBLIC;
-  optional FeatureKey feature_key = 1 [(hi.visibility) = VIS_PUBLIC];
-  // 空列表表示该功能当前没有可用映射，客户端不得创建任务。
-  repeated ModelOption model_options = 2 [(hi.visibility) = VIS_PUBLIC];
+  // 关联模型 ID；创建任务时无需回传。
+  optional string model_id = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional string display_name = 2 [(hi.visibility) = VIS_PUBLIC];
 }
 
-service Feature {
-  rpc Get(GetFeatureReq) returns (GetFeatureResp) {
+// 功能页的一项可用工作流；用户选择后按该项参数配置填写表单。
+message WorkflowOption {
+  option (hi.audience) = VIS_PUBLIC;
+  // 创建任务时提交的唯一工作流 ID，由服务端生成；客户端不计算 hash。
+  optional string workflow_id = 1 [(hi.visibility) = VIS_PUBLIC];
+  WorkflowModelOption model = 2 [(hi.visibility) = VIS_PUBLIC];
+  // 管理员显式指定；同一功能最多一项为 true，也可以没有默认项。
+  optional bool is_default = 3 [(hi.visibility) = VIS_PUBLIC];
+  // 管理员编写的 Markdown 说明；客户端应使用安全 Markdown 渲染。
+  optional string description = 4 [(hi.visibility) = VIS_PUBLIC];
+  // 该工作流的范围、完整允许值与默认值，不能按模型名称硬编码。
+  VideoParameterConfig parameter_config = 5 [(hi.visibility) = VIS_PUBLIC];
+}
+
+// 一次返回功能页所需的全部可用工作流配置，不暴露节点、依赖或文件对象键。
+message GetFunctionResp {
+  option (hi.audience) = VIS_PUBLIC;
+  FunctionSummary function = 1 [(hi.visibility) = VIS_PUBLIC];
+  // 只包含 ENABLED 工作流，按管理员顺序及稳定次序排列；空列表表示当前不可创建。
+  repeated WorkflowOption workflows = 2 [(hi.visibility) = VIS_PUBLIC];
+}
+
+// 普通用户的功能选择入口。
+service Function {
+  // 返回系统固定功能 ID 及显示名。
+  rpc List(google.protobuf.Empty) returns (ListFunctionsResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  // 返回指定功能及全部已启用工作流，各自携带模型信息与用户参数配置。
+  rpc Get(GetFunctionReq) returns (GetFunctionResp) {
     option (hi.auth) = AUTH_USER;
   }
 }

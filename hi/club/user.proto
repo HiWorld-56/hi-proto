@@ -4,6 +4,7 @@ package hi.club;
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
+import "buf/validate/validate.proto";
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/club/messaging.proto";
@@ -18,29 +19,70 @@ message UserInfo {
   optional string moment        = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 用户动态(关系可见)
 }
 
-message ListSystemMessagesReq {
-  optional string status     = 1;
-  hi.Pagination   pagination = 2;
+// 我的单聊通知历史,按时间线增量拉(用法照 `Group.ListMessages`)。
+//
+// ⚠️ **后端不判断"新不新"、不按状态或类型筛** —— 30 天内的全部通知按时间顺序原样返回,
+// 新不新、要不要处理由端上自己判断(见 hi/club/messaging.proto 里 status 那段)。
+// 这里原来是 `ListSystemMessages`:后端写死只返回好友/入群邀请两种、还替端上算 `has_new`
+// (读一次就改掉,多台设备谁先拉谁把"新"吃掉),于是离线期间的 friend-add 永远补不回来。
+message ListNoticesReq {
+  // 上一页最后一条的 uuid。
+  //
+  // ⚠️ **不传 ≠ 从最早一条开始**,而是「我什么都不知道,你替我定起点」——
+  // 服务端按自己记的同步位置(每拉一页只许前进)返回它之后的那些。
+  // 这是**重装 / 重新登录 / 换设备**的恢复路径,与 `Group.ListMessages` 同一套:
+  // 端上拿到第一页后立刻改用自己的本地游标,从此不再传空。
+  //
+  // 传了但服务端找不到(那条已过保存期被清掉)也回落到同步位置 —— **不回到最早一条**:
+  // 回到最早一条等于把端上早就删掉的通知整批重新塞回去(2026-09-23 就是这么发生的)。
+  optional string last_uuid = 1;
 }
 
-message SystemMessages {
-  option (hi.audience) = VIS_SELF; // 我的系统消息
-  optional bool   has_new = 1 [(hi.visibility) = VIS_SELF];
-  optional int32  total   = 2 [(hi.visibility) = VIS_SELF];
-  repeated Notice list    = 3 [(hi.visibility) = VIS_PARTICIPANT]; // Notice(messaging)为通知型,关系/群级
+message ListNoticesResp {
+  option (hi.audience) = VIS_SELF; // 我的通知
+  repeated Notice list = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 按时间正序;空 = 已经拉到头
 }
 
-message DeleteSystemMessageReq {
-  optional string uuid = 1;
+// 我名下**还欠着的**通知:合并状态后仍是 `not_processed`、而且没过期的全部(30 天内)。
+//
+// **与游标无关,这是它存在的全部理由。** 游标管的是"新的",而"还欠着的"必须与端上删没删、
+// 重装没重装无关 —— 它对应的是后端(或对方)还挂着等一个答复的事:
+// 好友申请、入群邀请、授权申请。端上没有它,那件事就永远卡在那里,而且零报错。
+//
+// 端上每轮同步调一次(条数天然很少)。有了它,端上才可以放心地只按游标增量拉、
+// 并且把已达终态的通知从本机删掉。
+message ListPendingNoticesResp {
+  option (hi.audience) = VIS_SELF;
+  repeated Notice list = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 按时间正序
 }
 
-message HandleSystemMessageReq {
-  optional string uuid   = 1;
-  optional string status = 2;
+// 按 uuid 查这几条通知**现在**的状态。端上把本地没处理完的那些发上来(定期 + 下拉刷新),
+// 别的设备处理过、或者已经过期的,在这里拿到新状态。
+message ListNoticeStatusesReq {
+  repeated string uuids = 1;
 }
 
-// 通知回执:**我处理完这条通知了**。与 HandleSystemMessage 不是一回事 ——
-// 后者是"我对邀请做决定"(accept/reject,带真加好友/真入群的副作用),
+message NoticeStatus {
+  option (hi.audience) = VIS_SELF;
+  optional string uuid   = 1 [(hi.visibility) = VIS_SELF];
+  optional string status = 2 [(hi.visibility) = VIS_SELF]; // 取值见 hi/club/messaging.proto 里 status 那段
+}
+
+message ListNoticeStatusesResp {
+  option (hi.audience) = VIS_SELF;
+  repeated NoticeStatus list = 1 [(hi.visibility) = VIS_SELF]; // 查不到的 uuid(不是我的 / 超过 30 天)不返回
+}
+
+// 对要我拍板的通知做决定。uuid 就是那条通知的 uuid。
+// 要拍板的只有三种:friend-invite / group-invite / plugin-grant-request(卖家批准或驳回申请、买家接受或谢绝分享,
+// 后端按授权单的发起方自己分派);其余通知回 InvalidArgument。状态读取时从业务表合并,做完不用再 MarkNoticeProcessed。
+message HandleNoticeReq {
+  optional string uuid   = 1 [(buf.validate.field).required = true];
+  optional bool   accept = 2 [(buf.validate.field).required = true]; // true = 同意,false = 拒绝
+}
+
+// 通知回执:**我处理完这条通知了**。与 HandleNotice 不是一回事 ——
+// 后者是"我对要拍板的通知做决定"(accept/reject,带真加好友/真入群/真授权的副作用),
 // 这里只是"这条我消费过了",没有任何业务副作用,对**任何**需要端上处理的通知都适用。
 // 以通知 uuid 为唯一标识,所以不用按类型各写一个接口。
 message MarkNoticeProcessedReq {
@@ -110,11 +152,6 @@ message GetUserReq {
   string did = 1;
 }
 
-message UnprocessedSysMsgCountResp {
-  option (hi.audience) = VIS_SELF; // 我的未读数
-  optional int32 count = 1 [(hi.visibility) = VIS_SELF];
-}
-
 // 改自己的资料。**不收 hi.Entity 整体** —— Entity 带 did/type/update,
 // 而"改谁"永远取自 token,type/update 是服务端产物。入参只放调用方真正该给的。
 message UpdateUserReq {
@@ -152,17 +189,22 @@ service User {
   // (实测差 0.6s:客户端微秒 vs 服务端整秒)。写完顺手回权威值,调用方不必再多一次
   // GetCurrent,也避免中间被自己的另一个端插一手、拿回不一致的资料。
   rpc Update (UpdateUserReq) returns (UserInfo) { option (hi.auth) = AUTH_USER; } // 更新用户信息(原 UpdateUser 去 stutter)
-  rpc ListSystemMessages (ListSystemMessagesReq) returns (SystemMessages) { option (hi.auth) = AUTH_USER; } // 系统消息列表
-  rpc DeleteSystemMessage (DeleteSystemMessageReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 删除系统消息
-  rpc DeleteAllSystemMessage (google.protobuf.Empty) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 删除所有系统消息
-  rpc HandleSystemMessage (HandleSystemMessageReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 处理系统消息(对邀请做决定:accept/reject)
+  // 通知是历史记录:后端只记录、不删,也不替端上算未读 —— 所以没有删除接口、没有未读计数接口,
+  // 清理本地通知是端上(core)自己的事。
+  //
+  // ⛔ **端上只许删已达终态的**(processed/accept/reject/invalid/expired)。还没处理完的那条
+  // 在后端(或对方)那边挂着等答复,本地删掉 = 那件事永远没人回,且没有任何报错。
+  // 端上按什么判、怎么拒,见 hi/club/messaging.proto 里 status 那段。
+  rpc ListNotices (ListNoticesReq) returns (ListNoticesResp) { option (hi.auth) = AUTH_USER; } // 我的通知历史(增量;不传 last_uuid = 由服务端定起点)
+  rpc ListPendingNotices (google.protobuf.Empty) returns (ListPendingNoticesResp) { option (hi.auth) = AUTH_USER; } // 还欠着的通知(与游标无关)
+  rpc ListNoticeStatuses (ListNoticeStatusesReq) returns (ListNoticeStatusesResp) { option (hi.auth) = AUTH_USER; } // 按 uuid 查通知的最新状态
+  rpc HandleNotice (HandleNoticeReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 对要拍板的通知做决定(好友邀请/群邀请/插件授权申请);已过期的一律拒绝
   rpc MarkNoticeProcessed (MarkNoticeProcessedReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 通知回执:这条我处理完了(通用,按 uuid)
   rpc ListRelations (google.protobuf.Empty) returns (ListRelationsResp) { option (hi.auth) = AUTH_USER; } // 一次拿好友+仆从(同表;原 ListFriends/ListServitors 已合并进来)
   rpc AddFriend (AddFriendReq) returns (AddFriendResp) { option (hi.auth) = AUTH_USER; } // 添加好友
   rpc DeleteFriend (DeleteFriendReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; } // 删除好友
   rpc ListGroups (google.protobuf.Empty) returns (ListGroupsResp) { option (hi.auth) = AUTH_USER; } // 当前用户所在的群列表
   rpc GetOther (GetUserReq) returns (hi.Entity) { option (hi.auth) = AUTH_USER; } // 根据DID获取用户基本信息
-  rpc UnprocessedSysMsgCount (google.protobuf.Empty) returns (UnprocessedSysMsgCountResp) { option (hi.auth) = AUTH_USER; }
   rpc SetRemark (SetRemarkReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
 }
 

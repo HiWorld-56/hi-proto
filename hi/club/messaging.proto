@@ -7,6 +7,7 @@ import "google/protobuf/empty.proto";
 import "hi/club/trade.proto";
 import "hi/common.proto";
 import "hi/did/transfer.proto";
+import "hi/binance/binance.proto";
 import "hi/options.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
@@ -42,11 +43,24 @@ message Packet {
       robot-update          robot(硬件机器人)资料更新              / hi.Entity
       master-update         **主人**资料更新(发给仆从)              / hi.Entity(主人的 base)
       plugin-load           插件/脚本加载完成                      / hi.ai.PluginLoaded
-      plugin-grant-request  收到插件授权申请(需我处理)              / hi.club.MarketGrantBrief
+      plugin-grant-request  收到插件授权申请(需我处理;审批档的申请、别人分享给我。**付费档不发**) / hi.club.MarketGrantBrief
+      plugin-grant-sold     我的插件卖出去了(付费单到账、授权已成立;纯告知,发给卖家) / hi.club.MarketGrantBrief
       plugin-grant-approved 我的插件申请被同意                       / hi.club.MarketGrantBrief
       plugin-grant-rejected 我的插件申请被拒绝                       / hi.club.MarketGrantBrief
       plugin-grant-expiring 插件授权快到期了(**发给受让方机器人本人**)    / hi.club.MarketRenewBrief
       plugin-grant-expired  插件授权已到期,已解绑                       / hi.club.MarketGrantBrief
+      binance               让机器人做一次币安操作                    / hi.binance.Binance*(按 ex_type,见 hi/binance/binance.proto)
+
+      ⭐ `binance` 与上面每一条都不同:**它是发给机器人、让它去做事的指令**,不是"某件事发生了"。
+         它也是**唯一一条群通知与单聊通知同样有效**的 —— 认人只看 `from` 等不等于机器人配置里的
+         代理 did,与发到哪个 topic 无关。发进群 = 群里所有认这个代理的机器人一起做。
+         结果由机器人用一条**消息**回到来路那个会话(`Content.type = "binance"`)。
+         `status` 一律 `processed`:机器人绝不执行离线期间攒下的指令。细节全在 hi/binance/binance.proto。
+
+   ⛔ **通知一律由后端发。** broker(fromguard)拦掉设备账号发出的全部通知 ——
+      上表除 `binance` 外都是"某件事发生了"的系统通知,收方按类型直接动状态,
+      端上能发就等于任何好友 / 群成员都能冒充后端。`binance` 由端上调
+      `hi.club.Binance.Send`,后端核过之后代发(2026-09-24 定)。
 
    ex_type: 附加类型
       扩充主类型，避免主类型产生过多分支。
@@ -56,7 +70,7 @@ message Packet {
       type: member-update + ex_type: base.avatar            群成员头像更新
       type: group-update  + ex_type: background             群背景更新
       type: group-update  + ex_type: base.avatar            群头像更新
-      type: group-update  + ex_type: base.name;private      群名字与私有性更新
+      type: group-update  + ex_type: base.name;base.type    群名字与群类型更新
       type: master-update + ex_type: base.name;base.avatar  主人资料更新(推给仆从)
       ...
 
@@ -96,21 +110,47 @@ message Packet {
       —— 比值的前提是"我这份是最新的",分布式下并不成立。
 */
 /*
-   ## status:这条通知我处理过没有
+   ## status:这条通知的状态 —— **每条通知都有,发送方在发出时写好**
 
-   `not_processed` / `processed`(邀请类另有 `accept` / `reject`)。**发出时一律写 `not_processed`**,
-   收方处理完调 `User.MarkNoticeProcessed`(按 uuid)置为 `processed`。
+   | 值 | 含义 | 谁写 |
+   |---|---|---|
+   | `not_processed` | 需要收方处理,还没处理 | 发送方(需要处理的通知) |
+   | `processed`     | 不需要处理 / 已处理 | 发送方(纯告知的通知);或收方调 `User.MarkNoticeProcessed` |
+   | `accept` / `reject` | 邀请已被同意 / 拒绝 | 后端(`User.HandleNotice`) |
+   | `invalid`       | 邀请的对象已不存在(如群已解散) | 后端 |
+   | `expired`       | 过了 `expiration` 还是 `not_processed` | **不存储,后端在读取时现算** |
 
-   为什么要落到通知上而不是让端上自己记:端**不在线时发生的事**,上线补拉 `ListSystemMessages`
-   拿到的是同一条通知,状态跟着它走,端就知道这条到底处理过没有 —— 端上自己那份记录,
-   换台设备、重装、清缓存就没了。
+   `expiration` 是**绝对时刻(微秒)**,与 `timestamp` 同一把尺;不带 = 不过期。
 
-   ⚠️ 补拉走的是**库里的 status**(`ListSystemMessage` 用 `sysMsg.Status` 覆盖 payload 里那份),
-   实时那条则是发出时的快照(恒为 `not_processed`)。所以判据以补拉/回执为准。
+   ## 终态:除了 `not_processed`,其余都是终态
+
+   **未达终态 = `not_processed` 且没过期**,别的都是终态(`processed` / `accept` / `reject` /
+   `invalid` / `expired`)。这条判据有两个用处,端上两处都必须按它来:
+
+   1. **端上删本地通知,只许删终态的。** 还欠着的那条在后端(或对方)那里挂着等一个答复,
+      本地删掉 = 那件事永远没人回,而且零报错(`core` 的 `delete_notice` 会拒,
+      `clear_notices` 只清终态的)。
+   2. **还欠着的通知与游标无关**:端上每轮同步用 `User.ListPendingNotices` 拿全量,
+      所以它不会因为换设备、重装、重新登录而丢。
+
+   纯告知的通知(群通知、`robot-update`、`plugin-load`、授权结果……)**发出时就是 `processed`**,
+   于是所有通知都按同一套状态处理,没有"这类通知有没有状态"的分支。
+
+   ## 后端只如实记录,新不新、要不要处理由端上判断
+
+   单聊通知由后端在 **MQTT 收到时**记进历史(不管是谁发的),保存 30 天。端上用
+   `User.ListNotices` 按游标增量拉**全部**通知,自己判断哪些是新的;
+   状态会变的(没处理完的那些),端上定期 + 下拉刷新时用 `User.ListNoticeStatuses` 按 uuid 查最新状态。
+
+   **游标不传 = 由服务端定起点**(重装 / 重新登录 / 换设备),与 `Group.ListMessages` 同一套;
+   服务端那个位置每拉一页只许前进。**端上删掉的通知不会被同步再拉回来**,靠的就是它 ——
+   本地游标在重新登录时随本地数据一起清空,那时若回到"最早一条",删掉的会整批回来。
+
+   ⚠️ 实时收到的那条是**发出时的快照**,之后的状态以 `ListNotices` / `ListNoticeStatuses` 为准。
 
    典型:`friend-add` —— 我把 A 删了、A 又加回来、我又是"自动同意",
-   那么这条通知就是我唯一能知道"好友回来了"的信号,处理完(清掉会话的 severed)回执一下,
-   免得每次上线都重复处理。
+   那么这条通知就是我唯一能知道"好友回来了"的信号。离线期间发生的,上线增量同步拿到它
+   (状态 `not_processed`),处理完(清掉会话的 severed)回执一下。
 */
 message Notice {
   option (hi.audience) = VIS_PARTICIPANT; // 群/单聊通知,收信域内可见
@@ -130,6 +170,7 @@ message Notice {
   //    已换成专门的公开摘要 hi.ai.PluginLoaded。合法载荷见上面的类型表。
   google.protobuf.Any extra      = 7 [(hi.visibility) = VIS_PARTICIPANT];
   optional string     ex_type    = 8 [(hi.visibility) = VIS_PARTICIPANT];
+  optional uint32     dark       = 9 [(hi.visibility) = VIS_PARTICIPANT]; // 暗语等级,不带 = 0 = 普通;见 Message 上方「暗语」那段
 }
 
 message Prompt {
@@ -141,9 +182,9 @@ message Prompt {
 /*
    Message.type —— 这条消息是什么。取值就是下面这几个,**别自己发明**。
 
-     chat     常规消息。**唯一会在聊天里显示的类型**
-     draft    草稿:后端照常落档,但**不推送、不触发 assistant**
-              (backend `isQ3GroupDraft`,目前只用在 Q3 群)
+     chat     常规消息。各端实际用到的只有这一个
+     draft    历史遗留,**没有任何一端实现,新代码别用**。这里原来写着「后端照常落档,
+              但不推送、不触发 assistant」,依据的 backend `isQ3GroupDraft` 早已删除 —— 那句是空话。
      invalid  历史遗留,**没有任何一端实现,新代码别用**。
               原意是"未通过安全验证的消息",但伪造包现在一律在 broker 就被拒掉、
               根本不进网,不存在"投出来一条 invalid 让端自己判"这回事。
@@ -183,9 +224,26 @@ message Prompt {
    我们维护的端里当时没有任何一处设置 `ghost`(core-mqtt 全是 `ghost: None`,
    backend 只是原样转发),所以反转不影响存量。
    ----------------------------------------------------------------------------------------------------
-   任意聊天中:
-   type != chat 时: 一律不显示
-   type == chat 时: 发送者显示为 ghost,ghost 为空则显示 from
+   任意聊天中:发送者显示为 ghost,ghost 为空则显示 from。
+   **显不显示看 `dark`(见下面「暗语」那段),不看 type。**
+*/
+/*
+   ## dark:暗语等级 —— **UI 忽略它,别的流程照走**
+
+   `dark` 是一个等级:**不带 = 0 = 普通(明)**,1 = 1 级暗语,依此类推。Message 与 Notice 各有一个。
+
+   · **暗 ≠ 保密。** 内容照常明文过 MQTT、照常进历史记录和各端本地库,会话里的人换个
+     不过滤的客户端就能读到。它只表示「界面上别显示」—— 典型用途:两个 agent 在群里协商,
+     不需要让群里的人看到。
+   · **只有显示这一步跳过**:进历史记录、补拉同步、机器人触发 AI 回复、回调……一律照走。
+   · **过滤在 core**:core 只把 `dark <= 阈值` 的交给 UI(阈值默认 0,可随时切换),
+     所以不认识暗语的 app 不用改就看不到。事件照发(带着 dark),机器人靠事件做事。
+   · 后端离线推送:`dark > 0` 不推(手机通知栏也是显示)。
+   · 回复一条暗语:**收到几级,回复就用几级**(后端 AI 助手、机器人都照此)。
+   · 分级是留给以后按层级分支处理的,现在只用到 0 / 1。
+
+   ⚠️ **不带就是 0,这是有意的缺省语义**,不是「拿零值冒充没有」:老的发送方从来不填这个字段,
+   它们发的就是 0 级(普通)消息。读的时候 `GetDark()` / `unwrap_or(0)` 是对的。
 */
 message Message {
   option (hi.audience) = VIS_PARTICIPANT; // 群消息,群成员可见
@@ -198,6 +256,7 @@ message Message {
   optional string     ex_type   = 7 [(hi.visibility) = VIS_PARTICIPANT];
   hi.Entity           ghost     = 8 [(hi.visibility) = VIS_PUBLIC]; // Entity=公开门面
   Prompt              prompt    = 9 [(hi.visibility) = VIS_PARTICIPANT];
+  optional uint32     dark      = 10 [(hi.visibility) = VIS_PARTICIPANT]; // 暗语等级,不带 = 0 = 普通;见上面「暗语」那段
 }
 
 // ⚠️ 被后端 Go 引用(群消息 @ 解析),proto 里无 rpc 引用,勿当死 message 删。
@@ -227,6 +286,7 @@ message MemberExit {
      transfer    转账卡            kind=trans(hi.did.Transaction)
      trade       交易卡            kind=trade(TradeBase)
      broadcast   广播
+     binance     币安操作结果卡      kind=binance(hi.binance.BinanceResult)
 
    ⚠️ **注意是 `image_url` 不是 `image`、`audio_url` 不是 `audio`。**
 
@@ -261,6 +321,8 @@ message Content {
     Chat               chat  = 2 [(hi.visibility) = VIS_PARTICIPANT];
     hi.did.Transaction trans = 3 [(hi.visibility) = VIS_PUBLIC]; // Transaction=公开
     TradeBase          trade = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 交易卡可入群,基础卡=PARTICIPANT
+    // 币安操作的结果,机器人回给下指令的那个会话。与转账卡同型:载荷定义在别的包里,这里只引用。
+    hi.binance.BinanceResult binance = 5 [(hi.visibility) = VIS_PARTICIPANT];
   }
 }
 

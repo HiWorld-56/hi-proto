@@ -21,14 +21,14 @@
     (`settle(ctx, g, "", "")` → grant.version / reason 全是空串)。
 
 两个脚本是**一对**,都要跑:
-    python3 audit_readpath.py > models.json
+    python3 audit_readpath.py > /tmp/hi-proto-models.json
     python3 gen_nullq.py  && mysql -N -B < /tmp/nullcheck.sql  | awk -F'\\t' '$3+0>0'
     python3 gen_emptyq.py && mysql -N -B < /tmp/emptycheck.sql | awk -F'\\t' '$3+0>0'
 """
 import json
 import pathlib
 
-d = json.load(open(pathlib.Path(__file__).with_name("models.json"), encoding="utf-8"))
+d = json.load(open("/tmp/hi-proto-models.json", encoding="utf-8"))
 parts = []
 for key, v in d.items():
     db, tbl = key.split(".", 1)

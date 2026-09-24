@@ -3,48 +3,65 @@ syntax = "proto3";
 package hi.media;
 
 import "buf/validate/validate.proto";
+import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/options.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
 
+// 管理员模型资源；普通用户使用 WorkflowModelOption，不能获得 real_name。
 message Model {
   option (hi.audience) = VIS_SELF;
+  // 服务端生成的不透明 ID，创建后不可修改。
   optional string model_id = 1 [(hi.visibility) = VIS_SELF];
-  // 用户可见的产品模型名称，不是 ComfyUI 工作流中的原始模型文件名。
-  optional string name = 2 [(hi.visibility) = VIS_SELF];
-  optional int64 created_at = 3 [(hi.visibility) = VIS_SELF];
-  optional int64 updated_at = 4 [(hi.visibility) = VIS_SELF];
+  // 全局唯一的用户可见名称，管理员可修改。
+  optional string display_name = 2 [(hi.visibility) = VIS_SELF];
+  // 管理员手动填写的 ComfyUI 主模型文件名，全局唯一且创建后不可修改；仅管理可见。
+  optional string real_name = 3 [(hi.visibility) = VIS_SELF];
+  // Unix 秒。
+  optional int64 created_at = 4 [(hi.visibility) = VIS_SELF];
+  // Unix 秒。
+  optional int64 updated_at = 5 [(hi.visibility) = VIS_SELF];
 }
 
+// 创建模型，显示名和真实名分别全局唯一。
 message CreateModelReq {
-  optional string name = 1 [
+  optional string display_name = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // ComfyUI 主模型真实文件名；由管理员确认，不从候选列表接口获取。
+  optional string real_name = 2 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
 }
 
+// 返回新建模型及服务端分配的 ID。
 message CreateModelResp {
   option (hi.audience) = VIS_SELF;
   Model model = 1 [(hi.visibility) = VIS_SELF];
 }
 
+// 仅修改显示名；模型 ID 和真实名不可修改。
 message UpdateModelReq {
   optional string model_id = 1 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
-  optional string name = 2 [
+  optional string display_name = 2 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
 }
 
+// 返回更新后的模型。
 message UpdateModelResp {
   option (hi.audience) = VIS_SELF;
   Model model = 1 [(hi.visibility) = VIS_SELF];
 }
 
+// 按模型 ID 查询管理详情。
 message GetModelReq {
   optional string model_id = 1 [
     (buf.validate.field).string.min_len = 1,
@@ -52,31 +69,51 @@ message GetModelReq {
   ];
 }
 
+// 返回模型管理详情。
 message GetModelResp {
   option (hi.audience) = VIS_SELF;
   Model model = 1 [(hi.visibility) = VIS_SELF];
 }
 
+// 分页查询全部模型，不按关联工作流启用状态过滤。
 message ListModelsReq {
   hi.Pagination pagination = 1;
 }
 
+// 返回模型总数和当前分页。
 message ListModelsResp {
   option (hi.audience) = VIS_SELF;
   optional int32 total = 1 [(hi.visibility) = VIS_SELF];
   repeated Model models = 2 [(hi.visibility) = VIS_SELF];
 }
 
+// 删除没有被任何工作流引用的模型。
+message DeleteModelReq {
+  optional string model_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+}
+
+// 管理员维护用户显示名与真实模型名；不动态改写工作流 Loader。
 service ModelManage {
+  // 创建显示名与真实名的对应关系。
   rpc Create(CreateModelReq) returns (CreateModelResp) {
     option (hi.auth) = AUTH_SUPERADMIN;
   }
+  // 仅更新用户可见显示名。
   rpc Update(UpdateModelReq) returns (UpdateModelResp) {
     option (hi.auth) = AUTH_SUPERADMIN;
   }
+  // 被任何工作流引用时返回 FailedPrecondition；成功返回空响应。
+  rpc Delete(DeleteModelReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
+  // 分页查询模型。
   rpc List(ListModelsReq) returns (ListModelsResp) {
     option (hi.auth) = AUTH_SUPERADMIN;
   }
+  // 查询模型详情，包含仅管理员可见的真实名。
   rpc Get(GetModelReq) returns (GetModelResp) {
     option (hi.auth) = AUTH_SUPERADMIN;
   }

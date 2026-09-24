@@ -1,0 +1,142 @@
+syntax = "proto3";
+
+package hi.ninja;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ninja";
+
+import "google/protobuf/empty.proto";
+
+// **hinj_brain ←→ hinj_updater** 这一条线（机器人固件的 OTA 自动更新）。
+//
+// 传输与注册那套约定是**所有模块共用的**，写在 `hi/ninja/common.proto` 里，
+// 不要在各模块的文件里各抄一份。
+//
+// ## 为什么更新要单独一个进程
+//
+// 它要**停掉 face 和 brain、换掉 `/opt/hinj/current`、再把它们拉起来** ——
+// 自己被自己换掉是做不到的。所以 updater 是 systemd 直接拉起的独立进程，
+// brain 只是它的一个客户端：发"去查一下"、发"装吧"、以及把状态转给 face 显示。
+//
+// ⚠️ **brain 不是这条链的权威**。要不要更新、能不能装、装到哪一步，全部由 updater 决定；
+// brain 连"现在是什么状态"都不自己记，一律以 updater 回的 `UpdateStatus` 为准。
+//
+// ## 这个文件是 2026-09-18 补的
+//
+// 在此之前这条通道走的是**两个仓各手写一份的 JSON**（brain 的 `UpdaterStatus` /
+// updater 的 `UpdateStatus`），字段靠 `#[serde(default)]` 兜着 ——
+// **漂了不报错**，只会让某个字段静默变成默认值。`state` 的 18 个取值更是被抄了三份
+// （brain 一份、updater 一份、brain 的单测里第三份）。
+//
+// 补的时候顺手把两处"拿字符串当判据"改掉了，见 `State` / `Trigger` 的注释。
+
+// 更新状态快照。**updater 是唯一的写方**，brain 与 face 都只读。
+//
+// 它同时是三个地方的同一份东西：updater 落盘的 `status.json`、
+// updater 主动推给 brain 的事件、以及每条控制命令的回包 ——
+// 所以 brain 不需要"合并状态"，收到哪份用哪份。
+message UpdateStatus {
+  // 当前阶段。**这些值 updater 全都会真的写出来**，一个不多一个不少
+  // （2026-09-18 在 hinj-updater 仓里逐个数过）。
+  //
+  // ⚠️ 原来这里是自由字符串，注释里举的 `installing` / `success` **实现里一次都没出现过**，
+  // 而真正会出现的 13 个一个都没写。face 要照它渲染界面，猜不得。
+  enum State {
+    STATE_UNKNOWN          = 0;
+    // —— 没有在装的时候 ——
+    STATE_IDLE             = 1;  // 闲着；**也包括"查过了，已经是最新"**
+    STATE_CHECKING         = 2;  // 正在问服务端有没有新版
+    STATE_UPDATE_AVAILABLE = 3;  // 有新版，等人点"装"（target_version 是它）
+    // —— 正在装（这一段里 updater 拒绝任何新的检查/安装命令）——
+    STATE_DOWNLOADING      = 4;  // 下载 bundle（看 downloaded_bytes / total_bytes）
+    STATE_VERIFYING        = 5;  // 校验摘要/签名
+    STATE_UNPACKING        = 6;  // 解包到 releases/<版本>
+    STATE_STOPPING         = 7;  // 停 face、停 brain
+    STATE_PRESERVING       = 8;  // 保留要跨版本带走的数据
+    STATE_SWITCHING        = 9;  // 原子切换 /opt/hinj/current
+    STATE_STARTING         = 10; // 拉起 brain、拉起 face
+    STATE_HEALTHY          = 11; // 等服务真的 active
+    STATE_SELF_UPDATING    = 12; // **updater 换它自己**（换完要走一次启动确认）
+    STATE_RETRYING         = 13; // 这一轮失败了，等着重来
+    STATE_ROLLBACKING      = 14; // 正在回到上一个版本
+    // —— 收尾 ——
+    STATE_DONE             = 15; // 装成了
+    STATE_FAILED           = 16; // 装/查失败（原因在 error）
+    STATE_ROLLBACK_DONE    = 17; // 回滚成功，跑的是旧版本
+    STATE_ROLLBACK_FAILED  = 18; // 回滚也失败了 —— **人要到现场**
+  }
+
+  // 这一次状态变化是**谁引起的**。
+  //
+  // ⚠️ 它不只是给人看的：brain 判断"我要的那次检查到底做了没有"**只能靠它** ——
+  // updater 在忙的时候会回一个 `ok=true` 但什么都没查的响应，
+  // 状态里的 trigger 还是上一次那个。判据是"trigger 是我这次发的那个"，
+  // 不是"ok 为真"（见 `UpdaterToBrain.CmdResp`）。
+  enum Trigger {
+    TRIGGER_UNKNOWN         = 0;
+    TRIGGER_MANUAL          = 1; // 人在 face 上点的
+    TRIGGER_UPDATER_STARTUP = 2; // updater 自己开机时查的（brain 可能还没起来）
+    TRIGGER_BRAIN_STARTUP   = 3; // brain 开机、且网络/时间/登录都就绪之后让它查的
+    TRIGGER_PUSH            = 4; // 收到 `app-update` 全网广播（见 hi/did/admin.proto）
+    TRIGGER_POLL            = 5; // updater 自己的轮询
+    TRIGGER_APPLY           = 6; // 安装过程中写出来的状态
+  }
+
+  optional State  state            = 1;
+  optional string current_version  = 2;  // 当前在跑的版本；不传=updater 也不知道
+  optional string target_version   = 3;  // 要更新到的版本；不传=没有更新目标
+  optional uint32 progress         = 4;  // 0-100。**总长未知时恒为 0**，别编一个会往回跳的数
+  optional string message          = 5;  // 给人看的一句话说明
+  optional string error            = 6;  // 失败原因；不传=没失败
+  repeated string changes          = 7;  // changelog
+  optional Trigger trigger         = 8;
+  optional uint64 updated_at       = 9;  // 这份状态写出来的时刻，**Unix 秒**
+  optional uint64 last_check_at    = 10; // 最近一次真的问过服务端的时刻，**Unix 秒**；不传=从没查过
+  optional uint64 downloaded_bytes = 11;
+  // **不传 = 未知**（服务端没给 Content-Length）；0 是真实取值：空文件。
+  // 与 `hi/ninja/ui.proto` 的 `PluginProgress.total_bytes` 同口径。
+  optional uint64 total_bytes      = 12;
+}
+
+// brain -> updater
+message BrainToUpdater {
+  // 回包按它配对。**每条请求都要带**，updater 原样放回 `CmdResp.request_id`；
+  // 对不上的回包 brain 直接丢（超时之后迟到的那种）。
+  optional string request_id = 1;
+
+  oneof cmd {
+    // 取一次当前状态，不触发任何动作。（本文件里空请求一律用 Empty，同 ui.proto）
+    google.protobuf.Empty get_status = 2;
+    Check                 check      = 3;
+    // 把 `target_version` 那一版装上。**这是不可逆的**：会停 face/brain、换 current。
+    google.protobuf.Empty apply      = 4;
+  }
+}
+
+// 现在去问服务端有没有新版。
+message Check {
+  // 谁让查的。**不传=TRIGGER_MANUAL**。
+  // updater 按它分别做防抖（各档的间隔在 `hinj-updater.toml`），
+  // 并把它写进 `UpdateStatus.trigger` —— 那是 brain 认领自己那次检查的唯一凭据。
+  optional UpdateStatus.Trigger trigger = 1;
+}
+
+// updater -> brain
+message UpdaterToBrain {
+  oneof cmd {
+    CmdResp      resp          = 1;
+    // updater 主动推的状态变化（不对应任何请求）。装的过程全靠它，一路推到 face。
+    UpdateStatus event_status  = 2;
+  }
+}
+
+// 一条控制命令的回包。**状态永远带着**，不管成没成 —— 失败时那份状态正是原因所在。
+message CmdResp {
+  optional string       request_id = 1;
+  // ⚠️ **`ok=true` 只说明这条命令被接受了，不说明它做了事。**
+  // updater 在装的时候、或者防抖窗口里，会回一个"好的，但我什么都没查"的成功响应。
+  // 要知道"我要的那次检查做了没有"，判据是 `status.trigger` 等于你发的那个
+  // 且 `status.state` 是 IDLE / UPDATE_AVAILABLE 之一。
+  optional bool         ok         = 2;
+  optional string       error      = 3;  // 不传=没出错
+  UpdateStatus          status     = 4;
+}

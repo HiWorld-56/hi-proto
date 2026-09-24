@@ -22,7 +22,8 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ninja";
 //
 // ## 一个模块一个文件
 //
-// `ui.proto`（face）、`lua.proto`（lua 执行器）…… **判据是「谁跟谁说话」，不是「聊什么」。**
+// `ui.proto`（face）、`lua.proto`（lua 执行器）、`updater.proto`（OTA 更新）……
+// **判据是「谁跟谁说话」，不是「聊什么」。**
 // 混在一个文件里的后果是：加一个模块就要在一堆无关消息中间找地方插，
 // 而 `oneof` 的字段号是全局的，谁都可能撞。
 
@@ -34,4 +35,5 @@ enum ModuleId {
   MODULE_UNKNOWN = 0;
   MODULE_UI      = 1; // hinj_ui（face）
   MODULE_LUA     = 2; // lua 执行器
+  MODULE_UPDATER = 3; // hinj_updater（OTA 更新，systemd 直接拉起的独立进程）
 }

@@ -32,6 +32,7 @@ SK = "NyoDifhqrDB7L9jrEE5K6eVM7pwSEueQKIQ8Vjht"
 # 而那条错看着像 minio 挂了。
 # ⚠️ SigV4 的 canonical request 里也带 host,所以两处必须用同一个值 —— 它们都读这个常量。
 import os as _os
+from _lua_contract import host_contract
 HOST = _os.environ.get("MINIO_HOST", "127.0.0.1:9000")
 BUCKET = "hiai"
 PUBLIC_BASE = "https://hisource.hi.lan/"
@@ -39,7 +40,8 @@ REGION, SVC = "us-east-1", "s3"
 
 # ⭐ MAGIC 是"插件真的跑了"的唯一可靠证据 —— 工具没被调用时模型会自己编一个合理答复。
 MAIN_LUA = '''return {
-  contract = 1,
+  -- 契约号开跑时问构建服务(见 _lua_contract.py),这里不写数字
+  contract = REPLACE_CONTRACT,
   manifest = [[
     [{"type":"function","function":{
       "name":"dep_roundtrip",
@@ -75,7 +77,7 @@ VER  = _sys.argv[2] if len(_sys.argv) > 2 else "2.1.0"
 def build_zip():
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
-        z.writestr("main.lua", MAIN_LUA.replace("REPLACE_ROCK", ROCK).replace("REPLACE_VER", VER))
+        z.writestr("main.lua", MAIN_LUA.replace("REPLACE_CONTRACT", str(host_contract())).replace("REPLACE_ROCK", ROCK).replace("REPLACE_VER", VER))
         z.writestr("description.json", json.dumps(DESC, ensure_ascii=False, indent=2))
         # ⚠️ **版本必须钉死,不给范围。** 给范围就要解算器,而解算器的结果会随
         #    "解析那一刻 luarocks 上有什么"而变 —— 同一个插件版本在不同时间装出

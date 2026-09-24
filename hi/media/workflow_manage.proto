@@ -4,19 +4,23 @@ package hi.media;
 
 import "buf/validate/validate.proto";
 import "hi/common.proto";
-import "hi/media/feature.proto";
+import "hi/media/function.proto";
+import "hi/media/model_manage.proto";
 import "hi/media/task.proto";
 import "hi/options.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
 
+// 将一个业务参数绑定到一个具体节点输入，不支持多目标绑定。
 message WorkflowInputBinding {
   option (hi.audience) = VIS_SELF;
+  // API JSON 中的字符串节点 ID，可包含冒号。
   optional string node_id = 1 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true,
     (hi.visibility) = VIS_SELF
   ];
+  // inputs 中的精确键名，包括动态节点中的点号。
   optional string input_name = 2 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true,
@@ -24,6 +28,7 @@ message WorkflowInputBinding {
   ];
 }
 
+// 唯一主输出 SaveVideo 节点，用于解析 history，不绑定 output_name。
 message WorkflowOutputConfig {
   option (hi.audience) = VIS_SELF;
   // 主输出只绑定节点；后端按节点 class_type 使用固定 history 解析器。
@@ -34,6 +39,7 @@ message WorkflowOutputConfig {
   ];
 }
 
+// 完整字符串选项及其写入节点，适用于宽高比。
 message WorkflowStringOptionInput {
   option (hi.audience) = VIS_SELF;
   WorkflowInputBinding binding = 1 [
@@ -46,6 +52,7 @@ message WorkflowStringOptionInput {
   ];
 }
 
+// 规范十进制选项及其写入节点，适用于像素量。
 message WorkflowDecimalOptionInput {
   option (hi.audience) = VIS_SELF;
   WorkflowInputBinding binding = 1 [
@@ -58,6 +65,7 @@ message WorkflowDecimalOptionInput {
   ];
 }
 
+// 正整数范围及其写入节点，适用于视频时长。
 message WorkflowIntRangeInput {
   option (hi.audience) = VIS_SELF;
   WorkflowInputBinding binding = 1 [
@@ -70,12 +78,14 @@ message WorkflowIntRangeInput {
   ];
 }
 
+// 管理员固定文本输入，不向普通用户开放。
 message WorkflowFixedTextInput {
   option (hi.audience) = VIS_SELF;
   WorkflowInputBinding binding = 1 [
     (buf.validate.field).required = true,
     (hi.visibility) = VIS_SELF
   ];
+  // 管理员固定文本，提供本消息时必须填写，不作为普通用户参数。
   optional string value = 2 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true,
@@ -83,6 +93,7 @@ message WorkflowFixedTextInput {
   ];
 }
 
+// 用户可选帧率的范围和绑定节点。
 message WorkflowSelectableFrameRate {
   option (hi.audience) = VIS_SELF;
   WorkflowInputBinding binding = 1 [
@@ -95,12 +106,15 @@ message WorkflowSelectableFrameRate {
   ];
 }
 
+// 帧率配置，选择用户可调或工作流固定值。
 message WorkflowFrameRateInput {
   option (hi.audience) = VIS_SELF;
   oneof mode {
     option (buf.validate.oneof).required = true;
 
+    // 用户可选范围，执行时写入绑定节点。
     WorkflowSelectableFrameRate selectable = 1 [(hi.visibility) = VIS_SELF];
+    // 帧/秒；工作流内部固定，不执行节点改写。
     int32 fixed_value = 2 [
       (buf.validate.field).int32.gt = 0,
       (hi.visibility) = VIS_SELF
@@ -108,6 +122,7 @@ message WorkflowFrameRateInput {
   }
 }
 
+// 图生视频执行配置，对应功能 video.img2vid。
 message ImageToVideoWorkflowConfig {
   option (hi.audience) = VIS_SELF;
   WorkflowInputBinding input_image = 1 [
@@ -118,6 +133,7 @@ message ImageToVideoWorkflowConfig {
     (buf.validate.field).required = true,
     (hi.visibility) = VIS_SELF
   ];
+  // 正向提示词的 Unicode 码点上限，不是 UTF-8 字节数。
   optional uint32 prompt_max_length = 3 [
     (buf.validate.field).uint32.gt = 0,
     (buf.validate.field).required = true,
@@ -143,12 +159,14 @@ message ImageToVideoWorkflowConfig {
   ];
 }
 
+// 文生视频执行配置，对应功能 video.txt2vid。
 message TextToVideoWorkflowConfig {
   option (hi.audience) = VIS_SELF;
   WorkflowInputBinding prompt = 1 [
     (buf.validate.field).required = true,
     (hi.visibility) = VIS_SELF
   ];
+  // 正向提示词的 Unicode 码点上限，不是 UTF-8 字节数。
   optional uint32 prompt_max_length = 2 [
     (buf.validate.field).uint32.gt = 0,
     (buf.validate.field).required = true,
@@ -174,9 +192,10 @@ message TextToVideoWorkflowConfig {
   ];
 }
 
+// 完整执行配置；功能配置必须与工作流归属一致，保存时不建立产物预占。
 message WorkflowExecutionConfig {
   option (hi.audience) = VIS_SELF;
-  oneof feature_config {
+  oneof function_config {
     option (buf.validate.oneof).required = true;
 
     ImageToVideoWorkflowConfig image_to_video = 1 [(hi.visibility) = VIS_SELF];
@@ -186,25 +205,23 @@ message WorkflowExecutionConfig {
     (buf.validate.field).required = true,
     (hi.visibility) = VIS_SELF
   ];
+  // 从 ComfyUI 真正开始执行起计时，单位秒；必填正整数，不按模型名称硬编码。
   optional uint32 execution_timeout_seconds = 4 [
     (buf.validate.field).uint32.gt = 0,
     (buf.validate.field).required = true,
     (hi.visibility) = VIS_SELF
   ];
-  optional uint64 output_reservation_bytes = 5 [
-    (buf.validate.field).uint64.gt = 0,
-    (buf.validate.field).required = true,
-    (hi.visibility) = VIS_SELF
-  ];
 }
 
+// 工作流生命周期状态，修改执行内容后回到草稿。
 enum WorkflowStatus {
   WORKFLOW_STATUS_UNSPECIFIED = 0;
   WORKFLOW_STATUS_DRAFT = 1;
-  // 最近校验通过的草稿在管理试跑完整成功后自动进入 ENABLED；是否对用户可用仍由映射决定。
+  // 最近校验通过的草稿在试跑完整成功后自动启用，出现在 Function.Get 的可用工作流中。
   WORKFLOW_STATUS_ENABLED = 2;
 }
 
+// 当前内容的最近静态校验状态；修改执行内容后重置。
 enum WorkflowValidationStatus {
   // 尚未校验。
   WORKFLOW_VALIDATION_STATUS_UNSPECIFIED = 0;
@@ -212,12 +229,14 @@ enum WorkflowValidationStatus {
   WORKFLOW_VALIDATION_STATUS_FAILED = 2;
 }
 
+// 校验问题严重程度；任意 ERROR 阻止试跑。
 enum WorkflowIssueSeverity {
   WORKFLOW_ISSUE_SEVERITY_UNSPECIFIED = 0;
   WORKFLOW_ISSUE_SEVERITY_WARNING = 1;
   WORKFLOW_ISSUE_SEVERITY_ERROR = 2;
 }
 
+// 静态校验发现的问题，节点和输入定位信息按需提供。
 message WorkflowIssue {
   option (hi.audience) = VIS_SELF;
   optional string code = 1 [(hi.visibility) = VIS_SELF];
@@ -227,16 +246,22 @@ message WorkflowIssue {
   optional string input_name = 5 [(hi.visibility) = VIS_SELF];
 }
 
+// 供管理员配置绑定的节点输入描述。
 message WorkflowNodeInput {
   option (hi.audience) = VIS_SELF;
   optional string input_name = 1 [(hi.visibility) = VIS_SELF];
+  // 固定值的原始 JSON；连线输入不提供。
   optional string value_json = 2 [(hi.visibility) = VIS_SELF];
+  // true 表示 [source_node_id, output_index] 连线。
   optional bool is_link = 3 [(hi.visibility) = VIS_SELF];
   optional string source_node_id = 4 [(hi.visibility) = VIS_SELF];
+  // 源节点输出的零基下标，仅连线输入提供。
   optional int32 source_output_index = 5 [(hi.visibility) = VIS_SELF];
+  // object_info 可用时补充的上游输入类型。
   optional string declared_type = 6 [(hi.visibility) = VIS_SELF];
 }
 
+// 从当前 API JSON 解析的节点，节点 ID 不按整数解释。
 message WorkflowNode {
   option (hi.audience) = VIS_SELF;
   optional string node_id = 1 [(hi.visibility) = VIS_SELF];
@@ -246,214 +271,301 @@ message WorkflowNode {
   optional bool supported_main_output = 5 [(hi.visibility) = VIS_SELF];
 }
 
+// 依赖类型，区分节点实现与 Loader 文件。
 enum WorkflowDependencyKind {
   WORKFLOW_DEPENDENCY_KIND_UNSPECIFIED = 0;
   WORKFLOW_DEPENDENCY_KIND_NODE_CLASS = 1;
   WORKFLOW_DEPENDENCY_KIND_LOADER_FILE = 2;
 }
 
+// 依赖在工作流中使用的位置。
 message WorkflowDependencyUsage {
   option (hi.audience) = VIS_SELF;
   optional string node_id = 1 [(hi.visibility) = VIS_SELF];
   optional string input_name = 2 [(hi.visibility) = VIS_SELF];
 }
 
+// 动态解析的依赖，管理员只查看，不维护依赖清单。
 message WorkflowDependency {
   option (hi.audience) = VIS_SELF;
   optional WorkflowDependencyKind kind = 1 [(hi.visibility) = VIS_SELF];
+  // 节点 class_type 或 Loader 依赖文件名。
   optional string identifier = 2 [(hi.visibility) = VIS_SELF];
   repeated WorkflowDependencyUsage usages = 3 [(hi.visibility) = VIS_SELF];
   // false 表示仅存在于当前固定关闭的惰性分支；缺失时校验只产生警告。
   optional bool required = 4 [(hi.visibility) = VIS_SELF];
 }
 
+// 管理摘要；不下载工作流文件，不暴露对象键、存储地址或完整 API JSON。
 message WorkflowSummary {
   option (hi.audience) = VIS_SELF;
-  optional string workflow_version_id = 1 [(hi.visibility) = VIS_SELF];
-  optional FeatureKey feature_key = 2 [(hi.visibility) = VIS_SELF];
-  optional string name = 3 [(hi.visibility) = VIS_SELF];
-  optional WorkflowStatus status = 4 [(hi.visibility) = VIS_SELF];
-  optional WorkflowValidationStatus validation_status = 5 [(hi.visibility) = VIS_SELF];
-  optional int64 enabled_at = 6 [(hi.visibility) = VIS_SELF];
-  optional string created_by = 7 [(hi.visibility) = VIS_SELF];
-  optional int64 created_at = 8 [(hi.visibility) = VIS_SELF];
-  optional int64 updated_at = 9 [(hi.visibility) = VIS_SELF];
+  // 服务端将 function_id、单个零字节、model_id 依次拼接后计算 SHA-256，取小写十六进制。
+  optional string workflow_id = 1 [(hi.visibility) = VIS_SELF];
+  FunctionSummary function = 2 [(hi.visibility) = VIS_SELF];
+  Model model = 3 [(hi.visibility) = VIS_SELF];
+  // 当前上传文件的原文件名，仅用于管理展示。
+  optional string original_filename = 4 [(hi.visibility) = VIS_SELF];
+  // 当前 API JSON 原始字节数；JSON 使用十进制字符串。
+  optional uint64 file_size_bytes = 5 [(hi.visibility) = VIS_SELF];
+  optional WorkflowStatus status = 6 [(hi.visibility) = VIS_SELF];
+  optional WorkflowValidationStatus validation_status = 7 [(hi.visibility) = VIS_SELF];
+  // 创建时为 false；仅管理员显式指定，同一功能最多一个默认项。
+  optional bool is_default = 8 [(hi.visibility) = VIS_SELF];
+  // 同一功能内的展示顺序，较小值优先。
+  optional int32 sort_order = 9 [(hi.visibility) = VIS_SELF];
+  // Unix 秒；首次试跑成功启用时间，从未启用时不提供，后续修改或试跑不覆盖。
+  optional int64 enabled_at = 10 [(hi.visibility) = VIS_SELF];
+  // 首次导入管理员 DID。
+  optional string created_by = 11 [(hi.visibility) = VIS_SELF];
+  // Unix 秒。
+  optional int64 created_at = 12 [(hi.visibility) = VIS_SELF];
+  // Unix 秒。
+  optional int64 updated_at = 13 [(hi.visibility) = VIS_SELF];
 }
 
+// 管理详情；Get 的节点和依赖从当前文件动态解析，Update 不返回这两项。
+// 不返回完整文件或历史对象列表。
 message WorkflowDetail {
   option (hi.audience) = VIS_SELF;
   WorkflowSummary summary = 1 [(hi.visibility) = VIS_SELF];
+  // 管理员自由编辑的用户说明，按安全 Markdown 渲染。
   optional string description = 2 [(hi.visibility) = VIS_SELF];
-  optional string api_json = 3 [(hi.visibility) = VIS_SELF];
-  WorkflowExecutionConfig config = 4 [(hi.visibility) = VIS_SELF];
-  repeated WorkflowNode nodes = 5 [(hi.visibility) = VIS_SELF];
-  repeated WorkflowDependency dependencies = 6 [(hi.visibility) = VIS_SELF];
-  repeated WorkflowIssue validation_issues = 7 [(hi.visibility) = VIS_SELF];
-  optional int64 validated_at = 8 [(hi.visibility) = VIS_SELF];
+  // 尚未配置时不提供。
+  WorkflowExecutionConfig config = 3 [(hi.visibility) = VIS_SELF];
+  repeated WorkflowNode nodes = 4 [(hi.visibility) = VIS_SELF];
+  repeated WorkflowDependency dependencies = 5 [(hi.visibility) = VIS_SELF];
+  repeated WorkflowIssue validation_issues = 6 [(hi.visibility) = VIS_SELF];
+  // Unix 秒；尚未校验时不提供。
+  optional int64 validated_at = 7 [(hi.visibility) = VIS_SELF];
 }
 
-message ImportWorkflowReq {
-  optional FeatureKey feature_key = 1 [
-    (buf.validate.field).enum = {
-      defined_only: true
-      not_in: [0]
-    },
-    (buf.validate.field).required = true
-  ];
-  optional string name = 2 [
+// AUTH_SUPERADMIN 的 POST /api/v1/workflow_manage/import 使用的 metadata。
+// 自定义 multipart HTTP 接口，不是 RPC。第一项 metadata 为 application/json、
+// 不携带 filename，仅接受 lowerCamelCase（functionId/modelId/description）；
+// 第二项 workflow 为完整 UTF-8 API JSON .json 文件，非空，默认上限 10 MiB。
+// 不接受编辑器 Workflow JSON；组合已存在时返回 Aborted，不覆盖原工作流。
+message WorkflowImportMetadata {
+  // 来自 Function.List 的 video.img2vid 或 video.txt2vid。
+  optional string function_id = 1 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
-  optional string api_json = 3 [
+  // 已创建且尚未关联同一功能工作流的模型 ID。
+  optional string model_id = 2 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
-  optional string description = 4;
+  // 不传表示没有说明；不从工作流 Note 自动提取。
+  optional string description = 3;
 }
 
-message ImportWorkflowResp {
+// AUTH_SUPERADMIN 的 POST /api/v1/workflow_manage/replace_file 使用的 metadata。
+// 第一项 metadata 为 application/json、无 filename，仅接受 lowerCamelCase workflowId；
+// 第二项 workflow 的文件要求与 Import 相同。替换后保留说明和配置，回到草稿并重置校验。
+// 旧文件保留；存在未结束任务时拒绝替换，返回 Aborted。
+message WorkflowReplaceFileMetadata {
+  // 已导入的工作流 ID，不修改其功能与模型归属。
+  optional string workflow_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+}
+
+// 两个工作流 multipart 接口成功响应包装中的 data；只返回稳定工作流 ID。
+message WorkflowFileMutationResp {
   option (hi.audience) = VIS_SELF;
-  optional string workflow_version_id = 1 [(hi.visibility) = VIS_SELF];
+  optional string workflow_id = 1 [(hi.visibility) = VIS_SELF];
 }
 
+// 更新说明或完整执行配置，至少提供一项；不接受工作流 JSON 字符串。
 message UpdateWorkflowReq {
   option (buf.validate.message).cel = {
     id: "update_workflow.content"
-    message: "api_json or config must be provided"
-    expression: "has(this.api_json) || has(this.config)"
+    message: "description or config must be provided"
+    expression: "has(this.description) || has(this.config)"
   };
 
-  optional string workflow_version_id = 1 [
+  optional string workflow_id = 1 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
-  // api_json 与 config 至少提交一项；只允许修改草稿。
-  optional string api_json = 2 [(buf.validate.field).string.min_len = 1];
+  // 不传表示不修改；显式空字符串表示清空，仅修改说明不改变状态或校验结果。
+  optional string description = 2;
+  // 提交即替换完整配置并回到 DRAFT / unvalidated；有未结束任务时返回 Aborted。
   WorkflowExecutionConfig config = 3;
 }
 
+// 返回数据库中的更新结果（摘要、说明、配置及校验结果），不读取工作流文件。
+// 不返回动态 nodes/dependencies；如需刷新节点和依赖，请调用 Get。
 message UpdateWorkflowResp {
   option (hi.audience) = VIS_SELF;
   WorkflowDetail workflow = 1 [(hi.visibility) = VIS_SELF];
 }
 
-message UpdateWorkflowDescriptionReq {
-  optional string workflow_version_id = 1 [
-    (buf.validate.field).string.min_len = 1,
-    (buf.validate.field).required = true
-  ];
-  // 必须显式提交；空字符串表示清空说明。
-  optional string description = 2 [(buf.validate.field).required = true];
-}
-
-message UpdateWorkflowDescriptionResp {
-  option (hi.audience) = VIS_SELF;
-  WorkflowDetail workflow = 1 [(hi.visibility) = VIS_SELF];
-}
-
+// 根据工作流 ID 查询管理员详情。
 message GetWorkflowReq {
-  optional string workflow_version_id = 1 [
+  optional string workflow_id = 1 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
 }
 
+// 当前文件不可用时返回 Unavailable；对象不存在或 JSON 损坏时返回 FailedPrecondition。
 message GetWorkflowResp {
   option (hi.audience) = VIS_SELF;
   WorkflowDetail workflow = 1 [(hi.visibility) = VIS_SELF];
 }
 
+// 分页查询工作流摘要；不传过滤字段表示不过滤。
 message ListWorkflowsReq {
   hi.Pagination pagination = 1;
-  optional FeatureKey feature_key = 2 [(buf.validate.field).enum = {
-    defined_only: true
-    not_in: [0]
-  }];
+  // 来自 Function.List 的固定功能 ID。
+  optional string function_id = 2 [(buf.validate.field).string.min_len = 1];
   optional WorkflowStatus status = 3 [(buf.validate.field).enum = {
     defined_only: true
     not_in: [0]
   }];
 }
 
+// 返回数据库摘要，不触发文件下载。
 message ListWorkflowsResp {
   option (hi.audience) = VIS_SELF;
   optional int32 total = 1 [(hi.visibility) = VIS_SELF];
   repeated WorkflowSummary workflows = 2 [(hi.visibility) = VIS_SELF];
 }
 
+// 静态校验当前文件、绑定、参数和环境依赖，不执行 GPU。
 message ValidateWorkflowReq {
-  optional string workflow_version_id = 1 [
+  optional string workflow_id = 1 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
 }
 
+// 最近一次静态校验结果；只有 WARNING 时仍为 PASSED。
 message ValidateWorkflowResp {
   option (hi.audience) = VIS_SELF;
   optional WorkflowValidationStatus status = 1 [(hi.visibility) = VIS_SELF];
   repeated WorkflowIssue issues = 2 [(hi.visibility) = VIS_SELF];
+  // Unix 秒。
   optional int64 validated_at = 3 [(hi.visibility) = VIS_SELF];
 }
 
+// 受理管理试跑；允许最近校验通过的 DRAFT 或 ENABLED，同一工作流不能并行试跑。
 message TestWorkflowReq {
+  // 管理员范围内的幂等键；同一次试跑重发复用，新试跑使用新值。
   optional string request_id = 1 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
-  optional string workflow_version_id = 2 [
+  // 最近一次静态校验必须通过，无需预先启用。
+  optional string workflow_id = 2 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
+  // 本次真实试跑的正向提示词，按工作流 Unicode 码点上限校验。
   optional string prompt = 3 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
-  // 图生视频必须提交管理员本人的图片资产；文生视频必须省略。
+  // 图生视频必须提交管理员本人的可用 JPEG/PNG 资产；文生视频必须省略。
   // 分辨率、时长和帧率统一使用工作流默认值或固定值。
   optional string input_asset_id = 4 [(buf.validate.field).string.min_len = 1];
 }
 
+// 返回受理的试跑任务 ID；试跑成功保存并结算后才自动启用草稿，不支持恢复保存。
 message TestWorkflowResp {
   option (hi.audience) = VIS_SELF;
   optional string task_id = 1 [(hi.visibility) = VIS_SELF];
 }
 
+// 查询指定工作流的管理试跑，不包含普通任务。
 message ListWorkflowTestsReq {
   hi.Pagination pagination = 1;
-  optional string workflow_version_id = 2 [
+  optional string workflow_id = 2 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
 }
 
+// 返回该工作流的管理试跑总数及分页，不区分管理员归属。
 message ListWorkflowTestsResp {
   option (hi.audience) = VIS_SELF;
   optional int32 total = 1 [(hi.visibility) = VIS_SELF];
   repeated TaskSummary tasks = 2 [(hi.visibility) = VIS_SELF];
 }
 
+// 设置或清除默认项，不改变启用状态。
+message SetDefaultWorkflowReq {
+  optional string workflow_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // true 清除同功能其他默认项；false 只清除目标；必须显式提交。
+  optional bool is_default = 2 [(buf.validate.field).required = true];
+}
+
+// 返回默认项更新后的工作流摘要。
+message SetDefaultWorkflowResp {
+  option (hi.audience) = VIS_SELF;
+  WorkflowSummary workflow = 1 [(hi.visibility) = VIS_SELF];
+}
+
+// 更新同一功能的完整工作流展示顺序。
+message UpdateWorkflowSortOrderReq {
+  // 来自 Function.List 的固定功能 ID。
+  optional string function_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 该功能全部工作流（含草稿），按期望顺序提交，每个 ID 恰好一次。
+  repeated string workflow_ids = 2 [(buf.validate.field).repeated = {
+    unique: true
+    items: {
+      string: {min_len: 1}
+    }
+  }];
+}
+
+// 返回调整后的完整工作流摘要列表。
+message UpdateWorkflowSortOrderResp {
+  option (hi.audience) = VIS_SELF;
+  repeated WorkflowSummary workflows = 1 [(hi.visibility) = VIS_SELF];
+}
+
+// 管理员工作流配置、校验、试跑与展示设置。
+// 文件导入/替换使用上述 AUTH_SUPERADMIN multipart HTTP 接口，
+// 不声明 Import/ReplaceFile RPC，不由 grpc-gateway 生成上传路由。
 service WorkflowManage {
-  rpc ImportWorkflow(ImportWorkflowReq) returns (ImportWorkflowResp) {
+  // 说明和执行配置按 presence 更新；普通任务、试跑与配置修改共用工作流行锁。
+  rpc Update(UpdateWorkflowReq) returns (UpdateWorkflowResp) {
     option (hi.auth) = AUTH_SUPERADMIN;
   }
-  rpc UpdateWorkflow(UpdateWorkflowReq) returns (UpdateWorkflowResp) {
-    option (hi.auth) = AUTH_SUPERADMIN;
-  }
-  rpc UpdateDescription(UpdateWorkflowDescriptionReq) returns (UpdateWorkflowDescriptionResp) {
-    option (hi.auth) = AUTH_SUPERADMIN;
-  }
+  // 校验当前内容；上游暂时不可用时返回 Unavailable，不覆盖之前的校验结果。
   rpc Validate(ValidateWorkflowReq) returns (ValidateWorkflowResp) {
     option (hi.auth) = AUTH_SUPERADMIN;
   }
+  // 使用统一 FIFO 和发起者额度执行真实试跑；成功保存并结算后自动启用草稿。
   rpc Test(TestWorkflowReq) returns (TestWorkflowResp) {
     option (hi.auth) = AUTH_SUPERADMIN;
   }
+  // 按工作流分页查询管理试跑记录。
   rpc ListTests(ListWorkflowTestsReq) returns (ListWorkflowTestsResp) {
     option (hi.auth) = AUTH_SUPERADMIN;
   }
+  // 管理员手动指定或清除默认项，同一功能最多一个，也允许没有默认项。
+  rpc SetDefault(SetDefaultWorkflowReq) returns (SetDefaultWorkflowResp) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
+  // 设置同一功能全部工作流的顺序。
+  rpc UpdateSortOrder(UpdateWorkflowSortOrderReq) returns (UpdateWorkflowSortOrderResp) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
+  // 只读取数据库摘要，不下载工作流文件。
   rpc List(ListWorkflowsReq) returns (ListWorkflowsResp) {
     option (hi.auth) = AUTH_SUPERADMIN;
   }
+  // 读取当前文件并解析绑定候选节点；object_info 不可用时仍返回可解析的基础节点。
   rpc Get(GetWorkflowReq) returns (GetWorkflowResp) {
     option (hi.auth) = AUTH_SUPERADMIN;
   }

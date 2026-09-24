@@ -11,7 +11,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
 
 // Auth 提供 HiMedia Web 扫码登录及会话管理接口。
 service Auth {
-  rpc GenerateReqId (hi.did.GenerateReqIdReq) returns (hi.RequestId) { option (hi.auth) = AUTH_NONE; }
+  rpc GenerateReqId (hi.did.GenerateReqIdReq) returns (hi.did.LoginQr) { option (hi.auth) = AUTH_NONE; } // 返回 HiDID 生成的 reqId 与二维码文本；前端原样绘制 qr
   rpc GetReqStatus (hi.RequestId) returns (hi.did.ReqStatusResp) { option (hi.auth) = AUTH_NONE; }
   rpc RefreshToken (hi.did.RefreshTokenReq) returns (hi.AuthToken) { option (hi.auth) = AUTH_NONE; }
   rpc Logout (hi.did.RefreshTokenReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_NONE; }

@@ -66,6 +66,8 @@ A=$(cb market/apply "{\"listing_uuid\":\"$L\",\"to_agent\":\"$RB\"}")
 G=$(echo "$A"|g data grantUuid); OID=$(echo "$A"|g data order orderId)
 OAMT=$(echo "$A"|g data order amount); OCOIN=$(echo "$A"|g data order coin)
 OPAYEE=$(echo "$A"|g data order payee); OTGT=$(echo "$A"|g data order targetAgent)
+# 钱打到 payeeAccount(摊主是软件机器人时是它的主人);payee 只是「你在付给谁」,用它找地址会找不到
+OPAYACC=$(echo "$A"|g data pay payeeAccount)
 OMCH=$(echo "$A"|g data order merchant)
 # **对外给出去的是付款凭据号**,不是主订单号 —— 付款、回调、人工查账用的都是它。
 PID=$(echo "$A"|g data order payment payId)
@@ -105,25 +107,48 @@ fi
 
 echo
 echo "── 三、负面:链上查不到的 hash ──"
-hasany "假 tx 被挡下" "$(notify "$PID" "$OMCH" "0x$(printf '%064d' 7)")" \
-  "尚未成功" "notfound" "取交易明细失败"
+# 认款是**两段**的:回执只收下 hash(REPORTED)、立刻回成功,链上核验异步做(见 club Market.OnPaid)。
+# 所以判据不是「回执被拒」,而是**收下了却不放行**:授权仍申请中、业务单仍待付款。
+notify "$PID" "$OMCH" "0x$(printf '%064d' 7)" >/dev/null
+sleep 5
+chk "假 tx:凭据只是「已上报」(4),没认款" "$(Q hi_club "SELECT status FROM hi_club_market_payment WHERE pay_id='$PID';")" "4"
+chk "假 tx:授权仍是申请中(1)" "$(Q hi_club "SELECT status FROM hi_club_market_grant WHERE uuid='$G';")" "1"
+chk "假 tx:业务单仍待付款(0)" "$(Q hi_club "SELECT status FROM hi_club_market_order WHERE order_id='$OID';")" "0"
+# 那张凭据被假 tx 占住了(等链上确认),真付款要换一张 —— 与付款方重开付款页同一条路
+PID=$(cb market/issue_payment "{\"order_id\":\"$OID\"}" | g data payment payId)
+case "$PID" in MKP-*) ok "换开了一张新凭据 $PID";; *) bad "换凭据失败" "got=$PID";; esac
 
 echo
 echo "── 四、真转账 → 认款 → 履约 ──"
 CHAIN=$(Q hi_did "SELECT chain FROM hi_coin WHERE name='$OCOIN' AND deleted_at IS NULL;")
-PAYEE_ADDR=$(Q hi_did "SELECT address FROM hi_user_wallet WHERE did='$OPAYEE' AND chain='$CHAIN';")
+PAYEE_ADDR=$(Q hi_did "SELECT address FROM hi_user_wallet WHERE did='$OPAYACC' AND chain='$CHAIN';")
 [ -n "$PAYEE_ADDR" ] && ok "收款方 did 解析出 $CHAIN 地址" || bad "收款方没注册地址" "核验必挂"
 TX=$(MN_FILE="${ROBOT_MN:?}" /tmp/coin_probe --pay "$OCOIN" "$PAYEE_ADDR" "$OAMT" 2>&1 | grep -o "tx_hash=0x[0-9a-f]*" | cut -d= -f2)
 [ -n "$TX" ] && ok "真转账 tx=$TX" || { bad "转账失败" "-"; echo "结果:通过 $pass,失败 $((fail+1))"; exit 1; }
 sleep 6
 R=$(notify "$PID" "$OMCH" "$TX")
-case "$R" in *"回执已交给 hidid"*) ok "**认款通过**(经 hidid 回调 club)";; *) bad "认款失败" "$(echo "$R"|head -c 250)";; esac
+case "$R" in *"回执已交给 hidid"*) ok "**回执收下**(经 hidid 回调 club)";; *) bad "回执失败" "$(echo "$R"|head -c 250)";; esac
+# 链上核验是异步的(先立刻试一次,不成交给周期任务),等它走完再查
+for _ in $(seq 120); do [ "$(Q hi_club "SELECT status FROM hi_club_market_payment WHERE pay_id='$PID';")" = "1" ] && break; sleep 1; done
 chk "凭据置为已认款(1)" "$(Q hi_club "SELECT status FROM hi_club_market_payment WHERE pay_id='$PID';")" "1"
 chk "业务单置为已付(1)" "$(Q hi_club "SELECT status FROM hi_club_market_order WHERE order_id='$OID';")" "1"
 chk "授权置为已装载(3)" "$(Q hi_club "SELECT status FROM hi_club_market_grant WHERE uuid='$G';")" "3"
 chk "**ai 侧真的插了引用行**" \
   "$(Q hi_ai "SELECT COUNT(*) FROM hi_ai_plugin_using WHERE agent_did='$RB' AND uuid='$P' AND source='reference' AND deleted_at IS NULL;")" "1"
 
+# 卖家的通知(2026-09-24 起):付费档**下单时不通知卖家**,到账成立时发 plugin-grant-sold。
+# 判据是通知历史表 —— 后端从 MQTT 收到才记,所以记下了 = 真经 broker 投到了卖家的单聊 topic。
+SM=$(Q hi_club "SELECT from_master FROM hi_club_market_grant WHERE uuid='$G';")
+nq(){ Q hi_club "SELECT COUNT(*) FROM hi_chat_notice WHERE to_did='$SM' AND JSON_UNQUOTE(JSON_EXTRACT(payload,'\$.notice.type'))='$1' AND JSON_UNQUOTE(JSON_EXTRACT(payload,'\$.notice.extra.grantUuid'))='$G';"; }
+SOLD=0; for _ in $(seq 20); do SOLD=$(nq plugin-grant-sold); [ "$SOLD" = "1" ] && break; sleep 1; done
+chk "**到账那一刻卖家收到 plugin-grant-sold**(且只一条)" "$SOLD" "1"
+chk "下单时卖家**没收到**申请通知(付费档不用卖家决定)" "$(nq plugin-grant-request)" "0"
+
+if [ "$RTOK" = "-" ]; then
+  # 拿机器人自己的 token 要用它的助记词登录 —— 那会把正在跑的机器人挤下线(异地登录),
+  # 于是这两节只能在拿得到它 token 的时候跑。不跑就如实报「没验」,不算过。
+  bad "五、六节没验" "RTOK=- (没有机器人本人的 token)"
+else
 echo
 echo "── 五、同一笔 tx 认不了第二张单 ──"
 O2=$(cr market/create_renew_order "{\"grant_uuid\":\"$G\"}")
@@ -150,6 +175,7 @@ hasany "负面:拿别人的 did 当主体被拒" "$(cs market/list_transactions 
   "不是你的机器人"
 hasany "负面:不相干的凭据号查不到" "$(cb market/get_transaction '{"pay_id":"MKP-not-mine"}')" \
   "不存在或与你无关"
+fi
 
 echo
 echo "── 清理 ──"

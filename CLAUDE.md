@@ -127,6 +127,41 @@ judgement 不是"这个字段缺席合不合法",而是 protobuf 官方口径 �
 - **不比新旧值**。见 `backend-hi-club/internal/service/group.go` 的 `updateGroupFields` 注释:
   比值会让"重传同一张图"被判成没动,既不写库也不发通知。**设了就设,设了就发。**
 
+## ⛔ 面向对象:提到一个对象就放 `Entity`,不许拉平
+
+**任何消息里要表示"哪个人 / 哪个群 / 哪个机器人",一律放 `hi.Entity`(或以 Entity 打头的视图:
+`GroupBase` / `GroupMemberView` / `RelationInfo`)。不许写 `code` + `name` 这种散字段。**
+
+本仓存在的理由是**数据一致**,而数据一致的前提是**面向对象** —— 全仓的基本对象就是 `Entity`
+(did / name / avatar / update / type)。拉平的后果**三条全部零报错**:
+
+1. **对不上号**:同一个群这里叫 `code`、别处叫 `base.did`,接的人得自己记住换算;
+2. **缺斤少两**:拉平的那份总会漏掉 avatar 之类的,想补就得改契约、下游全体跟版;
+3. ⭐ **`update` 没了,更新机制就断了**:下游(core 身份池、brain 的 `is_outdated`)一律按
+   `新.update > 旧.update` 决定刷不刷本地那份资料。散字段里没有 update,这个对象的名字/头像
+   在本地就**永远刷不了**,而且看不出任何异常。
+
+只有**对象的附加信息**才配单独开字段(`OpenGroup.member_total`、`GroupBase.background`、
+`RelationInfo.remark`)—— 它们不属于身份门面。口径与理由写在 `hi/common.proto` 的 Entity 那段。
+
+> 2026-09-23 栽过一次:`OpenGroup` 写成 `code` + `name` 两个字符串(连头像和 update 都没有),
+> 已改成 `hi.Entity base`。**新号**,不复用 1/2 —— string 与 message 在 wire 上同为
+> length-delimited,复用同一个号,老客户端解出来是一段乱码而不是报错。
+>
+> 同一条规矩在 FFI/SDK 那层也成立(core 的 FFI 原样映射 hi-proto,不许拍平、不许自造派生字段)。
+
+**2026-09-23 全仓扫过一遍**(club / did / ai / ninja / source / common;media 是同事的没动),
+判据分三档,按这三档看就不会误判:
+
+| 档 | 判据 | 结论 |
+|---|---|---|
+| ⛔ 拉平 | 响应里把**某个 did 主体**的门面拆成散字段(did + name/avatar…) | 全仓只剩 `ListUsersAssetsResp.Unit`(did+avatar+`n`),已改成 `hi.Entity base` + `total` |
+| ✅ 引用 | 响应里用**裸 did** 指代主体,但那是记账/权限/回调,不渲染门面(`MarketOrder.payee`、`FundsRecord.payer`、`AgentInfo.creator`、`PcOrder.did`…) | 合理。⚠️ 判据是"**这个端要不要显示它的名字头像**":要显示就得给 Entity |
+| ✅ 不适用 | 入参(setter/过滤/点名操作)、**非 did 主体**(插件/挂牌/文件/模型 —— 它们的键是 uuid,Entity 装不下)、链地址(`TxDetailResp.from/to`) | 合理 |
+
+`Entity + 附加信息` 的样板:`MarketSeller`、`MarketStall`、`UserExtensionUnit`、`GroupMemberView`。
+附加信息指**不属于门面**的东西(`moment` / `remark` / `member_total` / `background` / `total`)。
+
 ## 结构化数据传输原则
 
 **payload 是数据的唯一来源，传输层 metadata 不是。**
