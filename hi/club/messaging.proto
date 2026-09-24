@@ -38,7 +38,10 @@ message Packet {
       friend-delete         我已被对方删除好友
       group-invite          收到入群邀请（自动 accept）              / hi.club.Member
       group-invite-reject   我邀请他人入群已被对方拒绝（无需响应）
-      group-kick            我已被踢出群聊                          / hi.club.MemberExit
+      group-joined          **我**已成为某群的成员                  / hi.club.GroupBase(那个群)
+                            ex_type:create 我建的 / join 我主动加入 / accept 我接受了邀请 / add 我被直接拉入(免确认)
+      group-left            **我**已不是某群的成员                  / hi.club.GroupBase(那个群)
+                            ex_type:quit 我主动退出 / kick 我被踢出 / dissolve 群被解散
       robot-bind            robot(硬件机器人)绑定完成
       robot-unbind          robot(硬件机器人)解绑完成
       robot-update          robot(硬件机器人)资料更新              / hi.Entity
@@ -50,6 +53,18 @@ message Packet {
       plugin-grant-rejected 我的插件申请被拒绝                       / hi.club.MarketGrantBrief
       plugin-grant-expiring 插件授权快到期了(**发给受让方机器人本人**)    / hi.club.MarketRenewBrief
       plugin-grant-expired  插件授权已到期,已解绑                       / hi.club.MarketGrantBrief
+
+   ⭐ `group-joined` / `group-left` 是**多端收敛订阅**用的(2026-09-25 定)。
+      群里的事件(member-join / member-exit / group-dissolve)发在**群 topic** 上 —— 同一个号在
+      别的设备上建群、入群,这台设备还没订阅那个群 topic,那几条根本收不到,于是这个群的实时消息
+      整段收不到,直到重新登录做整批订阅(生产实测:手机建的群,一直在线的桌面版一条结果都没收到)。
+      所以「我进群 / 我离群」**每一种**都另给本人发一条到**个人 topic**(本人所有设备都订着):
+        · 端上只对**实时**收到的这两种动作:joined → 订阅群 topic;left → 退订。重复订阅由 broker 替换、不重复;
+          退订没订过的也无妨,所以不用先判「本端订没订」。
+        · **补拉回来的不处理** —— 离线期间的变化由重连时按后端群表整批订阅收敛。
+        · `ex_type` 只用于展示(本地记录怎么留:quit 删掉本地群,kick / dissolve 留着只读),订阅动作不看它。
+        · 后端**先开 ACL、再发 group-joined**:反过来,端上订阅会被 broker 拒(SUBACK 失败码,不报错)。
+      群 topic 上那几条照发,给群聊页出系统提示用;是否订阅只认个人这两条。
 
    ⛔ **通知一律由后端发。** broker(fromguard)拦掉设备账号发出的全部通知 ——
       上表都是"某件事发生了"的系统通知,收方按类型直接动状态,
@@ -263,11 +278,6 @@ message Mention {
 message Member {
   hi.Entity group = 1;
   hi.Entity user  = 2;
-}
-
-message MemberExit {
-  Member          member = 1;
-  optional string type   = 2;
 }
 
 /*
