@@ -39,7 +39,8 @@ message Packet {
       group-invite          收到入群邀请（自动 accept）              / hi.club.Member
       group-invite-reject   我邀请他人入群已被对方拒绝（无需响应）
       group-joined          **我**已成为某群的成员                  / hi.club.GroupBase(那个群)
-                            ex_type:create 我建的 / join 我主动加入 / accept 我接受了邀请 / add 我被直接拉入(免确认)
+                            ex_type:create 我建的 / join 我主动加入 / accept 我接受了邀请
+                            (软件机器人被直接拉入不发:它没有客户端,由后端自己在群 topic 上收发)
       group-left            **我**已不是某群的成员                  / hi.club.GroupBase(那个群)
                             ex_type:quit 我主动退出 / kick 我被踢出 / dissolve 群被解散
       robot-bind            robot(硬件机器人)绑定完成
