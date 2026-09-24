@@ -43,7 +43,8 @@ message Packet {
       robot-update          robot(硬件机器人)资料更新              / hi.Entity
       master-update         **主人**资料更新(发给仆从)              / hi.Entity(主人的 base)
       plugin-load           插件/脚本加载完成                      / hi.ai.PluginLoaded
-      plugin-grant-request  收到插件授权申请(需我处理)              / hi.club.MarketGrantBrief
+      plugin-grant-request  收到插件授权申请(需我处理;审批档的申请、别人分享给我。**付费档不发**) / hi.club.MarketGrantBrief
+      plugin-grant-sold     我的插件卖出去了(付费单到账、授权已成立;纯告知,发给卖家) / hi.club.MarketGrantBrief
       plugin-grant-approved 我的插件申请被同意                       / hi.club.MarketGrantBrief
       plugin-grant-rejected 我的插件申请被拒绝                       / hi.club.MarketGrantBrief
       plugin-grant-expiring 插件授权快到期了(**发给受让方机器人本人**)    / hi.club.MarketRenewBrief

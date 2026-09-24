@@ -11,6 +11,9 @@
   ③ 申请 → 卖家 handle_notice 拒绝 → 授权 REJECTED、通知 reject
   ④ 卖家分享(offer)→ **买家** handle_notice 谢绝 → 走 DeclineOffer:授权 REJECTED、通知 reject
   ⑤ 纯告知的通知(plugin-grant-approved)调 handle_notice → InvalidArgument「不需要做决定」
+  ⑥ 付费档申请 → **卖家收不到通知**(付费档卖家没什么可决定的,到账成立时才发 plugin-grant-sold);
+     卖家经 Market.Reject 拒它 → 9(拒了订单还开着,买家照样能付 → 钱收了插件没装)
+     ⚠️ 到账那一刻的 plugin-grant-sold 要链上真付款,这里不验(见 smoke-order-onchain.sh)
 
 ⚠️ **只能在 .64 跑**:User 这组接口**没进 HTTP 路由表**(前端经 core 走 gRPC),探针也走 gRPC ——
    要 grpcurl(只有 .64 有);授权单状态 ssh 到 .65 查库。
@@ -120,7 +123,7 @@ def pending_has(tok, uuid):
 
 print("── 准备:卖家一台、买家三台机器人;一个「审批」档的挂牌 ──")
 SB = data(call("agent/create_assistant", {"name": "smk-decide-seller"}, SELLER))["base"]["did"]
-BBS = [data(call("agent/create_assistant", {"name": f"smk-decide-buyer{i}"}, BUYER))["base"]["did"] for i in range(3)]
+BBS = [data(call("agent/create_assistant", {"name": f"smk-decide-buyer{i}"}, BUYER))["base"]["did"] for i in range(4)]
 P = data(call("plugin/create_shell", {"agent": SB, "name": "smk-decide"}, SELLER))["uuid"]
 call("plugin/create_version", {"agent": SB, "version": {"uuid": P, "version": "1.0.0", "url": PKG}}, SELLER)
 LID = data(call("market/create_listing", {"agent": SB, "plugin_uuid": P, "settle_mode": 2, "price": "0"}, SELLER)).get("uuid")
@@ -182,6 +185,24 @@ try:
     if approved:
         r = grpc("HandleNotice", {"uuid": approved, "accept": True}, BUYER)
         chk("handle_notice → InvalidArgument(3)「不需要做决定」", r.get("code") == 3 and "不需要做决定" in (r.get("message") or ""), r)
+
+    print("── ⑥ 付费档:申请时不通知卖家,卖家也不能拒 ──")
+    P2 = data(call("plugin/create_shell", {"agent": SB, "name": "smk-decide-paid"}, SELLER))["uuid"]
+    call("plugin/create_version", {"agent": SB, "version": {"uuid": P2, "version": "1.0.0", "url": PKG}}, SELLER)
+    LID2 = data(call("market/create_listing", {"agent": SB, "plugin_uuid": P2, "settle_mode": 3, "price": "9.9",
+                                               "coin": "USDT-TRC20", "duration": 2592000}, SELLER)).get("uuid")
+    call("market/set_listing_status", {"uuid": LID2, "status": 2}, SELLER)
+    a = call("market/apply", {"listing_uuid": LID2, "to_agent": BBS[3]}, BUYER)
+    g4 = data(a).get("grantUuid")
+    chk("付费申请成立、开出了账单", grant_status(g4) == 1 and bool((data(a).get("order") or {}).get("orderId")), a)
+    # 前提:①③ 的审批档申请 30 秒内都到了,通道是通的;这里等同样久,确认**没有**这一条
+    chk("卖家**收不到**这条付费申请的通知", request_notice_of(SELLER, g4, secs=15) is None and not any(
+        (n.get("extra") or {}).get("grantUuid") == g4 for n in data(grpc("ListNotices", {}, SELLER)).get("list") or []))
+    r = call("market/reject", {"grant_uuid": g4, "reason": "smoke"}, SELLER)
+    chk("卖家 Market.Reject 付费单 → 9「不需要处理」", r.get("code") == 9 and "不需要处理" in (r.get("message") or ""), r)
+    chk("授权仍是申请中(没被拒掉)", grant_status(g4) == 1, grant_status(g4))
+    r = call("market/approve", {"grant_uuid": g4}, SELLER)
+    chk("卖家 Market.Approve 付费单 → 9", r.get("code") == 9, r)
 finally:
     print("── 清理 ──")
     for g in [locals().get("g1")]:
@@ -189,6 +210,10 @@ finally:
             call("market/revoke", {"grant_uuid": g, "reason": "smoke"}, SELLER)
     call("market/set_listing_status", {"uuid": LID, "status": 4}, SELLER)
     call("plugin/delete_shell", {"agent": SB, "uuid": P}, SELLER)
+    if locals().get("LID2"):
+        call("market/set_listing_status", {"uuid": LID2, "status": 4}, SELLER)
+    if locals().get("P2"):
+        call("plugin/delete_shell", {"agent": SB, "uuid": P2}, SELLER)
     for b in BBS:
         call("agent/delete", {"agent": b}, BUYER)
     r = call("agent/delete", {"agent": SB}, SELLER)
