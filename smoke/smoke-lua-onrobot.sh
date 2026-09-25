@@ -52,10 +52,40 @@ READY=$(ssh -o ConnectTimeout=10 "$NEXT" \
   'systemctl is-active hinj-brain 2>/dev/null' 2>/dev/null)
 [ "$READY" = "active" ] || { sk "$NEXT 上的 hinj-brain 没在跑(is-active=$READY)"; exit 2; }
 
-METHOD=$(ssh -o ConnectTimeout=10 "$NEXT" \
-  'grep "\[plugin\] + .*\.lua \[lua\]" ~/wip/hinj-brain/log/brain.log | tail -20' 2>/dev/null \
-  | grep -oE '"[a-z0-9]{6}_lua_secret"' | tr -d '"' | tail -1)
-[ -n "$METHOD" ] || { sk "机器人身上没有带 lua_secret 的 lua 插件 —— 先用 smoke-lua.sh 发一个并挂到它身上"; exit 2; }
+# 前提二:身上有带 lua_secret 的 lua 插件。**没有就现造**(主人给机器人建壳、发一版 build_luapkg.py 的包),
+# 退出时删壳 —— 夹具不许靠「先手工去装一个」(那样这条永远是「没验」,2026-09-25 定)。
+source "$(dirname "$0")/_endpoints.sh"
+# 只看**最近一次**注册表重建 / 就绪那一行(当前真装着的全部方法)—— 翻历史装载记录会捡到早就卸掉的插件,
+# 前提就成了假的。
+lua_method(){ ssh -o ConnectTimeout=10 "$NEXT" \
+  'grep -E "\[plugin\] (重建完成|就绪)" ~/wip/hinj-brain/log/brain.log | tail -1' 2>/dev/null \
+  | grep -oE '"[a-z0-9]{6}_lua_secret"' | tr -d '"' | tail -1; }
+g(){ python3 -c '
+import sys,json
+try:
+    d=json.load(sys.stdin)
+    for k in sys.argv[1:]: d=d[k]
+    print(d)
+except Exception: print("")
+' "$@"; }
+FIX_P=""; MTOK=""; TMPLOG=""
+# **只有这一个 EXIT trap**:后面再 `trap … EXIT` 会把它覆盖掉(第一版就这样,删壳没跑、夹具留在了机器人上)。
+cleanup(){ [ -n "$TMPLOG" ] && rm -f "$TMPLOG"; [ -n "$FIX_P" ] && curl -s $CAC -m 60 -X POST "$CLUB_API/plugin/delete_shell" -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $MTOK" -d "{\"agent\":\"$ROBOT\",\"uuid\":\"$FIX_P\"}" >/dev/null; }
+trap cleanup EXIT
+METHOD=$(lua_method)
+if [ -z "$METHOD" ]; then
+  MTOK=$(ssh -o ConnectTimeout=15 "$NEXT" "cd /tmp/tokgen && MN_FILE=$MN_FILE DEV=app ./target/release/tokgen 2>/dev/null" | grep ^TOKEN= | cut -d= -f2)
+  [ -n "$MTOK" ] || { bad "现造夹具:取不到主人 token" "$NEXT:/tmp/tokgen"; exit 1; }
+  LPKG=$(MINIO_HOST=${MINIO_HOST:-192.168.1.65:9000} python3 "$(dirname "$0")/build_luapkg.py" 2>&1 | tail -1)
+  mj(){ curl -s $CAC -m 180 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $MTOK" -d "$2"; }
+  FIX_P=$(mj plugin/create_shell "{\"agent\":\"$ROBOT\",\"name\":\"lua-onrobot\"}" | g data uuid)
+  [ -n "$FIX_P" ] || { bad "现造夹具:给机器人建壳失败" "-"; exit 1; }
+  mj plugin/create_version "{\"agent\":\"$ROBOT\",\"version\":{\"uuid\":\"$FIX_P\",\"version\":\"1.0.0\",\"url\":\"$LPKG\"}}" >/dev/null
+  for _ in $(seq 40); do METHOD=$(lua_method); [ -n "$METHOD" ] && break; sleep 3; done
+  [ -n "$METHOD" ] || { bad "现造夹具:发了 lua 版,机器人 120 秒内没装上" "看 $NEXT 的 brain.log"; exit 1; }
+  ok "现造夹具:给机器人发了一个 lua 插件(壳 $FIX_P),已装上"
+fi
 ok "前提:brain 在跑,身上有 lua 方法 $METHOD"
 
 # ── 发一条只有调工具才答得上来的话 ─────────────────────────────────────────
@@ -80,8 +110,7 @@ sleep 25
 #    再 `printf ... | python3 - <<EOF` 的话**管道整个被丢弃**,`sys.stdin` 是空的 ——
 #    于是"什么都没找到",报出来是「模型没发出 tool_call」,
 #    而真相是脚本自己没拿到日志。第一版就这么误报过一次(手工复核时报文明明在)。
-TMPLOG=$(mktemp /tmp/hiai-log.XXXXXX)
-trap 'rm -f "$TMPLOG"' EXIT
+TMPLOG=$(mktemp /tmp/hiai-log.XXXXXX)   # 由 cleanup 删(见上面那个唯一的 EXIT trap)
 ssh -o ConnectTimeout=20 "$DEPLOY" "docker logs hi-ai --since 5m 2>&1" > "$TMPLOG" 2>/dev/null
 [ -s "$TMPLOG" ] || { bad "取不到 hi-ai 日志" "ssh $DEPLOY docker logs hi-ai 没有输出"; exit 1; }
 
