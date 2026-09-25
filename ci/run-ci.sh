@@ -1,5 +1,5 @@
 #!/bin/bash
-# gitea Actions 编排:改 hi-proto → 自动重生成 hi-proto-code + 按分支打 tag。
+# gitea Actions 编排:改 hi-proto → 自动重生成 hi-proto-code + 按分支打 tag + 把 Rust 生成物发到 Cargo 仓库 `hi`。
 #   push dev   → 重生成、推 hi-proto-code dev、两仓打 vX.Y.Z-devN(预发布,N 自增)
 #   push main  → 重生成、hi-proto-code dev 合 main、两仓打 vX.Y.Z(正式,去 -dev)
 # 版本基号取自 hi-proto 根目录 VERSION。分支决定 -dev 后缀(合你的规约)。
@@ -179,6 +179,8 @@ if [ "$BR" = main ]; then
   ( unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy; git -C "$CODE" push origin main )
   push_tag "$CODE" "$TAG" main
   push_tag "$HP"   "$TAG" "origin/main"
+  # Rust 生成物发到 Gitea 的 Cargo 仓库(crate 版本号由 tag 映射,见 publish-rust-crate.sh)。幂等,失败就重跑它。
+  "$HP/ci/publish-rust-crate.sh" "$TAG" "$CODE"
   echo "[ci] 正式版 $TAG 完成(hi-proto + hi-proto-code 同版本)"
 else
   # 预发布:vBASE-dev.N,N 自增。
@@ -232,6 +234,7 @@ else
   echo "[ci] 预发布 $TAG"
   push_tag "$CODE" "$TAG" origin/dev
   push_tag "$HP"   "$TAG" "origin/$BR"
+  "$HP/ci/publish-rust-crate.sh" "$TAG" "$CODE"
   echo "[ci] 预发布 $TAG 完成"
 fi
 echo "[ci] done."
