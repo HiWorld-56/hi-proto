@@ -15,8 +15,6 @@ service:hi.club.trade.TradeManage
 service:hi.club.trade.Order
 service:hi.ai.plugin.Runner
 service:hi.ai.plugin.Builder
-# 币安指令:由 app / 机器人经 grpc 直连调用,web 没有这个功能。
-service:hi.club.Binance
 
 # hi.club.Base 2026-08-20 重新配了 http 路由,**不再豁免** ——
 # 前提变了:hiclub-web 的挂牌弹窗要按币种下拉,而币种的唯一来源是 hidid 的 hi_coin 表、

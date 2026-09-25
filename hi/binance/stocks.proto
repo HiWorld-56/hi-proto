@@ -12,11 +12,10 @@ import "hi/options.proto";
 //
 // 币安把它做成了一个**独立的模块**(官方 SDK 里是单独的 `stocks` 客户端,
 // 接口全在 `/sapi/v1/equity/*`),与现货、合约是三套东西,所以单开这个文件。
-// 走的路与 hi/binance/binance.proto 完全相同:代理 / app 调 `hi.club.Binance.Send`
-// → 后端代发 `binance` 通知 → 机器人执行 → 结果以 `BinanceResult` 消息回到来路那个会话。
-// 通知的形状、`processed`、过期、暗语,口径全在那个文件,这里不重复。
+// 走的路与 hi/binance/binance.proto 完全相同:指令消息(`BinanceCommand`,见 hi/binance/command.proto)
+// → 币安插件认人 → 机器人执行 → 结果以 `BinanceResult` 消息回到来路那个会话。口径在那两个文件,这里不重复。
 //
-// | ex_type                         | extra 装的类型                            | 接口 |
+// | 操作名                          | 对象                                      | 接口 |
 // |---------------------------------|-------------------------------------------|------|
 // | `stocks.place_equity_order`     | `hi.binance.BinanceStockNewOrder`         | `POST /sapi/v1/equity/order/place` |
 // | `stocks.cancel_equity_order`    | `hi.binance.BinanceStockCancelOrder`      | `POST /sapi/v1/equity/order/cancel` |
@@ -42,7 +41,7 @@ import "hi/options.proto";
 // · **订单号是 UUID 字符串**,不是现货/合约那种整数。所以撤单、查单不能复用那边的对象。
 // · **买到的是真股票。** 币安的 `tokenize` 默认 `true`(买成 bStocks 代币),
 //   机器人下单时**一律填 `false`** —— 这是产品决定,不是调用方每次要选的东西,所以没有这个字段。
-// · `clientOrderId` 由**机器人**填成那条通知的 uuid(36 字符,落在币安要求的 32–36 位里),
+// · `clientOrderId` 由**机器人**填成那条指令消息的 uuid(36 字符,落在币安要求的 32–36 位里),
 //   理由与合约下单相同:只为对账。
 // · **持仓在哪都查不到**(2026-09-24 真买了 0.02 股 AAPL 核过):钱包余额、现货账户里都没有买到的股票,
 //   Stocks 模块也没有持仓接口。**持仓只能按成交记录算**(`BinanceStockTradeHistory`:买入股数 − 卖出股数)。
@@ -150,7 +149,7 @@ message BinanceStockOpenOrders {
 }
 
 // 查一张美股订单。`order_id` 与 `client_order_id` 给一个即可(都不给由币安报错)。
-// `client_order_id` 就是下单那条通知的 uuid(机器人下单时填进去的)。
+// `client_order_id` 就是下单那条指令消息的 uuid(机器人下单时填进去的)。
 message BinanceStockGetOrder {
   option (hi.audience) = VIS_PARTICIPANT;
   optional string order_id        = 1 [(hi.visibility) = VIS_PARTICIPANT];

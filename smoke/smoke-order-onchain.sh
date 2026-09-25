@@ -38,6 +38,11 @@ hasany(){ local w="$1" o="$2"; shift 2
 have_db || { echo "够不着 mysql —— 本机没装 mysql 时会 ssh 到 $DB 去查,检查那条路。" >&2; exit 2; }
 [ -x /tmp/coin_probe ] || { echo "缺 /tmp/coin_probe(core-mqtt,--features testkit)" >&2; exit 2; }
 Q(){ mysqlq "$1" "$2"; }
+# 前提:ROBOT_MN 必须是**这台机器人自己**的助记词 —— 转账、回执签名都用它,
+# 第六节「主人查得到仆从机器人的交易」判的正是 payer = 机器人 did。
+# 给成主人的助记词,钱照样付得出去、认款照样成,只有第六节红 —— 看着像范围的 bug(2026-09-25 栽过)。
+MNDID=$(MN_FILE="${ROBOT_MN:?}" /tmp/coin_probe "$COIN" 2>/dev/null | sed -n "s/^钱包 did=//p")
+[ "$MNDID" = "${ROBOT_DID:?需要 ROBOT_DID}" ] || { echo "ROBOT_MN 是 ${MNDID:-?} 的助记词,不是机器人 $ROBOT_DID 的 —— 前提不成立,不跑" >&2; exit 2; }
 cs(){ curl -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $STOK" -d "$2"; }
 cb(){ curl -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $BTOK" -d "$2"; }
 cr(){ curl -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $RTOK" -d "$2"; }
@@ -96,10 +101,20 @@ if [ -n "$OLD_TX" ]; then
     bad "闸③没验" "OLD_TX 只比现在早 $(( ONOW - OT/1000 ))s,没超过 ${SKEW}s 容差 —— 它本来就该被放行,换一笔更早的"
   else
     ok "诱饵够旧(比现在早 $(( ONOW - OT/1000 ))s,超过 ${SKEW}s 容差)"
-    hasany "**旧转账认不了新单**(时间早于下单)" \
-      "$(notify "$PID" "$OMCH" "$OLD_TX")" \
-      "时序" "早于" "时间" "不符"
-    chk "凭据仍是待付款(0)" "$(Q hi_club "SELECT status FROM hi_club_market_payment WHERE pay_id='$PID';")" "0"
+    # 认款是**两段**的(见第三节):回执只收下 hash、立刻回成功,闸③在异步核验里判。
+    # 所以判据是**核验的结论**:凭据被否(5),且理由说的正是闸③ —— 被闸②(收款方/金额不符)否掉
+    # 也是 5,只看状态会让一张没搭对的用例冒充闸③生效(「被拒了」不是判据)。
+    R3=$(notify "$PID" "$OMCH" "$OLD_TX")
+    case "$R3" in *"回执已交给 hidid"*) ok "旧转账的回执被收下(两段式:先收下,再核验)";;
+      *) bad "旧转账的回执没送到" "$(echo "$R3"|head -c 200)";; esac
+    for _ in $(seq 60); do [ "$(Q hi_club "SELECT status FROM hi_club_market_payment WHERE pay_id='$PID';")" = "4" ] || break; sleep 1; done
+    chk "**旧转账认不了新单**:凭据被否(5)" "$(Q hi_club "SELECT status FROM hi_club_market_payment WHERE pay_id='$PID';")" "5"
+    hasany "否掉的理由是闸③(早于开凭据)" "$(Q hi_club "SELECT reason FROM hi_club_market_payment WHERE pay_id='$PID';")" \
+      "早于付款凭据创建时间"
+    chk "业务单仍待付款(0)" "$(Q hi_club "SELECT status FROM hi_club_market_order WHERE order_id='$OID';")" "0"
+    # 这张凭据已被否,第三节要一张干净的 —— 与付款方重开付款页同一条路
+    PID=$(cb market/issue_payment "{\"order_id\":\"$OID\"}" | g data payment payId)
+    case "$PID" in MKP-*) ok "闸③之后换开一张新凭据 $PID";; *) bad "换凭据失败" "got=$PID";; esac
   fi
 else
   bad "闸③没验" "没给 OLD_TX —— 这是本脚本最该验的一条,别跳过"
@@ -117,6 +132,16 @@ chk "假 tx:业务单仍待付款(0)" "$(Q hi_club "SELECT status FROM hi_club_m
 # 那张凭据被假 tx 占住了(等链上确认),真付款要换一张 —— 与付款方重开付款页同一条路
 PID=$(cb market/issue_payment "{\"order_id\":\"$OID\"}" | g data payment payId)
 case "$PID" in MKP-*) ok "换开了一张新凭据 $PID";; *) bad "换凭据失败" "got=$PID";; esac
+
+# 前三节不花钱(开单、旧转账认新单、查不到的 hash),而且正好走「上报交易号 → 按 hash 占位」那条写入路径。
+# 只想验这一段时给 NO_REAL_TRANSFER=1:到这里如实报「四到六节没验」就停,不往链上转钱。
+if [ "${NO_REAL_TRANSFER:-}" = "1" ]; then
+  echo
+  echo "  — 没验:四、五、六节(NO_REAL_TRANSFER=1,不做真转账)"
+  NO_REAL_TRANSFER_DONE=1
+fi
+
+if [ -z "${NO_REAL_TRANSFER_DONE:-}" ]; then
 
 echo
 echo "── 四、真转账 → 认款 → 履约 ──"
@@ -164,7 +189,8 @@ echo
 echo "── 六、交易记录:范围靠当事人限死 ──"
 # 机器人自己掏钱付的(payer = 机器人 did),**主人要查得到那笔账** ——
 # 这正是 ListTransactions 收 did 的理由。
-TXM=$(cr market/list_transactions "{\"did\":\"$RB\"}")
+# 用**主人**的 token、指定这台机器人 —— did 参数的口子只有这样才被走到(机器人自己查自己不经过它)。
+TXM=$(cb market/list_transactions "{\"did\":\"$RB\"}")
 case "$TXM" in *"$PID"*) ok "**主人查得到仆从机器人的交易**(凭据号在列表里)";;
   *) bad "主人查不到机器人的交易" "$(echo "$TXM"|head -c 200)";; esac
 # 卖家是收款方,同一笔也应该查得到 —— 一笔交易两头都是当事人。
@@ -176,6 +202,8 @@ hasany "负面:拿别人的 did 当主体被拒" "$(cs market/list_transactions 
 hasany "负面:不相干的凭据号查不到" "$(cb market/get_transaction '{"pay_id":"MKP-not-mine"}')" \
   "不存在或与你无关"
 fi
+
+fi # NO_REAL_TRANSFER_DONE
 
 echo
 echo "── 清理 ──"

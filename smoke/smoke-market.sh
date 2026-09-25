@@ -166,9 +166,10 @@ ODUP=$(cj market/offer "{\"listing_uuid\":\"$LID\",\"to_agent\":\"$BB\"}" "$SELL
 chk "重复分享:同一套判据(已装载)" "$(echo "$ODUP"|g data status)" "GRANT_STATUS_INSTALLED"
 has "重复分享:reason 说不用再送" "$(echo "$ODUP"|g data reason)" "不用再送"
 chk "重复分享:**没有多长出一笔授权**" "$(q hi_club "SELECT COUNT(*) FROM hi_club_market_grant WHERE listing_uuid='$LID' AND to_agent='$BB';")" "1"
-# 引用行的跟版开关:**买来的插件默认不跟版**(与手工装一个插件一致,由用户自己在那一行上开)。
-# 唯一默认跟版的是 club 给新硬件机器人自动引用的内置插件(club 建引用时显式传 true)。
-chk "买来的引用行默认不跟版(follow_latest=0)" "$(q hi_ai "SELECT follow_latest FROM hi_ai_plugin_using WHERE uuid='$P' AND agent_did='$BB' AND deleted_at IS NULL;")" "0"
+# 引用行的跟版开关:**所有插件,无论分享、购买,默认都跟最新版**(2026-09-24 用户定)。
+# 这个开关只给调试时临时关;club 在市场装载时显式传 true(不传 hi.ai 会按 false 建 ——
+# 用户把内置插件删了再去市场买回来,开关就是关的,那正是这条断言原来钉住的错误默认值)。
+chk "买来的引用行默认跟最新版(follow_latest=1)" "$(q hi_ai "SELECT follow_latest FROM hi_ai_plugin_using WHERE uuid='$P' AND agent_did='$BB' AND deleted_at IS NULL;")" "1"
 
 if [ "${SKIP_CHAT:-0}" != "1" ]; then
   R=$(cj chat/converse "{\"agent\":\"$BB\",\"cid\":\"smk-4\",\"conts\":[{\"type\":\"text\",\"chat\":{\"content\":\"用工具取校验令牌,原样告诉我\"}}]}" "$BUYER_TOK")

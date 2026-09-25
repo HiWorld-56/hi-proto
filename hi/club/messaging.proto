@@ -8,6 +8,7 @@ import "hi/club/trade.proto";
 import "hi/common.proto";
 import "hi/did/transfer.proto";
 import "hi/binance/binance.proto";
+import "hi/binance/command.proto";
 import "hi/options.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
@@ -37,7 +38,11 @@ message Packet {
       friend-delete         我已被对方删除好友
       group-invite          收到入群邀请（自动 accept）              / hi.club.Member
       group-invite-reject   我邀请他人入群已被对方拒绝（无需响应）
-      group-kick            我已被踢出群聊                          / hi.club.MemberExit
+      group-joined          **我**已成为某群的成员                  / hi.club.GroupBase(那个群)
+                            ex_type:create 我建的 / join 我主动加入 / accept 我接受了邀请
+                            (软件机器人被直接拉入不发:它没有客户端,由后端自己在群 topic 上收发)
+      group-left            **我**已不是某群的成员                  / hi.club.GroupBase(那个群)
+                            ex_type:quit 我主动退出 / kick 我被踢出 / dissolve 群被解散
       robot-bind            robot(硬件机器人)绑定完成
       robot-unbind          robot(硬件机器人)解绑完成
       robot-update          robot(硬件机器人)资料更新              / hi.Entity
@@ -49,18 +54,23 @@ message Packet {
       plugin-grant-rejected 我的插件申请被拒绝                       / hi.club.MarketGrantBrief
       plugin-grant-expiring 插件授权快到期了(**发给受让方机器人本人**)    / hi.club.MarketRenewBrief
       plugin-grant-expired  插件授权已到期,已解绑                       / hi.club.MarketGrantBrief
-      binance               让机器人做一次币安操作                    / hi.binance.Binance*(按 ex_type,见 hi/binance/binance.proto)
 
-      ⭐ `binance` 与上面每一条都不同:**它是发给机器人、让它去做事的指令**,不是"某件事发生了"。
-         它也是**唯一一条群通知与单聊通知同样有效**的 —— 认人只看 `from` 等不等于机器人配置里的
-         代理 did,与发到哪个 topic 无关。发进群 = 群里所有认这个代理的机器人一起做。
-         结果由机器人用一条**消息**回到来路那个会话(`Content.type = "binance"`)。
-         `status` 一律 `processed`:机器人绝不执行离线期间攒下的指令。细节全在 hi/binance/binance.proto。
+   ⭐ `group-joined` / `group-left` 是**多端收敛订阅**用的(2026-09-25 定)。
+      群里的事件(member-join / member-exit / group-dissolve)发在**群 topic** 上 —— 同一个号在
+      别的设备上建群、入群,这台设备还没订阅那个群 topic,那几条根本收不到,于是这个群的实时消息
+      整段收不到,直到重新登录做整批订阅(生产实测:手机建的群,一直在线的桌面版一条结果都没收到)。
+      所以「我进群 / 我离群」**每一种**都另给本人发一条到**个人 topic**(本人所有设备都订着):
+        · 端上只对**实时**收到的这两种动作:joined → 订阅群 topic;left → 退订。重复订阅由 broker 替换、不重复;
+          退订没订过的也无妨,所以不用先判「本端订没订」。
+        · **补拉回来的不处理** —— 离线期间的变化由重连时按后端群表整批订阅收敛。
+        · `ex_type` 只用于展示(本地记录怎么留:quit 删掉本地群,kick / dissolve 留着只读),订阅动作不看它。
+        · 后端**先开 ACL、再发 group-joined**:反过来,端上订阅会被 broker 拒(SUBACK 失败码,不报错)。
+      群 topic 上那几条照发,给群聊页出系统提示用;是否订阅只认个人这两条。
 
    ⛔ **通知一律由后端发。** broker(fromguard)拦掉设备账号发出的全部通知 ——
-      上表除 `binance` 外都是"某件事发生了"的系统通知,收方按类型直接动状态,
-      端上能发就等于任何好友 / 群成员都能冒充后端。`binance` 由端上调
-      `hi.club.Binance.Send`,后端核过之后代发(2026-09-24 定)。
+      上表都是"某件事发生了"的系统通知,收方按类型直接动状态,
+      端上能发就等于任何好友 / 群成员都能冒充后端。
+      **要让机器人做事,发消息,不发通知**(币安指令就是一条 `binance_cmd` 消息,见 hi/binance/command.proto)。
 
    ex_type: 附加类型
       扩充主类型，避免主类型产生过多分支。
@@ -271,11 +281,6 @@ message Member {
   hi.Entity user  = 2;
 }
 
-message MemberExit {
-  Member          member = 1;
-  optional string type   = 2;
-}
-
 /*
    Content.type —— **一条消息里这一段是什么**。字符串,取值就是下面这张表,**别自己发明**。
 
@@ -287,6 +292,7 @@ message MemberExit {
      trade       交易卡            kind=trade(TradeBase)
      broadcast   广播
      binance     币安操作结果卡      kind=binance(hi.binance.BinanceResult)
+     binance_cmd 币安指令            kind=binance_cmd(hi.binance.BinanceCommand)—— 群里要 @ 执行的机器人,见 hi/binance/command.proto
 
    ⚠️ **注意是 `image_url` 不是 `image`、`audio_url` 不是 `audio`。**
 
@@ -323,6 +329,8 @@ message Content {
     TradeBase          trade = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 交易卡可入群,基础卡=PARTICIPANT
     // 币安操作的结果,机器人回给下指令的那个会话。与转账卡同型:载荷定义在别的包里,这里只引用。
     hi.binance.BinanceResult binance = 5 [(hi.visibility) = VIS_PARTICIPANT];
+    // 给机器人的币安指令。就是一条普通消息:群里 @ 谁谁执行,发令人是信封的 from。
+    hi.binance.BinanceCommand binance_cmd = 6 [(hi.visibility) = VIS_PARTICIPANT];
   }
 }
 
