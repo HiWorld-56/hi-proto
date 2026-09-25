@@ -29,6 +29,14 @@ import "hi/options.proto";
 // | `spot.get_order`                    | `BinanceSpotGetOrder`          |
 // | `spot.get_open_order_lists`         | `BinanceSpotOpenOrderLists`    |
 // | `spot.ticker_24h`                   | `BinanceSpotTicker24h`         |
+// | `spot.order_list_oco`               | `BinanceSpotOrderListOco`      |
+// | `spot.order_list_oto`               | `BinanceSpotOrderListOto`      |
+// | `spot.order_list_otoco`             | `BinanceSpotOrderListOtoco`    |
+// | `spot.order_list_opo`               | `BinanceSpotOrderListOpo`      |
+// | `spot.order_list_opoco`             | `BinanceSpotOrderListOpoco`    |
+// | `spot.delete_order_list`            | `BinanceSpotCancelOrderList`   |
+// | `spot.get_order_list`               | `BinanceSpotGetOrderList`      |
+// | `spot.all_order_list`               | `BinanceSpotAllOrderLists`     |
 // | `usds_futures.new_order`            | `BinanceFuturesNewOrder`       |
 // | `usds_futures.cancel_order`         | `BinanceFuturesCancelOrder`    |
 // | `usds_futures.cancel_all_open_orders` | `BinanceFuturesCancelAllOrders` |
@@ -37,6 +45,11 @@ import "hi/options.proto";
 // | `usds_futures.account_information_v3`  | `BinanceFuturesAccount`     |
 // | `usds_futures.current_all_open_orders` | `BinanceFuturesOpenOrders`  |
 // | `usds_futures.open_algo_orders`     | `BinanceFuturesOpenAlgoOrders` |
+// | `usds_futures.new_algo_order`       | `BinanceFuturesNewAlgoOrder`   |
+// | `usds_futures.cancel_algo_order`    | `BinanceFuturesCancelAlgoOrder` |
+// | `usds_futures.cancel_all_algo_open_orders` | `BinanceFuturesCancelAllAlgoOrders` |
+// | `usds_futures.query_algo_order`     | `BinanceFuturesGetAlgoOrder`   |
+// | `usds_futures.query_all_algo_orders` | `BinanceFuturesAllAlgoOrders` |
 // | `usds_futures.income`               | `BinanceFuturesIncome`         |
 // | `usds_futures.sign_tradfi_contract` | `BinanceFuturesSignTradfiContract` |
 // | `wallet.query_user_wallet_balance`  | `BinanceWalletBalance`         |
@@ -61,12 +74,61 @@ enum BinanceOrderSide {
   BINANCE_ORDER_SIDE_SELL        = 2;
 }
 
-// 订单类型。**第一批只做这两种** —— 要加(止损、跟踪委托……)时在这里加一行,
-// 并同步到 brain 的操作表。
+// **合约普通单**的类型。只有这两种 —— 合约的止盈止损、跟踪止损是**策略委托**,
+// 走另一个接口(`BinanceFuturesNewAlgoOrder`):币安 2025-12-09 起把它们从 `/fapi/v1/order` 迁走,
+// 再往普通下单接口发会回 `-4120 STOP_ORDER_SWITCH_ALGO`。
+// 现货的单型更多,是另一个枚举(`BinanceSpotOrderType`)—— 两边能下的单不一样,合用一个枚举就能写出币安必拒的组合。
 enum BinanceOrderType {
   BINANCE_ORDER_TYPE_UNSPECIFIED = 0;
   BINANCE_ORDER_TYPE_LIMIT       = 1; // 限价:必须给 price 与 time_in_force
   BINANCE_ORDER_TYPE_MARKET      = 2; // 市价:不给 price
+}
+
+// **现货**的订单类型(`POST /api/v3/order` 的 `type`)。1、2 与 `BinanceOrderType` 同值(拆枚举之前的存量指令照样解得出来)。
+//
+// | 类型 | 还要给 |
+// |---|---|
+// | LIMIT | price、time_in_force、quantity |
+// | MARKET | quantity 或 quote_order_qty |
+// | STOP_LOSS | quantity,stop_price 或 trailing_delta —— 触发后按**市价**成交(止损) |
+// | STOP_LOSS_LIMIT | price、time_in_force、quantity,stop_price 或 trailing_delta —— 触发后挂**限价**单 |
+// | TAKE_PROFIT | quantity,stop_price 或 trailing_delta —— 触发后按市价成交(止盈) |
+// | TAKE_PROFIT_LIMIT | price、time_in_force、quantity,stop_price 或 trailing_delta |
+// | LIMIT_MAKER | price、quantity —— 只做挂单方,会立即成交就被拒 |
+enum BinanceSpotOrderType {
+  BINANCE_SPOT_ORDER_TYPE_UNSPECIFIED       = 0;
+  BINANCE_SPOT_ORDER_TYPE_LIMIT             = 1;
+  BINANCE_SPOT_ORDER_TYPE_MARKET            = 2;
+  BINANCE_SPOT_ORDER_TYPE_STOP_LOSS         = 3;
+  BINANCE_SPOT_ORDER_TYPE_STOP_LOSS_LIMIT   = 4;
+  BINANCE_SPOT_ORDER_TYPE_TAKE_PROFIT       = 5;
+  BINANCE_SPOT_ORDER_TYPE_TAKE_PROFIT_LIMIT = 6;
+  BINANCE_SPOT_ORDER_TYPE_LIMIT_MAKER       = 7;
+}
+
+// **合约策略委托**的类型(`POST /fapi/v1/algoOrder`,`algoType = CONDITIONAL`)。
+//
+// | 类型 | 还要给 |
+// |---|---|
+// | STOP | quantity、price、trigger_price —— 触发后挂限价单(止损) |
+// | TAKE_PROFIT | quantity、price、trigger_price —— 触发后挂限价单(止盈) |
+// | STOP_MARKET | trigger_price,quantity 或 close_position —— 触发后市价(止损) |
+// | TAKE_PROFIT_MARKET | trigger_price,quantity 或 close_position —— 触发后市价(止盈) |
+// | TRAILING_STOP_MARKET | quantity、callback_rate,可选 activate_price —— 跟踪止损 |
+enum BinanceFuturesAlgoOrderType {
+  BINANCE_FUTURES_ALGO_ORDER_TYPE_UNSPECIFIED          = 0;
+  BINANCE_FUTURES_ALGO_ORDER_TYPE_STOP                 = 1;
+  BINANCE_FUTURES_ALGO_ORDER_TYPE_STOP_MARKET          = 2;
+  BINANCE_FUTURES_ALGO_ORDER_TYPE_TAKE_PROFIT          = 3;
+  BINANCE_FUTURES_ALGO_ORDER_TYPE_TAKE_PROFIT_MARKET   = 4;
+  BINANCE_FUTURES_ALGO_ORDER_TYPE_TRAILING_STOP_MARKET = 5;
+}
+
+// 合约触发价按哪个价格比。不传 = 币安默认 CONTRACT_PRICE(最新成交价)。
+enum BinanceWorkingType {
+  BINANCE_WORKING_TYPE_UNSPECIFIED    = 0;
+  BINANCE_WORKING_TYPE_MARK_PRICE     = 1; // 标记价格 —— 不容易被一笔插针打穿
+  BINANCE_WORKING_TYPE_CONTRACT_PRICE = 2; // 最新成交价
 }
 
 // 订单有效方式(限价单才用得上)。
@@ -99,7 +161,7 @@ message BinanceSpotNewOrder {
     (buf.validate.field).required = true,
     (hi.visibility)               = VIS_PARTICIPANT
   ];
-  optional BinanceOrderType   type             = 3 [
+  optional BinanceSpotOrderType type           = 3 [
     (buf.validate.field).required = true,
     (hi.visibility)               = VIS_PARTICIPANT
   ];
@@ -116,6 +178,10 @@ message BinanceSpotNewOrder {
   //   · 卖(SELL):可用的**标的币**(如 BNB)× p% —— 基数是持币,不是账户金额
   // 换算后按交易对的步长**向下取整**;不够最小下单量就不下,回一句为什么。
   optional string             percent          = 8 [(hi.visibility) = VIS_PARTICIPANT];
+  // 触发价(STOP_LOSS / STOP_LOSS_LIMIT / TAKE_PROFIT / TAKE_PROFIT_LIMIT)。与 trailing_delta 至少给一个。
+  optional string             stop_price       = 9 [(hi.visibility) = VIS_PARTICIPANT];
+  // 跟踪止损的回撤幅度,单位 **BIPS**(万分之一,100 = 1%)。给了就是跟踪单;与 stop_price 同给时,到了 stop_price 才开始跟踪。
+  optional uint32             trailing_delta   = 10 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 // 现货撤单。`DELETE /api/v3/order`
@@ -179,6 +245,216 @@ message BinanceSpotOpenOrderLists {
 message BinanceSpotTicker24h {
   option (hi.audience) = VIS_PARTICIPANT;
   optional string symbol = 1 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+// ──────────────── 现货组合单(Order list) ────────────────
+//
+// 一次提交几张彼此牵连的单(币安叫 order list)。五种:
+//
+// | 操作 | 意思 |
+// |---|---|
+// | OCO | 两张单**成交一张、撤掉另一张** —— 止盈和止损一起挂,就是它 |
+// | OTO | 先挂一张(working),**它成交后**才挂上第二张(pending)—— 买入成交后自动挂止损 |
+// | OTOCO | 先挂一张,成交后挂上一对 OCO —— 买入成交后同时挂止盈止损 |
+// | OPO | 同 OTO,但第二张的数量**跟第一张实际成交的量走**(不单独给) |
+// | OPOCO | 同 OTOCO,数量跟第一张实际成交的量走 |
+//
+// 撤单是撤整组(`spot.delete_order_list`);挂着的组合单用 `spot.get_open_order_lists` 查。
+// 组合单**不支持按百分比**:几张单共用一个数量又各有价格,换算口径说不清 —— 数量照实给。
+
+// OCO 里的一张(上方 / 下方),或 OTOCO / OPO / OPOCO 里后挂的那张。方向与数量在组合单那一层给。
+//
+// 上方(above)能用:STOP_LOSS_LIMIT / STOP_LOSS / LIMIT_MAKER / TAKE_PROFIT / TAKE_PROFIT_LIMIT;
+// 下方(below)能用:STOP_LOSS / STOP_LOSS_LIMIT / TAKE_PROFIT / TAKE_PROFIT_LIMIT。
+// OPO 的后一张另外还能用 LIMIT / MARKET。取值不对由币安拒,我们不替它判。
+message BinanceSpotListLeg {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional BinanceSpotOrderType type           = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  optional string               price          = 2 [(hi.visibility) = VIS_PARTICIPANT]; // *_LIMIT / LIMIT_MAKER 的限价
+  optional string               stop_price     = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 触发价
+  optional uint32               trailing_delta = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 跟踪幅度(BIPS)
+  optional BinanceTimeInForce   time_in_force  = 5 [(hi.visibility) = VIS_PARTICIPANT]; // *_LIMIT 必给
+}
+
+// OTO / OTOCO / OPO / OPOCO 里**先挂的那张**(working)。只能是 LIMIT 或 LIMIT_MAKER,要给 price 与 quantity。
+message BinanceSpotWorkingOrder {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional BinanceSpotOrderType type          = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  optional BinanceOrderSide     side          = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  optional string               price         = 3 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  optional string               quantity      = 4 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  optional BinanceTimeInForce   time_in_force = 5 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+// OCO:止盈止损一起挂。`POST /api/v3/orderList/oco`
+// 卖出:上方 = 止盈(LIMIT_MAKER / TAKE_PROFIT*)价高于现价,下方 = 止损(STOP_LOSS*)触发价低于现价。
+message BinanceSpotOrderListOco {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string             symbol   = 1 [
+    (buf.validate.field).string.pattern = "^[A-Z0-9]+$",
+    (buf.validate.field).required       = true,
+    (hi.visibility)                     = VIS_PARTICIPANT
+  ];
+  optional BinanceOrderSide   side     = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  optional string             quantity = 3 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ]; // 两张单共用
+  BinanceSpotListLeg          above    = 4 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  BinanceSpotListLeg          below    = 5 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+}
+
+// OTO:先挂一张,成交后挂上第二张。`POST /api/v3/orderList/oto`
+message BinanceSpotOrderListOto {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string          symbol           = 1 [
+    (buf.validate.field).string.pattern = "^[A-Z0-9]+$",
+    (buf.validate.field).required       = true,
+    (hi.visibility)                     = VIS_PARTICIPANT
+  ];
+  BinanceSpotWorkingOrder  working          = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  optional BinanceOrderSide pending_side    = 3 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  optional string          pending_quantity = 4 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  BinanceSpotListLeg       pending          = 5 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+}
+
+// OTOCO:先挂一张,成交后挂上一对 OCO。`POST /api/v3/orderList/otoco`
+message BinanceSpotOrderListOtoco {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string          symbol           = 1 [
+    (buf.validate.field).string.pattern = "^[A-Z0-9]+$",
+    (buf.validate.field).required       = true,
+    (hi.visibility)                     = VIS_PARTICIPANT
+  ];
+  BinanceSpotWorkingOrder  working          = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  optional BinanceOrderSide pending_side    = 3 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  optional string          pending_quantity = 4 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  BinanceSpotListLeg       pending_above    = 5 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  BinanceSpotListLeg       pending_below    = 6 [(hi.visibility) = VIS_PARTICIPANT]; // 币安这里标的是可选
+}
+
+// OPO:同 OTO,第二张的数量跟第一张实际成交的量走。`POST /api/v3/orderList/opo`
+message BinanceSpotOrderListOpo {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string          symbol       = 1 [
+    (buf.validate.field).string.pattern = "^[A-Z0-9]+$",
+    (buf.validate.field).required       = true,
+    (hi.visibility)                     = VIS_PARTICIPANT
+  ];
+  BinanceSpotWorkingOrder  working      = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  optional BinanceOrderSide pending_side = 3 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  BinanceSpotListLeg       pending      = 4 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+}
+
+// OPOCO:同 OTOCO,数量跟第一张实际成交的量走。`POST /api/v3/orderList/opoco`
+message BinanceSpotOrderListOpoco {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string          symbol        = 1 [
+    (buf.validate.field).string.pattern = "^[A-Z0-9]+$",
+    (buf.validate.field).required       = true,
+    (hi.visibility)                     = VIS_PARTICIPANT
+  ];
+  BinanceSpotWorkingOrder  working       = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  optional BinanceOrderSide pending_side = 3 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  BinanceSpotListLeg       pending_above = 4 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  BinanceSpotListLeg       pending_below = 5 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+// 撤整组组合单。`DELETE /api/v3/orderList`
+// `order_list_id` 与 `list_client_order_id` 给一个即可。
+message BinanceSpotCancelOrderList {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string symbol               = 1 [
+    (buf.validate.field).string.pattern = "^[A-Z0-9]+$",
+    (buf.validate.field).required       = true,
+    (hi.visibility)                     = VIS_PARTICIPANT
+  ];
+  optional int64  order_list_id        = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string list_client_order_id = 3 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+// 查一组组合单。`GET /api/v3/orderList`
+// `order_list_id` 与 `orig_client_order_id`(即下单时的 listClientOrderId)给一个即可。
+message BinanceSpotGetOrderList {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional int64  order_list_id        = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string orig_client_order_id = 2 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+// 组合单历史。`GET /api/v3/allOrderList`
+// 给了 from_id 就不能再给时间范围。
+message BinanceSpotAllOrderLists {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional int64  from_id    = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64  start_time = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 毫秒
+  optional int64  end_time   = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 毫秒
+  optional uint32 limit      = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 默认 500,最多 1000
 }
 
 // ════════════════════ U 本位合约(USDⓈ-M) ════════════════════
@@ -278,6 +554,83 @@ message BinanceFuturesOpenOrders {
 // **与普通挂单是两张表** —— 只查 `openOrders` 的话,面板上会缺掉全部止盈止损单。
 message BinanceFuturesOpenAlgoOrders {
   option (hi.audience) = VIS_PARTICIPANT;
+  optional string symbol = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 不传 = 全部
+}
+
+// 合约**策略委托**下单(止盈、止损、跟踪止损)。`POST /fapi/v1/algoOrder`,`algoType` 固定 CONDITIONAL(brain 填)。
+// 类型与各自要给的字段见 `BinanceFuturesAlgoOrderType`。
+//
+// ⚠️ 这是**条件单**:下单成功只是挂上了,**触发时**才真正下出去;挂着的在 `open_algo_orders` 里查,不在普通挂单里。
+message BinanceFuturesNewAlgoOrder {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string                      symbol         = 1 [
+    (buf.validate.field).string.pattern = "^[A-Z0-9]+$",
+    (buf.validate.field).required       = true,
+    (hi.visibility)                     = VIS_PARTICIPANT
+  ];
+  optional BinanceOrderSide            side           = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  optional BinanceFuturesAlgoOrderType type           = 3 [
+    (buf.validate.field).required = true,
+    (hi.visibility)               = VIS_PARTICIPANT
+  ];
+  optional BinancePositionSide         position_side  = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 不传 = BOTH
+  optional BinanceTimeInForce          time_in_force  = 5 [(hi.visibility) = VIS_PARTICIPANT]; // STOP / TAKE_PROFIT(限价)用
+  optional string                      quantity       = 6 [(hi.visibility) = VIS_PARTICIPANT]; // 与 close_position 不能同给
+  optional string                      price          = 7 [(hi.visibility) = VIS_PARTICIPANT]; // STOP / TAKE_PROFIT 触发后的限价
+  optional string                      trigger_price  = 8 [(hi.visibility) = VIS_PARTICIPANT]; // 触发价
+  optional BinanceWorkingType          working_type   = 9 [(hi.visibility) = VIS_PARTICIPANT];
+  // 触发时**平掉这个方向的全部仓位**(只用于 STOP_MARKET / TAKE_PROFIT_MARKET)。给了就不能给 quantity。
+  optional bool                        close_position = 10 [(hi.visibility) = VIS_PARTICIPANT];
+  // 价格保护:触发时标记价与最新价偏离过大就不触发。
+  optional bool                        price_protect  = 11 [(hi.visibility) = VIS_PARTICIPANT];
+  // 只减仓(双向持仓模式下币安不收)。止盈止损单一般都该带上,免得触发时反向开出新仓。
+  optional bool                        reduce_only    = 12 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string                      activate_price = 13 [(hi.visibility) = VIS_PARTICIPANT]; // 跟踪止损的激活价
+  optional string                      callback_rate  = 14 [(hi.visibility) = VIS_PARTICIPANT]; // 跟踪止损的回调比例(%),0.1–10
+  // **按百分比**(十进制字符串,0 < p ≤ 100)。与 quantity / close_position 三选一;口径同 `BinanceFuturesNewOrder.percent`,
+  // 换算用的价格:有 price 用 price,否则用 trigger_price,都没有用标记价格。
+  optional string                      percent        = 15 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+// 撤一张策略委托。`DELETE /fapi/v1/algoOrder`。`algo_id` 与 `client_algo_id` 给一个即可。
+message BinanceFuturesCancelAlgoOrder {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional int64  algo_id        = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string client_algo_id = 2 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+// 撤一个交易对的全部策略委托。`DELETE /fapi/v1/algoOpenOrders`
+message BinanceFuturesCancelAllAlgoOrders {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string symbol = 1 [
+    (buf.validate.field).string.pattern = "^[A-Z0-9]+$",
+    (buf.validate.field).required       = true,
+    (hi.visibility)                     = VIS_PARTICIPANT
+  ];
+}
+
+// 查一张策略委托。`GET /fapi/v1/algoOrder`。`algo_id` 与 `client_algo_id` 给一个即可。
+message BinanceFuturesGetAlgoOrder {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional int64  algo_id        = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string client_algo_id = 2 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+// 策略委托历史(含已触发、已撤、已过期)。`GET /fapi/v1/allAlgoOrders`
+message BinanceFuturesAllAlgoOrders {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string symbol     = 1 [
+    (buf.validate.field).string.pattern = "^[A-Z0-9]+$",
+    (buf.validate.field).required       = true,
+    (hi.visibility)                     = VIS_PARTICIPANT
+  ];
+  optional int64  algo_id    = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64  start_time = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 毫秒
+  optional int64  end_time   = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 毫秒
+  optional uint32 limit      = 5 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 // 合约资金流水(已实现盈亏、资金费、手续费…)。`GET /fapi/v1/income`

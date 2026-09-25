@@ -80,5 +80,21 @@ message BinanceCommand {
     BinanceStockSignDisclaimer    stocks_sign_us_equity_disclaimer   = 41 [(hi.visibility) = VIS_PARTICIPANT]; // stocks.sign_us_equity_disclaimer
 
     BinanceWalletBalance          wallet_query_user_wallet_balance   = 40 [(hi.visibility) = VIS_PARTICIPANT]; // wallet.query_user_wallet_balance
+
+    // 现货组合单(止盈止损一起挂、成交后自动挂止损…)
+    BinanceSpotOrderListOco       spot_order_list_oco                = 42 [(hi.visibility) = VIS_PARTICIPANT]; // spot.order_list_oco
+    BinanceSpotOrderListOto       spot_order_list_oto                = 43 [(hi.visibility) = VIS_PARTICIPANT]; // spot.order_list_oto
+    BinanceSpotOrderListOtoco     spot_order_list_otoco              = 44 [(hi.visibility) = VIS_PARTICIPANT]; // spot.order_list_otoco
+    BinanceSpotOrderListOpo       spot_order_list_opo                = 45 [(hi.visibility) = VIS_PARTICIPANT]; // spot.order_list_opo
+    BinanceSpotOrderListOpoco     spot_order_list_opoco              = 46 [(hi.visibility) = VIS_PARTICIPANT]; // spot.order_list_opoco
+    BinanceSpotCancelOrderList    spot_delete_order_list             = 47 [(hi.visibility) = VIS_PARTICIPANT]; // spot.delete_order_list
+    BinanceSpotGetOrderList       spot_get_order_list                = 48 [(hi.visibility) = VIS_PARTICIPANT]; // spot.get_order_list
+    BinanceSpotAllOrderLists      spot_all_order_list                = 49 [(hi.visibility) = VIS_PARTICIPANT]; // spot.all_order_list
+    // 合约策略委托(止盈、止损、跟踪止损)
+    BinanceFuturesNewAlgoOrder    usds_futures_new_algo_order        = 50 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.new_algo_order
+    BinanceFuturesCancelAlgoOrder usds_futures_cancel_algo_order     = 51 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.cancel_algo_order
+    BinanceFuturesCancelAllAlgoOrders usds_futures_cancel_all_algo_open_orders = 52 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.cancel_all_algo_open_orders
+    BinanceFuturesGetAlgoOrder    usds_futures_query_algo_order      = 53 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.query_algo_order
+    BinanceFuturesAllAlgoOrders   usds_futures_query_all_algo_orders = 54 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.query_all_algo_orders
   }
 }
