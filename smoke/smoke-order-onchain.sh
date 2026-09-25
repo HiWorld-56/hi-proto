@@ -101,10 +101,20 @@ if [ -n "$OLD_TX" ]; then
     bad "闸③没验" "OLD_TX 只比现在早 $(( ONOW - OT/1000 ))s,没超过 ${SKEW}s 容差 —— 它本来就该被放行,换一笔更早的"
   else
     ok "诱饵够旧(比现在早 $(( ONOW - OT/1000 ))s,超过 ${SKEW}s 容差)"
-    hasany "**旧转账认不了新单**(时间早于下单)" \
-      "$(notify "$PID" "$OMCH" "$OLD_TX")" \
-      "时序" "早于" "时间" "不符"
-    chk "凭据仍是待付款(0)" "$(Q hi_club "SELECT status FROM hi_club_market_payment WHERE pay_id='$PID';")" "0"
+    # 认款是**两段**的(见第三节):回执只收下 hash、立刻回成功,闸③在异步核验里判。
+    # 所以判据是**核验的结论**:凭据被否(5),且理由说的正是闸③ —— 被闸②(收款方/金额不符)否掉
+    # 也是 5,只看状态会让一张没搭对的用例冒充闸③生效(「被拒了」不是判据)。
+    R3=$(notify "$PID" "$OMCH" "$OLD_TX")
+    case "$R3" in *"回执已交给 hidid"*) ok "旧转账的回执被收下(两段式:先收下,再核验)";;
+      *) bad "旧转账的回执没送到" "$(echo "$R3"|head -c 200)";; esac
+    for _ in $(seq 60); do [ "$(Q hi_club "SELECT status FROM hi_club_market_payment WHERE pay_id='$PID';")" = "4" ] || break; sleep 1; done
+    chk "**旧转账认不了新单**:凭据被否(5)" "$(Q hi_club "SELECT status FROM hi_club_market_payment WHERE pay_id='$PID';")" "5"
+    hasany "否掉的理由是闸③(早于开凭据)" "$(Q hi_club "SELECT reason FROM hi_club_market_payment WHERE pay_id='$PID';")" \
+      "早于付款凭据创建时间"
+    chk "业务单仍待付款(0)" "$(Q hi_club "SELECT status FROM hi_club_market_order WHERE order_id='$OID';")" "0"
+    # 这张凭据已被否,第三节要一张干净的 —— 与付款方重开付款页同一条路
+    PID=$(cb market/issue_payment "{\"order_id\":\"$OID\"}" | g data payment payId)
+    case "$PID" in MKP-*) ok "闸③之后换开一张新凭据 $PID";; *) bad "换凭据失败" "got=$PID";; esac
   fi
 else
   bad "闸③没验" "没给 OLD_TX —— 这是本脚本最该验的一条,别跳过"
