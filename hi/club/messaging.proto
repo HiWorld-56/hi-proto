@@ -255,18 +255,45 @@ message Prompt {
    ⚠️ **不带就是 0,这是有意的缺省语义**,不是「拿零值冒充没有」:老的发送方从来不填这个字段,
    它们发的就是 0 级(普通)消息。读的时候 `GetDark()` / `unwrap_or(0)` 是对的。
 */
+/*
+   ## 信封与可变部分 —— 中间层只解信封(2026-09-25 定)
+
+   `Message` 本身是**信封级**的:uuid / type / from / timestamp / ex_type / ghost / dark,
+   中间层(hiclub-core-mqtt、club 后端、broker)只读它们做**路由与同步**。
+   **可变部分**只有两处,中间层**不解析、不改写、原样存、原样转**:
+
+   · `contents` —— 序列化后的 `Contents`(内容段 + 提示),**由发送方编码、接收方(UI / brain)解析**。
+     它是 `bytes` 而不是具体结构,是故意的:中间层在类型上就碰不到内容,上层加一种内容,
+     中间层一行不改、一个号不打。(原来是 `repeated Content conts` + `Prompt prompt`,
+     core 解开再用自己的 proto 版本重编码 → 不认识的内容静默丢;后端补拉还逐条改写 —— 都已拆掉。)
+   · `extra` —— `google.protobuf.Any`,本来就不透明。
+
+   `timestamp`:**服务器入库时填接收时间**(所有消息统一到服务器时间),这是入库时**唯一**改动的字段。
+   发送方填的是本地时间,只作占位;端上显示时间以 core 给的为准(实时 = 本地收到时间,补拉后 = 服务器时间)。
+
+   `from` / `ghost` 是 Entity,带着**发送那一刻**的基础信息与 `update` 一起传播;
+   各端的对象缓存池按 `update` 比新旧、惰性更新 —— **任何一层都不许把它换成"当前资料"**。
+*/
 message Message {
   option (hi.audience) = VIS_PARTICIPANT; // 群消息,群成员可见
   optional string     uuid      = 1 [(hi.visibility) = VIS_PARTICIPANT];
   optional string     type      = 2 [(hi.visibility) = VIS_PARTICIPANT];
   hi.Entity           from      = 3 [(hi.visibility) = VIS_PUBLIC]; // Entity=公开门面
-  repeated Content    conts     = 4 [(hi.visibility) = VIS_PARTICIPANT];
-  optional int64      timestamp = 5 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64      timestamp = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 服务器入库时填接收时间(微秒)
   google.protobuf.Any extra     = 6 [(hi.visibility) = VIS_PARTICIPANT];
   optional string     ex_type   = 7 [(hi.visibility) = VIS_PARTICIPANT];
   hi.Entity           ghost     = 8 [(hi.visibility) = VIS_PUBLIC]; // Entity=公开门面
-  Prompt              prompt    = 9 [(hi.visibility) = VIS_PARTICIPANT];
   optional uint32     dark      = 10 [(hi.visibility) = VIS_PARTICIPANT]; // 暗语等级,不带 = 0 = 普通;见上面「暗语」那段
+  // 可变部分:序列化后的 `Contents`。中间层原样存、原样转,只有 UI / brain 解(见上方说明)
+  optional bytes      contents  = 11 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+// 消息的可变部分(`Message.contents` 里装的就是它序列化后的字节)。
+// **只由发送方编码、接收方解析**;中间层不认识它也不需要认识它。
+message Contents {
+  option (hi.audience) = VIS_PARTICIPANT;
+  repeated Content list   = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 内容段,见下面 Content.type 那张表
+  Prompt           prompt = 2 [(hi.visibility) = VIS_PARTICIPANT]; // AI 用的提示
 }
 
 // ⚠️ 被后端 Go 引用(群消息 @ 解析),proto 里无 rpc 引用,勿当死 message 删。
@@ -344,5 +371,5 @@ message Content {
 //
 // 后来给它补的三道守卫(from 由后端按调用方覆盖、内置通知整类拒、topic 写权限查 ACL)
 // 只是把这条路收窄到"勉强不出事",并没有让它变成对的 —— 2026-09-12 整个删掉。
-// 机器人发消息现在走 brain 的宿主能力 `send_message`(插件给 conts,brain 拼信封、
+// 机器人发消息现在走 brain 的宿主能力 `send_message`(插件给内容段,brain 组 `Contents`、拼信封、
 // 经 core 的 mqtt 连接自己发)。
