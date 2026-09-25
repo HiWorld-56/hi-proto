@@ -38,6 +38,11 @@ hasany(){ local w="$1" o="$2"; shift 2
 have_db || { echo "够不着 mysql —— 本机没装 mysql 时会 ssh 到 $DB 去查,检查那条路。" >&2; exit 2; }
 [ -x /tmp/coin_probe ] || { echo "缺 /tmp/coin_probe(core-mqtt,--features testkit)" >&2; exit 2; }
 Q(){ mysqlq "$1" "$2"; }
+# 前提:ROBOT_MN 必须是**这台机器人自己**的助记词 —— 转账、回执签名都用它,
+# 第六节「主人查得到仆从机器人的交易」判的正是 payer = 机器人 did。
+# 给成主人的助记词,钱照样付得出去、认款照样成,只有第六节红 —— 看着像范围的 bug(2026-09-25 栽过)。
+MNDID=$(MN_FILE="${ROBOT_MN:?}" /tmp/coin_probe "$COIN" 2>/dev/null | sed -n "s/^钱包 did=//p")
+[ "$MNDID" = "${ROBOT_DID:?需要 ROBOT_DID}" ] || { echo "ROBOT_MN 是 ${MNDID:-?} 的助记词,不是机器人 $ROBOT_DID 的 —— 前提不成立,不跑" >&2; exit 2; }
 cs(){ curl -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $STOK" -d "$2"; }
 cb(){ curl -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $BTOK" -d "$2"; }
 cr(){ curl -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $RTOK" -d "$2"; }
@@ -174,7 +179,8 @@ echo
 echo "── 六、交易记录:范围靠当事人限死 ──"
 # 机器人自己掏钱付的(payer = 机器人 did),**主人要查得到那笔账** ——
 # 这正是 ListTransactions 收 did 的理由。
-TXM=$(cr market/list_transactions "{\"did\":\"$RB\"}")
+# 用**主人**的 token、指定这台机器人 —— did 参数的口子只有这样才被走到(机器人自己查自己不经过它)。
+TXM=$(cb market/list_transactions "{\"did\":\"$RB\"}")
 case "$TXM" in *"$PID"*) ok "**主人查得到仆从机器人的交易**(凭据号在列表里)";;
   *) bad "主人查不到机器人的交易" "$(echo "$TXM"|head -c 200)";; esac
 # 卖家是收款方,同一笔也应该查得到 —— 一笔交易两头都是当事人。
