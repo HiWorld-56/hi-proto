@@ -40,6 +40,10 @@ message GatewayConfigSetReq {
 // ⚠️ 后端(开发/生产)不要走这个 RPC 取配置 —— 生产与开发/前端环境不同,
 //    后端应从自己的配置文件引入。
 //
+// ⚠️ 客户端(含测试探针)**一律从这里取**,别从环境变量或写死的默认值读 key:
+//    2026-09-25 core 的 coin_probe 读环境变量、没人 export 时 key 全是空串,
+//    节点回「paid plans only / Authentication required」,被误判成节点订阅过期。
+//
 // 读写拆两个 service(同 service 档位必须一致),照 Merchant / MerchantManage 的既有范式:
 //   Gateway(读,用户或商户) / GatewayAdmin(写,超管)。
 // HTTP 路径随之改为 /api/v1/gateway/list(读)与 /api/v1/gateway_admin/set(写)——
