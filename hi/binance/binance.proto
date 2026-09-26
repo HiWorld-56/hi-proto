@@ -137,6 +137,9 @@ enum BinanceTimeInForce {
   BINANCE_TIME_IN_FORCE_GTC         = 1; // 成交为止
   BINANCE_TIME_IN_FORCE_IOC         = 2; // 立即成交,剩余撤销
   BINANCE_TIME_IN_FORCE_FOK         = 3; // 全部成交,否则撤销
+  // 只做挂单(币安 App 的「只做 Maker」):会立刻成交的单直接被拒,不会误吃单。**只有合约普通限价单收**;
+  // 现货的只做挂单是单型 BINANCE_SPOT_ORDER_TYPE_LIMIT_MAKER,不是有效期。
+  BINANCE_TIME_IN_FORCE_GTX         = 4;
 }
 
 // 持仓方向(合约)。单向持仓模式下只有 BOTH;双向持仓才用 LONG / SHORT。
