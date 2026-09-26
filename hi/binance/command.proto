@@ -96,5 +96,6 @@ message BinanceCommand {
     BinanceFuturesCancelAllAlgoOrders usds_futures_cancel_all_algo_open_orders = 52 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.cancel_all_algo_open_orders
     BinanceFuturesGetAlgoOrder    usds_futures_query_algo_order      = 53 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.query_algo_order
     BinanceFuturesAllAlgoOrders   usds_futures_query_all_algo_orders = 54 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.query_all_algo_orders
+    BinanceFuturesTicker24h       usds_futures_ticker_24h            = 55 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.ticker_24h
   }
 }
