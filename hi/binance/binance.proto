@@ -38,6 +38,9 @@ import "hi/options.proto";
 // | `spot.get_order_list`               | `BinanceSpotGetOrderList`      |
 // | `spot.all_order_list`               | `BinanceSpotAllOrderLists`     |
 // | `usds_futures.new_order`            | `BinanceFuturesNewOrder`       |
+// | `usds_futures.ticker_24h`           | `BinanceFuturesTicker24h`      |
+// | `spot.klines`                       | `BinanceSpotKlines`            |
+// | `usds_futures.klines`               | `BinanceFuturesKlines`         |
 // | `usds_futures.cancel_order`         | `BinanceFuturesCancelOrder`    |
 // | `usds_futures.cancel_all_open_orders` | `BinanceFuturesCancelAllOrders` |
 // | `usds_futures.change_initial_leverage` | `BinanceFuturesLeverage`    |
@@ -496,6 +499,9 @@ message BinanceFuturesNewOrder {
   //   · 平仓(reduce_only,或双向持仓里 LONG+SELL / SHORT+BUY):**当前持仓数量** × p%
   // 换算后按交易对的步长**向下取整**;不够最小下单量就不下,回一句为什么。
   optional string              percent       = 9 [(hi.visibility) = VIS_PARTICIPANT];
+  // 杠杆(倍数)。给了:机器人**先把这个交易对的杠杆设成它,再下单**(按比例开仓也按新杠杆换算)。
+  // 币安的杠杆是按交易对分别设的,原来「设杠杆」和「下单」是两个动作,漏点一个就按旧杠杆开仓(2026-09-27 用户反馈)。
+  optional uint32              leverage      = 10 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 // 合约撤单。`DELETE /fapi/v1/order`
@@ -533,6 +539,33 @@ message BinanceFuturesLeverage {
     (buf.validate.field).required   = true,
     (hi.visibility)                 = VIS_PARTICIPANT
   ]; // 上限各交易对不同,由币安判
+}
+
+// K 线。`GET /api/v3/klines`(现货)/ `GET /fapi/v1/klines`(合约),公开接口不签名。
+// interval 照币安的写法:1m 3m 5m 15m 30m 1h 2h 4h 6h 8h 12h 1d 3d 1w 1M;limit 不给 = 币安默认(500),最多 1500。
+message BinanceSpotKlines {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string symbol     = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string interval   = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  optional uint32 limit      = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64  start_time = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 毫秒
+  optional int64  end_time   = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 毫秒
+}
+
+message BinanceFuturesKlines {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string symbol     = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string interval   = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  optional uint32 limit      = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64  start_time = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 毫秒
+  optional int64  end_time   = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 毫秒
+}
+
+// 合约 24 小时行情(现价、涨跌)。`GET /fapi/v1/ticker/24hr`,公开接口不签名。
+// 自然语言下单时模型要知道现价:没有这个,它问不到合约价格就自己编数(2026-09-26 实测)。
+message BinanceFuturesTicker24h {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string symbol = 1 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 // 合约持仓。`GET /fapi/v3/positionRisk`
@@ -596,6 +629,8 @@ message BinanceFuturesNewAlgoOrder {
   // **按百分比**(十进制字符串,0 < p ≤ 100)。与 quantity / close_position 三选一;口径同 `BinanceFuturesNewOrder.percent`,
   // 换算用的价格:有 price 用 price,否则用 trigger_price,都没有用标记价格。
   optional string                      percent        = 15 [(hi.visibility) = VIS_PARTICIPANT];
+  // 杠杆(倍数),含义同 BinanceFuturesNewOrder.leverage:给了就先设好这个交易对的杠杆,再挂这张条件单。
+  optional uint32                      leverage       = 16 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 // 撤一张策略委托。`DELETE /fapi/v1/algoOrder`。`algo_id` 与 `client_algo_id` 给一个即可。
