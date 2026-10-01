@@ -17,6 +17,10 @@ club 按 ClientInfo.dev 分流身份(handler/auth.go):`embedded` 走 RobotLogin 
 
     cd /tmp/didtok && ./target/release/didtok
 
+输出 `DID=` / `TOKEN=`,以及续期 / 登出类冒烟要用的 `REFRESH=` 与登录时那份 ClientInfo
+(`APP=` / `DEV=` / `MAC=`;2026-10-01 加,`smoke-did-logout.sh` 用)。每跑一次就是一次新登录,
+会顶掉同一 (did, app, dev) 槽位上一次的会话。
+
 ⚠️ **GenerateReqIdReq.did 是「应用方 did」,不是登录用户的 did**。hidid 按它分流:
 等于 config 的 `hi_wallet_did` → hidid 自身登录;否则走 ThirdPartyLogin(三方=商户
 登录,会报"用户需要注册为商户")。工具里默认填好了,用 APP_DID 可覆盖。
