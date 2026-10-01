@@ -47,6 +47,7 @@ magic 值,答复里出现了才算数。
 | `smoke-user.sh` | 用户面基础 |
 | `smoke-market.sh` | 对话路合并 / 多 function call / 市场挂牌与免费购买 |
 | `smoke-market-renew.sh` | 自动续费开关 / 到期扫描 / follow_latest |
+| `smoke-download-script.sh` | 下插件源码的**两级归属**:club 判「你能不能管这台机器人」、hi.ai 判「是不是这把商户 key 建的」;下游拒绝原码透传 |
 | `smoke-stream.sh` | 流式:指令帧 vs 回显帧、错误走帧不走 grpc status |
 | `smoke-parallel.sh` | 一轮并行多个 tool_call,**两个 LLM 推理后端**行为一致 |
 | `smoke-chain-fc.sh` | 链式 function call(第二步依赖第一步的输出) |
