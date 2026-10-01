@@ -122,7 +122,8 @@ eq "前提:设备 1 占着槽(token 有效)" "$(mysqlq hi_did "select count(*) f
 eq "设备 2 登录 → 被挡,AlreadyExists + 人话" "$(did_login_verdict "$MAC2")" 'message: "该账号已在其他设备登录,请先在原设备登出"'
 # 码单独再核一次(上面只看话):
 code2=$(ssh -n 192.168.1.66 "cd /tmp/didtok && MN_FILE=$DID_MN MAC=$MAC2 ./target/release/didtok" 2>&1 | grep -o "code: '[^']*'" | head -1)
-eq "  码是 6 AlreadyExists" "$code2" "code: 'Some entity that we attempted to create (e.g., file or directory) already exists'"
+# tonic 把码渲染成英文描述;6 = AlreadyExists 的那句里一定有 already exists(13 是 Internal error)
+eq "  码是 6 AlreadyExists" "$(echo "$code2" | grep -c 'already exists')" "1"
 eq "设备 1 的会话没被动" "$(mysqlq hi_did "select mac from hi_user_refreshtoken where did='$DID' and app='$APP' and dev='pc'")" "$MAC1"
 eq "同一台设备重登 → 放行" "$(did_login_verdict "$MAC1")" "OK"
 
@@ -131,7 +132,8 @@ mysqlq hi_did "update hi_user_refreshtoken set refresh_until='2000-01-01 00:00:0
 eq "前提:设备 1 的 token 全过期(行还在、没登出)" "$(mysqlq hi_did "select count(*) from hi_user_refreshtoken where did='$DID' and app='$APP' and dev='pc' and mac='$MAC1' and refresh_until < now() and prev_refresh_token is null")" "1"
 eq "设备 2 直接登录 → 放行(不需要先登出)" "$(did_login_verdict "$MAC2")" "OK"
 eq "槽归设备 2 了" "$(mysqlq hi_did "select mac from hi_user_refreshtoken where did='$DID' and app='$APP' and dev='pc'")" "$MAC2"
-eq "新行的 refresh_until 是 token 自己的 exp(约 15 天后)" "$(mysqlq hi_did "select timestampdiff(day, now(), refresh_until) from hi_user_refreshtoken where did='$DID' and app='$APP' and dev='pc'")" "14"
+# exp 按秒截断,与 now() 同秒时正好 360 小时,跨秒时 359 —— 两者都是"签发 + 15 天"
+eq "新行的 refresh_until 是 token 自己的 exp(签发 + 15 天)" "$(mysqlq hi_did "select timestampdiff(hour, now(), refresh_until) between 359 and 360 from hi_user_refreshtoken where did='$DID' and app='$APP' and dev='pc'")" "1"
 
 # 登出照样立刻释放:设备 2 登出 → 设备 1 当场进得来
 did_login "$MAC2"; R2=$R
