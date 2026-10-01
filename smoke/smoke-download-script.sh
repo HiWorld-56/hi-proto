@@ -16,6 +16,11 @@
 #           所以这一级拦的是**别家商户**,拦不住 club 用户之间互相越权。
 # 两级都要验:只验 club 那条,hi.ai 那条直连口子还开着也看不出来。
 #
+# 训练文件那一族(Training 九个 + Source 上传/下载训练文件)走的是同一道 club 级归属
+# (handler 里的 trainingCaller),第六节一并验:它原来把归属校验的**所有**错误收成
+# PermissionDenied「无权操作该机器人」—— 机器人不存在、读超管名单失败都被说成没权限。
+# 现在机器人不存在回 5、别人的机器人回 7。十一个入口逐个打,漏接一个就红。
+#
 # ## 用法(在 .64 上跑:要 grpcurl + protoset;查库会自己 ssh 到 .65)
 #
 #   SELLER_TOK=... BUYER_TOK=... PKG=... bash smoke-download-script.sh
@@ -137,6 +142,18 @@ echo
 echo "── 五、hi.ai 直连:别家商户的 key 填卖家摊位 —— 拒(商户级归属)──"
 R=$(dl_ai "$SB" "$P" "1.0.0" "$OTHER_KEY")
 case "$R" in OK*) bad "别家商户**拿不到**源码" "$R";; ERR\ NotFound*|ERR\ PermissionDenied*) ok "别家商户被拒($R)";; *) bad "别家商户被拒(码应为 NotFound/PermissionDenied)" "$R";; esac
+
+echo
+echo "── 六、训练文件一族:归属错误照实回 —— 不存在 5、别人的机器人 7(十一个入口逐个)──"
+TC_BODY() { echo "{\"agent\":\"$1\",\"uuid\":\"u1\",\"uuids\":[\"u1\"],\"pagination\":{\"page\":1,\"limit\":5},\"content\":\"eA==\",\"name\":\"a.txt\",\"title\":\"t\",\"digest\":\"d\"}"; }
+for ep in training/start training/status training/clear training/list_files training/get_file \
+          training/delete_files training/create_content training/update_content training/edit_digest \
+          source/upload_training_file source/download_training_file; do
+  chk "$ep:路人填卖家的机器人 → 7" "$(cj "$ep" "$(TC_BODY "$SB")" "$BUYER_TOK" | g code)" "7"
+  chk "$ep:机器人不存在 → 5" "$(cj "$ep" "$(TC_BODY "smktc-no-such-agent")" "$BUYER_TOK" | g code)" "5"
+done
+# 正向对照:同一个入口,卖家本人过得了归属这一关(否则上面的 7 可能只是"谁都过不去")。
+chk "training/list_files:卖家本人 → 0" "$(cj training/list_files "$(TC_BODY "$SB")" "$SELLER_TOK" | g code)" "0"
 
 echo
 echo "── 清理 ──"
