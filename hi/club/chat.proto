@@ -11,7 +11,7 @@ import "hi/common.proto";
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 // ── 说明:Chat 是 hi.ai.Chat 的门面,但**入参不能直接复用 ai 的** ──────────────
-// club 的 `Content`(messaging.proto)是**富消息**:oneof{Chat|Transaction|Trade};
+// club 的 `Content`(messaging.proto)是**富消息**:oneof{Chat|Transaction|币安…};
 // ai 的 `Content` 只是 {type, content} 一个带类型的字符串。二者是真实差异,不是重复定义,
 // 故带 Content 的入参用 club 自己的类型(后端负责转换成 ai 的);
 // 纯透传的返回(ChatResp/ConverseStreamResp/…)继续直接复用 hi.ai 的类型,防止两边漂移。
@@ -58,7 +58,7 @@ message ChatReq {
   //    即便 ai 修好了也永远拿不到回显帧。搬家时别再漏第二次。
   optional bool             echo_tool_calls = 9;  // 发 type="echoToolCalls" 帧:模型调了哪个函数、传了什么参数、工具返回什么
   optional bool             echo_memory     = 10; // 发 type="echoMemory" 帧:本轮命中的记忆片段(旧名 return_training_data)
-  optional bool             echo_context    = 11; // 发 type="echoContext" 帧:这次真正喂给模型的那份上下文(系统提示词 + 截出的历史 + 本轮输入)
+  optional bool             echo_context    = 11; // 发 type="echoContext" 帧:这次真正喂给模型的那份上下文(系统提示词含【插件】段 + 截出的历史;**不含本轮提问**)
   // ── 这句话是谁说的 ─────────────────────────────────────────────────────────
   //
   // 🔴 **不是"谁在调这个接口"。** 调用方几乎永远是机器人自己(`agent` 就是它),

@@ -69,18 +69,17 @@ try:
 except Exception: print("")
 ' "$@"; }
 FIX_P=""; MTOK=""; TMPLOG=""
-# **只有这一个 EXIT trap**:后面再 `trap … EXIT` 会把它覆盖掉(第一版就这样,删壳没跑、夹具留在了机器人上)。
-cleanup(){ [ -n "$TMPLOG" ] && rm -f "$TMPLOG"; [ -n "$FIX_P" ] && curl -s $CAC -m 60 -X POST "$CLUB_API/plugin/delete_shell" -H 'Content-Type: application/json' \
-  -H "Authorization: Bearer $MTOK" -d "{\"agent\":\"$ROBOT\",\"uuid\":\"$FIX_P\"}" >/dev/null; }
-trap cleanup EXIT
+# 收尾走 _endpoints.sh 那一处(made / undo)。⛔ 别在本脚本里再 `trap … EXIT` —— 会把那一处覆盖掉
+# (第一版就这样,删壳没跑、夹具留在了机器人上)。
 METHOD=$(lua_method)
 if [ -z "$METHOD" ]; then
   MTOK=$(ssh -o ConnectTimeout=15 "$NEXT" "cd /tmp/tokgen && MN_FILE=$MN_FILE DEV=app ./target/release/tokgen 2>/dev/null" | grep ^TOKEN= | cut -d= -f2)
   [ -n "$MTOK" ] || { bad "现造夹具:取不到主人 token" "$NEXT:/tmp/tokgen"; exit 1; }
-  LPKG=$(MINIO_HOST=${MINIO_HOST:-192.168.1.65:9000} python3 "$(dirname "$0")/build_luapkg.py" 2>&1 | tail -1)
-  mj(){ curl -s $CAC -m 180 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $MTOK" -d "$2"; }
+  LPKG=$(pkg_build build_luapkg.py)
+  mj(){ curl_tok "$MTOK" -s $CAC -m 180 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -d "$2"; }
   FIX_P=$(mj plugin/create_shell "{\"agent\":\"$ROBOT\",\"name\":\"lua-onrobot\"}" | g data uuid)
   [ -n "$FIX_P" ] || { bad "现造夹具:给机器人建壳失败" "-"; exit 1; }
+  made "$FIX_P"; undo_club "$MTOK" plugin/delete_shell "{\"agent\":\"$ROBOT\",\"uuid\":\"$FIX_P\"}"
   mj plugin/create_version "{\"agent\":\"$ROBOT\",\"version\":{\"uuid\":\"$FIX_P\",\"version\":\"1.0.0\",\"url\":\"$LPKG\"}}" >/dev/null
   for _ in $(seq 40); do METHOD=$(lua_method); [ -n "$METHOD" ] && break; sleep 3; done
   [ -n "$METHOD" ] || { bad "现造夹具:发了 lua 版,机器人 120 秒内没装上" "看 $NEXT 的 brain.log"; exit 1; }
@@ -90,9 +89,8 @@ ok "前提:brain 在跑,身上有 lua 方法 $METHOD"
 
 # ── 发一条只有调工具才答得上来的话 ─────────────────────────────────────────
 SENT_AT=$(date -u +%s)
-SEND=$(ssh -o ConnectTimeout=20 "$NEXT" \
-  "cd ~/wip/hiclub-core-mqtt && ./target/release/peer_cli send \"\$(cat $MN_FILE)\" $ROBOT \
-   '请调用 lua_secret 工具,把 lua 校验令牌原样告诉我'" 2>&1)
+# 助记词不进命令行:peer_cli 走 serve 模式(peer66,见 _endpoints.sh)
+SEND=$(peer66 "$MN_FILE" send "$ROBOT" '请调用 lua_secret 工具,把 lua 校验令牌原样告诉我' 2>&1)
 case "$SEND" in
   *OK=send*) ok "主人发出单聊消息(code=$(printf '%s' "$SEND"|grep -oE 'CODE=\S+'|cut -d= -f2|head -c 12)…)";;
   *) bad "peer_cli 发消息失败" "$(printf '%s' "$SEND"|head -c 200)"; exit 1;;
@@ -110,7 +108,7 @@ sleep 25
 #    再 `printf ... | python3 - <<EOF` 的话**管道整个被丢弃**,`sys.stdin` 是空的 ——
 #    于是"什么都没找到",报出来是「模型没发出 tool_call」,
 #    而真相是脚本自己没拿到日志。第一版就这么误报过一次(手工复核时报文明明在)。
-TMPLOG=$(mktemp /tmp/hiai-log.XXXXXX)   # 由 cleanup 删(见上面那个唯一的 EXIT trap)
+TMPLOG=$(mktemp /tmp/hiai-log.XXXXXX); undo "rm -f '$TMPLOG'"
 ssh -o ConnectTimeout=20 "$DEPLOY" "docker logs hi-ai --since 5m 2>&1" > "$TMPLOG" 2>/dev/null
 [ -s "$TMPLOG" ] || { bad "取不到 hi-ai 日志" "ssh $DEPLOY docker logs hi-ai 没有输出"; exit 1; }
 

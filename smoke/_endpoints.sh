@@ -113,3 +113,190 @@ fi
 
 # 够不够得着库 —— 够不着要**当场退出**,别让一堆断言变成 `want=1 got=`。
 have_db() { [ "$(mysqlq information_schema "SELECT 1" 2>/dev/null | head -1)" = "1" ]; }
+
+# ══ 凭据一律不进命令行 ════════════════════════════════════════════════════════
+#
+# 进程的命令行(argv)本机任何用户 `ps` 都看得见 —— token、apikey、refresh token、助记词一个都不许放进去
+# (与 .65 上去掉 `mosquitto_sub -P 密码` 同一类)。冒烟脚本自己的凭据从**环境变量**收(不收位置参数),
+# 往下调工具时:
+#   curl_tok <token> <curl 参数...>         Authorization 头经 `-H @<(printf …)` 交给 curl(argv 里只有 /dev/fd/N)
+#   grpcurl_tok <token> <grpcurl 参数...>   头写成 `${SMK_BEARER}`,值走环境变量,grpcurl -expand-headers 自己展开
+#   grpcurl_key <apikey> <grpcurl 参数...>  同上,hi.ai 商户 key 的 `ApiKey` 头
+#   带秘密的请求体(refresh token)一律 `-d @` 从 stdin 喂,别写进 `-d '<json>'`
+#   peer66 <.66 上的助记词文件> <命令> [参数...]   .66 的 peer_cli 走 serve 模式,助记词经本地 TCP 交给它
+# printf / read 是 bash 内建,不起新进程,不留 argv。
+curl_tok()    { curl -H @<(printf 'Authorization: Bearer %s\n' "$1") "${@:2}"; }
+grpcurl_tok() { SMK_BEARER="Bearer $1" "$_SMK_GRPCURL" -expand-headers -H 'authorization: ${SMK_BEARER}' "${@:2}"; }
+grpcurl_key() { SMK_APIKEY="$1" "$_SMK_GRPCURL" -expand-headers -H 'ApiKey: ${SMK_APIKEY}' "${@:2}"; }
+# peer66 <助记词文件(.66 上的路径)> <命令> [参数...] → 回一行 `KEY=VALUE;KEY=VALUE`(出错 `ERR=…`)
+#   peer_cli 的命令行模式要把助记词当参数,在 .66 的 ps 里看得见;serve 模式按行收命令(TAB 分隔),
+#   这里起一个只听 127.0.0.1 随机口的 serve,喂一行、读一行、关掉。参数(正文)base64 过一道,免得引号出事。
+peer66() {
+  local mn=$1 cmd=$2 enc
+  shift 2
+  enc=$( (for x in "$@"; do printf '\t%s' "$x"; done) | base64 | tr -d '\n')
+  ssh -o ConnectTimeout=20 -o BatchMode=yes 192.168.1.66 'bash -s' <<PEER
+cd ~/wip/hiclub-core-mqtt || { echo "ERR=没有 ~/wip/hiclub-core-mqtt"; exit 2; }
+port=\$((20000 + RANDOM % 20000)); log=\$(mktemp)
+./target/release/peer_cli serve \$port > \$log 2>&1 &
+pid=\$!
+for _ in \$(seq 100); do grep -q LISTENING= \$log && break; sleep 0.1; done
+if exec 3<>/dev/tcp/127.0.0.1/\$port; then
+  { printf '%s\t' '$cmd'; tr -d '\n' < '$mn'; printf '%s' '$enc' | base64 -d; printf '\n'; } >&3
+  IFS= read -r -t 180 line <&3; printf '%s\n' "\${line:-ERR=serve 没回话}"
+else
+  echo "ERR=serve 没起来:\$(tail -2 \$log)"
+fi
+kill \$pid 2>/dev/null; rm -f \$log
+PEER
+}
+
+# ══ 收尾:冒烟现造的东西跑完一律清掉(唯一一份,所有脚本 source 本文件就带上)══════════════════
+#
+# 冒烟每跑一次都在开发环境造东西:助手、壳、版本、挂牌、授权、订单、付款凭据、apikey、临时商户、
+# minio 里的插件包……原来各脚本各写各的收尾,有的没 trap(提前 exit 就漏)、有的只下架不删、
+# 有的漏了订单 / 凭据这一层,开发库里于是一直攒着冒烟的残渣。现在收成一处:
+#
+#   made <词>...      登记**本次现造**的东西(did / uuid / 单号,12 位以上那种整词)。
+#                     退出时经 ssh 交给 .66 的 purge.py —— 开发环境「删探针造的东西」唯一的实现 ——
+#                     删掉开发 MySQL 全部库里含这些词的行 + redis 的键与集合成员,删完复扫,剩下不是 0 就算没清干净。
+#                     ⛔ 只报自己现造的;固定复用的夹具身份(各 *_mn.txt、.66 机器人、商户 did……)一个都不许报 ——
+#                        purge.py 有保护名单,词里出现一个就整批拒删,本脚本随之报 ✘。
+#   undo '<命令>'     登记收尾时要跑的**正规删除**(走接口删助手 / 删壳、下架、撤权、删 minio 对象、还原夹具……)。
+#                     退出时**后进先出**全部跑一遍,不论成败;任何一条失败都算没清干净。
+#                     命令在本 shell 里 eval,变量请在登记时就展开(双引号),别指望退出时它们还是当时的值。
+#   undone '<命令>'   正文里已经亲自做过(而且断言过)的那条,从清单上划掉 —— 字面与登记时一致。
+#   最常用的是 club 接口那种:undo_club / undone_club <token> <路由> <json>(见下)。
+#
+# 两份清单都落在文件里(mktemp,600):`$(...)` 子 shell 里登记的、python 子进程登记的(往
+# $SMOKE_MADE_FILE / $SMOKE_UNDO_FILE 追加一行)都算数。每个 source 本文件的脚本各有自己的一份,
+# 互不继承 —— 嵌套调用的子脚本自己收自己的尾。
+#
+# 退出码:正文失败照旧;正文全过而收尾有一步没做到 → 打 ✘ 并以 1 退出。
+#
+# `SMOKE_PURGE_DRY=1`:purge 只扫不删(先看清会删哪些行),这时收尾算「没清」、照样非 0 退出。
+PURGE_HOST=${PURGE_HOST:-192.168.1.66}
+PURGE_PY=${PURGE_PY:-/home/lo/wip/hinj-brain/tools/probes/purge.py}
+SMOKE_MADE_FILE=$(mktemp /tmp/smoke-made.XXXXXX)
+SMOKE_UNDO_FILE=$(mktemp /tmp/smoke-undo.XXXXXX)
+export SMOKE_MADE_FILE SMOKE_UNDO_FILE
+_SMK_GRPCURL=$(command -v grpcurl || echo /home/lo/go/bin/grpcurl)
+
+made()   { local w; for w in "$@"; do [ -n "$w" ] && printf '%s\n' "$w" >> "$SMOKE_MADE_FILE"; done; return 0; }
+undo()   { [ -n "$1" ] && printf '%s\n' "$1" >> "$SMOKE_UNDO_FILE"; return 0; }
+undone() { local t; t=$(mktemp /tmp/smoke-undo.XXXXXX); grep -vxF -- "$1" "$SMOKE_UNDO_FILE" > "$t"; cat "$t" > "$SMOKE_UNDO_FILE"; rm -f "$t"; }
+
+# 打印前把 token(JWT 形状)遮掉 —— 收尾命令里带着它们
+_smk_mask() { sed -E 's/[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]+/<token>/g'; }
+
+# ── 收尾命令常用的三样(都是「成了回 0,没成把原因打出来回非 0」)──────────────────────
+# club_do <token> <路由> <json>:club 的 http 接口,回 code 0 才算成。
+club_do() {
+  local r
+  r=$(curl_tok "$1" -s $CAC -m 120 -X POST "$CLUB_API/$2" -H 'Content-Type: application/json' -d "$3")
+  case "$r" in *'"code":0'*) return 0;; esac
+  printf '%s' "${r:-无回包}" | head -c 200 | _smk_mask; return 1
+}
+# undo_club / undone_club <token> <路由> <json>:登记 / 划掉一条 club_do(最常用的那种收尾,省得每处手拼引号)。
+undo_club()   { undo   "club_do '$1' $2 '$3'"; }
+undone_club() { undone "club_do '$1' $2 '$3'"; }
+# src_rm <url>:按 url 删 hi-source 里的对象(冒烟传进 minio 的插件包),删完再取一次,取得到就算没删掉。
+src_rm() {
+  local o
+  o=$("$_SMK_GRPCURL" $(tp $SRC_GRPC) -protoset "$PS" -d "{\"url\":\"$1\"}" "$SRC_GRPC" hi.source.File/Delete 2>&1) \
+    || { printf '%s' "$o" | head -c 200; return 1; }
+  if "$_SMK_GRPCURL" $(tp $SRC_GRPC) -protoset "$PS" -d "{\"url\":\"$1\"}" "$SRC_GRPC" hi.source.File/Download 2>&1 | grep -q '"content"'; then
+    printf '删了还取得到'; return 1
+  fi
+}
+# src_state <url>:hi-source 里这个对象在不在 —— 回 present / gone;别的(连不上、url 解不出)回 err:<原文>。
+#   判据用 ObjectInfo 的 NotFound:Download 对「不存在」和「出错」回的是同一个 Internal,分不开,
+#   拿它断言「删掉了」的话,hi-source 挂了也会是绿的。
+src_state() {
+  local p b k o
+  p=${1#*://}; p=${p#*/}; b=${p%%/*}; k=${p#*/}
+  if [ -z "$b" ] || [ -z "$k" ] || [ "$k" = "$p" ]; then printf 'err:url 解不出桶与对象名 %s' "$1"; return; fi
+  o=$("$_SMK_GRPCURL" $(tp $SRC_GRPC) -protoset "$PS" -d "{\"bucket\":\"$b\",\"object\":\"$k\"}" "$SRC_GRPC" hi.source.File/ObjectInfo 2>&1)
+  case "$o" in
+    *'"size"'*)        printf present;;
+    *'Code: NotFound'*) printf gone;;
+    *)                 printf 'err:%s' "$(printf '%s' "$o" | tr '\n' ' ' | head -c 150)";;
+  esac
+}
+# pkg_build <造包脚本> [参数...]:造测试插件包并传进 minio,回 url;**同时登记退出时删掉它**。
+#   在 $(...) 里调也算数(登记落在文件里)。造不出来回空串、退出码非 0。
+pkg_build() {
+  local u
+  u=$(MINIO_HOST=${MINIO_HOST:-192.168.1.65:9000} python3 "$(dirname "${BASH_SOURCE[0]}")/$1" "${@:2}" 2>&1 | tail -1)
+  case "$u" in https://*) undo "src_rm '$u'"; printf '%s' "$u";; *) printf '%s' "$u" >&2; return 1;; esac
+}
+
+# session_keep <did>:**登录之前**调。固定夹具身份在三家(hidid / club / hi-ai)当前没有登录态的,
+#   收尾时把本次登录留下的那份删掉;本来就有的不动(可能是别人正在用的会话)。
+#   夹具不进 purge,登录态是它身上唯一会被冒烟新添的东西 —— hidid 的 PC 槽还是独占的,留一份活会话会挡住别的设备。
+session_keep() {
+  local t n
+  [ -n "$1" ] || { echo "session_keep:did 为空(助记词算不出 did?)—— 登录态收不回来" >&2; return 1; }
+  for t in hi_did.hi_user_refreshtoken hi_club.hi_chat_user_refreshtoken hi_ai.hi_ai_user_refreshtoken; do
+    n=$(mysqlq information_schema "select count(*) from $t where did='$1'")
+    [ "$n" = "0" ] && undo "mysqlq information_schema \"delete from $t where did='$1'\" >/dev/null; [ \"\$(mysqlq information_schema \"select count(*) from $t where did='$1'\")\" = 0 ]"
+  done
+  return 0
+}
+# mn_did <助记词文件>:按 .66 上那份助记词算 did(didtok DID_ONLY,不登录、不顶掉谁)
+mn_did() { ssh -n -o ConnectTimeout=15 192.168.1.66 "cd /tmp/didtok && MN_FILE=$1 DID_ONLY=1 ./target/release/didtok" 2>/dev/null | sed -n 's/^DID=//p'; }
+
+_smk_finish() {
+  local rc=$? bad=0 i c o words
+  trap - EXIT
+  # 把这些身份的单聊会话号补进词表。purge 自己也按「单聊成员」展开,但正规删除(下面那段、或正文里
+  # 已经做过的)一跑,助手那条成员行就没了 —— 单聊群只标 severed_at 留档、只剩对方(常是夹具)那一头,
+  # purge 再也认不出它是谁的会话,于是每删一台助手就在开发库留一个留档群。
+  # 会话号是按两个 did 算出来的(club BuildSingleGroupCode:sha256(小的 + ":" + 大的),按字节比),
+  # 所以拿「我们的词 × 群里还剩的那个成员」现算一遍就认得回来;成员行还在的,直接按成员认。
+  if [ -s "$SMOKE_MADE_FILE" ]; then
+    o=$(sort -u "$SMOKE_MADE_FILE" | sed "s/.*/select '&' w/" | paste -sd'|' - | sed 's/|/ union all /g')
+    mysqlq hi_club "select distinct g.code from hi_chat_group g join hi_chat_group_user u on u.group_code = g.code
+                      join ($o) t
+                     where g.group_type = 'single'
+                       and (u.user_did = t.w
+                            or g.code = sha2(concat(least(binary t.w, binary u.user_did), ':', greatest(binary t.w, binary u.user_did)), 256))" \
+      >> "$SMOKE_MADE_FILE"
+  fi
+  if [ -s "$SMOKE_UNDO_FILE" ]; then
+    echo
+    echo "── 收尾:正规删除(后进先出)──"
+    local -a cmds
+    mapfile -t cmds < "$SMOKE_UNDO_FILE"
+    for ((i=${#cmds[@]}-1; i>=0; i--)); do
+      c=${cmds[i]}; [ -n "$c" ] || continue
+      if o=$(eval "$c" 2>&1); then
+        printf "  \033[32m✓\033[0m %s\n" "$(printf '%s' "$c" | _smk_mask | head -c 150)"
+      else
+        printf "  \033[31m✘\033[0m %s\n     → %s\n" "$(printf '%s' "$c" | _smk_mask | head -c 150)" "$(printf '%s' "$o" | _smk_mask | head -c 200)"
+        bad=1
+      fi
+    done
+  fi
+  words=$(sort -u "$SMOKE_MADE_FILE" | tr '\n' ' ')
+  if [ -n "${words// /}" ]; then
+    echo
+    echo "── 收尾:purge($PURGE_HOST,词 $(wc -w <<<"$words") 个)──"
+    o=$(ssh -n -o ConnectTimeout=20 -o BatchMode=yes "$PURGE_HOST" \
+          "python3 $PURGE_PY ${SMOKE_PURGE_DRY:+--dry-run} $words" 2>&1)
+    c=$?
+    printf '%s\n' "$o" | sed 's/^/  /'
+    if [ $c -ne 0 ]; then
+      printf "  \033[31m✘\033[0m purge 没清干净(退出码 %s)\n" "$c"; bad=1
+    elif [ -n "${SMOKE_PURGE_DRY:-}" ]; then
+      printf "  \033[31m✘\033[0m SMOKE_PURGE_DRY=1:只扫没删\n"; bad=1
+    fi
+  fi
+  rm -f "$SMOKE_MADE_FILE" "$SMOKE_UNDO_FILE"
+  if [ $bad -ne 0 ]; then
+    printf "\033[31m✘ 收尾没做干净 —— 开发环境里还留着这次造的东西(见上)\033[0m\n"
+    [ $rc -eq 0 ] && rc=1
+  fi
+  exit $rc
+}
+trap _smk_finish EXIT

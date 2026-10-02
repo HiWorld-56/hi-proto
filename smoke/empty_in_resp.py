@@ -157,7 +157,6 @@ BODIES = {
     "get:agent/get": 'agent={agent}',
     "get:plugin/get": 'agent={agent}&uuid={plugin}',
     "get:release/latest": 'product=hiclub&platform=android',
-    "get:trade/get": 'uuid={trade}',
     # did
     "assets/list": '{"currency":"cny","pagination":{"page":1,"limit":50}}',
     "assets/get": '{"did":"{did}"}',
@@ -165,6 +164,20 @@ BODIES = {
     "merchant/list_users": '{"pagination":{"page":1,"limit":50}}',
 }
 DEFAULT_POST = '{"pagination":{"page":1,"limit":50}}'
+
+
+# 收尾登记(made / undo)写进 _endpoints.sh 的清单,见 _cleanup.py;本脚本自己不删任何东西。
+sys.path.insert(0, HERE)
+import _cleanup  # noqa: E402
+
+
+def made(*words):
+    _cleanup.made(*words)
+
+
+def undo_club(route, body):
+    """用 club 那把 token 登记一条 club_do。"""
+    _cleanup.undo_club(TOKENS["club"], route, body)
 
 
 def routes():
@@ -187,14 +200,16 @@ def call(api, verb, tail, body):
     cmd = ["curl", "-s", "-m", "30"] + CAC + ["-X", verb.upper(), url,
            "-H", "Content-Type: application/json"]
     # hi.ai 优先用商户 key(它在那边是主体);其余仍走 Bearer。
+    # ⚠️ 凭据**不进命令行**(argv 谁都 ps 得到):头经 `-K -` 从 stdin 交给 curl。
     if api == "ai" and AI_KEY:
-        cmd += ["-H", "Grpc-Metadata-ApiKey: " + AI_KEY]
+        hdr = "Grpc-Metadata-ApiKey: " + AI_KEY
     else:
-        cmd += ["-H", "Authorization: Bearer " + TOKENS[api]]
+        hdr = "Authorization: Bearer " + TOKENS[api]
+    cmd += ["-K", "-"]
     if verb == "post":
         cmd += ["-d", body]
     try:
-        return subprocess.run(cmd, capture_output=True, text=True, timeout=45).stdout
+        return subprocess.run(cmd, input='header = "%s"\n' % hdr, capture_output=True, text=True, timeout=45).stdout
     except subprocess.TimeoutExpired:
         return ""
 
@@ -302,39 +317,31 @@ def main():
         except Exception:
             return ""
 
-    ph["agent"] = pick("club", "agent/list", '{"pagination":{"page":1,"limit":1}}',
-                       "data", "agents", 0, "base", "did")
-    # 🔴 **拿不到就自己造一个。**
+    # 🔴 **夹具一律现造,不借这个账号原有的机器人。**
     #
-    # 原来是"这个账号名下没有机器人 → 那二十几条全部跳过"。于是覆盖面**取决于
-    # 拿到的是哪个测试账号** —— 同一个脚本,换个 token 就从 26 条掉到 10 条,
-    # 而两次都显示"0 失败"。**跳过不是通过**,但一堆跳过同样会让人以为验过了。
+    # 原来是"名下有机器人就用第一台,没有才建一台 smk-emptyprobe":覆盖面取决于拿到的是哪个测试账号
+    # (同一个脚本换个 token 就从 26 条掉到 10 条,两次都显示"0 失败");更糟的是借来的那台是别的冒烟的
+    # **固定夹具** —— 下面建 apikey、发版、挂牌全落在它身上,每跑一次就在夹具名下漏一把 key、
+    # 一个版本、一个挂牌,而只有"自己建的"才会被收走。现在每次都建自己的,收尾整台收走。
     #
-    # 建一个软件助手是免费且幂等的(重复跑只是多几台 smk- 开头的),
-    # 比"等着某个账号碰巧有数据"可靠得多。
-    made_agent = False
-    if not ph["agent"]:
-        # ⚠️ **建的时候就要把可选字段填上。** 不填 → 回包里 absent → 这个字段
-        #    "一次都没被观察过" → 「空串冒充 null」在它身上永远查不到。
-        #    (最扎眼的例子:PluginVersion.logo/summary 正是 92 个空串出问题的那两个,
-        #     而夹具从来不设它们。)
-        ph["agent"] = pick("club", "agent/create_assistant",
-                           '{"name":"smk-emptyprobe","avatar":"https://x/smk.png"}',
-                           "data", "base", "did")
-        if ph["agent"]:
-            made_agent = True   # ⚠️ 只删**自己建的**,别动这个账号原有的机器人
-            print("  夹具:这个账号名下没有机器人,现建了一台 smk-emptyprobe(跑完收走)")
-    if ph.get("agent"):
-        ph["plugin"] = pick("club", "plugin/list",
-                            '{"agent":"%s","pagination":{"page":1,"limit":1}}' % ph["agent"],
-                            "data", "list", 0, "uuid")
-        # 插件壳同理:建一个空壳就够让 Plugin.Get / ListVersions 有东西可查。
-        # (不发版本 —— 那要传包,而这条脚本只验读路径。)
-        if not ph["plugin"]:
-            ph["plugin"] = pick("club", "plugin/create_shell",
-                                '{"agent":"%s","name":"smk-emptyprobe"}' % ph["agent"],
-                                "data", "uuid")
-        # apikey:`ApiKey.List` 空着就等于没验。建一把是免费的。
+    # ⚠️ **建的时候就要把可选字段填上。** 不填 → 回包里 absent → 这个字段"一次都没被观察过" →
+    #    「空串冒充 null」在它身上永远查不到。(最扎眼的例子:PluginVersion.logo/summary 正是
+    #    92 个空串出问题的那两个,而夹具从来不设它们。)
+    ph["agent"] = pick("club", "agent/create_assistant",
+                       '{"name":"smk-emptyprobe","avatar":"https://x/smk.png"}',
+                       "data", "base", "did")
+    if ph["agent"]:
+        made(ph["agent"])
+        undo_club("agent/delete", {"agent": ph["agent"]})
+        print("  夹具:现建了一台 smk-emptyprobe(收尾整台收走)")
+        # 插件壳:建一个就够让 Plugin.Get / ListVersions 有东西可查。
+        ph["plugin"] = pick("club", "plugin/create_shell",
+                            '{"agent":"%s","name":"smk-emptyprobe"}' % ph["agent"],
+                            "data", "uuid")
+        if ph["plugin"]:
+            made(ph["plugin"])
+            undo_club("plugin/delete_shell", {"agent": ph["agent"], "uuid": ph["plugin"]})
+        # apikey:`ApiKey.List` 空着就等于没验。建一把是免费的(行挂在机器人名下,随它一起收)。
         call("club", "post", "api_key/create", '{"agent":"%s"}' % ph["agent"])
         # 挂牌:`Market.ListMyListings` / `MarketDirectory.ListAgentListings` 两条
         # 都要有自己的挂牌才出数据 —— 而**市场那条读路径正是 92 个空串出过的地方**
@@ -356,6 +363,8 @@ def main():
                 ).stdout.strip().splitlines()[-1]
             except Exception:
                 pkg = ""
+            if pkg.startswith("https://"):
+                _cleanup.undo_src_rm(pkg)   # 自己造的包自己删;给进来的是调用方的
         if ph.get("plugin") and pkg.startswith("https://"):
             # logo / summary 一定要给 —— 见上面那段:不给就永远观察不到这两个字段,
             # 而它们正是 2026-09-03 那 92 个空串的出处。
@@ -367,6 +376,9 @@ def main():
                                       '{"agent":"%s","plugin_uuid":"%s","settle_mode":1}'
                                       % (ph["agent"], ph["plugin"]),
                                       "data", "uuid")
+            if ph["listing_mine"]:
+                made(ph["listing_mine"])
+                undo_club("market/set_listing_status", {"uuid": ph["listing_mine"], "status": 4})
     try:
         d = json.loads(call("club", "post", "market_directory/search_listings",
                             '{"pagination":{"page":1,"limit":1}}'))
@@ -387,7 +399,7 @@ def main():
             continue
         tmpl = BODIES.get(("get:" + tail) if verb == "get" else tail)
         if tmpl:
-            need = [k for k in ("agent", "plugin", "listing", "did", "trade") if "{%s}" % k in tmpl]
+            need = [k for k in ("agent", "plugin", "listing", "did") if "{%s}" % k in tmpl]
             missing = [k for k in need if not ph.get(k)]
             if missing:
                 skip += 1
@@ -438,27 +450,8 @@ def main():
         else:
             ok += 1
 
-    # ── 清理 ────────────────────────────────────────────────────────────────
-    #
-    # 🔴 **自己造的夹具要自己收走。** 这个脚本原来一条清理都没有,
-    #    每跑一次就在开发环境留一个 smk-emptyprobe 机器人 + 一个插件壳 + 一个挂牌。
-    #    2026-09-03 清出来三个,全是它留的 —— 而它每次都报"0 失败"。
-    #
-    # 顺序有依赖:挂牌不下架就删不掉壳,壳不删就删不掉机器人。
-    if made_agent and ph.get("agent"):
-        if ph.get("listing_mine"):
-            call("club", "post", "market/set_listing_status",
-                 '{"uuid":"%s","status":4}' % ph["listing_mine"])
-        if ph.get("plugin"):
-            call("club", "post", "plugin/delete_shell",
-                 '{"agent":"%s","uuid":"%s"}' % (ph["agent"], ph["plugin"]))
-        r = call("club", "post", "agent/delete", '{"agent":"%s"}' % ph["agent"])
-        try:
-            done = json.loads(r).get("code") == 0
-        except Exception:
-            done = False
-        print(f"  {G}✓{N} 清理:收走了自己造的机器人 smk-emptyprobe" if done
-              else f"  {Y}—{N} 清理没做干净(下次跑会多一个 smk-emptyprobe):{r[:120]}")
+    # 清理:上面现造的机器人 / 壳 / 版本 / apikey / 挂牌 / 包,全部登记在 _endpoints.sh 的收尾里
+    #       (empty_in_resp.sh 退出时:下架 → 删壳 → 删机器人 → 删包,再 purge 按词删行、复扫到 0)。
 
     for f in fails:
         print(f"  {R}✗{N} {f}")

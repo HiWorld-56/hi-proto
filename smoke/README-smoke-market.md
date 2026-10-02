@@ -29,11 +29,10 @@
 
 ```bash
 # 需要两个真实用户的 token(用 .66 的 /tmp/tokgen 生成)
-export SELLER_TOK=... BUYER_TOK=... SELLER_DID=...
-export PKG=$(python3 ~/ci/build_testpkg.py)          # 造并上传测试插件包
-bash ~/ci/smoke-market.sh                            # 非 0 退出 = 有失败项
+# token 一律从环境变量给(命令行参数谁都 ps 得到),PKG 不给就由脚本现造、退出时删
+SELLER_TOK=... BUYER_TOK=... SELLER_DID=... bash ~/ci/smoke/smoke-market.sh   # 非 0 退出 = 有失败项
 
-SKIP_CHAT=1 bash ~/ci/smoke-market.sh                # 跳过耗时的对话用例
+SKIP_CHAT=1 … bash ~/ci/smoke/smoke-market.sh       # 跳过耗时的对话用例
 ```
 
 `build_testpkg.py` 造的是**新约定**的多方法包:OpenAI tools 数组格式、
@@ -54,8 +53,7 @@ SKIP_CHAT=1 bash ~/ci/smoke-market.sh                # 跳过耗时的对话用�
 ## smoke-market-renew.sh —— 到期 / 续费 / 自动续费 / follow_latest
 
 ```bash
-PKG=$(python3 ~/ci/build_testpkg.py)
-bash ~/ci/smoke-market-renew.sh "<卖方token>" "<买方token>" "$PKG"
+SELLER_TOK=<卖方token> BUYER_TOK=<买方token> bash ~/ci/smoke/smoke-market-renew.sh   # PKG 可不给
 ```
 
 10 项。覆盖:自动续费开关(软件机器人被拒 / 越权被拒)、
@@ -71,8 +69,7 @@ bash ~/ci/smoke-market-renew.sh "<卖方token>" "<买方token>" "$PKG"
 验的是「第二个工具依赖第一个工具的输出」这条链,**不是**一次多调几个工具。
 
 ```bash
-PKG=$(python3 ~/ci/build_chainpkg.py)        # 注意:要在 .65 上跑(minio 在那)
-bash ~/ci/smoke-chain-fc.sh "<用户token>" "$PKG"
+USER_TOK=<用户token> bash ~/ci/smoke/smoke-chain-fc.sh   # 链式包不给就现造(build_chainpkg.py)、退出时删
 ```
 
 插件是两步强依赖:`get_vault_code` 吐一个码,`open_vault` **码对上了才**吐
@@ -91,7 +88,7 @@ bash ~/ci/smoke-chain-fc.sh "<用户token>" "$PKG"
 ## 流式对话(smoke-stream.sh)
 
 ```bash
-bash ~/ci/smoke-stream.sh "<用户token>"
+USER_TOK=<用户token> bash ~/ci/smoke/smoke-stream.sh
 ```
 
 补它是因为**流式是 app 的主路径,却一条回归都没有**。第一次跑就撞出契约漂移:
@@ -111,8 +108,7 @@ proto 里写的帧类型是 `text`,而实现从来发的是 `msg`,另有 `end`/`
 ## 并行 tool_call · 两个推理后端(smoke-parallel.sh)
 
 ```bash
-PKG=$(python3 ~/ci/build_testpkg.py)      # 在 .65 上跑
-bash ~/ci/smoke-parallel.sh "<用户token>" "$PKG"
+USER_TOK=<用户token> bash ~/ci/smoke/smoke-parallel.sh   # PKG 可不给
 ```
 
 ⚠️ **"两个后端"= 两个 LLM 推理后端**(OpenAI / 自建 vllm 上的 ministral-3),
@@ -133,8 +129,8 @@ bash ~/ci/smoke-parallel.sh "<用户token>" "$PKG"
 # 需要:/tmp/didsign(core-mqtt 的 didsign,--features testkit 编)
 #       /tmp/seller_mn.txt /tmp/buyer_mn.txt(tokgen 写的助记词)
 #       /tmp/grpcurl  /tmp/hi.protoset(buf build -o)
-PKG=$(python3 ~/ci/build_testpkg.py)
-bash ~/ci/smoke-external.sh "<卖方token>" "<买方token>" "$PKG"
+SELLER_TOK=<卖方token> BUYER_TOK=<买方token> bash ~/ci/smoke/smoke-external.sh   # PKG 可不给
+# ⚠️ 卖方 token 的主人必须就是 SELLER_MN(默认 /tmp/seller_mn.txt)那个人 —— 脚本开跑先核,不是就退出
 ```
 
 出方向是「**商户来拉 + 回传**」而不是 club 推,理由是 **club 手里一把私钥都没有**:
@@ -154,13 +150,13 @@ bash ~/ci/smoke-external.sh "<卖方token>" "<买方token>" "$PKG"
 "界面上装上了、实际没装上"是这条链最难查的失败态。
 (⚠️ `hi_ai_plugin_using.source` 是**字符串** `reference`,不是整数。写断言时踩过。)
 
-## 合约币真实支付闭环(smoke-paid-onchain.sh)⚠️ 真花钱
+## 合约币真实支付闭环(smoke-order-onchain.sh;前身 smoke-paid-onchain.sh 已删)⚠️ 真花钱
 
 ```bash
-export HINJ_TATUM_KEY=... HINJ_APTOS_KEY=...
-export ROBOT_DID=<硬件机器人did> ROBOT_MN=<它的助记词文件>
-PKG=$(python3 ~/ci/build_testpkg.py)
-bash ~/ci/smoke-paid-onchain.sh "<卖方token>" "<买方master token>" "<机器人token>" "$PKG"
+# 凭据全走环境变量 / 0600 文件,不进命令行;在 .64 跑(收尾要 ssh 到 .66 调 purge.py,.65 够不着 .66)
+SELLER_TOK=<卖方token> BUYER_TOK=<买方master token> ROBOT_TOK=<机器人本人token,拿不到给 -> \
+ROBOT_DID=<硬件机器人did> ROBOT_MN=<它的助记词文件,0600> OLD_TX=<早于下单 5 分钟以上的同额旧转账> \
+  bash ~/ci/smoke/smoke-order-onchain.sh          # PKG 可不给
 ```
 
 前面所有付费用例都是拿假 tx_hash 验"被挡下",**这条是唯一真的把币转出去的**:

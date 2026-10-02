@@ -45,8 +45,16 @@ magic 值,答复里出现了才算数。
 |---|---|
 | `smoke.sh` | 接口存不存在、鉴权收不收 |
 | `smoke-user.sh` | 用户面基础 |
+| `smoke-ai-login.sh` | hi-ai 扫码登录**不依赖 club**:全新身份只扫 hi-ai 就拿得到 token(hidid 首登注册)、后续调用正常;hidid 没资料时 name absent;老用户不受影响。新身份现造,收尾由 purge 删干净。要 .66 `/tmp/didtok` 支持 `DID_ONLY` |
 | `smoke-market.sh` | 对话路合并 / 多 function call / 市场挂牌与免费购买 |
+| `smoke-logout.sh` | 三家登出与 hi-did PC 独占槽 |
+| `smoke-market-revoke-onrobot.sh` | 卖家从买家的**真机器人**上收回插件 |
+| `smoke-merchant-delete.sh` | 超管删商户(扩展表 / 授权行 / 重试幂等) |
+| `smoke_notice_decide.sh` | 要拍板的通知统一走 `User.HandleNotice`(python 本体经这个壳跑) |
+| `smoke-coverage.sh` | 先跑 smoke-market 造数据,再用同一把 token 跑 empty_in_resp 数字段覆盖 |
+| `null_test.sh` | 空值改造的行为:不传=不动 / 传空串=清空 / bool 不传要报错 |
 | `smoke-market-renew.sh` | 自动续费开关 / 到期扫描 / follow_latest |
+| `smoke-download-script.sh` | 下插件源码的**两级归属**:club 判「你能不能管这台机器人」、hi.ai 判「是不是这把商户 key 建的」;下游拒绝原码透传;训练文件一族(11 个入口)的归属错误码 |
 | `smoke-stream.sh` | 流式:指令帧 vs 回显帧、错误走帧不走 grpc status |
 | `smoke-parallel.sh` | 一轮并行多个 tool_call,**两个 LLM 推理后端**行为一致 |
 | `smoke-chain-fc.sh` | 链式 function call(第二步依赖第一步的输出) |
@@ -62,6 +70,45 @@ magic 值,答复里出现了才算数。
 辅助:`build_testpkg.py`(多方法测试插件)、`build_chainpkg.py`(链式依赖插件)、
 `seed_coins.py` / `coin_sync.py`(币种表,**decimals 从链上读回来写,不手填**)、
 `mock_merchant.py`(mock 商户后台)。
+
+## ⛔ 跑完自己清理 —— 收尾只有一处(`_endpoints.sh`)
+
+每个脚本都 `source _endpoints.sh`,收尾机制就挂在它的 EXIT trap 上(提前 `exit`、断言失败、被 Ctrl-C 都照样跑):
+
+| 写法 | 干什么 |
+|---|---|
+| `made <词>...` | 登记**本次现造**的东西:助手 did、壳 / 挂牌 / 授权 uuid、订单号、付款凭据号、会话号、手插的假身份…… |
+| `undo '<命令>'` / `undo_club <token> <路由> <json>` | 登记收尾要跑的**正规删除**(走接口删助手 / 删壳、下架、撤权、`src_rm` 删 minio 对象、还原夹具)|
+| `undone …` | 正文里已经亲自做过(而且断言过)的那条,从清单上划掉 |
+| `pkg_build <造包脚本>` | 造测试插件包并传进 minio,**同时登记退出时删掉它**(调用方给进来的 PKG 是调用方的,脚本不删)|
+| `session_keep <did>` | 登录**之前**调:固定夹具身份本来没有登录态的,收尾时把这次留下的删掉 |
+
+退出时:先把这些身份的**单聊会话号**补进词表(正规删除一跑,助手那条成员行就没了,purge 再也认不出是谁的会话;
+会话号按 club 的 `BuildSingleGroupCode` 现算)→ `undo` **后进先出**全跑、不论成败 →
+经 ssh 到 `.66` 调 `~/wip/hinj-brain/tools/probes/purge.py`(开发环境「删探针造的东西」**唯一**的实现)按词删
+开发 MySQL 全部库 + redis 全部 db,删完复扫。**任何一步没做到都打 ✘、退出码非 0** —— 正文全绿也一样。
+
+- ⛔ **只报自己现造的。** 固定复用的夹具身份(各 `*_mn.txt`、.66 机器人、商户 did)一个都不许 `made` ——
+  purge.py 有保护名单,词里出现一个就整批拒删(本脚本随之 ✘)。夹具上被冒烟改动的数据,改之前记原值、用 `undo` 还原。
+- python 冒烟经同名 `.sh` 壳跑,往 `$SMOKE_MADE_FILE` / `$SMOKE_UNDO_FILE` 里登记(见 `_cleanup.py`);直接 `python3` 跑会拒绝。
+- `SMOKE_PURGE_DRY=1`:purge 只扫不删(先看清会删哪些行),这时收尾算「没清」。
+- **在 `.64` 跑。** `.65` 没有到 `.66` 的公钥,在那儿跑收尾一定 ✘。
+
+**还清不掉的**(不是脚本的残留,是要别处拍板的):
+
+- hi-ai 删壳 / 删版本**不删 minio 里的制品**(lua 合并出来的 `.lua`、编出来的 `.so`):包是脚本传的、脚本删;制品是服务端生成的,服务端没删。
+- lua-onrobot / lua-deps 经主人 ↔ .66 机器人那段**夹具会话**发的消息(问一句、机器人答一句)留在 redis(30 天 TTL);
+  purge 不认 zset(时间线)成员,夹具会话也不该整段删。
+
+## ⛔ 凭据一律不进命令行
+
+进程的命令行谁都 `ps` 得到。token、apikey、refresh token、助记词**只从环境变量或 0600 文件**进脚本,脚本**不收位置参数**
+(给了就报错退出);往下调工具时用 `_endpoints.sh` 里的 `curl_tok` / `grpcurl_tok` / `grpcurl_key`
+(头经 `-H @<(printf …)` 或 `-expand-headers` + 环境变量交过去),带 refresh token 的请求体走 `-d @` 从 stdin 喂,
+.66 上的 `peer_cli` 走 serve 模式(`peer66`,助记词经本地 TCP 交过去)。
+
+    SELLER_TOK=… BUYER_TOK=… bash smoke-market-renew.sh       # 不是 bash smoke-market-renew.sh "$ST" "$BT"
+    USER_TOK=…               bash smoke-stream.sh
 
 ## 收进仓当天就抓到的一件事
 
@@ -164,8 +211,9 @@ grpc-gateway 默认只透传白名单头,裸写 `ApiKey:` 会得到「apiKey是�
 
 ### 已经自己造的夹具
 
-拿不到就现建:一台软件助手 + 一个插件壳 + 一把 apikey + 发一版 lua + 一个挂牌(草稿)。
-**跑完自己收走**(下架 → 删壳 → 删机器人),清理失败会明说。
+**一律现建**(不借这个账号原有的机器人 —— 借来的是别的冒烟的固定夹具,在它身上建 key / 发版 / 挂牌,每跑一次漏一套):
+一台软件助手 + 一个插件壳 + 一把 apikey + 发一版 lua + 一个挂牌(草稿)。
+**跑完自己收走**(登记在收尾里:下架 → 删壳 → 删机器人 → 删包,再 purge),清理失败会 ✘、退出码非 0。
 
 > ⚠️ 这个脚本原来一条清理都没有,每跑一次就在开发环境留一个 `smk-emptyprobe`,
 > 而它每次都报「0 失败」。2026-09-03 清出来三个,全是它留的。

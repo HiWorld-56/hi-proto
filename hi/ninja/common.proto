@@ -16,9 +16,11 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ninja";
 //
 // ## 注册
 //
-// 模块启动后周期性发**裸字节** `"PING"`，brain 回 `"PONG"`，brain 以此把这个模块的
-// ZMQ identity 加进在线集合 —— 不进集合，brain 就没法向它发消息。
-// 周期发送只是为了应对 brain 重启后身份丢失，**不是传统心跳**。
+// 模块连上时发一次**裸字节** `"PING"`（握手），brain 回 `"PONG"`、把这个模块的
+// ZMQ identity 加进在线集合并发 Online —— 不进集合，brain 就没法向它发消息。
+// 之后每 10 秒发一次裸字节 `"HEARTBEAT"`（心跳），brain 也回 `"PONG"`、只把时间戳往前推，**不发 Online**；
+// brain 重启过、认不出这个模块时，心跳按握手处理。模块靠「多久没听到 PONG」判断 brain 死没死。
+// （握手与心跳从前是同一个 PING，于是每 10 秒一次 Online → face 每 10 秒重推一遍全量初始化；已分开。）
 //
 // ## 一个模块一个文件
 //

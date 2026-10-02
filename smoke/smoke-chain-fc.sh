@@ -2,14 +2,18 @@
 # 链式 function call 端到端:第二步的产物只有拿到第一步的返回值才可能得到。
 set -uo pipefail
 source "$(dirname "$0")/_endpoints.sh"   # 端点/CA 统一约定(前端可达→域名 TLS,内部→内网 IP)
-TOK="$1"; PKG="$2"
+# 凭据从环境变量收(命令行参数谁都 ps 得到);PKG 可不给(现造、退出时删)
+[ $# -eq 0 ] || { echo "不收位置参数(token 不许进命令行):USER_TOK=… [PKG=…] bash $0" >&2; exit 2; }
+TOK="${USER_TOK:?需要 USER_TOK(用户 token)}"; PKG="${PKG:-}"
+# 不给包就现造(build_chainpkg.py,退出时删);给了是调用方的,本脚本不删
+[ -n "$PKG" ] || PKG=$(pkg_build build_chainpkg.py) || { echo "造链式插件包失败"; exit 1; }
 MAGIC="HI-CHAIN-4M2WQ"     # open_vault 在 code 对上时才吐的值
 CODE="K7X-QF3"             # get_vault_code 的返回值
 pass=0; fail=0
 ok(){ printf "  \033[32m✓\033[0m %s\n" "$1"; pass=$((pass+1)); }
 bad(){ printf "  \033[31m✗\033[0m %s  (%s)\n" "$1" "$2"; fail=$((fail+1)); }
 has(){ case "$2" in *"$3"*) ok "$1";; *) bad "$1" "没有 '$3': $(echo "$2"|head -c 200)";; esac; }
-cj(){ curl -s $CAC -m 180 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $TOK" -d "$2"; }
+cj(){ curl_tok "$TOK" -s $CAC -m 180 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -d "$2"; }
 g(){ python3 -c '
 import sys,json
 try:
@@ -21,8 +25,11 @@ except Exception: print("")
 
 B=$(cj agent/create_assistant '{"name":"chain-bot"}' | g data base did)
 [ -z "$B" ] && { echo "建机器人失败"; exit 1; }
+made "$B"; undo_club "$TOK" agent/delete "{\"agent\":\"$B\"}"
+made "chain-$$" "chain-neg-$$"   # 会话号:hi-ai 按它在 redis 里存历史,收尾一并删
 cj api_key/create "{\"agent\":\"$B\"}" >/dev/null
 P=$(cj plugin/create_shell "{\"agent\":\"$B\",\"name\":\"chain-demo\"}" | g data uuid)
+[ -n "$P" ] && { made "$P"; undo_club "$TOK" plugin/delete_shell "{\"agent\":\"$B\",\"uuid\":\"$P\"}"; }
 cj plugin/create_version "{\"agent\":\"$B\",\"version\":{\"uuid\":\"$P\",\"version\":\"1.0.0\",\"url\":\"$PKG\"}}" >/dev/null
 echo "机器人=$B 插件=$P"
 echo
@@ -50,8 +57,7 @@ R2=$(cj chat/converse "{\"agent\":\"$B\",\"cid\":\"chain-neg-$$\",\"conts\":[{\"
 A2=$(echo "$R2" | g data result)
 case "$A2" in *"$MAGIC"*) bad "不调工具时模型猜不到 magic 值" "居然猜中了,这个测试就不成立了";; *) ok "不调工具时模型猜不到 magic 值(所以上面那条才有意义)";; esac
 
-cj plugin/delete_shell "{\"agent\":\"$B\",\"uuid\":\"$P\"}" >/dev/null
-cj agent/delete "{\"agent\":\"$B\"}" >/dev/null
+# 删壳、删机器人在收尾里做(_endpoints.sh)
 echo
 echo "结果:通过 $pass,失败 $fail"
 [ "$fail" -eq 0 ]

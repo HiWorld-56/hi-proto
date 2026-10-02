@@ -10,9 +10,6 @@
 # —— 它们不鉴权,主体是调用方传进来的普通字段,一旦挂到 web 就是任填 did 的越权入口。
 # 设备侧读网关配置:机器人 grpc 直连,整个 service 不上 web 网关(web 走 Gateway.List)。
 service:hi.did.GatewayDevice
-service:hi.club.trade.Trade
-service:hi.club.trade.TradeManage
-service:hi.club.trade.Order
 service:hi.ai.plugin.Runner
 service:hi.ai.plugin.Builder
 
@@ -45,9 +42,6 @@ hi.club.Agent.BindMaster
 hi.club.Agent.UnbindMaster
 hi.club.Agent.BindStatus
 hi.club.Auth.Verify
-hi.club.Trade.GetFee
-hi.club.Trade.Add
-hi.club.Trade.UpdateTransHash
 # 取交易明细:设备/后端走 grpc 直连,不上 web 网关(同 service 其它链上查询方法)。
 hi.did.Transfer.TxDetail
 hi.did.Assets.UpdateAddresses
@@ -73,13 +67,11 @@ service:hi.club.User          # app 走 grpc 直连(公开查询已拆去 UserDi
 service:hi.club.Group         # app 走 grpc 直连
 service:hi.ai.AiPlugin        # 插件运行时内部调用,不对外
 service:hi.did.LoginCallback  # 回调一律走 grpc(2026-07-21 确认)
-service:hi.did.OrderNotify    # 同上
 service:hi.did.PayCallback    # 同上
 
 # ⚠️ 待确认 —— 我判断不了它们该不该对 web 暴露,先记在此以免 CI 常红。
 #    确认一条就把它移到上面并注明理由,或去掉此行并配路由。
 service:hi.club.Assets
-service:hi.club.Order
 service:hi.club.Price
 service:hi.club.PushManager
 service:hi.club.Wallet

@@ -38,6 +38,8 @@ put() { $G $(tp $SRC_GRPC) -protoset $PS -d "$1" $SRC_GRPC hi.source.File/Put 2>
 u_rand=$(put "{\"bucket\":\"temp\",\"dir\":\"_smoke\",\"name\":\"a.txt\",\"content\":\"$C\"}")
 u_ts=$(  put "{\"bucket\":\"log\",\"dir\":\"_smoke\",\"name\":\"a.log\",\"content\":\"$C\",\"nameMode\":\"NAME_TIMESTAMP\"}")
 u_keep=$(put "{\"bucket\":\"log\",\"dir\":\"_smoke\",\"name\":\"keep.log\",\"content\":\"$C\",\"nameMode\":\"NAME_KEEP\"}")
+# 三个对象退出时删掉(hi-source 的 Delete,按 url;KEEP 那个是同名覆盖,也一并删)
+for _u in "$u_rand" "$u_ts" "$u_keep"; do [ -n "$_u" ] && undo "src_rm '$_u'"; done
 [[ $u_rand =~ /temp/_smoke/[0-9a-f]{32}\.txt$ ]] && ok "RANDOM:纯随机<32hex><ext>不带原名" || bad "RANDOM 命名" "$u_rand"
 [[ $u_ts   =~ /log/_smoke/a_[0-9]{8}T[0-9]{6}\.[0-9]{9}Z\.log$ ]] && ok "TIMESTAMP:可读且字典序即时序" || bad "TIMESTAMP 命名" "$u_ts"
 [[ $u_keep =~ /log/_smoke/keep\.log$ ]] && ok "KEEP:原样可覆盖" || bad "KEEP 命名" "$u_keep"
@@ -55,7 +57,6 @@ echo "── 鉴权边界:操作对象只能来自 token ──"
 # 第一个参数改成**端点**(原来是端口号):前端可达的两个网关走域名 TLS,
 # hi-ai / hi-source 这两个纯内部的仍走内网 IP。判据是"前端够不够得着",不是"谁在调"。
 code() { $G $(tp $1) -protoset $PS -d '{}' $1 $2 2>&1 | grep -oE 'Unauthenticated|Unimplemented|does not include a method|does not expose service' | head -1; }
-chk "OrderEvent.Sub 需 token(已不收 did 入参)" "$(code $DID_GRPC hi.did.OrderEvent/Sub)" Unauthenticated
 chk "club.Source.UploadLog 需 token"           "$(code $CLUB_GRPC hi.club.Source/UploadLog)"   Unauthenticated
 chk "ai.Source.DownloadScript 需鉴权"          "$(code $AI_GRPC hi.ai.Source/DownloadScript)" Unauthenticated
 chk "did.Source.UploadAvatar 需 token"         "$(code $DID_GRPC hi.did.Source/UploadAvatar)"  Unauthenticated
@@ -65,6 +66,12 @@ echo "── 已删接口不得复活 ──"
 chk "hi-source 旧 Upload 已删"       "$(code $SRC_GRPC hi.source.File/Upload)"    "does not include a method"
 chk "Wallet.ListAddresses 已迁走"    "$(code $DID_GRPC hi.did.Wallet/ListAddresses)" "does not include a method"
 chk "club.UserExtension 已删"        "$(code $CLUB_GRPC hi.club.UserExtension/Get)"   "does not expose service"
+# 中间人交易 2026-10-02 整体下线:交易、hidid-pc 拉单、订单通知/事件一并删除
+chk "club.Trade 已删"               "$(code $CLUB_GRPC hi.club.Trade/List)"          "does not expose service"
+chk "club.TradeManage 已删"         "$(code $CLUB_GRPC hi.club.TradeManage/List)"    "does not expose service"
+chk "club.Order 已删"               "$(code $CLUB_GRPC hi.club.Order/Pull)"          "does not expose service"
+chk "did.OrderNotify 已删"          "$(code $DID_GRPC hi.did.OrderNotify/Send)"      "does not expose service"
+chk "did.OrderEvent 已删"           "$(code $DID_GRPC hi.did.OrderEvent/Sub)"        "does not expose service"
 chk "ai.Agent.Create 已拆(不得合并回来)" "$(code $AI_GRPC hi.ai.Agent/Create)"  "does not include a method"
 chk "ai.Agent.RegisterRobot 存在"    "$(code $AI_GRPC hi.ai.Agent/RegisterRobot)"   Unauthenticated
 chk "ai.Agent.CreateAssistant 存在"  "$(code $AI_GRPC hi.ai.Agent/CreateAssistant)" Unauthenticated
@@ -80,9 +87,8 @@ else
   bad "有 rpc 找不到实现" "跑 check_impl.py 看详情"
 fi
 
-# 本次产生的对象落在 temp/_smoke 与 log/_smoke:
-# hi-source 没有删除接口(有意的——删除权不该给搬运工),而这两个 bucket 分别有
-# 14 天 / 30 天 lifecycle,会自己过期。要立刻清就用 minio 凭据直接删。
+# 本次产生的三个对象(temp/_smoke、log/_smoke)由收尾按 url 删掉(见上面 undo 那行)。
+# 原来这里写「hi-source 没有删除接口」—— 后来有了(hi.source.File/Delete,内网),这句就过时了。
 
 echo
 echo "结果:通过 $pass,失败 $fail"

@@ -17,6 +17,18 @@ club 按 ClientInfo.dev 分流身份(handler/auth.go):`embedded` 走 RobotLogin 
 
     cd /tmp/didtok && ./target/release/didtok
 
+输出 `DID=` / `TOKEN=`,以及续期 / 登出类冒烟要用的 `REFRESH=` 与登录时那份 ClientInfo
+(`APP=` / `DEV=` / `MAC=`;2026-10-01 加,`smoke-logout.sh` 用)。每跑一次就是一次新登录,
+会顶掉同一 (did, app, dev) 槽位上一次的会话。
+
+2026-10-02 加两个环境变量(`smoke-logout.sh` 用):
+- `MAC=<设备号>`:覆盖默认设备号(did 的哈希)。PC 独占槽要两台「不同设备」。
+- `REQ_ID=<reqId> NODE_APP=<app> NODE_DEV=<dev>`:替**别的服务**的扫码会话签字
+  (如 hi-ai `GenerateReqId` 申请出来的 reqId),只 Verify、不出 token —— token 去那个服务的
+  `GetReqStatus` 取。hi-ai 要求这个 did 在 club 里有名片,先用同一个 `MN_FILE` 跑一次 tokgen。
+
+/tmp/tokgen 同日起多输出 `APP=` / `MAC=`(登录时那份 ClientInfo,登出要原样回填)。
+
 ⚠️ **GenerateReqIdReq.did 是「应用方 did」,不是登录用户的 did**。hidid 按它分流:
 等于 config 的 `hi_wallet_did` → hidid 自身登录;否则走 ThirdPartyLogin(三方=商户
 登录,会报"用户需要注册为商户")。工具里默认填好了,用 APP_DID 可覆盖。

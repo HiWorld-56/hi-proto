@@ -14,7 +14,6 @@ REPOS = {
     "backend-hi-did": "hi_did",
     "backend-hi-club": "hi_club",
     "backend-hi-ai": "hi_ai",
-    "backend-hi-club-trade": "hi_club_trade",
 }
 # type Xxx struct { Field  Type  `gorm:"column:c;..."` }
 STRUCT = re.compile(r"type\s+(\w+)\s+struct\s*\{(.*?)\n\}", re.S)

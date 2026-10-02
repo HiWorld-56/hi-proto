@@ -21,8 +21,8 @@
 #     (`65_` 前缀那批助记词就是对着 .65 那套账号的;输出里 DID= 那行就是下面的 SELLER_DID)
 #   SELLER_DID               上一条里卖方的 DID(**用户的 did,不是机器人的**)——
 #                            付费那段要拿它核对"软件机器人的钱落到主人账户"
-#   PKG                      测试插件包,现造:python3 ~/ci/hi-proto/smoke/build_testpkg.py
-#                            (它打完直接吐 url;包里那个 magic 值就是 MAGIC)
+#   PKG                      测试插件包(可不给:不给就现造一个,退出时删掉;给了就是调用方的,本脚本不删)
+#                            现造:python3 ~/ci/hi-proto/smoke/build_testpkg.py(包里那个 magic 值就是 MAGIC)
 #
 # ⚠️ **本脚本只能在 .65 上跑**(一半断言要 mysql 客户端,.64 没有;而 smoke.sh 反过来
 #    只能在 .64 —— 它要 grpcurl)。两台各跑一半,别在一台上全跑。
@@ -47,7 +47,7 @@ chk() { [ "$2" = "$3" ] && ok "$1" || bad "$1" "want=$3 got=$2"; }
 has() { case "$2" in *"$3"*) ok "$1";; *) bad "$1" "输出里没有 '$3':$(echo "$2"|head -c 160)";; esac; }
 no()  { case "$2" in *"$3"*) bad "$1" "不该出现 '$3'";; *) ok "$1";; esac; }
 
-cj()  { curl -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $3" -d "$2"; }
+cj()  { curl_tok "$3" -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -d "$2"; }   # token 不进命令行
 # ⚠️ 对话一律走 **club**,不打 hi-ai 直连:机器人的 apikey 是 club 原生的
 #    (hi_chat_api_key),hi-ai 有它自己的一套,两边不通用;而且 app→club→ai 才是真实链路。
 #    只有"老路由还在不在"这类探针才直接打 ai。
@@ -68,27 +68,35 @@ except Exception:
 SELLER_TOK="${SELLER_TOK:?需要卖方用户 token}"
 BUYER_TOK="${BUYER_TOK:?需要买方用户 token}"
 SELLER_DID="${SELLER_DID:?需要卖方用户 did}"
-PKG="${PKG:?需要测试插件包 url}"
+[ -n "${PKG:-}" ] || PKG=$(pkg_build build_testpkg.py) || { echo "造测试插件包失败"; exit 1; }
 
 echo "── 准备:两台机器人 + apikey + 多方法插件 ──"
+# 现造的一律当场登记收尾(made → purge 删行;undo → 退出时走接口删,后进先出),提前退出也清得掉
 SB=$(cj agent/create_assistant '{"name":"smk-seller"}' "$SELLER_TOK" | g data base did)
+[ -n "$SB" ] && { made "$SB"; undo_club "$SELLER_TOK" agent/delete "{\"agent\":\"$SB\"}"; }
 BB=$(cj agent/create_assistant '{"name":"smk-buyer"}' "$BUYER_TOK" | g data base did)
+[ -n "$BB" ] && { made "$BB"; undo_club "$BUYER_TOK" agent/delete "{\"agent\":\"$BB\"}"; }
 SK_=$(cj api_key/create "{\"agent\":\"$SB\"}" "$SELLER_TOK" | g data info value)
 BK=$(cj api_key/create "{\"agent\":\"$BB\"}" "$BUYER_TOK" | g data info value)
 P=$(cj plugin/create_shell "{\"agent\":\"$SB\",\"name\":\"smk-demo\",\"data\":{\"ext-str\":\"注入生效\"}}" "$SELLER_TOK" | g data uuid)
+[ -n "$P" ] && { made "$P"; undo_club "$SELLER_TOK" plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P\"}"; }
 VR=$(cj plugin/create_version "{\"agent\":\"$SB\",\"version\":{\"uuid\":\"$P\",\"version\":\"1.0.0\",\"url\":\"$PKG\"}}" "$SELLER_TOK")
 [ -n "$SB" ] && [ -n "$BB" ] && [ -n "$P" ] || { echo "准备失败"; exit 1; }
 echo "  seller=$SB buyer=$BB plugin=$P"
+
+# 对话的会话号带上本进程号、并登记给 purge:hi-ai 按会话号在 redis 里存历史(30 天 TTL),
+# 原来写死 smk-1 … smk-4 —— 每次跑都接着往同一段历史里写,前一次的对话会混进这一次的上下文。
+made "smk-1-$$" "smk-2-$$" "smk-3-$$" "smk-4-$$"
 
 echo
 echo "── 一、对话路合并(阶段 0)──"
 R=$(ai_probe chat/complete)
 has "老路由 /chat/complete 已消失" "$R" '"code":5'
-R=$(cj chat/converse "{\"agent\":\"$SB\",\"cid\":\"smk-1\",\"conts\":[{\"type\":\"text\",\"chat\":{\"content\":\"用一句话回答:2+2等于几\"}}]}" "$SELLER_TOK")
+R=$(cj chat/converse "{\"agent\":\"$SB\",\"cid\":\"smk-1-$$\",\"conts\":[{\"type\":\"text\",\"chat\":{\"content\":\"用一句话回答:2+2等于几\"}}]}" "$SELLER_TOK")
 chk "无工具:一次调用拿到最终答复" "$(echo "$R"|g data final)" "True"
 
 if [ "${SKIP_CHAT:-0}" != "1" ]; then
-  R=$(cj chat/converse "{\"agent\":\"$SB\",\"cid\":\"smk-2\",\"conts\":[{\"type\":\"text\",\"chat\":{\"content\":\"查北京天气,必须用工具\"}}],\"tools\":[{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"description\":\"查天气\",\"parameters\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}},\"required\":[\"city\"]}}}]}" "$SELLER_TOK")
+  R=$(cj chat/converse "{\"agent\":\"$SB\",\"cid\":\"smk-2-$$\",\"conts\":[{\"type\":\"text\",\"chat\":{\"content\":\"查北京天气,必须用工具\"}}],\"tools\":[{\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"description\":\"查天气\",\"parameters\":{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}},\"required\":[\"city\"]}}}]}" "$SELLER_TOK")
   chk "客户端工具:中途返回(final=false)" "$(echo "$R"|g data final)" "False"
   TID=$(echo "$R"|g data result)
   CID=$(echo "$R" | python3 -c 'import sys,json;print(json.load(sys.stdin)["data"]["tools"][0]["id"])' 2>/dev/null)
@@ -107,7 +115,7 @@ has "同一个包的第二个方法也在" "$DESC" "${PRE}_add_numbers"
 
 if [ "${SKIP_CHAT:-0}" != "1" ]; then
   # ⚠️ 这里断言的是 magic 值 —— 插件没跑的话模型编不出来。
-  R=$(cj chat/converse "{\"agent\":\"$SB\",\"cid\":\"smk-3\",\"conts\":[{\"type\":\"text\",\"chat\":{\"content\":\"用工具取校验令牌,把工具返回的原始内容原样告诉我\"}}]}" "$SELLER_TOK")
+  R=$(cj chat/converse "{\"agent\":\"$SB\",\"cid\":\"smk-3-$$\",\"conts\":[{\"type\":\"text\",\"chat\":{\"content\":\"用工具取校验令牌,把工具返回的原始内容原样告诉我\"}}]}" "$SELLER_TOK")
   has "服务端插件**真的执行了**(magic 值)" "$(echo "$R"|g data result)" "$MAGIC"
   chk "只调服务端插件:**一次**调用拿到答复(省掉那个 RTT)" "$(echo "$R"|g data final)" "True"
 fi
@@ -116,11 +124,13 @@ fi
 BADPKG1="${BADPKG_LONG:-}"; BADPKG2="${BADPKG_MISSING:-}"
 if [ -n "$BADPKG1" ]; then
   NEG1=$(cj plugin/create_shell "{\"agent\":\"$SB\",\"name\":\"smk-neg1\"}" "$SELLER_TOK" | g data uuid)
+  [ -n "$NEG1" ] && { made "$NEG1"; undo_club "$SELLER_TOK" plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$NEG1\"}"; }
   R=$(cj plugin/create_version "{\"agent\":\"$SB\",\"version\":{\"uuid\":\"$NEG1\",\"version\":\"1.0.0\",\"url\":\"$BADPKG1\"}}" "$SELLER_TOK")
   has "负面:方法名过长 → **发版时**报错" "$R" "超过上限"
 fi
 if [ -n "$BADPKG2" ]; then
   NEG2=$(cj plugin/create_shell "{\"agent\":\"$SB\",\"name\":\"smk-neg2\"}" "$SELLER_TOK" | g data uuid)
+  [ -n "$NEG2" ] && { made "$NEG2"; undo_club "$SELLER_TOK" plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$NEG2\"}"; }
   R=$(cj plugin/create_version "{\"agent\":\"$SB\",\"version\":{\"uuid\":\"$NEG2\",\"version\":\"1.0.0\",\"url\":\"$BADPKG2\"}}" "$SELLER_TOK")
   has "负面:main.py 里没有该方法 → **发版时**报错" "$R" "找不到这些方法"
 fi
@@ -132,6 +142,7 @@ echo "── 三、市场:挂牌与免费购买(阶段 2)──"
 # grpc-gateway 静默丢掉 —— 传着传着就会有人以为挂牌行里真存了一份。
 L=$(cj market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P\",\"settle_mode\":1,\"price\":\"0\",\"tags\":[\"smk\"]}" "$SELLER_TOK")
 LID=$(echo "$L"|g data uuid)
+[ -n "$LID" ] && { made "$LID"; undo_club "$SELLER_TOK" market/set_listing_status "{\"uuid\":\"$LID\",\"status\":4}"; }
 [ -n "$LID" ] && ok "挂牌成功(uuid 非空)" || bad "挂牌成功(uuid 非空)" "回了空 uuid"
 cj market/set_listing_status "{\"uuid\":\"$LID\",\"status\":2}" "$SELLER_TOK" >/dev/null
 # 能搜的两样东西:**插件名**(在 hi.ai,挂牌行里没有副本)与**插件 id**(plugin_uuid,在本表)。
@@ -147,6 +158,7 @@ has "负面:拿别人的机器人挂牌被拒" "$(cj market/create_listing "{\"a
 A=$(cj market/apply "{\"listing_uuid\":\"$LID\",\"to_agent\":\"$BB\"}" "$BUYER_TOK")
 chk "免费购买:一步到已装载" "$(echo "$A"|g data status)" "GRANT_STATUS_INSTALLED"
 G=$(echo "$A"|g data grantUuid)
+[ -n "$G" ] && { made "$G"; undo_club "$SELLER_TOK" market/revoke "{\"grant_uuid\":\"$G\",\"reason\":\"smoke\"}"; }
 chk "ai 侧确实插了引用行" "$(q hi_ai "SELECT COUNT(*) FROM hi_ai_plugin_using WHERE uuid='$P' AND source='reference' AND deleted_at IS NULL;")" "1"
 has "负面:有引用时卖方删壳被拒" "$(cj plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P\"}" "$SELLER_TOK")" "个引用方"
 
@@ -172,11 +184,13 @@ chk "重复分享:**没有多长出一笔授权**" "$(q hi_club "SELECT COUNT(*)
 chk "买来的引用行默认跟最新版(follow_latest=1)" "$(q hi_ai "SELECT follow_latest FROM hi_ai_plugin_using WHERE uuid='$P' AND agent_did='$BB' AND deleted_at IS NULL;")" "1"
 
 if [ "${SKIP_CHAT:-0}" != "1" ]; then
-  R=$(cj chat/converse "{\"agent\":\"$BB\",\"cid\":\"smk-4\",\"conts\":[{\"type\":\"text\",\"chat\":{\"content\":\"用工具取校验令牌,原样告诉我\"}}]}" "$BUYER_TOK")
+  R=$(cj chat/converse "{\"agent\":\"$BB\",\"cid\":\"smk-4-$$\",\"conts\":[{\"type\":\"text\",\"chat\":{\"content\":\"用工具取校验令牌,原样告诉我\"}}]}" "$BUYER_TOK")
   has "**买方机器人真的用上了卖方的插件**(magic 值)" "$(echo "$R"|g data result)" "$MAGIC"
 fi
 
-cj market/revoke "{\"grant_uuid\":\"$G\",\"reason\":\"smoke\"}" "$SELLER_TOK" >/dev/null
+RV=$(cj market/revoke "{\"grant_uuid\":\"$G\",\"reason\":\"smoke\"}" "$SELLER_TOK")
+chk "卖家撤权:code 0" "$(echo "$RV"|g code)" "0"
+[ "$(echo "$RV"|g code)" = "0" ] && undone_club "$SELLER_TOK" market/revoke "{\"grant_uuid\":\"$G\",\"reason\":\"smoke\"}"
 chk "撤权后引用行被删" "$(q hi_ai "SELECT COUNT(*) FROM hi_ai_plugin_using WHERE uuid='$P' AND source='reference' AND deleted_at IS NULL;")" "0"
 chk "撤权后 grant 置 revoked(5)" "$(q hi_club "SELECT status FROM hi_club_market_grant WHERE uuid='$G';")" "5"
 
@@ -185,12 +199,16 @@ echo "── 四、付费购买:hidid 直付(阶段 4)──"
 # ⚠️ 必须换一个插件:同一个 (机器人,插件) 只有一行挂牌,而 settle_mode **挂过就冻结**
 #    —— 拿 $P 再挂 PAID 会被正确拒绝(那道守卫本身在上面已经间接验过)。
 P2=$(cj plugin/create_shell "{\"agent\":\"$SB\",\"name\":\"smk-paid\"}" "$SELLER_TOK" | g data uuid)
+[ -n "$P2" ] && { made "$P2"; undo_club "$SELLER_TOK" plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P2\"}"; }
 cj plugin/create_version "{\"agent\":\"$SB\",\"version\":{\"uuid\":\"$P2\",\"version\":\"1.0.0\",\"url\":\"$PKG\"}}" "$SELLER_TOK" >/dev/null
 L2=$(cj market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P2\",\"settle_mode\":3,\"price\":\"9.9\",\"coin\":\"USDT-TRC20\",\"duration\":2592000}" "$SELLER_TOK")
 LID2=$(echo "$L2"|g data uuid)
+[ -n "$LID2" ] && { made "$LID2"; undo_club "$SELLER_TOK" market/set_listing_status "{\"uuid\":\"$LID2\",\"status\":4}"; }
 cj market/set_listing_status "{\"uuid\":\"$LID2\",\"status\":2}" "$SELLER_TOK" >/dev/null
 A2=$(cj market/apply "{\"listing_uuid\":\"$LID2\",\"to_agent\":\"$BB\"}" "$BUYER_TOK")
 G2=$(echo "$A2"|g data grantUuid)
+# 付费档待付款的授权、它顺带开出的业务单与付款凭据:没有接口删(付款是外部动作),只由 purge 按号删行
+made "$G2" "$(echo "$A2"|g data order orderId)" "$(echo "$A2"|g data order payment payId)"
 # ⚠️ `MarketPayInfo.payee` **已经删了,别再读它**(proto 里那句"不要加回来"就是说它)——
 # 收款人与收款账号已经分成两个字段,各自说清自己是什么:
 #   payeeAccount 钱打到这个 did 的地址上,**付款方只认它**
@@ -211,7 +229,7 @@ chk "回了金额" "$(echo "$A2"|g data pay amount)" "9.9"
 OID2=$(echo "$A2"|g data order orderId)
 [ -n "$OID2" ] && ok "付费购买**顺带开出账单**(订单号非空)" || bad "没开出账单" "$(echo "$A2"|head -c 160)"
 case "$OID2" in MKT-*) ok "业务单号带 MKT- 前缀";;
-  *) bad "订单号没有 MKT- 前缀" "got=$OID2 —— 付款回调会被当成 trade 的单";; esac
+  *) bad "订单号没有 MKT- 前缀" "got=$OID2 —— 付款回调认不出它是市场的单";; esac
 OMCH2=$(echo "$A2"|g data order merchant)
 [ -n "$OMCH2" ] && ok "订单带出商户DID(付款方据此知道回执报给谁)" || bad "订单没带 merchant" "付款方将无处上报"
 # 对外给出去的是**付款凭据号**;业务单号不出系统。
@@ -243,27 +261,17 @@ has "负面:还有插件挂在市场上的机器人不许删" "$(cj agent/delete
 # 判据读的就是 club 自己这两行(`hi_chat_user.type` + v_master 的归属),
 # 造出来正好把守卫那一支走通;用完删掉。
 FAKEBOT="zSMKROBOT$(date +%s)"
+made "$FAKEBOT"   # 这两行是手插的(没有接口能造一台硬件机器人),收尾由 purge 删
 q hi_club "INSERT INTO hi_chat_user (name,did,type,created_at,updated_at) VALUES ('smk-fake-robot','$FAKEBOT','robot',NOW(),NOW()); INSERT INTO hi_chat_relation (did_a,did_b,kind,subordinate_did,created_at,updated_at) VALUES ('$SELLER_DID','$FAKEBOT','master','$FAKEBOT',NOW(),NOW());"
 # 先证明前提:这台假机器人**确实算卖家名下的**(否则下面那条会因为"不属于你"而变绿,
 # 报的却是另一回事 —— 断言必须先证明自己的前提)。
 chk "前提:假机器人已挂到卖家名下" "$(q hi_club "SELECT COUNT(*) FROM v_master WHERE sub_did='$FAKEBOT' AND master_did='$SELLER_DID';")" "1"
 has "负面:硬件机器人不许删,只能解绑" "$(cj agent/delete "{\"agent\":\"$FAKEBOT\"}" "$SELLER_TOK")" "请改用解绑"
 chk "被拒之后那台机器人还在" "$(q hi_club "SELECT COUNT(*) FROM hi_chat_user WHERE did='$FAKEBOT';")" "1"
-q hi_club "DELETE FROM hi_chat_relation WHERE subordinate_did='$FAKEBOT'; DELETE FROM hi_chat_user WHERE did='$FAKEBOT';"
 
-echo
-echo "── 清理 ──"
-cj market/set_listing_status "{\"uuid\":\"$LID\",\"status\":4}" "$SELLER_TOK" >/dev/null
-cj market/set_listing_status "{\"uuid\":\"$LID2\",\"status\":4}" "$SELLER_TOK" >/dev/null
-# ⚠️ **自己开的单也要自己清。** 原来只删 flow/grant/listing,而付费那一段
-#    每跑一次都会开一张订单 + 一张付款凭据 —— grant 一删,它们就成了指向空气的孤儿。
-#    开发库里因此攒了 25 张已作废的孤儿订单(2026-09-05 清的时候才发现)。
-#    **顺序:凭据 → 订单 → flow → grant → listing**(子行先走,否则每一步都在造新孤儿)。
-q hi_club "DELETE p FROM hi_club_market_payment p JOIN hi_club_market_order o ON o.order_id=p.order_id WHERE o.grant_uuid IN ('$G','$G2'); DELETE FROM hi_club_market_order WHERE grant_uuid IN ('$G','$G2'); DELETE FROM hi_club_market_flow WHERE grant_uuid IN ('$G','$G2'); DELETE FROM hi_club_market_grant WHERE uuid IN ('$G','$G2'); DELETE FROM hi_club_market_listing WHERE uuid IN ('$LID','$LID2');"
-cj plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P\"}" "$SELLER_TOK" >/dev/null
-cj plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P2\"}" "$SELLER_TOK" >/dev/null
-cj agent/delete "{\"agent\":\"$SB\"}" "$SELLER_TOK" >/dev/null
-cj agent/delete "{\"agent\":\"$BB\"}" "$BUYER_TOK" >/dev/null
+# 清理:全部在收尾里做(_endpoints.sh)—— 撤权 → 下架 → 删壳 → 删机器人走接口,
+# 订单 / 付款凭据 / flow / 手插的假机器人这些没有删除接口的,由 purge 按上面登记的号删行。
+# 原来这里是一串手写的 DELETE:顺序靠注释记着,而且提前 exit 的话一行都跑不到。
 
 echo
 echo "结果:通过 $pass,失败 $fail"

@@ -13,7 +13,7 @@
 本脚本保证:
   1. 每个 rpc 都显式标注,且不用 AUTH_UNSPECIFIED(漏标即构建失败,而非上线后静默拒绝/放行);
   2. **同一 service 内档位集合一致** —— 不一致 = 主体归类错了,该拆 service
-     (范式:Gateway/GatewayAdmin、Merchant/MerchantManage、Trade/TradeManage);
+     (范式:Gateway/GatewayAdmin、Merchant/MerchantManage、Market/MarketManage);
   3. http 路由不悬空、无重复 key。
 """
 import re, sys, glob, os

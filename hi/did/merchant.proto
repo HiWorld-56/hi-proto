@@ -438,47 +438,10 @@ service MerchantOwner {
   } // 改结算实体(收款/付款);不传=恢复默认(master)
 }
 
-message MerchantNotifyReq {
-  string          did   = 1;
-  optional string nonce = 2;
-}
-
-message OrderEventResp {
-  option (hi.audience) = VIS_SELF; // hidid-pc 订阅**自己**的订单事件流(OrderEvent.Sub AUTH_USER)
-  optional string event   = 1 [(hi.visibility) = VIS_SELF];
-  optional string payload = 2 [(hi.visibility) = VIS_SELF];
-}
-
-// ── 订单通知/事件(web3 自动付款机制,裁决 #10)──────────────────────
-// 架构:PC 端跑 hidid-pc,通过 SSE 长连接(OrderEvent.Sub)与 hidid 后台保持连接(pc 无公网 IP)。
-// 流程:①商户业务系统在**自己的服务上**生成订单 → ②商户调 OrderNotify.Send → hidid 后端把通知
-//       转发给对应 hidid-pc → ③hidid-pc 按用户设置的地址**去拉订单** → ④付款 →
-//       ⑤付款结果通过用户设置的地址回传。
-// 关键:hidid 后端**只负责转发通知**,订单真伪由三方业务系统控制;拉单/回传的 url 都是用户填的,
-//       hidid-pc 直接对接三方、不经 hidid 后台 —— 排除了 hidid 后台伪造订单的可能。
-// 是商户特有的行为,放 merchant.proto。拆两端:主体不同(hidid-pc 订阅 vs 商户发送)、档位不同。
-
-// 订单事件订阅端(hidid-pc 订阅,token)。原 SSE.OrderEvents —— SSE 是传输术语不是主体。
-service OrderEvent {
-  // ⚠️ **只能订阅自己的** —— did 取自 token,入参不给 did。
-  //    原先是 `Sub(hi.DID)` 且 handler 直接用 req.Id:任何登录用户传别人的 did,
-  //    既能收对方订单事件,又会触发下面的"重复登录"逻辑把对方的 hidid-pc 挤下线。
-  //
-  // 重复登录语义(hidid-pc 特有):A 机已登录且未显式登出时,**B 机登录应被挡下**,
-  // 而不是踢掉 A。原实现踢的是 A,方向反了。
-  rpc Sub(google.protobuf.Empty) returns (stream OrderEventResp) {
-    option (hi.auth) = AUTH_USER;
-  } // hidid-pc 订阅**自己的**订单事件流(长连接)
-}
-
-// 订单通知发送端(商户触发,公开):商户业务系统触发一次付款通知,hidid 转发给对应 hidid-pc。
-// 公开=只是转发触发器,订单真伪由三方业务系统 + 用户填的 url 兜底(裁决 #10)。
-// 与订阅端主体不同(商户 vs hidid-pc)、档位不同(公开 vs token),故拆开。
-service OrderNotify {
-  rpc Send(MerchantNotifyReq) returns (google.protobuf.Empty) {
-    option (hi.auth) = AUTH_NONE;
-  } // 商户触发付款通知
-}
+// ⚠️ 没有「订单通知 / 订单事件」(原 `OrderNotify.Send` / `OrderEvent.Sub`),不要加回来:
+// 那是给 hidid PC 端(hidid-windows)替中间人交易自动付款用的一条推送通道,唯一的发送方是
+// club-trade;中间人交易 2026-10-02 整体下线,这条通道随之删除。
+// 三方要用户付款,走 `hi.did.Pay` 的付款请求 + `PayCallback` 回调(见 payment.proto)。
 
 // 跨商户访问用户数据(**整个 service 的每个方法都先过授权校验**)。
 //

@@ -47,11 +47,12 @@ fi
 ok "机器人身份登录 did=$DID"
 ok "人用户身份登录 did=$DID_U"
 
-U() { curl -s $CAC -H "Authorization: Bearer $TOK_U" "$@"; }
-PU() { curl -s $CAC -X POST -H "Authorization: Bearer $TOK_U" -H 'Content-Type: application/json' -d "$2" "$1"; }
+# token 不进 curl 的命令行(curl_tok 见 _endpoints.sh)
+U() { curl_tok "$TOK_U" -s $CAC "$@"; }
+PU() { curl_tok "$TOK_U" -s $CAC -X POST -H 'Content-Type: application/json' -d "$2" "$1"; }
 
-A() { curl -s $CAC -H "Authorization: Bearer $TOK" "$@"; }             # 带 token 的 GET
-P() { curl -s $CAC -X POST -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' -d "$2" "$1"; }
+A() { curl_tok "$TOK" -s $CAC "$@"; }             # 带 token 的 GET
+P() { curl_tok "$TOK" -s $CAC -X POST -H 'Content-Type: application/json' -d "$2" "$1"; }
 
 echo "── 归属校验链路(v_master 那个 bug 的原发地)──"
 CREATED=$(P $API/agent/create_assistant '{"name":"smoke-ownership","avatar":""}')
@@ -61,6 +62,7 @@ if [ -z "$AG" ]; then
   echo "  ✗ 没拿到 agent did,归属链路无法继续"; fail=$((fail+1))
 else
   ok "新建 agent did=$AG"
+  made "$AG"; undo_club "$TOK" agent/delete "{\"agent\":\"$AG\"}"
   # 这四条全部经过 GetAssistantByCreatorDIDAndAssistantDID —— 正是坏掉的那个查询
   chkcode "Agent.Get 自己的机器人"       "$(A "$API/agent/get?agent=$AG")" 0
   chkcode "Agent.Edit 自己的机器人"      "$(P $API/agent/edit "{\"agent\":\"$AG\",\"name\":\"smoke-renamed\"}")" 0
@@ -80,7 +82,9 @@ else
   elif echo "$R" | grep -q "Unknown column"; then bad "Agent.Get 别人的机器人" "SQL 错(列名又漂了):$(echo "$R"|head -c 100)"
   else ok "Agent.Get 别人的机器人被拒(非 SQL 错)"; fi
 
-  chkcode "清理:删掉新建的 agent" "$(P $API/agent/delete "{\"agent\":\"$AG\"}")" 0
+  R=$(P $API/agent/delete "{\"agent\":\"$AG\"}")
+  chkcode "删掉新建的 agent(Agent.Delete 本身也是被测的)" "$R" 0
+  [ "$(code "$R")" = "0" ] && undone_club "$TOK" agent/delete "{\"agent\":\"$AG\"}"
 fi
 
 echo "── 登录用户可见的公共查询 ──"
@@ -121,11 +125,14 @@ CU=$(PU $API/agent/create_assistant '{"name":"smoke-human-owned","avatar":""}')
 AGU=$(echo "$CU" | grep -oE '"did":"[^"]+"' | head -1 | cut -d'"' -f4)
 if [ -n "$AGU" ]; then
   ok "人用户建机器人 did=$AGU"
+  made "$AGU"; undo_club "$TOK_U" agent/delete "{\"agent\":\"$AGU\"}"
   chkcode "master 用 Permission.List 查名下机器人" "$(PU $API/permission/list "{\"agents\":[\"$AGU\"]}")" 0
   R=$(PU $API/permission/list "{\"agents\":[\"$AGU\",\"$DID\"]}")
   [ "$(code "$R")" = "7" ] && ok "List 混入别人的机器人 → 整体拒绝" \
                            || bad "List 应拒绝越权" "got=$(echo "$R"|head -c 90)"
-  chkcode "清理:删掉人用户的机器人" "$(PU $API/agent/delete "{\"agent\":\"$AGU\"}")" 0
+  R=$(PU $API/agent/delete "{\"agent\":\"$AGU\"}")
+  chkcode "删掉人用户的机器人" "$R" 0
+  [ "$(code "$R")" = "0" ] && undone_club "$TOK_U" agent/delete "{\"agent\":\"$AGU\"}"
   # 删机器人应连权限一起删(否则留孤儿)
   sleep 1
 else
