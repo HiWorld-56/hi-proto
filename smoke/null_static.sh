@@ -77,7 +77,10 @@ echo "── 3. 表覆盖对账:库里的表,审计都看得见吗 ──"
 #   hi_dids / hi_ai_dids / hi_chat_user_remark
 #                                死表(无代码引用;hi_chat_user_remark 的存储已搬到
 #                                hi_chat_relation_remark,模型只剩一个适配用的 DTO)
-IGNORE='^(gorp_migrations|v_.*|DBUserInformationExtension_.*|hi_dids|hi_ai_dids|hi_chat_user_remark)$'
+#   hi_user_assets_alias_bak / hi_user_assets_w3gts_bak
+#                                hi-did 迁移 0005 / 0006 删行前的原样备份(只写一次、代码不读,
+#                                没有 Go 模型);清不清按 hi-claude 的 backup-cleanup.md 定
+IGNORE='^(gorp_migrations|v_.*|DBUserInformationExtension_.*|hi_dids|hi_ai_dids|hi_chat_user_remark|hi_user_assets_alias_bak|hi_user_assets_w3gts_bak)$'
 missing=0
 for pair in "hi_did" "hi_club" "hi_ai"; do
   mysqlq information_schema "select table_name from tables where table_schema='$pair'" | sort > /tmp/_db.txt
