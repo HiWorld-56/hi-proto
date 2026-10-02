@@ -130,6 +130,39 @@ else
 fi
 
 echo
+echo "── 删壳:库里的行与桶里的对象一起走(独占的删、共用的留)──"
+# 两个壳的 1.0.0 发的是**同一个包**($PKG)。删第一个壳:它独占的 lua 制品要没,包还被另一个壳指着、要留;
+# 删第二个:包也没人要了,一起删。没有第二个壳(拿不到机器人 token)时只验前一半。
+# 2026-10-02 之前删壳只删行,桶里的包 / 制品一个都不删。
+A1=$(mysqlq hi_ai "select artifact_url from hi_ai_plugin_artifact where uuid='$P' and version='1.0.0'")
+A2=""; [ -n "$RP" ] && A2=$(mysqlq hi_ai "select artifact_url from hi_ai_plugin_artifact where uuid='$RP' and version='1.0.0'")
+PRE="$(src_state "$A1") $(src_state "$PKG")"
+if [ -n "$A1" ] && [ "$A1" != "$PKG" ] && [ "$PRE" = "present present" ]; then
+  ok "前提:壳 $P 的制品对象与包都在桶里"
+else
+  bad "前提:制品对象没就位(下面的对象断言不算数)" "A1=$A1 状态=$PRE"
+fi
+DS=$(cj plugin/delete_shell "{\"agent\":\"$B\",\"uuid\":\"$P\"}")
+has "delete_shell 成功" "$DS" '"code":0'
+undone_club "$TOK" plugin/delete_shell "{\"agent\":\"$B\",\"uuid\":\"$P\"}"
+[ "$(mysqlq hi_ai "select count(*) from hi_ai_plugin_artifact where uuid='$P'")" = "0" ] \
+  && ok "删壳之后制品行没了" || bad "删壳之后制品行还在" "uuid=$P"
+case "$(src_state "$A1")" in gone) ok "删壳之后它的 lua 制品对象**从桶里删掉了**";;
+  *) bad "删壳之后制品对象还在桶里" "$(src_state "$A1") $A1";; esac
+if [ -n "$A2" ]; then
+  case "$(src_state "$PKG")" in present) ok "包还被另一个壳($RP)指着 —— **留着**";;
+    *) bad "删壳带走了另一个壳还在用的包" "$(src_state "$PKG")";; esac
+  DS2=$(TOK="$RTOK" cj plugin/delete_shell "{\"agent\":\"$RDID\",\"uuid\":\"$RP\"}")
+  has "删第二个壳成功" "$DS2" '"code":0'
+  undone_club "$RTOK" plugin/delete_shell "{\"agent\":\"$RDID\",\"uuid\":\"$RP\"}"
+  S="$(src_state "$A2") $(src_state "$PKG")"
+  [ "$S" = "gone gone" ] && ok "最后一个用它的壳删掉之后,制品与包**都从桶里删掉了**" \
+                         || bad "最后一个壳删掉之后桶里还留着对象" "A2/PKG=$S"
+else
+  printf "  \033[33m—\033[0m 没验:没有第二个壳,「共用的包最后一个删掉才删」这半没验\n"
+fi
+
+echo
 # ⚠️ **这里故意不断言"模型调得动"。**
 #
 # 本脚本把插件发在一个**软件助手**上,而设备端插件(RUST / LUA)在软件机器人上

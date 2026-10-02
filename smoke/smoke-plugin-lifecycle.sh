@@ -76,6 +76,18 @@ for v in 1.0.0 2.0.0; do
   cj plugin/create_version "{\"agent\":\"$B\",\"version\":{\"uuid\":\"$P\",\"version\":\"$v\",\"url\":\"$PKG\"}}" >/dev/null
 done
 echo "  机器人=$B 插件=$P(发了 1.0.0 与 2.0.0)"
+# 删版本要连桶里的对象一起删(2026-10-02 起;之前一个都不删)。先把每一版的制品对象记下来,
+# 并**证明前提**:两版的制品是各自独占的两个对象、包是两版共用的同一个,三个都在桶里。
+# 不证的话,下面「删掉了」的断言在对象本来就不存在时也是绿的。
+A1=$(mysqlq hi_ai "select artifact_url from hi_ai_plugin_artifact where uuid='$P' and version='1.0.0'")
+A2=$(mysqlq hi_ai "select artifact_url from hi_ai_plugin_artifact where uuid='$P' and version='2.0.0'")
+PRE="A1=$(src_state "$A1") A2=$(src_state "$A2") PKG=$(src_state "$PKG")"
+if [ -n "$A1" ] && [ -n "$A2" ] && [ "$A1" != "$A2" ] && [ "$A1" != "$PKG" ] \
+   && [ "$PRE" = "A1=present A2=present PKG=present" ]; then
+  ok "前提:两版各有一个独占的制品对象、共用一个包,三个都在桶里"
+else
+  bad "前提:制品对象没就位(下面的对象断言不算数)" "A1=$A1 A2=$A2 $PRE"
+fi
 
 echo
 echo "── 一、读:get / list_versions ──"
@@ -161,6 +173,12 @@ echo "── 六、删版本:非激活可删,删到一个不剩要被拦 ──"
 D1=$(cj plugin/delete "{\"agent\":\"$B\",\"uuid\":\"$P\",\"version\":\"1.0.0\"}")
 has "删**非激活**版成功" "$D1" '"code":0'
 case "$(state)" in *"active=2.0.0"*) ok "删非激活版不动 active";; *) bad "active 被带歪了" "$(state)";; esac
+# 桶里:1.0.0 独占的制品没了;2.0.0 的制品、两版共用的包都还在(共用的不能跟着删)。
+case "$(src_state "$A1")" in gone) ok "删 1.0.0 之后它的制品对象**从桶里删掉了**";;
+  *) bad "删 1.0.0 之后它的制品对象还在桶里" "$(src_state "$A1") $A1";; esac
+S2="$(src_state "$A2") $(src_state "$PKG")"
+[ "$S2" = "present present" ] && ok "2.0.0 的制品与**两版共用的包**都还在(还有人指着的不删)" \
+                              || bad "删 1.0.0 带走了别人还在用的对象" "A2/PKG=$S2"
 
 # 挂上市场之后,删到一个版本都不剩必须被拦 —— 否则买家申请时卡在「尚无激活版本」,
 # 而卖家那边一点异常都看不到。
@@ -196,6 +214,10 @@ case "$(state)" in
   GONE)                      bad "壳整个不见了" "删版本不该删壳";;
   *)                         bad "删光之后 active 不对" "$(state)";;
 esac
+# 桶里:最后一个版本删掉之后,它的制品和那个包都没人指着了 —— 一起删掉。
+S3="$(src_state "$A2") $(src_state "$PKG")"
+[ "$S3" = "gone gone" ] && ok "删光之后 2.0.0 的制品与包**都从桶里删掉了**" \
+                        || bad "删光之后桶里还留着对象" "A2/PKG=$S3"
 
 # 清理:删壳、删机器人登记在收尾里(_endpoints.sh),没做到就 ✘、退出码非 0;
 # 挂牌在正文里真下架(那本身是被测的一步;没下成就由收尾补),行由 purge 按号删 —— 原来它只下架不删,挂牌行一直留着。

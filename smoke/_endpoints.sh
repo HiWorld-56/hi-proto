@@ -209,6 +209,20 @@ src_rm() {
     printf '删了还取得到'; return 1
   fi
 }
+# src_state <url>:hi-source 里这个对象在不在 —— 回 present / gone;别的(连不上、url 解不出)回 err:<原文>。
+#   判据用 ObjectInfo 的 NotFound:Download 对「不存在」和「出错」回的是同一个 Internal,分不开,
+#   拿它断言「删掉了」的话,hi-source 挂了也会是绿的。
+src_state() {
+  local p b k o
+  p=${1#*://}; p=${p#*/}; b=${p%%/*}; k=${p#*/}
+  if [ -z "$b" ] || [ -z "$k" ] || [ "$k" = "$p" ]; then printf 'err:url 解不出桶与对象名 %s' "$1"; return; fi
+  o=$("$_SMK_GRPCURL" $(tp $SRC_GRPC) -protoset "$PS" -d "{\"bucket\":\"$b\",\"object\":\"$k\"}" "$SRC_GRPC" hi.source.File/ObjectInfo 2>&1)
+  case "$o" in
+    *'"size"'*)        printf present;;
+    *'Code: NotFound'*) printf gone;;
+    *)                 printf 'err:%s' "$(printf '%s' "$o" | tr '\n' ' ' | head -c 150)";;
+  esac
+}
 # pkg_build <造包脚本> [参数...]:造测试插件包并传进 minio,回 url;**同时登记退出时删掉它**。
 #   在 $(...) 里调也算数(登记落在文件里)。造不出来回空串、退出码非 0。
 pkg_build() {
