@@ -157,7 +157,6 @@ BODIES = {
     "get:agent/get": 'agent={agent}',
     "get:plugin/get": 'agent={agent}&uuid={plugin}',
     "get:release/latest": 'product=hiclub&platform=android',
-    "get:trade/get": 'uuid={trade}',
     # did
     "assets/list": '{"currency":"cny","pagination":{"page":1,"limit":50}}',
     "assets/get": '{"did":"{did}"}',
@@ -400,7 +399,7 @@ def main():
             continue
         tmpl = BODIES.get(("get:" + tail) if verb == "get" else tail)
         if tmpl:
-            need = [k for k in ("agent", "plugin", "listing", "did", "trade") if "{%s}" % k in tmpl]
+            need = [k for k in ("agent", "plugin", "listing", "did") if "{%s}" % k in tmpl]
             missing = [k for k in need if not ph.get(k)]
             if missing:
                 skip += 1

@@ -4,7 +4,6 @@ package hi.club;
 
 import "google/protobuf/any.proto";
 import "google/protobuf/empty.proto";
-import "hi/club/trade.proto";
 import "hi/common.proto";
 import "hi/did/transfer.proto";
 import "hi/binance/binance.proto";
@@ -325,7 +324,6 @@ message Member {
      audio_url   语音              chat.content = 音频 url(duration=秒)
      file        文件              chat.content = 文件 url(name/size)
      transfer    转账卡            kind=trans(hi.did.Transaction)
-     trade       交易卡            kind=trade(TradeBase)
      broadcast   广播
      binance     币安操作结果卡      kind=binance(hi.binance.BinanceResult)
      binance_cmd 币安指令            kind=binance_cmd(hi.binance.BinanceCommand)—— 群里要 @ 执行的机器人,见 hi/binance/command.proto
@@ -334,7 +332,7 @@ message Member {
 
    这套 content 是**从 OpenAI 的 content 标准扩展来的** —— 那边的多模态内容块就是
    `{"type":"text"}` / `{"type":"image_url"}`,`image_url` 是照抄它的词,不是我们随手起的。
-   `audio_url` / `file` / `transfer` / `trade` 是我们在同一范式下的扩展。
+   `audio_url` / `file` / `transfer` 是我们在同一范式下的扩展。
    所以**别看着别扭就"顺手改成 image"**:改了既背离上游那套约定,也当场打断
    Android 端(hiclub-app)与硬件端(hinj-brain)—— 它们现网都按这张表收发。
    同理,以后加多模态类型**先看 OpenAI 那边叫什么**,能对齐就对齐。
@@ -362,7 +360,8 @@ message Content {
   oneof kind {
     Chat               chat  = 2 [(hi.visibility) = VIS_PARTICIPANT];
     hi.did.Transaction trans = 3 [(hi.visibility) = VIS_PUBLIC]; // Transaction=公开
-    TradeBase          trade = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 交易卡可入群,基础卡=PARTICIPANT
+    // ⚠️ 没有「交易卡」(原 `TradeBase trade = 4`),不要加回来:中间人交易(club-trade)
+    //    2026-10-02 整体下线,交易卡只服务那一摊。
     // 币安操作的结果,机器人回给下指令的那个会话。与转账卡同型:载荷定义在别的包里,这里只引用。
     hi.binance.BinanceResult binance = 5 [(hi.visibility) = VIS_PARTICIPANT];
     // 给机器人的币安指令。就是一条普通消息:群里 @ 谁谁执行,发令人是信封的 from。

@@ -3,7 +3,7 @@ syntax = "proto3";
 // ai 的**插件执行子服务**内部面(backend-hi-ai-plugin 实现)。
 //
 // 位置即语义:放在 `hi/ai/plugin/` 而不是顶层 —— plugin 是 ai 的子服务,**不是**与 ai/club/did
-// 平级的模块。包名 `hi.ai.plugin` 同理。与 `hi/club/trade/` 一套范式。
+// 平级的模块。包名 `hi.ai.plugin` 同理。
 //
 // ## 与对外面 `hi.ai.Plugin` 的分工
 //

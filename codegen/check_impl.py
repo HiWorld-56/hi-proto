@@ -8,8 +8,8 @@
   hi.club.Price.Get       ← handler 还叫 GetPrice
   hi.club.User.ListOnline ← handler 还叫 ListOnlineUsers
 
-⚠️ **一个 proto 包不等于一个仓**:hi.club.* 由 backend-hi-club 与 backend-hi-club-trade
-   共同实现,hi.club.Agent.GetDefaultConfig 甚至落在 backend-hi-ai。所以要在**一组**仓里找,
+⚠️ **一个 proto 包不等于一个仓**:hi.club.* 由 backend-hi-club 实现,
+   但 hi.club.Agent.GetDefaultConfig 落在 backend-hi-ai。所以要在**一组**仓里找,
    任一仓找到即算实现 —— 我第一版就是按"一包一仓"扫的,报了 6 个假阳性,
    差点让人删掉三个仓里正在跑的接口。
 
@@ -29,7 +29,7 @@ os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # proto 包 → 可能实现它的仓(任一命中即可)
 REPOS = {
     'hi.did':    ['backend-hi-did'],
-    'hi.club':   ['backend-hi-club', 'backend-hi-club-trade', 'backend-hi-ai'],
+    'hi.club':   ['backend-hi-club', 'backend-hi-ai'],
     'hi.ai':     ['backend-hi-ai', 'backend-hi-ai-plugin'],
     'hi.media':  ['backend-hi-media'],
     # ⚠️ **包名是精确匹配的,`hi.ai` 不覆盖 `hi.ai.plugin`。** 少了这一行,
@@ -117,7 +117,6 @@ else:
 #   于是弱检查被骗过,web 一调 http 却 "method X not implemented"。
 # 判据收紧:**谁注册了 http 网关(Register<Svc>HandlerFromEndpoint),谁就是 404 的
 # 暴露面,必须自己实现该 service 的所有 http 路由方法**(方法名精确匹配 grpc rpc 名)。
-# club-trade 只注册 grpc、不注册 http 网关,故它 Base 只实现 ServerVersion 不会误报。
 ALIAS = {'hiclub': 'hi.club', 'hidid': 'hi.did', 'hiai': 'hi.ai', 'media': 'hi.media',
          'source': 'hi.source', 'hisource': 'hi.source'}
 # 有 http 路由的 (pkg.svc) → {method}

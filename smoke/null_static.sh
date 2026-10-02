@@ -79,7 +79,7 @@ echo "── 3. 表覆盖对账:库里的表,审计都看得见吗 ──"
 #                                hi_chat_relation_remark,模型只剩一个适配用的 DTO)
 IGNORE='^(gorp_migrations|v_.*|DBUserInformationExtension_.*|hi_dids|hi_ai_dids|hi_chat_user_remark)$'
 missing=0
-for pair in "hi_did" "hi_club" "hi_ai" "hi_club_trade"; do
+for pair in "hi_did" "hi_club" "hi_ai"; do
   mysqlq information_schema "select table_name from tables where table_schema='$pair'" | sort > /tmp/_db.txt
   python3 -c "
 import json
@@ -110,11 +110,11 @@ echo "── 4. SQL 里不许 COALESCE/IFNULL 成空串 ──"
 # ⚠️ 注释行要排除:讲"不许 COALESCE(x,'')"的注释本身会被自己抓到(实测过)。
 NOCOMMENT="^[^:]+:[0-9]+:[[:space:]]*(//|--|#|\*)"
 gohits=$(cd "$HOME/wip" && grep -rnE "(COALESCE|IFNULL)\([^)]*,[[:space:]]*''\)" --include=*.go \
-          backend-hi-did backend-hi-club backend-hi-ai backend-hi-club-trade \
+          backend-hi-did backend-hi-club backend-hi-ai \
           backend-hi-source backend-hi-ai-plugin 2>/dev/null \
         | grep -v "_test.go" | grep -Ev "$NOCOMMENT")
 sqlhits=$(cd "$HOME/wip" && grep -rlE "(COALESCE|IFNULL)\([^)]*,[[:space:]]*''\)" --include=*.sql \
-          backend-hi-did backend-hi-club backend-hi-ai backend-hi-club-trade \
+          backend-hi-did backend-hi-club backend-hi-ai \
           backend-hi-source backend-hi-ai-plugin 2>/dev/null)
 if [ -n "$gohits" ]; then
   printf "  ${R}✗${N} 活代码里有把 NULL 摊成空串的查询:\n"

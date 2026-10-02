@@ -40,7 +40,7 @@ import re
 import sys
 
 REPOS = ["backend-hi-did", "backend-hi-club", "backend-hi-ai",
-         "backend-hi-club-trade", "backend-hi-source", "backend-hi-ai-plugin"]
+         "backend-hi-source", "backend-hi-ai-plugin"]
 
 # 允许名单:**看着像、实际不可能为空**的地方。每条都要写清为什么 ——
 # 不写理由的白名单,下一轮没人敢删,而它会一直盖着一个真问题。

@@ -25,7 +25,7 @@ message Order {
 // **两种付款请求,靠 reqid 的前缀分流** —— 与登录的 `L` 号同一套形状:
 //
 //   `P` + 32  老的:hidid 只拿到号,**要素靠唤起时的深链参数给**;
-//             跨设备扫码给不了参数,而且金额要用户自己填(hi-club-trade 那种)。
+//             跨设备扫码给不了参数,而且金额要用户自己填。
 //   `M` + 32  新的:三方**先把要素登记进来**,付款方扫到号后按号取 ——
 //             收款账号/币种/金额都是登记好的,**用户不能改**(明码标价)。
 //
@@ -51,7 +51,7 @@ message PayRequestSpec {
   optional int64  expire_at     = 7 [(hi.visibility) = VIS_SELF]; // 秒;过期后 GetRequest 查不到
 }
 
-// Pay —— 典型账单-支付流程(与 OrderNotify/OrderEvent 的自动付款是两条独立流程):
+// Pay —— 典型账单-支付流程:
 // 先 GenerateReq 申请支付号,付款完成后 Notify 后台去核对。
 service Pay {
   rpc GenerateReq (hi.ClientInfo) returns (hi.RequestId) { option (hi.auth) = AUTH_NONE; }      // 公开:生成支付请求 reqId(老的 `P` 号,不带要素)

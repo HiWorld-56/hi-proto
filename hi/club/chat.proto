@@ -11,7 +11,7 @@ import "hi/common.proto";
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
 // ── 说明:Chat 是 hi.ai.Chat 的门面,但**入参不能直接复用 ai 的** ──────────────
-// club 的 `Content`(messaging.proto)是**富消息**:oneof{Chat|Transaction|Trade};
+// club 的 `Content`(messaging.proto)是**富消息**:oneof{Chat|Transaction|币安…};
 // ai 的 `Content` 只是 {type, content} 一个带类型的字符串。二者是真实差异,不是重复定义,
 // 故带 Content 的入参用 club 自己的类型(后端负责转换成 ai 的);
 // 纯透传的返回(ChatResp/ConverseStreamResp/…)继续直接复用 hi.ai 的类型,防止两边漂移。

@@ -50,7 +50,6 @@ magic 值,答复里出现了才算数。
 | `smoke-logout.sh` | 三家登出与 hi-did PC 独占槽 |
 | `smoke-market-revoke-onrobot.sh` | 卖家从买家的**真机器人**上收回插件 |
 | `smoke-merchant-delete.sh` | 超管删商户(扩展表 / 授权行 / 重试幂等) |
-| `smoke-trade-suborder.sh` | 中间人交易子订单状态机 |
 | `smoke_notice_decide.sh` | 要拍板的通知统一走 `User.HandleNotice`(python 本体经这个壳跑) |
 | `smoke-coverage.sh` | 先跑 smoke-market 造数据,再用同一把 token 跑 empty_in_resp 数字段覆盖 |
 | `null_test.sh` | 空值改造的行为:不传=不动 / 传空串=清空 / bool 不传要报错 |
@@ -100,7 +99,6 @@ magic 值,答复里出现了才算数。
 - hi-ai 删壳 / 删版本**不删 minio 里的制品**(lua 合并出来的 `.lua`、编出来的 `.so`):包是脚本传的、脚本删;制品是服务端生成的,服务端没删。
 - lua-onrobot / lua-deps 经主人 ↔ .66 机器人那段**夹具会话**发的消息(问一句、机器人答一句)留在 redis(30 天 TTL);
   purge 不认 zset(时间线)成员,夹具会话也不该整段删。
-- trade-suborder 的回报会让 club-trade 排 `order:pull:notify` 任务,它调 hidid `OrderNotify.Send` 回 Unauthenticated,失败的任务归档在 asynq(redis db5)。
 
 ## ⛔ 凭据一律不进命令行
 
