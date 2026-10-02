@@ -45,6 +45,7 @@ magic 值,答复里出现了才算数。
 |---|---|
 | `smoke.sh` | 接口存不存在、鉴权收不收 |
 | `smoke-user.sh` | 用户面基础 |
+| `smoke-ai-login.sh` | hi-ai 扫码登录**不依赖 club**:全新身份只扫 hi-ai 就拿得到 token(hidid 首登注册)、后续调用正常;hidid 没资料时 name absent;老用户不受影响。夹具现造现清(四个库 + redis 报计数)。要 .66 `/tmp/didtok` 支持 `DID_ONLY` |
 | `smoke-market.sh` | 对话路合并 / 多 function call / 市场挂牌与免费购买 |
 | `smoke-market-renew.sh` | 自动续费开关 / 到期扫描 / follow_latest |
 | `smoke-download-script.sh` | 下插件源码的**两级归属**:club 判「你能不能管这台机器人」、hi.ai 判「是不是这把商户 key 建的」;下游拒绝原码透传;训练文件一族(11 个入口)的归属错误码 |
