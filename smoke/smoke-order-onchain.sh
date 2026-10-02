@@ -14,7 +14,9 @@
 #    那是条方向反的路,已删。**拿 curl 直接打三方就等于没验这条链路**。
 set -uo pipefail
 source "$(dirname "$0")/_endpoints.sh"   # 端点/CA 统一约定(前端可达→域名 TLS,内部→内网 IP)
-STOK="${1:?卖方token}"; BTOK="${2:?买方master token}"; RTOK="${3:?机器人token}"; PKG="${4:?插件包url}"
+# 凭据从环境变量收(命令行参数谁都 ps 得到);PKG 可不给(现造、退出时删)
+[ $# -eq 0 ] || { echo "不收位置参数(token 不许进命令行):SELLER_TOK=… BUYER_TOK=<买方 master> ROBOT_TOK=<机器人本人,或 -> ROBOT_DID=… ROBOT_MN=<0600 文件> [PKG=…] bash $0" >&2; exit 2; }
+STOK="${SELLER_TOK:?需要 SELLER_TOK}"; BTOK="${BUYER_TOK:?需要 BUYER_TOK(买方 master)}"; RTOK="${ROBOT_TOK:?需要 ROBOT_TOK(机器人本人;拿不到给 -)}"; PKG="${PKG:-}"
 COIN="${COIN:-HWHD-APT}"; PRICE="${PRICE:-2}"
 # 一笔**早于本次下单**的旧转账(金额/收款方与订单一致),验闸③。
 # ⚠️ 必须比下单时刻早**超过 5 分钟** —— club 的闸③给了 5 分钟时钟容差
@@ -43,9 +45,11 @@ Q(){ mysqlq "$1" "$2"; }
 # 给成主人的助记词,钱照样付得出去、认款照样成,只有第六节红 —— 看着像范围的 bug(2026-09-25 栽过)。
 MNDID=$(MN_FILE="${ROBOT_MN:?}" /tmp/coin_probe "$COIN" 2>/dev/null | sed -n "s/^钱包 did=//p")
 [ "$MNDID" = "${ROBOT_DID:?需要 ROBOT_DID}" ] || { echo "ROBOT_MN 是 ${MNDID:-?} 的助记词,不是机器人 $ROBOT_DID 的 —— 前提不成立,不跑" >&2; exit 2; }
-cs(){ curl -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $STOK" -d "$2"; }
-cb(){ curl -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $BTOK" -d "$2"; }
-cr(){ curl -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $RTOK" -d "$2"; }
+# 不给包就现造(退出时删);给了是调用方的,本脚本不删
+[ -n "$PKG" ] || PKG=$(pkg_build build_testpkg.py) || { echo "造测试插件包失败"; exit 1; }
+cs(){ curl_tok "$STOK" -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -d "$2"; }
+cb(){ curl_tok "$BTOK" -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -d "$2"; }
+cr(){ curl_tok "$RTOK" -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -d "$2"; }
 g(){ python3 -c '
 import sys,json
 try:
@@ -56,11 +60,14 @@ except Exception: print("")
 ' "$@"; }
 
 SB=$(cs agent/create_assistant '{"name":"ord-seller"}' | g data base did)
+[ -n "$SB" ] && { made "$SB"; undo_club "$STOK" agent/delete "{\"agent\":\"$SB\"}"; }
 cs api_key/create "{\"agent\":\"$SB\"}" >/dev/null
 P=$(cs plugin/create_shell "{\"agent\":\"$SB\",\"name\":\"ord\"}" | g data uuid)
+[ -n "$P" ] && { made "$P"; undo_club "$STOK" plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P\"}"; }
 cs plugin/create_version "{\"agent\":\"$SB\",\"version\":{\"uuid\":\"$P\",\"version\":\"1.0.0\",\"url\":\"$PKG\"}}" >/dev/null
 # duration>0:这样续期分支才活着(永久授权没有续期一说)
 L=$(cs market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P\",\"settle_mode\":3,\"price\":\"$PRICE\",\"coin\":\"$COIN\",\"duration\":2592000,\"title\":\"订单制真付\"}" | g data uuid)
+[ -n "$L" ] && { made "$L"; undo_club "$STOK" market/set_listing_status "{\"uuid\":\"$L\",\"status\":4}"; }
 cs market/set_listing_status "{\"uuid\":\"$L\",\"status\":2}" >/dev/null
 RB="${ROBOT_DID:?需要 ROBOT_DID}"
 echo "卖方=$SB 机器人=$RB 插件=$P 定价=$PRICE $COIN"
@@ -76,6 +83,9 @@ OPAYACC=$(echo "$A"|g data pay payeeAccount)
 OMCH=$(echo "$A"|g data order merchant)
 # **对外给出去的是付款凭据号**,不是主订单号 —— 付款、回调、人工查账用的都是它。
 PID=$(echo "$A"|g data order payment payId)
+# 授权给的是 .66 那台真机器人(夹具,不进 made);单号、凭据号由 purge 删行。
+# 撤权要等它成立(待付款的授权撤不了,机器人上也还没装)—— 见第四节。
+made "$G" "$OID" "$PID"
 echo "  grant=$G order=$OID  $OAMT $OCOIN → $OPAYEE(回执报给 $OMCH)"
 [ -n "$OID" ] && ok "**Apply 返回了订单号**" || bad "没有订单号" "$(echo "$A"|head -c 200)"
 [ -n "$PID" ] && ok "**订单带出了付款凭据号**(对外给的是它)" || bad "订单没带凭据" "$(echo "$A"|head -c 250)"
@@ -113,7 +123,7 @@ if [ -n "$OLD_TX" ]; then
       "早于付款凭据创建时间"
     chk "业务单仍待付款(0)" "$(Q hi_club "SELECT status FROM hi_club_market_order WHERE order_id='$OID';")" "0"
     # 这张凭据已被否,第三节要一张干净的 —— 与付款方重开付款页同一条路
-    PID=$(cb market/issue_payment "{\"order_id\":\"$OID\"}" | g data payment payId)
+    PID=$(cb market/issue_payment "{\"order_id\":\"$OID\"}" | g data payment payId); made "$PID"
     case "$PID" in MKP-*) ok "闸③之后换开一张新凭据 $PID";; *) bad "换凭据失败" "got=$PID";; esac
   fi
 else
@@ -130,7 +140,7 @@ chk "假 tx:凭据只是「已上报」(4),没认款" "$(Q hi_club "SELECT statu
 chk "假 tx:授权仍是申请中(1)" "$(Q hi_club "SELECT status FROM hi_club_market_grant WHERE uuid='$G';")" "1"
 chk "假 tx:业务单仍待付款(0)" "$(Q hi_club "SELECT status FROM hi_club_market_order WHERE order_id='$OID';")" "0"
 # 那张凭据被假 tx 占住了(等链上确认),真付款要换一张 —— 与付款方重开付款页同一条路
-PID=$(cb market/issue_payment "{\"order_id\":\"$OID\"}" | g data payment payId)
+PID=$(cb market/issue_payment "{\"order_id\":\"$OID\"}" | g data payment payId); made "$PID"
 case "$PID" in MKP-*) ok "换开了一张新凭据 $PID";; *) bad "换凭据失败" "got=$PID";; esac
 
 # 前三节不花钱(开单、旧转账认新单、查不到的 hash),而且正好走「上报交易号 → 按 hash 占位」那条写入路径。
@@ -149,7 +159,7 @@ CHAIN=$(Q hi_did "SELECT chain FROM hi_coin WHERE name='$OCOIN' AND deleted_at I
 PAYEE_ADDR=$(Q hi_did "SELECT address FROM hi_user_wallet WHERE did='$OPAYACC' AND chain='$CHAIN';")
 [ -n "$PAYEE_ADDR" ] && ok "收款方 did 解析出 $CHAIN 地址" || bad "收款方没注册地址" "核验必挂"
 TX=$(MN_FILE="${ROBOT_MN:?}" /tmp/coin_probe --pay "$OCOIN" "$PAYEE_ADDR" "$OAMT" 2>&1 | grep -o "tx_hash=0x[0-9a-f]*" | cut -d= -f2)
-[ -n "$TX" ] && ok "真转账 tx=$TX" || { bad "转账失败" "-"; echo "结果:通过 $pass,失败 $((fail+1))"; exit 1; }
+[ -n "$TX" ] && ok "真转账 tx=$TX" || { bad "转账失败" "-"; echo "结果:通过 $pass,失败 $fail"; exit 1; }   # bad 已经记过一次,别再 +1
 sleep 6
 R=$(notify "$PID" "$OMCH" "$TX")
 case "$R" in *"回执已交给 hidid"*) ok "**回执收下**(经 hidid 回调 club)";; *) bad "回执失败" "$(echo "$R"|head -c 250)";; esac
@@ -157,17 +167,29 @@ case "$R" in *"回执已交给 hidid"*) ok "**回执收下**(经 hidid 回调 cl
 for _ in $(seq 120); do [ "$(Q hi_club "SELECT status FROM hi_club_market_payment WHERE pay_id='$PID';")" = "1" ] && break; sleep 1; done
 chk "凭据置为已认款(1)" "$(Q hi_club "SELECT status FROM hi_club_market_payment WHERE pay_id='$PID';")" "1"
 chk "业务单置为已付(1)" "$(Q hi_club "SELECT status FROM hi_club_market_order WHERE order_id='$OID';")" "1"
-chk "授权置为已装载(3)" "$(Q hi_club "SELECT status FROM hi_club_market_grant WHERE uuid='$G';")" "3"
+GS=$(Q hi_club "SELECT status FROM hi_club_market_grant WHERE uuid='$G';")
+chk "授权置为已装载(3)" "$GS" "3"
+# 成立了:收尾撤权,机器人随之卸掉
+[ "$GS" = "3" ] && undo_club "$STOK" market/revoke "{\"grant_uuid\":\"$G\",\"reason\":\"test\"}"
 chk "**ai 侧真的插了引用行**" \
   "$(Q hi_ai "SELECT COUNT(*) FROM hi_ai_plugin_using WHERE agent_did='$RB' AND uuid='$P' AND source='reference' AND deleted_at IS NULL;")" "1"
 
 # 卖家的通知(2026-09-24 起):付费档**下单时不通知卖家**,到账成立时发 plugin-grant-sold。
 # 判据是通知历史表 —— 后端从 MQTT 收到才记,所以记下了 = 真经 broker 投到了卖家的单聊 topic。
 SM=$(Q hi_club "SELECT from_master FROM hi_club_market_grant WHERE uuid='$G';")
-nq(){ Q hi_club "SELECT COUNT(*) FROM hi_chat_notice WHERE to_did='$SM' AND JSON_UNQUOTE(JSON_EXTRACT(payload,'\$.notice.type'))='$1' AND JSON_UNQUOTE(JSON_EXTRACT(payload,'\$.notice.extra.grantUuid'))='$G';"; }
+# ⚠️ payload 是 hi.club.Packet 的 **proto 字节**(2026-09-25「中间层只解信封」起后端原样存),不是 JSON ——
+#    原来这里用 JSON_EXTRACT 取 notice.type / extra.grantUuid,对字节恒取不到:「收到 sold」恒红,
+#    而「**没**收到申请通知」那条恒绿(它的前提 —— 查得到通知 —— 从来不成立)。
+#    proto 里字符串字段是原样字节,所以按「类型名 + 授权号」两段子串认(LOCATE 对 blob 按字节比)。
+#    前提先证:到账前后这位卖家一共收到过本授权的通知(下面 SOLD 那条),查不到的话两条都不算数。
+nq(){ Q hi_club "SELECT COUNT(*) FROM hi_chat_notice WHERE to_did='$SM' AND LOCATE('$1', payload) > 0 AND LOCATE('$G', payload) > 0;"; }
 SOLD=0; for _ in $(seq 20); do SOLD=$(nq plugin-grant-sold); [ "$SOLD" = "1" ] && break; sleep 1; done
 chk "**到账那一刻卖家收到 plugin-grant-sold**(且只一条)" "$SOLD" "1"
-chk "下单时卖家**没收到**申请通知(付费档不用卖家决定)" "$(nq plugin-grant-request)" "0"
+if [ "$SOLD" = "1" ]; then
+  chk "下单时卖家**没收到**申请通知(付费档不用卖家决定)" "$(nq plugin-grant-request)" "0"
+else
+  bad "下单时卖家没收到申请通知" "前提不成立:连 sold 那条都查不到,「查不到申请通知」不能说明什么 —— 没验"
+fi
 
 if [ "$RTOK" = "-" ]; then
   # 拿机器人自己的 token 要用它的助记词登录 —— 那会把正在跑的机器人挤下线(异地登录),
@@ -177,7 +199,7 @@ else
 echo
 echo "── 五、同一笔 tx 认不了第二张单 ──"
 O2=$(cr market/create_renew_order "{\"grant_uuid\":\"$G\"}")
-OID2=$(echo "$O2"|g data orderId); PID2=$(echo "$O2"|g data payment payId)
+OID2=$(echo "$O2"|g data orderId); PID2=$(echo "$O2"|g data payment payId); made "$OID2" "$PID2"
 [ -n "$OID2" ] && ok "机器人自己开出续期单(它掏钱,所以它能开)" || bad "开续期单失败" "$(echo "$O2"|head -c 200)"
 OMCH2=$(echo "$O2"|g data merchant)
 [ "$PID2" != "$PID" ] && ok "**续期是另一张凭据**(号不复用)" || bad "凭据号复用了" "got=$PID2"
@@ -205,12 +227,9 @@ fi
 
 fi # NO_REAL_TRANSFER_DONE
 
-echo
-echo "── 清理 ──"
-cs market/revoke "{\"grant_uuid\":\"$G\",\"reason\":\"test\"}" >/dev/null
-Q hi_club "DELETE FROM hi_club_market_payment WHERE order_id IN (SELECT order_id FROM hi_club_market_order WHERE grant_uuid='$G'); DELETE FROM hi_club_market_order WHERE grant_uuid='$G'; DELETE FROM hi_club_market_flow WHERE grant_uuid='$G'; DELETE FROM hi_club_market_grant WHERE uuid='$G'; DELETE FROM hi_club_market_listing WHERE uuid='$L';"
-cs plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P\"}" >/dev/null
-cs agent/delete "{\"agent\":\"$SB\"}" >/dev/null
+# 清理:撤权 → 下架 → 删壳 → 删卖家机器人在收尾里做(_endpoints.sh);订单 / 凭据 / flow / 授权行由 purge 按号删。
+# ⚠️ 链上那笔真转账撤不回来(钱从机器人钱包到了卖家主人那儿)—— 那是这条用例的本意,不是残留。
+
 echo
 echo "结果:通过 $pass,失败 $fail"
 [ "$fail" -eq 0 ]

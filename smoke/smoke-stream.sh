@@ -7,15 +7,17 @@
 # 而症状是"关掉回显后机器人不动了",没人会往调试开关上想。
 set -uo pipefail
 source "$(dirname "$0")/_endpoints.sh"   # 端点/CA 统一约定(前端可达→域名 TLS,内部→内网 IP)
-TOK="${1:?用法: smoke-stream.sh <用户token>}"
+# 凭据从环境变量收(命令行参数谁都 ps 得到)
+[ $# -eq 0 ] || { echo "不收位置参数(token 不许进命令行):USER_TOK=… bash $0" >&2; exit 2; }
+TOK="${USER_TOK:?需要 USER_TOK(用户 token)}"
 pass=0; fail=0
 ok(){ printf "  \033[32m✓\033[0m %s\n" "$1"; pass=$((pass+1)); }
 bad(){ printf "  \033[31m✗\033[0m %s  (%s)\n" "$1" "$2"; fail=$((fail+1)); }
 has(){ case "$2" in *"$3"*) ok "$1";; *) bad "$1" "流里没有 '$3'";; esac; }
 no(){  case "$2" in *"$3"*) bad "$1" "流里不该有 '$3'";; *) ok "$1";; esac; }
-cj(){ curl -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $TOK" -d "$2"; }
+cj(){ curl_tok "$TOK" -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -d "$2"; }
 # 流式:grpc-gateway 把 server-streaming 吐成一行一个 JSON
-st(){ curl -sN $CAC -m 180 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $TOK" -d "$2"; }
+st(){ curl_tok "$TOK" -sN $CAC -m 180 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -d "$2"; }
 g(){ python3 -c '
 import sys,json
 try:
@@ -39,6 +41,8 @@ for line in sys.stdin:
 
 B=$(cj agent/create_assistant '{"name":"stream-bot"}' | g data base did)
 [ -z "$B" ] && { echo "建机器人失败"; exit 1; }
+made "$B"; undo_club "$TOK" agent/delete "{\"agent\":\"$B\"}"
+made "st-1-$$" "st-2-$$" "st-4-$$"   # 会话号:hi-ai 按它在 redis 里存历史,收尾一并删
 echo "机器人=$B"
 CTOOL='{"type":"function","function":{"name":"local_dice","description":"掷一个只有本机才有的骰子。用户要掷骰子时调用。","parameters":{"type":"object","properties":{}}}}'
 
@@ -88,7 +92,7 @@ S5=$(st chat/resume_stream '{"id":"NO-SUCH-TURN-ID","list":[]}')
 has "错误以 info 帧返回" "$S5" '"type":"info"'
 has "帧里带了 code 400" "$S5" '"code":400'
 
-cj agent/delete "{\"agent\":\"$B\"}" >/dev/null
+# 删机器人在收尾里做(_endpoints.sh)
 echo
 echo "结果:通过 $pass,失败 $fail"
 [ "$fail" -eq 0 ]

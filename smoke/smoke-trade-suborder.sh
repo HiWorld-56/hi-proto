@@ -66,6 +66,7 @@ print(json.dumps({"data":base64.b64encode(sys.argv[1].encode()).decode(),"signat
 PC=$(did_of "$PC_MN"); OTHER=$(did_of "$OTHER_MN")
 OID="SMK-$(date +%s)"
 S1="sub1-$(date +%s)"
+made "$OID"   # 主订单与它名下的子订单(order_id 列)由收尾的 purge 删
 echo "PC=$PC 其他人=$OTHER 订单=$OID"
 
 # 造一张主订单 + 一条 CA 子订单(付款方 = PC,与真实 CA/CB 一致)。
@@ -124,7 +125,7 @@ chk "换号过程全部留档(4 行 superseded)" "$(Q "SELECT COUNT(*) FROM hi_t
 
 echo
 echo "── 五、成功那条:填 hash 转 checking ──"
-OID2="SMK2-$(date +%s)"; T1="sub2-$(date +%s)"
+OID2="SMK2-$(date +%s)"; T1="sub2-$(date +%s)"; made "$OID2"
 Q "INSERT INTO hi_trade_order (order_id, \`from\`, \`to\`, status, created_at, updated_at)
    VALUES ('$OID2','$PC','$OTHER','created',NOW(),NOW());"
 Q "INSERT INTO hi_trade_sub_order (sub_order_id, order_id, stage, \`from\`, \`to\`, amount, fee, coin, status, created_at, updated_at)
@@ -135,10 +136,7 @@ chk "回报成功 → checking(等异步核链)" "$(Q "SELECT status FROM hi_tra
 chk "hash 填进了对应那一行" "$(Q "SELECT hash FROM hi_trade_sub_order WHERE sub_order_id='$T1';")" "0xSMOKEHASH"
 chk "成功不换号(还是一行)" "$(Q "SELECT COUNT(*) FROM hi_trade_sub_order WHERE order_id='$OID2';")" "1"
 
-echo
-echo "── 清理 ──"
-Q "DELETE FROM hi_trade_sub_order WHERE order_id IN ('$OID','$OID2');"
-Q "DELETE FROM hi_trade_order WHERE order_id IN ('$OID','$OID2');"
+# 清理:两张手造的主订单与全部子订单由收尾的 purge 按单号删(_endpoints.sh),删完复扫到 0。
 
 echo
 echo "结果:通过 $pass,失败 $fail"

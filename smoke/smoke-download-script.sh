@@ -29,9 +29,9 @@
 #       cd /tmp/tokgen && MN_FILE=/tmp/65_seller_mn.txt DEV=app ./target/release/tokgen
 #       cd /tmp/tokgen && MN_FILE=/tmp/65_buyer_mn.txt  DEV=app ./target/release/tokgen
 #     BUYER 在这里扮「路人」:与卖家毫无关系的另一个登录用户。
-#   PKG  测试插件包:MINIO_HOST=192.168.1.65:9000 python3 build_testpkg.py
+#   PKG  测试插件包(可不给:不给就现造、退出时删):MINIO_HOST=192.168.1.65:9000 python3 build_testpkg.py
 #
-# 非 0 退出 = 有失败项。夹具(机器人、插件、挂牌、授权、临时商户 key)现造现清。
+# 非 0 退出 = 有失败项。夹具(机器人、插件、挂牌、授权、临时商户 key)现造,收尾见 _endpoints.sh。
 set -uo pipefail
 
 source "$(dirname "$0")/_endpoints.sh"
@@ -41,7 +41,7 @@ GRPCURL=${GRPCURL:-$(command -v grpcurl || echo "$HOME/go/bin/grpcurl")}
 
 SELLER_TOK="${SELLER_TOK:?需要卖家用户 token}"
 BUYER_TOK="${BUYER_TOK:?需要路人用户 token}"
-PKG="${PKG:?需要测试插件包 url}"
+[ -n "${PKG:-}" ] || PKG=$(pkg_build build_testpkg.py) || { echo "造测试插件包失败"; exit 1; }
 
 pass=0; fail=0
 ok()  { printf "  \033[32m✓\033[0m %s\n" "$1"; pass=$((pass+1)); }
@@ -49,7 +49,7 @@ bad() { printf "  \033[31m✗\033[0m %s  (%s)\n" "$1" "$2"; fail=$((fail+1)); }
 chk() { [ "$2" = "$3" ] && ok "$1" || bad "$1" "want=$3 got=$2"; }
 has() { case "$2" in *"$3"*) ok "$1";; *) bad "$1" "输出里没有 '$3':$(echo "$2"|head -c 200)";; esac; }
 
-cj()  { curl -s $CAC -m 60 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $3" -d "$2"; }
+cj()  { curl_tok "$3" -s $CAC -m 60 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -d "$2"; }   # token 不进命令行
 pub() { curl -s $CAC -m 60 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -d "$2"; }
 q()   { mysqlq "$1" "$2"; }
 g()   { python3 -c '
@@ -79,7 +79,7 @@ print("OK", len(base64.b64decode(c)) if c else 0, data.get("name", ""))'
 }
 # hi.ai 直连(内部 grpc,带商户 ApiKey)。
 dl_ai() {
-  "$GRPCURL" $(tp $AI_GRPC) -protoset "$PS" -H "ApiKey: $4" \
+  grpcurl_key "$4" $(tp $AI_GRPC) -protoset "$PS" \
     -d "{\"agent\":\"$1\",\"uuid\":\"$2\",\"version\":\"$3\"}" "$AI_GRPC" hi.ai.Source/DownloadScript 2>&1 | python3 -c '
 import sys, json, base64, re
 t = sys.stdin.read()
@@ -92,10 +92,14 @@ print("ERR", code.group(1) if code else "?", msg.group(1).strip() if msg else t.
 
 echo "── 准备:卖家摊位 + 原创插件 + 挂牌;路人自己一台机器人 ──"
 SB=$(cj agent/create_assistant '{"name":"smk-dl-seller"}' "$SELLER_TOK" | g data base did)
+[ -n "$SB" ] && { made "$SB"; undo_club "$SELLER_TOK" agent/delete "{\"agent\":\"$SB\"}"; }
 BB=$(cj agent/create_assistant '{"name":"smk-dl-bystander"}' "$BUYER_TOK" | g data base did)
+[ -n "$BB" ] && { made "$BB"; undo_club "$BUYER_TOK" agent/delete "{\"agent\":\"$BB\"}"; }
 P=$(cj plugin/create_shell "{\"agent\":\"$SB\",\"name\":\"smk-dl-demo\"}" "$SELLER_TOK" | g data uuid)
+[ -n "$P" ] && { made "$P"; undo_club "$SELLER_TOK" plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P\"}"; }
 cj plugin/create_version "{\"agent\":\"$SB\",\"version\":{\"uuid\":\"$P\",\"version\":\"1.0.0\",\"url\":\"$PKG\"}}" "$SELLER_TOK" >/dev/null
 LID=$(cj market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P\",\"settle_mode\":1,\"price\":\"0\",\"tags\":[\"smk\"]}" "$SELLER_TOK" | g data uuid)
+[ -n "$LID" ] && { made "$LID"; undo_club "$SELLER_TOK" market/set_listing_status "{\"uuid\":\"$LID\",\"status\":4}"; }
 cj market/set_listing_status "{\"uuid\":\"$LID\",\"status\":2}" "$SELLER_TOK" >/dev/null
 [ -n "$SB" ] && [ -n "$BB" ] && [ -n "$P" ] && [ -n "$LID" ] || { echo "准备失败 seller=$SB bystander=$BB plugin=$P listing=$LID"; exit 1; }
 echo "  seller=$SB bystander=$BB plugin=$P listing=$LID"
@@ -103,6 +107,7 @@ echo "  seller=$SB bystander=$BB plugin=$P listing=$LID"
 # 临时商户:hi.ai 里另一个商户身份 + 一把 key(**不是** club 的那把)。用完删。
 OTHER_DID="smkdl$(head -c 6 /dev/urandom | od -An -tx1 | tr -d ' \n')"
 OTHER_KEY="smk-dl-$(cat /proc/sys/kernel/random/uuid)"
+made "$OTHER_DID" "$OTHER_KEY"   # 手插的两行(没有接口能在 hi.ai 里造别家商户),收尾由 purge 删
 q hi_ai "INSERT INTO hi_ai_user(name,did,type,created_at,updated_at) SELECT 'smk-dl-merchant','$OTHER_DID',type,NOW(),NOW() FROM hi_ai_user WHERE did=(SELECT creator FROM hi_ai_agent WHERE did='$SB'); INSERT INTO hi_ai_apikey(value,did,is_active,note,created_at,updated_at) VALUES('$OTHER_KEY','$OTHER_DID',1,'smoke-download-script 临时',NOW(),NOW());"
 chk "前提:临时商户 key 落库了" "$(q hi_ai "SELECT COUNT(*) FROM hi_ai_apikey a JOIN hi_ai_user u ON u.did=a.did WHERE a.value='$OTHER_KEY';")" "1"
 
@@ -133,6 +138,8 @@ echo
 echo "── 四、club:买来的(REFERENCE)不给源码 —— hi.ai 的拒绝原码透传(9),不被改写成 13 ──"
 A=$(cj market/apply "{\"listing_uuid\":\"$LID\",\"to_agent\":\"$BB\"}" "$BUYER_TOK")
 G=$(echo "$A" | g data grantUuid)
+# 撤权会连买方那条引用一起删(smoke-market 验过),所以不用再替路人删
+[ -n "$G" ] && { made "$G"; undo_club "$SELLER_TOK" market/revoke "{\"grant_uuid\":\"$G\"}"; }
 chk "前提:免费购买已装载" "$(echo "$A" | g data status)" "GRANT_STATUS_INSTALLED"
 R=$(dl_club "$BB" "$P" "1.0.0" "$BUYER_TOK")
 chk "引用方下源码回 9" "$(echo "$R" | awk '{print $1, $2}')" "ERR 9"
@@ -155,18 +162,8 @@ done
 # 正向对照:同一个入口,卖家本人过得了归属这一关(否则上面的 7 可能只是"谁都过不去")。
 chk "training/list_files:卖家本人 → 0" "$(cj training/list_files "$(TC_BODY "$SB")" "$SELLER_TOK" | g code)" "0"
 
-echo
-echo "── 清理 ──"
-cj market/set_listing_status "{\"uuid\":\"$LID\",\"status\":4}" "$SELLER_TOK" >/dev/null
-cj market/revoke "{\"grant_uuid\":\"$G\"}" "$SELLER_TOK" >/dev/null
-q hi_club "DELETE p FROM hi_club_market_payment p JOIN hi_club_market_order o ON o.order_id=p.order_id WHERE o.grant_uuid='$G'; DELETE FROM hi_club_market_order WHERE grant_uuid='$G'; DELETE FROM hi_club_market_flow WHERE grant_uuid='$G'; DELETE FROM hi_club_market_grant WHERE uuid='$G'; DELETE FROM hi_club_market_listing WHERE uuid='$LID';"
-cj plugin/delete_shell "{\"agent\":\"$BB\",\"uuid\":\"$P\"}" "$BUYER_TOK" >/dev/null
-cj plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P\"}" "$SELLER_TOK" >/dev/null
-cj agent/delete "{\"agent\":\"$SB\"}" "$SELLER_TOK" >/dev/null
-cj agent/delete "{\"agent\":\"$BB\"}" "$BUYER_TOK" >/dev/null
-q hi_ai "DELETE FROM hi_ai_apikey WHERE value='$OTHER_KEY'; DELETE FROM hi_ai_user WHERE did='$OTHER_DID';"
-chk "清理:临时商户 key 已删" "$(q hi_ai "SELECT COUNT(*) FROM hi_ai_apikey WHERE value='$OTHER_KEY';")" "0"
-chk "清理:两台测试机器人已删" "$(q hi_club "SELECT COUNT(*) FROM hi_chat_user WHERE did IN ('$SB','$BB');")" "0"
+# 清理:全在收尾里做(_endpoints.sh)—— 撤权、下架、删壳、删两台机器人走接口;
+# 临时商户与 key、授权单等由 purge 按号删行,删完复扫到 0(原来那两条「已删」断言就是它的子集)。
 
 echo
 echo "结果:通过 $pass,失败 $fail"

@@ -2,7 +2,9 @@
 # 阶段 5:到期 / 续费 / 自动续费 / follow_latest。
 set -uo pipefail
 source "$(dirname "$0")/_endpoints.sh"   # 端点/CA 统一约定(前端可达→域名 TLS,内部→内网 IP)
-ST="$1"; BT="$2"; PKG="$3"
+# 凭据从环境变量收(命令行参数谁都 ps 得到):SELLER_TOK / BUYER_TOK,PKG 可不给(现造、退出时删)
+[ $# -eq 0 ] || { echo "不收位置参数(token 不许进命令行):SELLER_TOK=… BUYER_TOK=… [PKG=…] bash $0" >&2; exit 2; }
+ST="${SELLER_TOK:?需要 SELLER_TOK}"; BT="${BUYER_TOK:?需要 BUYER_TOK}"; PKG="${PKG:-}"
 # ⚠️ **没有 mysql 客户端就直接退出,不要硬着头皮往下跑。**
 #    库里那些断言会全部变成 "want=1 got=",看上去像产品坏了 ——
 #    实际只是这台机器没装客户端。踩过一次,查了十几分钟才发现。
@@ -17,7 +19,7 @@ ok(){ printf "  \033[32m✓\033[0m %s\n" "$1"; pass=$((pass+1)); }
 bad(){ printf "  \033[31m✗\033[0m %s  (%s)\n" "$1" "$2"; fail=$((fail+1)); }
 chk(){ [ "$2" = "$3" ] && ok "$1" || bad "$1" "want=$3 got=$2"; }
 has(){ case "$2" in *"$3"*) ok "$1";; *) bad "$1" "没有 '$3':$(echo "$2"|head -c 150)";; esac; }
-cj(){ curl -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $3" -d "$2"; }
+cj(){ curl_tok "$3" -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -d "$2"; }
 q(){ mysqlq "$1" "$2"; }
 g(){ python3 -c '
 import sys, json
@@ -30,11 +32,17 @@ except Exception:
     print("")
 ' "$@"; }
 
+# 不给包就现造(退出时删);给了是调用方的,本脚本不删
+[ -n "$PKG" ] || PKG=$(pkg_build build_testpkg.py) || { echo "造测试插件包失败"; exit 1; }
+# 现造的一律当场登记收尾(made → purge 删行;undo → 退出时走接口删,后进先出)
 SB=$(cj agent/create_assistant '{"name":"rn-seller"}' "$ST" | g data base did)
+[ -n "$SB" ] && { made "$SB"; undo_club "$ST" agent/delete "{\"agent\":\"$SB\"}"; }
 BB=$(cj agent/create_assistant '{"name":"rn-buyer"}' "$BT" | g data base did)
+[ -n "$BB" ] && { made "$BB"; undo_club "$BT" agent/delete "{\"agent\":\"$BB\"}"; }
 cj api_key/create "{\"agent\":\"$SB\"}" "$ST" >/dev/null
 cj api_key/create "{\"agent\":\"$BB\"}" "$BT" >/dev/null
 P=$(cj plugin/create_shell "{\"agent\":\"$SB\",\"name\":\"rn-demo\"}" "$ST" | g data uuid)
+[ -n "$P" ] && { made "$P"; undo_club "$ST" plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P\"}"; }
 cj plugin/create_version "{\"agent\":\"$SB\",\"version\":{\"uuid\":\"$P\",\"version\":\"1.0.0\",\"url\":\"$PKG\"}}" "$ST" >/dev/null
 echo "seller=$SB buyer=$BB(软件机器人) plugin=$P"
 
@@ -42,9 +50,12 @@ echo
 echo "── 一、自动续费开关 ──"
 L=$(cj market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P\",\"settle_mode\":3,\"price\":\"1.5\",\"coin\":\"USDT-TRC20\",\"duration\":2592000,\"title\":\"续费测试\"}" "$ST")
 LID=$(echo "$L"|g data uuid)
+[ -n "$LID" ] && { made "$LID"; undo_club "$ST" market/set_listing_status "{\"uuid\":\"$LID\",\"status\":4}"; }
 cj market/set_listing_status "{\"uuid\":\"$LID\",\"status\":2}" "$ST" >/dev/null
 A=$(cj market/apply "{\"listing_uuid\":\"$LID\",\"to_agent\":\"$BB\"}" "$BT")
 G=$(echo "$A"|g data grantUuid)
+[ -n "$G" ] && { made "$G" "$(echo "$A"|g data order orderId)" "$(echo "$A"|g data order payment payId)"
+                 undo_club "$ST" market/revoke "{\"grant_uuid\":\"$G\",\"reason\":\"test\"}"; }
 has "负面:**软件机器人**开自动续费被拒(它没有私钥付不了款)" \
     "$(cj market/set_auto_renew "{\"grant_uuid\":\"$G\",\"enabled\":true}" "$BT")" "只有硬件机器人"
 R=$(cj market/set_auto_renew "{\"grant_uuid\":\"$G\",\"enabled\":false}" "$BT")
@@ -62,6 +73,7 @@ q hi_club "UPDATE hi_club_market_grant SET status=3, installed_at=$NOW, expire_a
 # 真付款那条在 smoke-order-onchain.sh。
 RO=$(cj market/create_renew_order "{\"grant_uuid\":\"$G\"}" "$BT")
 ROID=$(echo "$RO"|g data orderId)
+made "$ROID" "$(echo "$RO"|g data payment payId)"
 [ -n "$ROID" ] && ok "已装载的授权能开出**续期单**" || bad "开续期单失败" "$(echo "$RO"|head -c 180)"
 case "$ROID" in MKT-*) ok "续期单也带 MKT- 前缀";;
   *) bad "续期单号没有 MKT- 前缀" "got=$ROID";; esac
@@ -96,6 +108,7 @@ echo "── 四、follow_latest:发新版应推给跟随者 ──"
 # ⚠️ 必须**真的装上**才有 d 行可切 —— 用免费挂牌走完整装载,
 #    不能像上面那样在库里手改 status(那样 ai 侧根本没有 c 行,SetActive 会正确地拒绝)。
 P2=$(cj plugin/create_shell "{\"agent\":\"$SB\",\"name\":\"rn-follow\"}" "$ST" | g data uuid)
+[ -n "$P2" ] && { made "$P2"; undo_club "$ST" plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P2\"}"; }
 cj plugin/create_version "{\"agent\":\"$SB\",\"version\":{\"uuid\":\"$P2\",\"version\":\"1.0.0\",\"url\":\"$PKG\"}}" "$ST" >/dev/null
 # 🔴 **跟版开关不在市场接口上。**
 #
@@ -109,9 +122,11 @@ cj plugin/create_version "{\"agent\":\"$SB\",\"version\":{\"uuid\":\"$P2\",\"ver
 #    (2026-09-03 查出来:hi-ai 日志里 propagate 一条都没有,因为 FollowersOf 是空的。)
 L2=$(cj market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P2\",\"settle_mode\":1,\"price\":\"0\",\"title\":\"跟随测试\"}" "$ST")
 LID2=$(echo "$L2"|g data uuid)
+[ -n "$LID2" ] && { made "$LID2"; undo_club "$ST" market/set_listing_status "{\"uuid\":\"$LID2\",\"status\":4}"; }
 cj market/set_listing_status "{\"uuid\":\"$LID2\",\"status\":2}" "$ST" >/dev/null
 A2=$(cj market/apply "{\"listing_uuid\":\"$LID2\",\"to_agent\":\"$BB\"}" "$BT")
 G2=$(echo "$A2"|g data grantUuid)
+[ -n "$G2" ] && { made "$G2"; undo_club "$ST" market/revoke "{\"grant_uuid\":\"$G2\",\"reason\":\"test\"}"; }
 chk "免费购买装上了(才有 d 行可切)" "$(echo "$A2"|g data status)" "GRANT_STATUS_INSTALLED"
 # 买完之后,在使用行上把跟版打开 —— 这才是真接口
 FL=$(cj plugin/set_follow_latest "{\"agent\":\"$BB\",\"uuid\":\"$P2\",\"on\":true}" "$BT")
@@ -132,15 +147,8 @@ GV=$(q hi_club "SELECT ifnull(version,'<NULL>') FROM hi_club_market_grant WHERE 
 [ "$GV" != "1.1.0" ] && ok "grant.version **不**跟版(单据是成交快照,got=$GV)" \
                      || bad "grant.version 跟着变了" "单据应当是成交快照,不该被跟版改写"
 
-echo
-echo "── 清理 ──"
-cj market/revoke "{\"grant_uuid\":\"$G\",\"reason\":\"test\"}" "$ST" >/dev/null
-cj market/revoke "{\"grant_uuid\":\"$G2\",\"reason\":\"test\"}" "$ST" >/dev/null
-q hi_club "DELETE FROM hi_club_market_flow WHERE grant_uuid IN ('$G','$G2'); DELETE FROM hi_club_market_grant WHERE uuid IN ('$G','$G2'); DELETE FROM hi_club_market_listing WHERE uuid IN ('$LID','$LID2');"
-cj plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P\"}" "$ST" >/dev/null
-cj plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P2\"}" "$ST" >/dev/null
-cj agent/delete "{\"agent\":\"$SB\"}" "$ST" >/dev/null
-cj agent/delete "{\"agent\":\"$BB\"}" "$BT" >/dev/null
+# 清理:全在收尾里做(撤权 → 下架 → 删壳 → 删机器人走接口;续期单 / 凭据 / flow 由 purge 按号删行)。
+# 原来这里没删续期单与它的付款凭据 —— grant 一删,它们就成了指向空气的孤儿。
 
 echo
 echo "结果:通过 $pass,失败 $fail"

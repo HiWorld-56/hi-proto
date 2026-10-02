@@ -19,12 +19,15 @@
 # 所以这里**取一次、两个脚本共用**,不要各取各的。
 set -uo pipefail
 cd "$(dirname "$0")"
+source ./_endpoints.sh   # 收尾机制(made / undo):这里造的测试插件包退出时删;两个子脚本各收各的尾
 
 NEXT=${NEXT_HOST:-192.168.1.66}
 tok(){ ssh -o ConnectTimeout=15 "$NEXT" \
         "cd /tmp/tokgen && MN_FILE=$1 DEV=${2:-app} ./target/release/tokgen 2>/dev/null"; }
 
 echo "── 取 token(只取这一次)──"
+# 登录前:三个夹具身份本来没有登录态的,收尾把这次留下的删掉
+for _mn in /tmp/65_seller_mn.txt /tmp/65_buyer_mn.txt /tmp/didtok_mn.txt; do session_keep "$(mn_did $_mn)"; done
 S=$(tok /tmp/65_seller_mn.txt); B=$(tok /tmp/65_buyer_mn.txt); D=$(ssh -o ConnectTimeout=15 "$NEXT" "cd /tmp/didtok && ./target/release/didtok 2>/dev/null")
 ST=$(printf '%s' "$S"|grep ^TOKEN=|cut -d= -f2); SD=$(printf '%s' "$S"|grep ^DID=|cut -d= -f2)
 BT=$(printf '%s' "$B"|grep ^TOKEN=|cut -d= -f2)
@@ -34,9 +37,10 @@ echo "  卖家 did=$SD"
 
 echo
 echo "── 一、先让 smoke-market 把数据造出来(挂牌/授权/订单/凭据)──"
-PKG=$(MINIO_HOST=${MINIO_HOST:-192.168.1.65:9000} python3 build_testpkg.py 2>&1 | tail -1)
+PKG=$(pkg_build build_testpkg.py) || { echo "造测试插件包失败"; exit 1; }
 SELLER_TOK="$ST" SELLER_DID="$SD" BUYER_TOK="$BT" PKG="$PKG" \
-  bash smoke-market.sh 2>&1 | tail -3
+  bash smoke-market.sh 2>&1 | grep -E '✗|✘|结果|\[清理\] (前|后)'
+MK=${PIPESTATUS[0]}
 
 echo
 echo "── 二、用**同一把卖家 token** 数字段覆盖 ──"
@@ -47,3 +51,7 @@ echo "── 二、用**同一把卖家 token** 数字段覆盖 ──"
 AI_KEY=${AI_KEY:-61be7d40-09bb-41a1-8e33-f7acd440b7ae}
 CLUB_TOKEN="$ST" CLUB_DID="$SD" DID_TOKEN="$DT" AI_KEY="$AI_KEY" \
   MINIO_HOST=${MINIO_HOST:-192.168.1.65:9000} bash empty_in_resp.sh
+ER=$?
+# 两段都要过:原来只看最后一段的退出码,smoke-market 红了(或收尾没清干净)这里照样绿
+[ "$MK" -eq 0 ] || echo "  ✗ smoke-market 退出码 $MK"
+[ "$MK" -eq 0 ] && [ "$ER" -eq 0 ]

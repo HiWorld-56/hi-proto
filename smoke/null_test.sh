@@ -58,6 +58,9 @@ if [ -z "$PS" ]; then
 fi
 [ -n "$PS" ] && [ -f "$PS" ] || { echo "找不到 hi_proto_descriptor.bin —— 先在任一后端仓跑一次 go mod download"; exit 2; }
 echo "protoset: $PS"
+# 收尾机制(made / undo,退出时统一做)在 _endpoints.sh;它看见 PS 已有值就不再另找。
+export PS
+source "$(dirname "$0")/_endpoints.sh"
 CLUB=192.168.1.65:9536 ; AI=192.168.1.65:9534 ; DID=192.168.1.65:9532
 G="\033[32m"; R="\033[31m"; Y="\033[33m"; N="\033[0m"
 pass=0; fail=0; skip=0
@@ -86,9 +89,10 @@ sql(){
 # 取一个**必须有值**的标量:取不到就是取数坏了,不是被测的东西坏了。
 sqlv(){ local _v; _v=$(sql "$1") || { SQL_ERR=1; return 1; }; printf '%s' "$_v"; }
 # 三个调用器,各带各的凭据体系
-cclub(){ grpcurl -plaintext -protoset "$PS" -H "Authorization: Bearer $CLUB_TOKEN" -d "$2" "$CLUB" "$1" 2>&1 | tr '\n' ' '; }
-cdid(){  grpcurl -plaintext -protoset "$PS" -H "Authorization: Bearer $DID_TOKEN"  -d "$2" "$DID"  "$1" 2>&1 | tr '\n' ' '; }
-cai(){   grpcurl -plaintext -protoset "$PS" -H "ApiKey: $AI_KEY"                   -d "$2" "$AI"   "$1" 2>&1 | tr '\n' ' '; }
+# 凭据不进命令行(grpcurl_tok / grpcurl_key 见 _endpoints.sh:头里写 ${…},值走环境变量)
+cclub(){ grpcurl_tok "$CLUB_TOKEN" -plaintext -protoset "$PS" -d "$2" "$CLUB" "$1" 2>&1 | tr '\n' ' '; }
+cdid(){  grpcurl_tok "$DID_TOKEN"  -plaintext -protoset "$PS" -d "$2" "$DID"  "$1" 2>&1 | tr '\n' ' '; }
+cai(){   grpcurl_key "$AI_KEY"     -plaintext -protoset "$PS" -d "$2" "$AI"   "$1" 2>&1 | tr '\n' ' '; }
 # 断言调用**真的成功了**,失败就把原文报出来 —— 别让"库里没变"冒充"行为对"。
 #
 # ⚠️ grpcurl 有**两种**失败形态,只认一种就会漏:
@@ -124,8 +128,24 @@ fi
 FX_KEY="nulltest$(date +%s)"
 sql "insert into hi_club.hi_chat_api_key(value,user,note,created_at,updated_at)
      values('$FX_KEY','$CLUB_DID','原备注',now(3),now(3))" >/dev/null
-cleanup(){ sql "delete from hi_club.hi_chat_api_key where value='$FX_KEY'" >/dev/null; }
-trap cleanup EXIT
+made "$FX_KEY"   # 收尾由 purge 删(_endpoints.sh)
+
+# 下面几节会改动**固定夹具**的数据(DID_DID 的资料、FX_AGENT 那条插件的开关)——
+# 夹具不进 purge,改之前先记下原值,收尾时还原并核对。
+E0=$(sql "select concat(ifnull(name,'<NULL>'),'|',if(avatar is null,'<NULL>',concat('[',avatar,']'))) from hi_did.hi_user where did='$DID_DID'")
+[ -n "$E0" ] || { no "记下 DID_DID 的资料原值" "查不到 $DID_DID 的 hi_user 行 —— 改了就还原不了,不跑"; exit 1; }
+user_restore(){   # 走产品自己的 User.Edit 还原(头像原来是 NULL 就传空串 = 清成 NULL)
+  local body; body=$(python3 -c '
+import json,sys,re
+e=sys.argv[1]; name,_,av=e.partition("|")
+d={}
+if name!="<NULL>": d["name"]=name
+d["avatar"]="" if av=="<NULL>" else re.sub(r"^\[(.*)\]$",r"\1",av)
+print(json.dumps(d,ensure_ascii=False))' "$E0")
+  must "还原 DID_DID 的资料" "$(cdid 'hi.did.User/Edit' "$body")" || return 1
+  [ "$(sql "select concat(ifnull(name,'<NULL>'),'|',if(avatar is null,'<NULL>',concat('[',avatar,']'))) from hi_did.hi_user where did='$DID_DID'")" = "$E0" ]
+}
+undo user_restore
 
 echo
 echo "══════ 一、bool 载荷:不传必须报错,不能静默当 false ══════"
@@ -148,11 +168,12 @@ run_bool "SetAutoRenew 不传 enabled → 报错"                 cclub "hi.club
 if [ -n "${FX_AGENT:-}" ]; then
   # 显式 false 必须**真的写进库** —— 只断言"没报 InvalidArgument"是不够的:
   # gorm 的 Updates(struct) 会跳过零值,那种情况下也不报错,只是没写。
+  EN0=$(sql "select enabled from hi_ai.hi_ai_plugin_using where agent_did='$FX_AGENT' and uuid='$FX_UUID'")
+  undo "sql \"update hi_ai.hi_ai_plugin_using set enabled=$EN0 where agent_did='$FX_AGENT' and uuid='$FX_UUID'\" >/dev/null; [ \"\$(sql \"select enabled from hi_ai.hi_ai_plugin_using where agent_did='$FX_AGENT' and uuid='$FX_UUID'\")\" = '$EN0' ]"
   sql "update hi_ai.hi_ai_plugin_using set enabled=1 where agent_did='$FX_AGENT' and uuid='$FX_UUID'" >/dev/null
   if must "SetEnabled 显式 false" "$(cai 'hi.ai.Plugin/SetEnabled' "{\"agent\":\"$FX_AGENT\",\"uuid\":\"$FX_UUID\",\"enabled\":false}")"; then
     v=$(sql "select enabled from hi_ai.hi_ai_plugin_using where agent_did='$FX_AGENT' and uuid='$FX_UUID'")
     [ "$v" = "0" ] && ok "显式 false → **真的写成 0**(不是被当零值跳过)" || no "显式 false 没写进库" "enabled=[$v]"
-    sql "update hi_ai.hi_ai_plugin_using set enabled=1 where agent_did='$FX_AGENT' and uuid='$FX_UUID'" >/dev/null
   fi
 else
   sk "SetEnabled 显式 false" "没有可用的机器人夹具"
@@ -201,10 +222,15 @@ echo "══════ 二之二、部分更新不能殃及别的列(repeated 
 #    (这是既有问题,2025-10-30 就这样,不是本次改造引入的;见记录。)
 #
 # 夹具:给 DID_DID 建一行商户,用完删 —— 不去动真商户的数据。
+# ⚠️ 它**本来就是商户**的话不跑这一节:原来写的是 `on duplicate key update`,会把真商户的币种位图
+#    和 endpoint 改掉,而收尾那句按 name='nulltest商户' 删又删不到它(名字没改)—— 一去不回。
 FX_BITS="1,3,3,3,1"
-sql "insert into hi_did.hi_merchant(did,name,btc,eth,trx,sol,apt,endpoint,created_at,updated_at)
-     values('$DID_DID','nulltest商户',1,3,3,3,1,'http://before.example',now(),now())
-     on duplicate key update btc=1,eth=3,trx=3,sol=3,apt=1,endpoint='http://before.example'" >/dev/null
+MER_DROP_SQL="delete from hi_did.hi_merchant where did='$DID_DID' and name='nulltest商户'"
+if [ "$(sql "select count(*) from hi_did.hi_merchant where did='$DID_DID'")" = "0" ]; then
+  sql "insert into hi_did.hi_merchant(did,name,btc,eth,trx,sol,apt,endpoint,created_at,updated_at)
+       values('$DID_DID','nulltest商户',1,3,3,3,1,'http://before.example',now(),now())" >/dev/null
+  undo "sql \"$MER_DROP_SQL\" >/dev/null; [ \"\$(sql \"select count(*) from hi_did.hi_merchant where did='$DID_DID'\")\" = 0 ]"
+fi
 MBITS(){ sql "select concat(btc,',',eth,',',trx,',',sol,',',apt) from hi_did.hi_merchant where did='$DID_DID'"; }
 b4=$(MBITS)
 if [ "$b4" != "$FX_BITS" ]; then
@@ -223,7 +249,6 @@ else
     fi
   fi
 fi
-sql "delete from hi_did.hi_merchant where did='$DID_DID' and name='nulltest商户'" >/dev/null
 
 echo
 echo "══════ 三、market:不传 duration = 永久(不是 0) ══════"
@@ -312,15 +337,16 @@ except Exception:
 '; }
 
 mkbot(){ cclub 'hi.club.Agent/CreateAssistant' "$1"; }
-# 用**产品自己的删除接口**清理,不要手写 SQL ——
-# 删一个 did 要动四个库 + redis 的 ACL,手删只会留一地孤儿(实测过)。
+# 用**产品自己的删除接口**清理,不要手写 SQL —— 登记进收尾(made + undo),退出时删接口、再由 purge 扫干净。
 delbot(){
   [ -n "$1" ] && [ "$1" != "$CLUB_DID" ] || return 0     # 决不删调用者自己
-  cclub 'hi.club.Agent/Delete' "{\"agent\":\"$1\"}" >/dev/null 2>&1
+  ! grep -q "ERROR" <<<"$(cclub 'hi.club.Agent/Delete' "{\"agent\":\"$1\"}")"
 }
+keepbot(){ [ -n "$1" ] && [ "$1" != "$CLUB_DID" ] && { made "$1"; undo "delbot $1"; }; return 0; }
 
 AG=$(mkbot '{"name":"nulltest-avatar"}')
 NEW_DID=$(newdid <<<"$AG")
+keepbot "$NEW_DID"
 if [ -z "$NEW_DID" ]; then
   sk "建机器人不传头像" "建不出来:$(head -c 160 <<<"$AG")"
 elif [ "$NEW_DID" = "$CLUB_DID" ]; then
@@ -343,14 +369,13 @@ else
   # ✅ 反面:**传了头像要真的写进去**,别用"一律不写"糊弄过上面那两条
   AG2=$(mkbot '{"name":"nulltest-avatar2","avatar":"https://x/y.png"}')
   D2=$(newdid <<<"$AG2")
+  keepbot "$D2"
   if [ -n "$D2" ] && [ "$D2" != "$CLUB_DID" ]; then
     a3=$(sql "select ifnull(avatar,'<NULL>') from hi_ai.hi_ai_user where did='$D2'")
     if [ "$SQL_ERR" = "1" ] || [ -z "$a3" ]; then sk "传了头像要真的写进去" "查库没取到数,这一条没验"
     elif [ "$a3" = "https://x/y.png" ]; then ok "传了头像要真的写进去(不许一律不写)"
     else no "传了头像没写进去" "got=$a3"; fi
-    delbot "$D2"
   fi
-  delbot "$NEW_DID"
 fi
 
 echo
@@ -370,16 +395,16 @@ echo "══════ 六、core 那一层也要能表达「不传=不动」 
 UMP_MN=${UMP_MN_FILE:-/tmp/cam_mn.txt}
 UMP_DID=${UMP_DID:-zTAYhBG2DfQyKphn1qP3ksRBQWGiZqfbLV}
 NEXT=${NEXT_HOST:-192.168.1.66}
-pc(){ ssh -o ConnectTimeout=15 "$NEXT" \
-        "cd ~/wip/hiclub-core-mqtt && ./target/release/peer_cli $1 \"\$(cat $UMP_MN)\" $2" 2>&1 | tail -1; }
+# peer_cli 走 serve 模式(peer66,见 _endpoints.sh):命令行模式要把助记词当参数,在 .66 的 ps 里看得见
+pc(){ peer66 "$UMP_MN" "$@" 2>&1 | tail -1; }
 umpq(){ sql "select concat(ifnull(name,'<NULL>'),'|',ifnull(avatar,'<NULL>'),'|',ifnull(friend_verify_policy,'<NULL>')) from hi_club.hi_chat_user where did='$UMP_DID'"; }
 
 if ! ssh -o ConnectTimeout=10 "$NEXT" "test -x ~/wip/hiclub-core-mqtt/target/release/peer_cli" 2>/dev/null; then
   sk "core 的 update_my_profile 三态" "$NEXT 上没有 peer_cli(cargo build --release --features testkit --bin peer_cli)"
 else
   # 先把三样设成已知值 —— **断言之前先把前提摆平**,否则"没变"是二义的。
-  pc profile "ump-base http://x/UMP.png" >/dev/null
-  pc accept-on "" >/dev/null
+  pc profile ump-base http://x/UMP.png >/dev/null
+  pc accept-on >/dev/null
   BASE=$(umpq)
   case "$BASE" in
     "ump-base|http://x/UMP.png|auto_accept") ok "前提:name/avatar/policy 三样都设好了";;
@@ -388,7 +413,7 @@ else
 
   if [ -n "$BASE" ]; then
     # ① 只改名字 → 另外两样**一个都不许动**
-    pc profile "ump-renamed" >/dev/null
+    pc profile ump-renamed >/dev/null
     A=$(umpq)
     [ "$A" = "ump-renamed|http://x/UMP.png|auto_accept" ] \
       && ok "只改 name → avatar / policy **原样不动**(不传=不动)" \
@@ -396,7 +421,7 @@ else
 
     # ② 只改验证方式 → name/avatar 不许动。
     #    这条是老写法最危险的那个入口:它只想改 policy,却被迫回写 avatar。
-    pc accept-on "" >/dev/null
+    pc accept-on >/dev/null
     B=$(umpq)
     [ "$B" = "ump-renamed|http://x/UMP.png|auto_accept" ] \
       && ok "只改 policy → name / avatar **原样不动**" \
@@ -404,14 +429,14 @@ else
 
     # ③ 显式传空串 → **真的清空,而且落 NULL 不是空串**。
     #    别从一个极端跑到另一个极端:改成 Option 之后"清空"这条路必须还在。
-    pc profile "ump-renamed ''" >/dev/null
+    pc profile ump-renamed "" >/dev/null
     C=$(sql "select if(avatar is null,'<NULL>',concat('[',avatar,']')) from hi_club.hi_chat_user where did='$UMP_DID'")
     [ "$C" = "<NULL>" ] \
       && ok "显式传空串 → 真的清空,且落 **NULL** 不是空串" \
       || no "传空串没清干净" "got=$C"
 
     # 收尾:设回去,别给下一个用这个账号的人留一个没头像的用户
-    pc profile "ump-base http://x/UMP.png" >/dev/null
+    pc profile ump-base http://x/UMP.png >/dev/null
     D=$(sql "select ifnull(avatar,'<NULL>') from hi_club.hi_chat_user where did='$UMP_DID'")
     [ "$D" = "http://x/UMP.png" ] && ok "收尾:头像设得回来(不是一去不回)" \
                                   || no "收尾没设回去" "got=$D"

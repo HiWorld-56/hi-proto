@@ -14,7 +14,7 @@
 #   二、只扫 hi-ai:GetReqStatus 拿到 token、base.did 是他;hidid 注册了他、club 仍然没有他
 #   三、后续调用:token 能调 Agent/List、能续期;用 token 建一个助手,creator 是他(建完删掉)
 #   四、club 有资料的老用户(smoke-logout 的 CAI_MN 夹具)照常登录,base.name 与 hidid 一致
-#   五、清夹具:新身份在四个库 + redis 一行不剩(报计数),助记词文件删掉
+#   新身份与它名下的东西由收尾删(_endpoints.sh 的 made → purge.py:全部库 + redis,删完复扫到 0),助记词文件也是
 #
 # 用法:bash smoke-ai-login.sh    非 0 退出 = 有失败项
 # 在 .64 跑(grpcurl + protoset);签名用 .66 的 /tmp/didtok(要支持 REQ_ID / DID_ONLY 的那版)。
@@ -53,13 +53,15 @@ ai_login() {
   SR=$(grpcurl -plaintext -protoset "$PS" -d "{\"id\":\"$RID\"}" "$AI_GRPC" hi.ai.Auth/GetReqStatus 2>&1)
   if echo "$SR" | grep -q '^ERROR:'; then SC=$(echo "$SR" | sed -n 's/^ *Code: //p'); fi
 }
-aicall() { grpcurl -plaintext -protoset "$PS" -H "Authorization: Bearer $1" -d "$2" "$AI_GRPC" "$3" 2>&1; }
+aicall() { grpcurl_tok "$1" -plaintext -protoset "$PS" -d "$2" "$AI_GRPC" "$3" 2>&1; }   # token 不进命令行
 
 # ── 一、全新身份,登录前三处都没有 ─────────────────────────────────────────────
 echo "── 一、全新身份(只在 hidid 侧可用,从没进过 club)──"
 R66 "rm -f $NEW_MN && install -m600 /dev/null $NEW_MN"
+undo "R66 'rm -f $NEW_MN; ! test -e $NEW_MN'"
 NDID=$(kv "$(R66 "cd /tmp/didtok && MN_FILE=$NEW_MN DID_ONLY=1 ./target/release/didtok")" DID)
 [ -n "$NDID" ] || { bad "造新身份" "didtok DID_ONLY 没给出 did —— 后面全部没验"; echo "通过 $pass,失败 $fail"; exit 1; }
+made "$NDID"
 eq "助记词文件是 600" "$(R66 "stat -c %a $NEW_MN")" "600"
 eq "登录前 hi_did.hi_user 没有他" "$(cnt hi_did.hi_user did "$NDID")" "0"
 eq "登录前 hi_club.hi_chat_user 没有他" "$(cnt hi_club.hi_chat_user did "$NDID")" "0"
@@ -95,10 +97,11 @@ if [ -n "$TOK" ]; then
   AG=$(echo "$o" | js base.did)
   if [ -n "$AG" ]; then
     ok "用 token 建助手"
+    made "$AG"; U_AG="o=\$(aicall '$TOK' '{\"agent\":\"$AG\"}' hi.ai.Agent/Delete); ! grep -q '^ERROR:' <<<\"\$o\""; undo "$U_AG"
     eq "助手的 creator 是他" "$(echo "$o" | js creator.did)" "$NDID"
     eq "creator.name 取自 hidid" "$(echo "$o" | js creator.name)" "$HNAME"
     d=$(aicall "$TOK" "{\"agent\":\"$AG\"}" hi.ai.Agent/Delete)
-    echo "$d" | grep -q '^ERROR:' && bad "删掉助手" "$(echo "$d" | sed -n 's/^ *Message: //p')" || ok "删掉助手"
+    echo "$d" | grep -q '^ERROR:' && bad "删掉助手" "$(echo "$d" | sed -n 's/^ *Message: //p')" || { ok "删掉助手"; undone "$U_AG"; }
   else
     bad "用 token 建助手" "$(echo "$o" | sed -n 's/^ *Message: //p')"
   fi
@@ -109,9 +112,11 @@ if [ -n "$TOK" ]; then
     AG=$(echo "$o" | js base.did)
     if [ -n "$AG" ]; then
       ok "hidid 没资料时建助手照常成功"
+      made "$AG"; U_AG="o=\$(aicall '$TOK' '{\"agent\":\"$AG\"}' hi.ai.Agent/Delete); ! grep -q '^ERROR:' <<<\"\$o\""; undo "$U_AG"
       eq "  creator.did 仍是他" "$(echo "$o" | js creator.did)" "$NDID"
       eq "  creator 里没有 name 键(absent)" "$(echo "$o" | python3 -c 'import sys,json; print("name" in json.load(sys.stdin).get("creator",{}))')" "False"
-      aicall "$TOK" "{\"agent\":\"$AG\"}" hi.ai.Agent/Delete >/dev/null
+      d=$(aicall "$TOK" "{\"agent\":\"$AG\"}" hi.ai.Agent/Delete)
+      echo "$d" | grep -q '^ERROR:' && bad "  删掉这个助手" "$(echo "$d" | sed -n 's/^ *Message: //p')" || { ok "  删掉这个助手"; undone "$U_AG"; }
     else
       bad "hidid 没资料时建助手照常成功" "$(echo "$o" | sed -n 's/^ *Message: //p')"
     fi
@@ -119,7 +124,8 @@ if [ -n "$TOK" ]; then
     bad "hidid 没资料时建助手" "删不掉 hi_did.hi_user 那行 —— 前提不成立,没验"
   fi
   # 续期放在最后:续期会轮换 access,旧的那份随即失效
-  o=$(grpcurl -plaintext -protoset "$PS" -d "{\"did\":\"$NDID\",\"node\":{\"app\":\"HiAI\",\"dev\":\"app\",\"mac\":\"ai-login-smoke-new\"},\"refreshToken\":\"$RT\"}" "$AI_GRPC" hi.ai.Auth/RefreshToken 2>&1)
+  # refresh token 在请求体里 —— 从 stdin 喂(-d @),不进命令行
+  o=$(grpcurl -plaintext -protoset "$PS" -d @ "$AI_GRPC" hi.ai.Auth/RefreshToken 2>&1 <<<"{\"did\":\"$NDID\",\"node\":{\"app\":\"HiAI\",\"dev\":\"app\",\"mac\":\"ai-login-smoke-new\"},\"refreshToken\":\"$RT\"}")
   TOK2=$(echo "$o" | js token)
   [ -n "$TOK2" ] && [ -n "$(echo "$o" | js refreshToken)" ] && ok "RefreshToken 续期正常" || bad "RefreshToken 续期正常" "$(echo "$o" | head -3 | tr '\n' ' ')"
   o=$(aicall "$TOK2" '{"pagination":{"page":1,"limit":10}}' hi.ai.Agent/List)
@@ -135,39 +141,19 @@ if [ -z "$ODID" ] || [ "$(cnt hi_club.hi_chat_user did "$ODID")" != "1" ]; then
   bad "老用户夹具" "$OLD_MN 不在或它在 club 里没有资料 —— 先跑一遍 smoke-logout.sh"
 else
   ok "前提:老用户在 club 里有资料"
+  # 这次登录在老用户名下留一行登录态(mac=ai-login-smoke-old),退出时删掉 —— 老用户是夹具,不进 purge
+  undo "mysqlq hi_ai \"delete from hi_ai_user_refreshtoken where did='$ODID' and mac='ai-login-smoke-old'\" >/dev/null && [ \"\$(mysqlq hi_ai \"select count(*) from hi_ai_user_refreshtoken where did='$ODID' and mac='ai-login-smoke-old'\")\" = 0 ]"
   ai_login "$OLD_MN" ai-login-smoke-old
   eq "老用户 GetReqStatus 不报错" "$SC" ""
   eq "老用户 base.did" "$(echo "$SR" | js base.did)" "$ODID"
   eq "老用户 base.name 取自 hidid" "$(echo "$SR" | js base.name)" "$(mysqlq hi_did "select name from hi_user where did='$ODID'")"
   [ -n "$(echo "$SR" | js token.token)" ] && ok "老用户拿到 token" || bad "老用户拿到 token" "token 为空"
-  mysqlq hi_ai "delete from hi_ai_user_refreshtoken where did='$ODID' and mac='ai-login-smoke-old'" >/dev/null
 fi
 
-# ── 五、清夹具:四个库 + redis ───────────────────────────────────────────────
-echo "── 五、清夹具 ──"
-# 按列名扫四个库里所有可能指向这个 did 的列(含每个商户一张的扩展表)
-COLS="'did','user','creator','master','user_did','be_user_did','did_a','did_b','subordinate_did','from_did','to_did','payee','agent_did','from','to','from_agent','to_agent','from_master','to_master'"
-scan() {
-  local sql
-  sql=$(mysqlq information_schema "set session group_concat_max_len=1000000; select group_concat(concat('select ''',table_schema,'.',table_name,''' t, count(*) n from \`',table_schema,'\`.\`',table_name,'\` where \`',column_name,'\`=''$NDID''') separator ' union all ') from columns where table_schema in ('hi_did','hi_ai','hi_club','hi_club_trade') and column_name in ($COLS)")
-  mysqlq information_schema "select t, sum(n) from ($sql) x group by t having sum(n)>0"
-}
-BEFORE=$(scan)
-echo "  夹具留下的行:"; echo "${BEFORE:-    (无)}" | sed 's/^/    /'
-# ⚠️ 不用 `| while read`:mysqlq 在 .64 上走 ssh,会把循环的 stdin 吃掉,只删得到第一张表
-mapfile -t ROWS <<< "$BEFORE"
-for line in "${ROWS[@]}"; do
-  t=${line%%$'\t'*}
-  [ -n "$t" ] || continue
-  col=$(mysqlq information_schema "select column_name from columns where concat(table_schema,'.',table_name)='$t' and column_name in ($COLS) limit 1")
-  mysqlq information_schema "delete from ${t%%.*}.\`${t#*.}\` where \`$col\`='$NDID'" >/dev/null
-done
-RK=$(ssh -n -o ConnectTimeout=10 "$H" 'P=$(docker exec hi-did sh -c "grep -A6 ^redis: /root/res/config.yaml" | sed -n "s/^ *password: *\"\{0,1\}\([^\"]*\)\"\{0,1\}/\1/p"); export REDISCLI_AUTH="$P"; n=0; for k in $(redis-cli -h 127.0.0.1 -n 1 --user default --scan --pattern "*'"$NDID"'*"); do redis-cli -h 127.0.0.1 -n 1 --user default del "$k" >/dev/null; n=$((n+1)); done; echo $n; redis-cli -h 127.0.0.1 -n 1 --user default --scan --pattern "*'"$NDID"'*" | wc -l' 2>/dev/null)
-echo "  redis db1 删掉 $(echo "$RK" | sed -n 1p) 个键"
-eq "redis db1 不再有他的键" "$(echo "$RK" | sed -n 2p)" "0"
-eq "四个库不再有他的行" "$(scan | wc -l)" "0"
-R66 "rm -f $NEW_MN"
-eq "助记词文件已删" "$(R66 "test -e $NEW_MN && echo 在 || echo 无")" "无"
+# ── 清夹具 ───────────────────────────────────────────────────────────────────
+# 新身份($NDID)、它建的助手、hidid 首登注册的行、登录态、redis 里的 mqtt 账号 —— 全部由收尾的
+# purge.py 按词删(全部库 + 全部 redis db,删完复扫,剩下不是 0 就 ✘ 非 0 退出)。
+# 原来这里自己按列名扫四个库、自己 redis-cli 删 db1 —— 那是「删探针造的东西」的第二份实现,已收掉。
 
 echo
 echo "通过 $pass,失败 $fail"

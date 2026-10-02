@@ -31,13 +31,14 @@ have_db || { echo "  ✗ 够不着 mysql,断言全部无法执行"; exit 2; }
 
 # ── 凭证:hidid 体系的 token(club 的在这里不认)────────────────────────────
 echo "── 取 hidid 登录 token(.66 didtok)──"
+session_keep "$(mn_did /tmp/didtok_mn.txt)"   # 登录前:它本来没有登录态的话,收尾把这次留下的删掉
 OUT=$(ssh -n -o ConnectTimeout=10 192.168.1.66 "cd /tmp/didtok && ./target/release/didtok 2>/dev/null")
 TOK=$(echo "$OUT" | grep '^TOKEN=' | cut -d= -f2-)
 ADMIN=$(echo "$OUT" | grep '^DID=' | cut -d= -f2)
 [ -n "$TOK" ] && [ -n "$ADMIN" ] || { echo "  ✗ 拿不到 didtok token,后续全部无法执行(.66:/tmp/didtok 还在么?)"; exit 1; }
 ok "hidid 登录 did=$ADMIN"
 
-g(){ grpcurl $(tp $DID_GRPC) -protoset $PS -H "authorization: Bearer $TOK" -d "$1" $DID_GRPC "$2" 2>&1; }
+g(){ grpcurl_tok "$TOK" $(tp $DID_GRPC) -protoset $PS -d "$1" $DID_GRPC "$2" 2>&1; }   # token 不进命令行
 
 # ── ① 先在**还不是超管**时验拦截器 ────────────────────────────────────────
 # 顺序不能反:插了超管行再验就永远是绿的。
@@ -49,13 +50,14 @@ eq "非超管调 List 被拒"   "$(g '{}' hi.did.MerchantManage/List   | grep -c
 SFX="dt$$"
 A="zSMK${SFX}a"; B="zSMK${SFX}b"; C="zSMK${SFX}c"
 TA="DBUserInformationExtension_$A"
-cleanup() {
-  mysqlq hi_did "delete from hi_superadmin where did='$ADMIN' and note like '冒烟:%';
-                 delete from hi_merchant_grant where merchant like 'zSMK${SFX}%' or grantee like 'zSMK${SFX}%';
-                 delete from hi_merchant where did like 'zSMK${SFX}%' or token='tokself${SFX}';
-                 drop table if exists \`$TA\`;" >/dev/null
-}
-trap cleanup EXIT
+# 收尾(_endpoints.sh,不论中途怎么退出):三个夹具商户与它们的授权行、自建的商户行由 purge 按词删;
+# 扩展表与临时超管行没有词可认(超管行的 did 是固定夹具身份),各自一个函数删、并证明删掉了。
+made "$A" "$B" "$C" "tokself$SFX"
+fx_drop() { mysqlq hi_did "drop table if exists \`$TA\`" >/dev/null
+            [ "$(mysqlq information_schema "select count(*) from tables where table_schema='hi_did' and table_name='$TA'")" = 0 ]; }
+sa_drop() { mysqlq hi_did "delete from hi_superadmin where did='$ADMIN' and note like '冒烟:%'" >/dev/null
+            [ "$(mysqlq hi_did "select count(*) from hi_superadmin where did='$ADMIN' and note like '冒烟:%'")" = 0 ]; }
+undo fx_drop; undo sa_drop
 
 echo "── 造夹具 + 临时提超管 ──"
 mysqlq hi_did "
@@ -156,14 +158,8 @@ eq "C 的商户行没了" "$(mysqlq hi_did "select count(*) from hi_merchant whe
 eq "再删一次 A 报商户不存在" "$(g "{\"id\":\"$A\"}" hi.did.MerchantManage/Delete | grep -c '商户不存在')" "1"
 
 # ── ⑥ 收尾必须自己证明清干净了 ─────────────────────────────────────────
-# 清理静默失败过(smoke-lua-deps 那次把 ldep-demo 留在真机器人上还报了 11/0),
-# 所以这里**先清、再断言**,清不干净照样红。
-echo "── 收尾 ──"
-cleanup
-trap - EXIT
-eq "夹具商户行清零"   "$(mysqlq hi_did "select count(*) from hi_merchant where did like 'zSMK${SFX}%'")" "0"
-eq "夹具授权行清零"   "$(mysqlq hi_did "select count(*) from hi_merchant_grant where merchant like 'zSMK${SFX}%' or grantee like 'zSMK${SFX}%'")" "0"
-eq "临时超管行已删"   "$(mysqlq hi_did "select count(*) from hi_superadmin where did='$ADMIN' and note like '冒烟:%'")" "0"
+# 清理静默失败过(smoke-lua-deps 那次把 ldep-demo 留在真机器人上还报了 11/0)。
+# 现在收尾在 _endpoints.sh:sa_drop / fx_drop 各自复查,purge 删完复扫到 0,哪一步没做到都 ✘、退出码非 0。
 
 echo
 printf "结果:通过 \033[32m%d\033[0m,失败 \033[31m%d\033[0m\n" "$pass" "$fail"

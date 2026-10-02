@@ -14,9 +14,11 @@ source "$(dirname "$0")/_endpoints.sh"   # 端点/CA 统一约定(前端可达�
 GRPCURL=/tmp/grpcurl
 PB=/tmp/hi.protoset
 DB=192.168.1.65
-STOK="${1:?用法: smoke-external.sh <卖方token> <买方token> <插件包url>}"
-BTOK="${2:?需要买方 token}"
-PKG="${3:?需要插件包 url}"
+# 凭据从环境变量收(命令行参数谁都 ps 得到);PKG 可不给(现造、退出时删)
+[ $# -eq 0 ] || { echo "不收位置参数(token 不许进命令行):SELLER_TOK=… BUYER_TOK=… [PKG=…] bash $0" >&2; exit 2; }
+STOK="${SELLER_TOK:?需要 SELLER_TOK(卖方 token,master 要与 SELLER_MN 同一人)}"
+BTOK="${BUYER_TOK:?需要 BUYER_TOK}"
+PKG="${PKG:-}"
 SELLER_MN="${SELLER_MN:-/tmp/seller_mn.txt}"
 BUYER_MN="${BUYER_MN:-/tmp/buyer_mn.txt}"
 pass=0; fail=0
@@ -26,9 +28,11 @@ has(){ case "$2" in *"$3"*) ok "$1";; *) bad "$1" "输出里没有 '$3':$(echo "
 chk(){ [ "$2" = "$3" ] && ok "$1" || bad "$1" "want=$3 got=$2"; }
 have_db || { echo "够不着 mysql —— 本机没装 mysql 时会 ssh 到 $DB 去查,检查那条路。" >&2; exit 2; }
 [ -x /tmp/didsign ] || { echo "缺 /tmp/didsign(core-mqtt 的 didsign,--features testkit 编)。" >&2; exit 2; }
+# 不给包就现造(退出时删);给了是调用方的,本脚本不删
+[ -n "$PKG" ] || PKG=$(pkg_build build_testpkg.py) || { echo "造测试插件包失败"; exit 1; }
 Q(){ mysqlq "$1" "$2"; }
-cjs(){ curl -s $CAC -m 60 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $STOK" -d "$2"; }
-cjb(){ curl -s $CAC -m 60 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $BTOK" -d "$2"; }
+cjs(){ curl_tok "$STOK" -s $CAC -m 60 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -d "$2"; }
+cjb(){ curl_tok "$BTOK" -s $CAC -m 60 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -d "$2"; }
 g(){ python3 -c '
 import sys,json
 try:
@@ -52,14 +56,19 @@ rpc(){ $GRPCURL $(tp $CLUB_GRPC) -protoset $PB -max-time 30 -d "$2" $CLUB_GRPC "
 
 echo "── 准备:EXTERNAL 挂牌 + 买方申请 ──"
 SB=$(cjs agent/create_assistant '{"name":"ext-seller"}' | g data base did)
+[ -n "$SB" ] && { made "$SB"; undo_club "$STOK" agent/delete "{\"agent\":\"$SB\"}"; }
 BB=$(cjb agent/create_assistant '{"name":"ext-buyer"}' | g data base did)
+[ -n "$BB" ] && { made "$BB"; undo_club "$BTOK" agent/delete "{\"agent\":\"$BB\"}"; }
 [ -z "$SB" ] || [ -z "$BB" ] && { echo "建机器人失败"; exit 1; }
 cjs api_key/create "{\"agent\":\"$SB\"}" >/dev/null; cjb api_key/create "{\"agent\":\"$BB\"}" >/dev/null
 P=$(cjs plugin/create_shell "{\"agent\":\"$SB\",\"name\":\"ext-demo\"}" | g data uuid)
+[ -n "$P" ] && { made "$P"; undo_club "$STOK" plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P\"}"; }
 cjs plugin/create_version "{\"agent\":\"$SB\",\"version\":{\"uuid\":\"$P\",\"version\":\"1.0.0\",\"url\":\"$PKG\"}}" >/dev/null
 L=$(cjs market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P\",\"settle_mode\":4,\"title\":\"外部结算测试\",\"action_url\":\"https://example/apply\"}" | g data uuid)
+[ -n "$L" ] && { made "$L"; undo_club "$STOK" market/set_listing_status "{\"uuid\":\"$L\",\"status\":4}"; }
 cjs market/set_listing_status "{\"uuid\":\"$L\",\"status\":2}" >/dev/null
 G=$(cjb market/apply "{\"listing_uuid\":\"$L\",\"to_agent\":\"$BB\"}" | g data grantUuid)
+made "$G"   # 撤权要等它成立(待处理的授权撤不了);成立之前退出的话由 purge 删行
 SELLER_DID=$(MN_FILE=$SELLER_MN /tmp/didsign --did)
 # ⚠️ 这一行原来打的是**助记词**的 did,却写成 "master=" —— 把一个假设显示成了事实。
 #    实际的出让方 master 由 SELLER_TOK 决定,库里才是真值。
@@ -109,7 +118,9 @@ OUT2=$(python3 -c "import uuid;print(uuid.uuid4().hex)")
 R=$(rpc hi.club.MarketCallback/Notify "$(signed $SELLER_MN "{\"grantUuid\":\"$G\",\"outerId\":\"$OUT2\",\"result\":\"approved\"}")")
 case "$R" in *"{}"*|"") ok "回传成功";; *) bad "回传失败" "$(echo "$R"|head -c 160)";; esac
 sleep 1
-chk "授权置为已装载(3)" "$(Q hi_club "SELECT status FROM hi_club_market_grant WHERE uuid='$G';")" "3"
+GS=$(Q hi_club "SELECT status FROM hi_club_market_grant WHERE uuid='$G';")
+chk "授权置为已装载(3)" "$GS" "3"
+[ "$GS" = "3" ] && undo_club "$STOK" market/revoke "{\"grant_uuid\":\"$G\",\"reason\":\"test\"}"
 chk "**ai 侧真的插了引用行**(不只是 club 记一笔)" \
     "$(Q hi_ai "SELECT COUNT(*) FROM hi_ai_plugin_using WHERE agent_did='$BB' AND uuid='$P' AND source='reference' AND deleted_at IS NULL;")" "1"
 
@@ -122,10 +133,8 @@ chk "flow 里这一笔仍只有一条" "$(Q hi_club "SELECT COUNT(*) FROM hi_clu
 
 echo
 echo "── 清理 ──"
-cjs market/revoke "{\"grant_uuid\":\"$G\",\"reason\":\"test\"}" >/dev/null
-Q hi_club "DELETE FROM hi_club_market_flow WHERE grant_uuid='$G'; DELETE FROM hi_club_market_grant WHERE uuid='$G'; DELETE FROM hi_club_market_listing WHERE uuid='$L';"
-cjs plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P\"}" >/dev/null
-cjs agent/delete "{\"agent\":\"$SB\"}" >/dev/null; cjb agent/delete "{\"agent\":\"$BB\"}" >/dev/null
+# 撤权 → 下架 → 删壳 → 删两台机器人在收尾里做(_endpoints.sh);flow / grant / listing 行由 purge 按号删。
+# 原来这里**没下架**,挂牌行靠手写 DELETE 抹掉。
 echo
 echo "结果:通过 $pass,失败 $fail"
 [ "$fail" -eq 0 ]

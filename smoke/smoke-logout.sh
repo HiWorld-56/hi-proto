@@ -36,7 +36,8 @@ ep()  { case "$1" in did) echo "$DID_GRPC";; club) echo "$CLUB_GRPC";; ai) echo 
 pkg() { case "$1" in did) echo hi.did;; club) echo hi.club;; ai) echo hi.ai;; esac; }
 req() { printf '{"did":"%s","node":{"app":"%s","dev":"%s","mac":"%s"},"refreshToken":"%s"}' "$DID" "$APP" "$DEV" "$1" "$2"; }
 # call <svc> <方法> <mac> <refresh>
-call() { local e; e=$(ep "$1"); grpcurl $(tp "$e") -protoset "$PS" -d "$(req "$3" "$4")" "$e" "$(pkg "$1").Auth/$2" 2>&1; }
+# 请求体里有 refresh token —— 从 stdin 喂(-d @),不进命令行
+call() { local e; e=$(ep "$1"); grpcurl $(tp "$e") -protoset "$PS" -d @ "$e" "$(pkg "$1").Auth/$2" 2>&1 <<<"$(req "$3" "$4")"; }
 # 回包形状:成功 → OK;失败 → grpc 码名
 verdict() { local o; o=$(call "$@"); if echo "$o" | grep -q '^ERROR:'; then echo "$o" | sed -n 's/^ *Code: //p'; else echo OK; fi; }
 refresh() { call "$1" RefreshToken "$MAC" "$2" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("refreshToken",""))' 2>/dev/null; }
@@ -49,6 +50,13 @@ rows() { mysqlq information_schema "select count(*) from $(tbl "$1") where did='
 DID_MN=/tmp/logout_smoke_did_mn.txt      # hidid PC 登录用
 CAI_MN=/tmp/logout_smoke_cai_mn.txt      # club + hi-ai 共用一个身份(hi-ai 不再依赖 club,见 smoke-ai-login.sh;这里共用只为少造一个)
 MAC1=""; MAC2="logout-smoke-pc-2"
+# 两个夹具身份在三家留下的登录态,退出时删掉(不论中途怎么退出)。它们是固定复用的夹具,不进 purge ——
+# 只删登录态这一样。did 用 DID_ONLY 现算(不登录,不顶掉谁)。
+for _mn in "$DID_MN" "$CAI_MN"; do
+  _d=$(kv "$(R66 "cd /tmp/didtok && MN_FILE=$_mn DID_ONLY=1 ./target/release/didtok")" DID)
+  [ -n "$_d" ] || { bad "夹具 did" "didtok DID_ONLY 算不出 $_mn 的 did —— 收尾删不了它的登录态,不跑"; exit 1; }
+  undo "mysqlq information_schema \"delete from hi_did.hi_user_refreshtoken where did='$_d'; delete from hi_club.hi_chat_user_refreshtoken where did='$_d'; delete from hi_ai.hi_ai_user_refreshtoken where did='$_d'\" >/dev/null; [ \"\$(mysqlq information_schema \"select (select count(*) from hi_did.hi_user_refreshtoken where did='$_d')+(select count(*) from hi_club.hi_chat_user_refreshtoken where did='$_d')+(select count(*) from hi_ai.hi_ai_user_refreshtoken where did='$_d')\")\" = 0 ]"
+done
 
 # did_login [mac] → 设 DID/APP/DEV/MAC/R;mac 为空用 didtok 默认(did 的哈希)
 did_login() {
@@ -160,11 +168,7 @@ for p in hi.did hi.club hi.ai; do
      "$(grpcurl -protoset "$PS" describe $p.Auth 2>&1 | grep '^ *rpc ' | grep -i 'logout\|unlock' | grep -c 'SignedData')" "0"
 done
 
-# ── 清夹具 ───────────────────────────────────────────────────────────────────
-for d in $(R66 "cd /tmp/didtok && MN_FILE=$DID_MN ./target/release/didtok" | grep ^DID= | cut -d= -f2-) \
-         $(R66 "cd /tmp/tokgen && MN_FILE=$CAI_MN ./target/release/tokgen" | grep ^DID= | cut -d= -f2-); do
-  mysqlq information_schema "delete from hi_did.hi_user_refreshtoken where did='$d'; delete from hi_club.hi_chat_user_refreshtoken where did='$d'; delete from hi_ai.hi_ai_user_refreshtoken where did='$d'" >/dev/null
-done
+# 清夹具:两个夹具身份的登录态由收尾删(见开头 undo 那段)。
 echo
 echo "通过 $pass,失败 $fail"
 [ "$fail" -eq 0 ]

@@ -68,18 +68,20 @@ TOK=$(ssh -o ConnectTimeout=10 "$NEXT" \
 [ -n "$TOK" ] || { sk "拿不到主人 token"; exit 2; }
 ok "前提:brain 在跑、构建服务有 $ROCK 的配方、拿到主人 token"
 
-cj(){ curl -s $CAC -m 300 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' \
-        -H "Authorization: Bearer $TOK" -d "$2"; }
+cj(){ curl_tok "$TOK" -s $CAC -m 300 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' \
+        -d "$2"; }
 
-PKG=$(MINIO_HOST=${MINIO_HOST:-192.168.1.65:9000} python3 "$(dirname "$0")/build_luadeppkg.py" "$ROCK" "$RVER" 2>&1 | tail -1)
+PKG=$(pkg_build build_luadeppkg.py "$ROCK" "$RVER")
 case "$PKG" in https://*) ok "造出带 requirements.txt 的包";; *) bad "造包失败" "$PKG"; exit 1;; esac
 
 echo
 echo "── 一、发版:requirements.txt 被解析并落库 ──"
 B=$(cj agent/create_assistant '{"name":"ldep-bot"}' | g data base did)
+[ -n "$B" ] && { made "$B"; undo_club "$TOK" agent/delete "{\"agent\":\"$B\"}"; }
 cj api_key/create "{\"agent\":\"$B\"}" >/dev/null
 P=$(cj plugin/create_shell "{\"agent\":\"$B\",\"name\":\"ldep-demo\"}" | g data uuid)
 [ -n "$P" ] || { bad "建壳失败" ""; exit 1; }
+made "$P"; undo_club "$TOK" plugin/delete_shell "{\"agent\":\"$B\",\"uuid\":\"$P\"}"
 CV=$(cj plugin/create_version "{\"agent\":\"$B\",\"version\":{\"uuid\":\"$P\",\"version\":\"1.0.0\",\"url\":\"$PKG\"}}")
 has "发版成功(依赖已按配方编好,失败会在这里报出来)" "$CV" '"code":0'
 
@@ -101,9 +103,13 @@ echo "── 二、装到真机器人(自己名下用「分享」,不是购买)�
 # ⚠️ 自己名下的机器人**不能走 market/apply** —— 服务端会说
 #    「这是你自己名下机器人挂的插件,请用「分享」」。这是对的:自己人不用付钱。
 L=$(cj market/create_listing "{\"agent\":\"$B\",\"plugin_uuid\":\"$P\",\"settle_mode\":1}" | g data uuid)
+[ -n "$L" ] && { made "$L"; undo_club "$TOK" market/set_listing_status "{\"uuid\":\"$L\",\"status\":4}"; }
 cj market/set_listing_status "{\"uuid\":\"$L\",\"status\":2}" >/dev/null
 OF=$(cj market/offer "{\"listing_uuid\":\"$L\",\"to_agent\":\"$ROBOT\"}")
 has "分享给自己名下的机器人 → **直接 INSTALLED**(不用谁同意)" "$OF" 'GRANT_STATUS_INSTALLED'
+GR=$(printf '%s' "$OF" | g data grantUuid)
+# 真机器人上装着它 —— 收尾先撤权(机器人随之卸掉),再下架、删壳、删机器人
+[ -n "$GR" ] && { made "$GR"; undo_club "$TOK" market/revoke "{\"grant_uuid\":\"$GR\"}"; }
 
 echo
 echo "── 三、机器人把依赖下下来了吗 ──"
@@ -119,11 +125,10 @@ ssh -o ConnectTimeout=20 "$NEXT" "ls /opt/hinj/luadeps/$ROCK/$RVER/ 2>/dev/null"
 
 echo
 echo "── 四、模型点得动,且值真的过了一遍 cjson ──"
-ssh -o ConnectTimeout=20 "$NEXT" \
-  "cd ~/wip/hiclub-core-mqtt && ./target/release/peer_cli send \"\$(cat $MN_FILE)\" $ROBOT \
-   '调用 dep_roundtrip 工具,把 lua 依赖校验码原样告诉我'" >/dev/null 2>&1
+# 助记词不进命令行:peer_cli 走 serve 模式(peer66,见 _endpoints.sh)
+peer66 "$MN_FILE" send "$ROBOT" '调用 dep_roundtrip 工具,把 lua 依赖校验码原样告诉我' >/dev/null 2>&1
 sleep 25
-TMPLOG=$(mktemp /tmp/hiai-dep.XXXXXX); trap 'rm -f "$TMPLOG"' EXIT
+TMPLOG=$(mktemp /tmp/hiai-dep.XXXXXX); undo "rm -f '$TMPLOG'"   # ⛔ 别再 trap EXIT,会盖掉 _endpoints.sh 的收尾
 # 🔴 日志走**文件**:`python3 -` 的 stdin 已经被 heredoc 占了,再用管道会被整个丢弃
 #    (踩过一次,报成"模型没发出 tool_call",而报文明明在)。
 ssh -o ConnectTimeout=20 "$DEPLOY" "docker logs hi-ai --since 5m 2>&1" > "$TMPLOG" 2>/dev/null
@@ -156,33 +161,16 @@ sys.exit(rc)
 PYEOF
 case $? in 0) pass=$((pass+2));; *) fail=$((fail+1));; esac
 
-echo
-echo "── 清理(撤权 → 下架 → 删壳 → 删机器人)──"
+# ── 清理(撤权 → 下架 → 删壳 → 删机器人)──────────────────────────────────
 #
-# 🔴 **清理也要断言。** 这一段原来把四个调用全 `>/dev/null` 了 ——
-#    2026-09-03 实测:token 中途失效,四步全失败,而脚本照样报「11 / 0」,
-#    在**真机器人上**留下一个 ldep-demo 和一条 INSTALLED 的授权。
-#    这台机器人同事也在用,残留会让他们看到不该有的能力,
-#    而且 `delete_shell` 在还有引用时本来就会被拒 —— 撤权一旦失败,后面必然连锁失败。
+# 🔴 **清理也要断言。** 2026-09-03 实测:token 中途失效,四步全失败,而脚本照样报「11 / 0」,
+#    在**真机器人上**留下一个 ldep-demo 和一条 INSTALLED 的授权(这台机器人同事也在用)。
+#    现在四步都登记在收尾里(_endpoints.sh,后进先出),任何一步没做到都打 ✘、退出码非 0;
+#    之后 purge 再按号删行、复扫到 0。
 #
 # ⚠️ 依赖按**引用计数**回收,不按"这个插件的清单":撤权之后集合里那份
-#    可能还被别的插件用着,brain 不该删它。这里只清我们自己造的东西。
-cleanup_fail=0
-step(){ # step <说明> <路由> <body>
-  local r; r=$(cj "$2" "$3")
-  case "$r" in
-    *'"code":0'*) printf "  ${G}✓${N} 清理:%s\n" "$1";;
-    *) printf "  ${R}✗${N} 清理没做掉:%s\n     → %s\n" "$1" "$(echo "$r"|head -c 160)"
-       cleanup_fail=1;;
-  esac
-}
-GR=$(printf '%s' "$OF" | g data grantUuid)
-[ -n "$GR" ] && step "撤回机器人上的授权" market/revoke "{\"grant_uuid\":\"$GR\"}"
-[ -n "$L" ]  && step "挂牌下架"           market/set_listing_status "{\"uuid\":\"$L\",\"status\":4}"
-step "删插件壳"   plugin/delete_shell "{\"agent\":\"$B\",\"uuid\":\"$P\"}"
-step "删测试机器人" agent/delete "{\"agent\":\"$B\"}"
-# 清理失败要计进失败数 —— 否则"跑通了但把环境弄脏了"会一直显示满分。
-[ "$cleanup_fail" = 0 ] || fail=$((fail+1))
+#    可能还被别的插件用着,brain 不该删它。这里只清我们自己造的东西
+#    (hi_ai_lua_dep 是全机共用的集合,不进 made)。
 
 echo
 printf "结果:通过 ${G}%d${N},失败 ${R}%d${N}\n" "$pass" "$fail"

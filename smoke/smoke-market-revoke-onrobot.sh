@@ -11,7 +11,7 @@
 #   → .66 当场卸掉(注册表里没了)、服务端引用行没了、单据「已撤销」
 #   → 负面:买家拿自己的 token 撤不了(撤权只归卖家)
 #
-# 在 **.64** 上跑(要 ssh 到 .66 取 token、看 brain 日志,到 .65 查库)。夹具全部现造、跑完清掉。
+# 在 **.64** 上跑(要 ssh 到 .66 取 token、看 brain 日志,到 .65 查库)。夹具全部现造、跑完清掉(收尾见 _endpoints.sh)。
 set -uo pipefail
 source "$(dirname "$0")/_endpoints.sh"
 
@@ -32,7 +32,7 @@ try:
     print(d)
 except Exception: print("")
 ' "$@"; }
-cj(){ curl -s $CAC -m 180 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $3" -d "$2"; }
+cj(){ curl_tok "$3" -s $CAC -m 180 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -d "$2"; }   # token 不进命令行
 q(){ mysqlq "$1" "$2"; }
 tok(){ ssh -o ConnectTimeout=15 "$NEXT" "cd /tmp/tokgen && MN_FILE=$1 DEV=app ./target/release/tokgen 2>/dev/null" | grep ^TOKEN= | cut -d= -f2; }
 # brain 最近一次注册表重建 / 就绪那一行(= 现在真装着的全部方法)
@@ -44,23 +44,19 @@ SELLER_TOK=$(tok /tmp/65_seller_mn.txt); BUYER_TOK=$(tok /tmp/rbt_mn.txt)
 [ -n "$SELLER_TOK" ] && [ -n "$BUYER_TOK" ] || { bad "取 token" "$NEXT:/tmp/tokgen"; exit 1; }
 [ "$(ssh -o ConnectTimeout=10 "$NEXT" 'systemctl is-active hinj-brain')" = "active" ] || { bad "前提:.66 的 brain 在跑" "没在跑"; exit 2; }
 
-SB=""; P=""; LID=""; GR=""; BUYER_HAS=""
-# 唯一的 EXIT trap:撤权没成也要把买家那份删掉(BUYER_HAS),机器人回到原样;卖家的挂牌、壳、摊位一并清
-cleanup(){
-  [ -n "$BUYER_HAS" ] && cj plugin/delete_shell "{\"agent\":\"$ROBOT\",\"uuid\":\"$P\"}" "$BUYER_TOK" >/dev/null
-  [ -n "$LID" ] && cj market/set_listing_status "{\"uuid\":\"$LID\",\"status\":4}" "$SELLER_TOK" >/dev/null
-  [ -n "$P" ] && cj plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P\"}" "$SELLER_TOK" >/dev/null
-  [ -n "$SB" ] && cj agent/delete "{\"agent\":\"$SB\"}" "$SELLER_TOK" >/dev/null
-}
-trap cleanup EXIT
+# 收尾走 _endpoints.sh 那一处(made / undo,后进先出):撤权没成也要把买家那份删掉,机器人回到原样;
+# 卖家的挂牌、壳、摊位一并清;授权单等行由 purge 按号删。
 
 echo "── 准备:卖家摆摊,挂一个免费的 lua 插件 ──"
 SB=$(cj agent/create_assistant '{"name":"smk-revoke-seller"}' "$SELLER_TOK" | g data base did)
-LPKG=$(MINIO_HOST=${MINIO_HOST:-192.168.1.65:9000} python3 "$(dirname "$0")/build_luapkg.py" 2>&1 | tail -1)
+[ -n "$SB" ] && { made "$SB"; undo_club "$SELLER_TOK" agent/delete "{\"agent\":\"$SB\"}"; }
+LPKG=$(pkg_build build_luapkg.py)
 P=$(cj plugin/create_shell "{\"agent\":\"$SB\",\"name\":\"smk-revoke\"}" "$SELLER_TOK" | g data uuid)
+[ -n "$P" ] && { made "$P"; undo_club "$SELLER_TOK" plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P\"}"; }
 cj plugin/create_version "{\"agent\":\"$SB\",\"version\":{\"uuid\":\"$P\",\"version\":\"1.0.0\",\"url\":\"$LPKG\"}}" "$SELLER_TOK" >/dev/null
 PRE=$(q hi_ai "SELECT fn_prefix FROM hi_ai_plugin WHERE uuid='$P';")
 LID=$(cj market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P\",\"settle_mode\":1,\"price\":\"0\"}" "$SELLER_TOK" | g data uuid)
+[ -n "$LID" ] && { made "$LID"; undo_club "$SELLER_TOK" market/set_listing_status "{\"uuid\":\"$LID\",\"status\":4}"; }
 cj market/set_listing_status "{\"uuid\":\"$LID\",\"status\":2}" "$SELLER_TOK" >/dev/null
 [ -n "$SB" ] && [ -n "$P" ] && [ -n "$PRE" ] && [ -n "$LID" ] || { bad "准备" "SB=$SB P=$P PRE=$PRE LID=$LID"; exit 1; }
 ok "卖家摊位 $SB,插件 $P(方法前缀 $PRE),挂牌 $LID"
@@ -70,7 +66,9 @@ echo "── 一、买家给 .66 机器人买下,机器人真装上 ──"
 A=$(cj market/apply "{\"listing_uuid\":\"$LID\",\"to_agent\":\"$ROBOT\"}" "$BUYER_TOK")
 chk "免费购买:一步到已装载" "$(echo "$A"|g data status)" "GRANT_STATUS_INSTALLED"
 GR=$(echo "$A"|g data grantUuid)
-BUYER_HAS=1
+made "$GR"
+# 撤权没成的话,收尾替买家把它从机器人上删掉(卖家撤权成了就划掉这条)
+undo_club "$BUYER_TOK" plugin/delete_shell "{\"agent\":\"$ROBOT\",\"uuid\":\"$P\"}"
 on=""; for _ in $(seq 40); do case "$(methods)" in *"\"${PRE}_"*) on=1; break;; esac; sleep 3; done
 [ -n "$on" ] && ok "**机器人真装上了**(注册表里出现 ${PRE}_ 的方法)" || { bad "机器人 120 秒内没装上" "看 $NEXT 的 brain.log"; exit 1; }
 F=$(ssh -o ConnectTimeout=10 "$NEXT" "ls /opt/hinj/plugins 2>/dev/null | grep -c '^$P'")
@@ -89,7 +87,7 @@ off=""; for _ in $(seq 40); do case "$(methods)" in *"\"${PRE}_"*) sleep 3;; *) 
 [ -n "$off" ] && ok "**机器人当场卸掉了**(注册表里没有 ${PRE}_ 了)" || bad "机器人 120 秒内没卸掉" "$(methods | head -c 200)"
 # 插件文件在 /opt/hinj/plugins(HINJ_PLUGIN_DIR 可改),文件名以插件 uuid 开头
 chk "机器人本地文件也删了(/opt/hinj/plugins 里没有 $P)" "$(ssh -o ConnectTimeout=10 "$NEXT" "ls /opt/hinj/plugins 2>/dev/null | grep -c '^$P'")" "0"
-BUYER_HAS=""   # 已经收回,cleanup 不用再替买家删
+[ "$(echo "$RV"|g code)" = "0" ] && undone_club "$BUYER_TOK" plugin/delete_shell "{\"agent\":\"$ROBOT\",\"uuid\":\"$P\"}"
 
 echo
 printf "结果:通过 ${G}%d${N},失败 ${R}%d${N}\n" "$pass" "$fail"

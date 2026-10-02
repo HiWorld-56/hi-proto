@@ -2,7 +2,9 @@
 # lua 插件端到端:发版 → 认成 LUA → 制品当场就绪 → 下发清单里拿得到 → 模型点得动
 set -uo pipefail
 source "$(dirname "$0")/_endpoints.sh"
-TOK="$1"; PKG="$2"
+# 凭据从环境变量收(命令行参数谁都 ps 得到);PKG 可不给(现造、退出时删)
+[ $# -eq 0 ] || { echo "不收位置参数(token 不许进命令行):USER_TOK=… [PKG=…] bash $0" >&2; exit 2; }
+TOK="${USER_TOK:?需要 USER_TOK(用户 token)}"; PKG="${PKG:-}"
 # 下发清单那步要走 grpc:protoset 由 _endpoints.sh 解析成 $PS;
 # 端点用**内网明文**(9536)而不是 hi.lan:443 —— 与 null_test.sh 同一套,
 # 免得再拖一份 CA 进来。
@@ -13,7 +15,7 @@ pass=0; fail=0
 ok(){ printf "  \033[32m✓\033[0m %s\n" "$1"; pass=$((pass+1)); }
 bad(){ printf "  \033[31m✗\033[0m %s  (%s)\n" "$1" "$2"; fail=$((fail+1)); }
 has(){ case "$2" in *"$3"*) ok "$1";; *) bad "$1" "没有 '$3': $(echo "$2"|head -c 300)";; esac; }
-cj(){ curl -s $CAC -m 180 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $TOK" -d "$2"; }
+cj(){ curl_tok "$TOK" -s $CAC -m 180 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -d "$2"; }
 g(){ python3 -c '
 import sys,json
 try:
@@ -23,22 +25,20 @@ try:
 except Exception: print("")
 ' "$@"; }
 
-# 收尾:删壳、删测试机器人。挂在 EXIT 上 —— 中途 exit 也得删,否则每跑一次在开发市场留一对
-# (2026-09-22 清过一次:lua-demo / lua-bot 各攒了六十多个)。退出码不受影响。
-B=""; P=""; RDID=""; RP=""; RTOK=""
-cleanup(){
-  [ -n "$P" ] && cj plugin/delete_shell "{\"agent\":\"$B\",\"uuid\":\"$P\"}" >/dev/null
-  [ -n "$B" ] && cj agent/delete "{\"agent\":\"$B\"}" >/dev/null
-  [ -n "$RP" ] && TOK="$RTOK" cj plugin/delete_shell "{\"agent\":\"$RDID\",\"uuid\":\"$RP\"}" >/dev/null
-}
-trap cleanup EXIT
+# 收尾:删壳、删测试机器人 —— 走 _endpoints.sh 那一处(made / undo,中途 exit 也删;
+# 2026-09-22 清过一次:lua-demo / lua-bot 各攒了六十多个)。收尾没做干净会让退出码非 0。
+# 不给包就现造(退出时删);给了是调用方的,本脚本不删
+[ -n "$PKG" ] || PKG=$(pkg_build build_luapkg.py) || { echo "造 lua 包失败"; exit 1; }
+RDID=""; RP=""; RTOK=""
 
 echo "── 发版:上传的是 lua 包 ──"
 B=$(cj agent/create_assistant '{"name":"lua-bot"}' | g data base did)
 [ -z "$B" ] && { echo "建机器人失败"; exit 1; }
+made "$B"; undo_club "$TOK" agent/delete "{\"agent\":\"$B\"}"
 cj api_key/create "{\"agent\":\"$B\"}" >/dev/null
 P=$(cj plugin/create_shell "{\"agent\":\"$B\",\"name\":\"lua-demo\"}" | g data uuid)
 [ -z "$P" ] && { echo "建壳失败"; exit 1; }
+made "$P"; undo_club "$TOK" plugin/delete_shell "{\"agent\":\"$B\",\"uuid\":\"$P\"}"
 CV=$(cj plugin/create_version "{\"agent\":\"$B\",\"version\":{\"uuid\":\"$P\",\"version\":\"1.0.0\",\"url\":\"$PKG\"}}")
 echo "  机器人=$B 插件=$P"
 echo "  create_version 返回:$(echo "$CV"|head -c 200)"
@@ -99,6 +99,7 @@ RDID=$(printf '%s\n' "$RGEN" | grep '^DID=' | cut -d= -f2-)
 # 原来靠的是 08-30 手工留下的一个 lua-on-robot —— 那个一被清掉,这里就恒红,而且看着像下发坏了。
 if [ -n "$RTOK" ] && [ -n "$RDID" ]; then
   RP=$(TOK="$RTOK" cj plugin/create_shell "{\"agent\":\"$RDID\",\"name\":\"lua-on-robot\"}" | g data uuid)
+  [ -n "$RP" ] && { made "$RP"; undo_club "$RTOK" plugin/delete_shell "{\"agent\":\"$RDID\",\"uuid\":\"$RP\"}"; }
   RCV=$(TOK="$RTOK" cj plugin/create_version "{\"agent\":\"$RDID\",\"version\":{\"uuid\":\"$RP\",\"version\":\"1.0.0\",\"url\":\"$PKG\"}}" | g code)
   [ -n "$RP" ] && [ "$RCV" = "0" ] && ok "前提:在机器人 $RDID 自己身上挂了 lua 插件 $RP" \
                                   || bad "前提:在机器人身上挂 lua 插件失败" "shell=$RP create_version code=$RCV"
@@ -107,7 +108,7 @@ if [ -z "$RTOK" ] || [ -z "$RP" ]; then
   printf "  \033[33m—\033[0m 没验:拿不到机器人 token(.66 的 /tmp/tokgen)或挂不上插件\n"
 else
   # arch 传 x86_64:清单要按机器人架构筛 —— lua 的 target=any 通吃,rust 的必须同架构。
-  DEV_LIST=$(grpcurl -plaintext -protoset "$PS" -H "Authorization: Bearer $RTOK" \
+  DEV_LIST=$(grpcurl_tok "$RTOK" -plaintext -protoset "$PS" \
                -d '{"arch":"x86_64"}' "$CLUB_GRPC_PLAIN" hi.club.AgentPlugin/ListOnDevice 2>&1)
   case "$DEV_LIST" in
     *'"list"'*)
@@ -158,7 +159,7 @@ echo "结果:通过 $pass,失败 $fail"
 #   TOK=$(cd /tmp/tokgen && MN_FILE=/tmp/65_vclient_mn.txt DEV=embedded \
 #         ./target/release/tokgen | grep '^TOKEN=' | cut -d= -f2)     # 在 .66 上
 #   /tmp/grpcurl $(tp $CLUB_GRPC) -protoset /tmp/hi.protoset \
-#     -H "authorization: Bearer $TOK" -d '{"arch":"x86_64"}' \
+#     -expand-headers -H 'authorization: Bearer ${TOK}' -d '{"arch":"x86_64"}' \
 #     $CLUB_GRPC hi.club.AgentPlugin/ListOnDevice
 #
 # 该看到 lua 那条带 lang=PLUGIN_LANG_LUA、target="any";

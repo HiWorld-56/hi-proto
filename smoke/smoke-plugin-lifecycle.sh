@@ -16,14 +16,17 @@
 #
 # ## 用法
 #
-#   bash smoke-plugin-lifecycle.sh <用户token> <lua包url>
+#   USER_TOK=<用户token> [PKG=<lua包url>] bash smoke-plugin-lifecycle.sh      不给包就现造(退出时删)
+#   (token 只从环境变量收 —— 命令行参数谁都 ps 得到)
 #
 # lua 包来自 `build_luapkg.py`。用 lua 是因为它**发版即就绪**,
 # 不用等交叉编译,这条脚本才能在几十秒内跑完。
 set -uo pipefail
 source "$(dirname "$0")/_endpoints.sh"
-TOK="${1:?用法: smoke-plugin-lifecycle.sh <用户token> <lua包url>}"
-PKG="${2:?需要 lua 插件包 url(build_luapkg.py)}"
+[ $# -eq 0 ] || { echo "不收位置参数(token 不许进命令行):USER_TOK=… [PKG=…] bash $0" >&2; exit 2; }
+TOK="${USER_TOK:?需要 USER_TOK(用户 token)}"
+PKG="${PKG:-}"
+[ -n "$PKG" ] || PKG=$(pkg_build build_luapkg.py) || { echo "造 lua 包失败"; exit 1; }
 
 G="\033[32m"; R="\033[31m"; Y="\033[33m"; N="\033[0m"
 pass=0; fail=0
@@ -31,9 +34,9 @@ ok(){   printf "  ${G}✓${N} %s\n" "$1"; pass=$((pass+1)); }
 bad(){  printf "  ${R}✗${N} %s\n     → %s\n" "$1" "$2"; fail=$((fail+1)); }
 sk(){   printf "  ${Y}—${N} 没验:%s\n" "$1"; }
 has(){  case "$2" in *"$3"*) ok "$1";; *) bad "$1" "没有 '$3':$(echo "$2"|head -c 200)";; esac; }
-cj(){ curl -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' \
-        -H "Authorization: Bearer $TOK" -d "$2"; }
-cg(){ curl -s $CAC -m 120 "$CLUB_API/$1" -H "Authorization: Bearer $TOK"; }
+cj(){ curl_tok "$TOK" -s $CAC -m 120 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' \
+        -d "$2"; }
+cg(){ curl_tok "$TOK" -s $CAC -m 120 "$CLUB_API/$1"; }
 g(){ python3 -c '
 import sys, json
 try:
@@ -64,9 +67,11 @@ echo "══════ 插件生命周期(发版之后那 10 条没人测过�
 
 B=$(cj agent/create_assistant '{"name":"plc-bot"}' | g data base did)
 [ -n "$B" ] || { echo "建机器人失败"; exit 1; }
+made "$B"; undo_club "$TOK" agent/delete "{\"agent\":\"$B\"}"
 cj api_key/create "{\"agent\":\"$B\"}" >/dev/null
 P=$(cj plugin/create_shell "{\"agent\":\"$B\",\"name\":\"plc-demo\"}" | g data uuid)
 [ -n "$P" ] || { echo "建壳失败"; exit 1; }
+made "$P"; undo_club "$TOK" plugin/delete_shell "{\"agent\":\"$B\",\"uuid\":\"$P\"}"
 for v in 1.0.0 2.0.0; do
   cj plugin/create_version "{\"agent\":\"$B\",\"version\":{\"uuid\":\"$P\",\"version\":\"$v\",\"url\":\"$PKG\"}}" >/dev/null
 done
@@ -163,6 +168,7 @@ L=$(cj market/create_listing "{\"agent\":\"$B\",\"plugin_uuid\":\"$P\",\"settle_
 if [ -z "$L" ]; then
   sk "挂牌没建起来,「删到一个不剩」这条没验"
 else
+  made "$L"; undo_club "$TOK" market/set_listing_status "{\"uuid\":\"$L\",\"status\":4}"
   cj market/set_listing_status "{\"uuid\":\"$L\",\"status\":2}" >/dev/null   # 2 = LISTED
   has "**挂牌中**删掉最后一个版本被拒,且说清了怎么办" \
       "$(cj plugin/delete "{\"agent\":\"$B\",\"uuid\":\"$P\",\"version\":\"2.0.0\"}")" '先到「插件市场」把它下架'
@@ -176,7 +182,9 @@ else
   has "**隐藏**也算还挂着,照样拦" \
       "$(cj plugin/delete "{\"agent\":\"$B\",\"uuid\":\"$P\",\"version\":\"2.0.0\"}")" '先到「插件市场」把它下架'
 
-  cj market/set_listing_status "{\"uuid\":\"$L\",\"status\":4}" >/dev/null   # 4 = DELISTED,真下架
+  case "$(cj market/set_listing_status "{\"uuid\":\"$L\",\"status\":4}")" in   # 4 = DELISTED,真下架
+    *'"code":0'*) undone_club "$TOK" market/set_listing_status "{\"uuid\":\"$L\",\"status\":4}";;
+  esac
 fi
 
 # 真下架(status=4)之后允许删空:此时 active 应变成**没有**,
@@ -189,21 +197,8 @@ case "$(state)" in
   *)                         bad "删光之后 active 不对" "$(state)";;
 esac
 
-echo
-echo "── 清理 ──"
-# 🔴 **清理也要断言**(同 smoke-lua-deps.sh 里那段的理由):
-#    把它 `>/dev/null` 掉的话,token 中途失效时脚本照样满分,而环境被留脏。
-cleanup_fail=0
-for spec in "删插件壳|plugin/delete_shell|{\"agent\":\"$B\",\"uuid\":\"$P\"}" \
-            "删测试机器人|agent/delete|{\"agent\":\"$B\"}"; do
-  name=${spec%%|*}; rest=${spec#*|}; route=${rest%%|*}; body=${rest#*|}
-  r=$(cj "$route" "$body")
-  case "$r" in
-    *'"code":0'*) printf "  ${G}✓${N} 清理:%s\n" "$name";;
-    *) printf "  ${R}✗${N} 清理没做掉:%s\n     → %s\n" "$name" "$(echo "$r"|head -c 160)"; cleanup_fail=1;;
-  esac
-done
-[ "$cleanup_fail" = 0 ] || fail=$((fail+1))
+# 清理:删壳、删机器人登记在收尾里(_endpoints.sh),没做到就 ✘、退出码非 0;
+# 挂牌在正文里真下架(那本身是被测的一步;没下成就由收尾补),行由 purge 按号删 —— 原来它只下架不删,挂牌行一直留着。
 
 echo
 printf "结果:通过 ${G}%d${N},失败 ${R}%d${N}\n" "$pass" "$fail"

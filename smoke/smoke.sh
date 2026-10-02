@@ -38,6 +38,8 @@ put() { $G $(tp $SRC_GRPC) -protoset $PS -d "$1" $SRC_GRPC hi.source.File/Put 2>
 u_rand=$(put "{\"bucket\":\"temp\",\"dir\":\"_smoke\",\"name\":\"a.txt\",\"content\":\"$C\"}")
 u_ts=$(  put "{\"bucket\":\"log\",\"dir\":\"_smoke\",\"name\":\"a.log\",\"content\":\"$C\",\"nameMode\":\"NAME_TIMESTAMP\"}")
 u_keep=$(put "{\"bucket\":\"log\",\"dir\":\"_smoke\",\"name\":\"keep.log\",\"content\":\"$C\",\"nameMode\":\"NAME_KEEP\"}")
+# 三个对象退出时删掉(hi-source 的 Delete,按 url;KEEP 那个是同名覆盖,也一并删)
+for _u in "$u_rand" "$u_ts" "$u_keep"; do [ -n "$_u" ] && undo "src_rm '$_u'"; done
 [[ $u_rand =~ /temp/_smoke/[0-9a-f]{32}\.txt$ ]] && ok "RANDOM:纯随机<32hex><ext>不带原名" || bad "RANDOM 命名" "$u_rand"
 [[ $u_ts   =~ /log/_smoke/a_[0-9]{8}T[0-9]{6}\.[0-9]{9}Z\.log$ ]] && ok "TIMESTAMP:可读且字典序即时序" || bad "TIMESTAMP 命名" "$u_ts"
 [[ $u_keep =~ /log/_smoke/keep\.log$ ]] && ok "KEEP:原样可覆盖" || bad "KEEP 命名" "$u_keep"
@@ -80,9 +82,8 @@ else
   bad "有 rpc 找不到实现" "跑 check_impl.py 看详情"
 fi
 
-# 本次产生的对象落在 temp/_smoke 与 log/_smoke:
-# hi-source 没有删除接口(有意的——删除权不该给搬运工),而这两个 bucket 分别有
-# 14 天 / 30 天 lifecycle,会自己过期。要立刻清就用 minio 凭据直接删。
+# 本次产生的三个对象(temp/_smoke、log/_smoke)由收尾按 url 删掉(见上面 undo 那行)。
+# 原来这里写「hi-source 没有删除接口」—— 后来有了(hi.source.File/Delete,内网),这句就过时了。
 
 echo
 echo "结果:通过 $pass,失败 $fail"

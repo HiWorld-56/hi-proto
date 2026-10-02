@@ -19,14 +19,18 @@
 #     那条轴上,机器人执行的方法本来就不会在服务端跑,反之亦然。
 set -uo pipefail
 source "$(dirname "$0")/_endpoints.sh"   # 端点/CA 统一约定(前端可达→域名 TLS,内部→内网 IP)
-TOK="${1:?用法: smoke-parallel.sh <用户token> <插件包url>}"; PKG="${2:?需要测试插件包 url}"
+# 凭据从环境变量收(命令行参数谁都 ps 得到);PKG 可不给(现造、退出时删)
+[ $# -eq 0 ] || { echo "不收位置参数(token 不许进命令行):USER_TOK=… [PKG=…] bash $0" >&2; exit 2; }
+TOK="${USER_TOK:?需要 USER_TOK(用户 token)}"; PKG="${PKG:-}"
 MAGIC="HI-MKT-7Q3XZ9"; SUM="623"
 pass=0; fail=0
 ok(){ printf "  \033[32m✓\033[0m %s\n" "$1"; pass=$((pass+1)); }
 bad(){ printf "  \033[31m✗\033[0m %s  (%s)\n" "$1" "$2"; fail=$((fail+1)); }
 have_db || { echo "够不着 mysql —— 本机没装 mysql 时会 ssh 到 $DB 去查,检查那条路。" >&2; exit 2; }
+# 不给包就现造(退出时删);给了是调用方的,本脚本不删
+[ -n "$PKG" ] || PKG=$(pkg_build build_testpkg.py) || { echo "造测试插件包失败"; exit 1; }
 Q(){ mysqlq hi_ai "$1"; }
-cj(){ curl -s $CAC -m 240 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -H "Authorization: Bearer $TOK" -d "$2"; }
+cj(){ curl_tok "$TOK" -s $CAC -m 240 -X POST "$CLUB_API/$1" -H 'Content-Type: application/json' -d "$2"; }
 g(){ python3 -c '
 import sys,json
 try:
@@ -41,8 +45,11 @@ run_one(){   # $1=模型名(空=默认)  $2=标签
   local B P
   B=$(cj agent/create_assistant "{\"name\":\"par-$TAG\"}" | g data base did)
   [ -z "$B" ] && { bad "[$TAG] 建机器人失败" "-"; return; }
+  made "$B"; undo_club "$TOK" agent/delete "{\"agent\":\"$B\"}"
+  made "par-$TAG-$$" "parx-$TAG-$$"   # 会话号:hi-ai 按它在 redis 里存历史,收尾一并删
   cj api_key/create "{\"agent\":\"$B\"}" >/dev/null
   P=$(cj plugin/create_shell "{\"agent\":\"$B\",\"name\":\"par-$TAG\"}" | g data uuid)
+  [ -n "$P" ] && { made "$P"; undo_club "$TOK" plugin/delete_shell "{\"agent\":\"$B\",\"uuid\":\"$P\"}"; }
   cj plugin/create_version "{\"agent\":\"$B\",\"version\":{\"uuid\":\"$P\",\"version\":\"1.0.0\",\"url\":\"$PKG\"}}" >/dev/null
   [ -n "$MODEL" ] && Q "UPDATE hi_ai_agent SET llm_model='$MODEL' WHERE did='$B';"
   local ACT; ACT=$(Q "SELECT llm_model FROM hi_ai_agent WHERE did='$B';")
@@ -59,8 +66,7 @@ run_one(){   # $1=模型名(空=默认)  $2=标签
   # ⚠️ "两个都跑了" **不等于** "在同一轮并行发出" —— 分两轮跑也能得到同样的答复。
   # 用流式的回显帧坐实:一次 echoToolCalls 帧里若有 2 条 tool_call,那就是同一轮。
   local S N
-  S=$(curl -sN $CAC -m 240 -X POST "$CLUB_API/chat/converse_stream" -H 'Content-Type: application/json' \
-      -H "Authorization: Bearer $TOK" \
+  S=$(curl_tok "$TOK" -sN $CAC -m 240 -X POST "$CLUB_API/chat/converse_stream" -H 'Content-Type: application/json' \
       -d "{\"agent\":\"$B\",\"cid\":\"parx-$TAG-$$\",\"conts\":[{\"type\":\"text\",\"chat\":{\"content\":\"再来一次:取校验令牌,并算 137 加 486。两个都要用工具。\"}}],\"echo_tool_calls\":true}")
   N=$(echo "$S" | python3 -c '
 import sys,json
@@ -79,8 +85,7 @@ print(best)
   [ "${N:-0}" -ge 2 ] && ok "[$TAG] **同一轮并行发出** $N 个 tool_call" \
                       || bad "[$TAG] 没看到同一轮并行" "单帧里最多 ${N:-0} 个调用"
 
-  cj plugin/delete_shell "{\"agent\":\"$B\",\"uuid\":\"$P\"}" >/dev/null
-  cj agent/delete "{\"agent\":\"$B\"}" >/dev/null
+  # 删壳、删机器人在收尾里做(_endpoints.sh)
 }
 
 echo "── 推理后端 A:默认(OpenAI) ──"
