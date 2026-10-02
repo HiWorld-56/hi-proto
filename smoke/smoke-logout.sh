@@ -47,7 +47,7 @@ rows() { mysqlq information_schema "select count(*) from $(tbl "$1") where did='
 
 # ── 夹具:三种登录 ────────────────────────────────────────────────────────────
 DID_MN=/tmp/logout_smoke_did_mn.txt      # hidid PC 登录用
-CAI_MN=/tmp/logout_smoke_cai_mn.txt      # club + hi-ai 共用一个身份(hi-ai 要 club 里有这个人的名片)
+CAI_MN=/tmp/logout_smoke_cai_mn.txt      # club + hi-ai 共用一个身份(hi-ai 不再依赖 club,见 smoke-ai-login.sh;这里共用只为少造一个)
 MAC1=""; MAC2="logout-smoke-pc-2"
 
 # did_login [mac] → 设 DID/APP/DEV/MAC/R;mac 为空用 didtok 默认(did 的哈希)
