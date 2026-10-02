@@ -121,7 +121,7 @@ if [ -n "$gohits" ]; then
   printf '      %s\n' "$gohits"
   fail=$((fail+1))
 else
-  printf "  ${G}✓${N} 六个后端的 .go 里没有 COALESCE(x,'')\n"
+  printf "  ${G}✓${N} 五个后端的 .go 里没有 COALESCE(x,'')\n"
 fi
 if [ -n "$sqlhits" ]; then
   printf "  ${Y}—${N} 一次性脚本里有(已跑过的迁移,不算红)——**确认它们不在本轮发版清单里**:\n"
