@@ -46,6 +46,9 @@ magic 值,答复里出现了才算数。
 | `smoke.sh` | 接口存不存在、鉴权收不收 |
 | `smoke-user.sh` | 用户面基础 |
 | `smoke-ai-login.sh` | hi-ai 扫码登录**不依赖 club**:全新身份只扫 hi-ai 就拿得到 token(hidid 首登注册)、后续调用正常;hidid 没资料时 name absent;老用户不受影响。新身份现造,收尾由 purge 删干净。要 .66 `/tmp/didtok` 支持 `DID_ONLY` |
+| `smoke-ai-register.sh` | hi-ai 邀请码注册(Register.Verify)**只给扫码认出的人发 token**:冒领别人的 did → 7、not_login / logined 会话 → 9、码不被消费;正常注册 token 属于本人、会话用完即失效;同一张码两个会话并发、同一会话两张码并发都恰好成一次。身份与邀请码现造,收尾 purge |
+| `smoke-did-register.sh` | hi-did 邀请码升商户同一判据:冒领 → 7 且对方没被升成商户、not_login → 9;正常升商户;同一张码并发只建一个商户。商户扩展表由收尾 drop |
+| `ui-register.mjs` | **Mac 上跑**:无头 Chrome 真界面 —— 打开 hiai-web / hisrv 登录页、扮 app 扫码、到邀请码页输码、进内页并截图。`node ui-register.mjs ai\|did <截图目录>` |
 | `smoke-market.sh` | 对话路合并 / 多 function call / 市场挂牌与免费购买 |
 | `smoke-logout.sh` | 三家登出与 hi-did PC 独占槽 |
 | `smoke-market-revoke-onrobot.sh` | 卖家从买家的**真机器人**上收回插件 |

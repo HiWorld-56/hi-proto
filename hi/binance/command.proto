@@ -99,5 +99,6 @@ message BinanceCommand {
     BinanceFuturesTicker24h       usds_futures_ticker_24h            = 55 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.ticker_24h
     BinanceSpotKlines             spot_klines                        = 56 [(hi.visibility) = VIS_PARTICIPANT]; // spot.klines
     BinanceFuturesKlines          usds_futures_klines                = 57 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.klines
+    BinanceFuturesPnl             usds_futures_pnl                   = 58 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.pnl(机器人算的)
   }
 }

@@ -81,6 +81,8 @@ message TotalAssetsReq {
 
 message TotalAssetsResp {
   option (hi.audience) = VIS_PUBLIC;
+  // 全网总资产 = **有市场价的币**的市值之和:没有行情的币(如已不支持的 FIL)没有市值,不计入。
+  // 与 ListUsersAssetsResp 里单人的 total 口径不同 —— 单人有一项算不出就 absent。
   optional string n = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
@@ -141,7 +143,12 @@ message GetUserAssetsResp {
 // 币种数据驱动:repeated {coin, amount},加币种不必改 proto(原来每加一种就得手工加字段+分段跳号)。
 message UpdateAssetsReq {
   message Asset {
-    optional string coin   = 1; // 币种标识:btc/eth/usdt_erc20/trx/usdt_trc20/sol/apt/...
+    // 币种规范名 = hi_coin.name = Price.Get 回的 coin.name(大小写照写):
+    //   BTC / ETH / TRX / SOL / APT / USDT-ERC20 / USDT-TRC20 / USDT-SOL / WHDS-TRC20 / BT-TRC20 /
+    //   BT-SOL / PANDA / WHDS-APT / HWHD-APT / SLKJ-APT / WSM-APT;另有只有行情、不能转账的 W3GTS(不在 hi_coin)。
+    // ⚠️ 不是显示名:app 的 CoinConfig 里该传 key(「USDT-TRC20」),不是 name(「USDT TRC20」)。
+    //    已发出去的版本传的显示名由 hi-did 按 hi_coin_alias 归一,新代码别再传。
+    optional string coin   = 1;
     optional string amount = 2;
   }
   repeated Asset assets = 1;
