@@ -86,7 +86,7 @@ message AudioPlay {
 //
 // 于是这条只剩一件事：告诉 face「这台机器人配过币安没有」。
 // **收得到这条 = 配过**（没配过 brain 根本不推），face 据此决定显不显示资产面板。
-// 盈亏不靠手填的本金算，见 hi/binance/binance.proto 的 `BinanceFuturesPnl`。
+// 收益率由 brain 算(初始资金存在 brain 本地),face 用 `BinanceRequest` 问 `usds_futures.pnl`,见 hi/binance/binance.proto 的 `BinanceFuturesPnl`。
 message BinanceSettings {
 }
 
