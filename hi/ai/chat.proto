@@ -209,10 +209,11 @@ message ChatResp {
   optional bool     final  = 1 [(hi.visibility) = VIS_SELF];
   optional string   result = 2 [(hi.visibility) = VIS_SELF];
   repeated ToolCall tools  = 3 [(hi.visibility) = VIS_SELF];
-  // 本轮用户那句**实际被模型读到的样子**:语音(audio_url)已转写成 text,其余原样。
-  // 只在**开一轮**的 Converse 回包里有(final 与否都带),Resume 不带(那一句在开轮时已经给过)。
+  // 这一轮的**问题**:请求里的 `conts` 原样、同序,只把每段语音(audio_url)换成 hi-ai 识别出的那段 text。
+  // 语音转文字只在 hi-ai 做一次(推理前必转,见 service/chat.go 的 Prepare),调用方别另做一遍 ——
+  // 两处识别结果可能不一致。Converse 与 Resume 的回包都带(final 与否都带,续跑带的是开轮那一句)。
   // 用途:club 把机器人的语音对话记进聊天记录时,用户那句存成文字而不是一段录音 url。
-  repeated Content  asked  = 4 [(hi.visibility) = VIS_SELF];
+  repeated Content  question = 4 [(hi.visibility) = VIS_SELF];
 }
 
 // 流式帧(ConverseStream / ResumeStream)。
@@ -253,9 +254,8 @@ message ConverseStreamResp {
   // 仅 type="toolCalls" 时有值 —— 与 ChatResp 的 result/tools 同义。
   optional string   id      = 4 [(hi.visibility) = VIS_SELF]; // 续跑 id(Resume 时带回)
   repeated ToolCall tools   = 5 [(hi.visibility) = VIS_SELF]; // 待客户端执行的工具
-  // 同 ChatResp.asked:本轮用户那句转写后的样子。只在 ConverseStream 的收尾帧(`msg` 或 `toolCalls`)上带,
-  // ResumeStream 不带。
-  repeated Content  asked   = 6 [(hi.visibility) = VIS_SELF];
+  // 同 ChatResp.question。挂在每条流的收尾帧(`msg` 或 `toolCalls`)上,ConverseStream 与 ResumeStream 都带。
+  repeated Content  question = 6 [(hi.visibility) = VIS_SELF];
 }
 
 // 对话(主体=会话)。商户档:hiai web(token)与商户后台服务(apikey)都会调。

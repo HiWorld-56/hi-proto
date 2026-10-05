@@ -134,10 +134,9 @@ service Chat {
   // ⭐ **语音聊天记录**:cid == `hiclub:embedded:<调用者自己>`(机器人的语音路)时,club 在调推理的同时
   //    把这一轮存进聊天记录 —— 会话是「机器人 + 固定虚拟 did `voice_chat`」的二人会话
   //    (会话号与单聊同一算法,`BuildSingleGroupCode(机器人, "voice_chat")`;库里一条 single 记录,
-  //    成员只有机器人)。用户那句**存成文字**:hi-ai 开轮那次回包带回转写后的那句(`hi.ai.ChatResp.asked` / 流式收尾帧的 `asked`),
-  //    club 拿到就写(from = `voice_chat`;语音已转成 text,图片原样;没拿到回包 = 这轮失败,不记);
-  //    机器人的最终答复在 final=true 时写(from = 机器人)—— 中途轮到客户端执行工具的,
-  //    最终答复出在 Resume / ResumeStream 里,同样写。存法与普通消息完全一致(Packet 字节、时间线、保留期),
+  //    成员只有机器人)。用户那句**存成文字**:用 hi-ai 回包里的问题(`hi.ai.ChatResp.question` / 流式收尾帧的 `question`,
+  //    语音已在 hi-ai 识别成 text、其余内容原样)。club 不做语音识别。问与答都在 final=true 那次写(from 分别是 `voice_chat` / 机器人);
+  //    中途轮到客户端执行工具的,final=true 出在 Resume / ResumeStream 里,同样写。存法与普通消息完全一致(Packet 字节、时间线、保留期),
   //    读法是 `Group.ListRecentMessages{peer: "voice_chat"}`(只有机器人自己是成员)。
   rpc Converse (ChatReq) returns (hi.ai.ChatResp) { option (hi.auth) = AUTH_USER; }                                  // 一轮对话(原 Complete + 原 Converse)
   rpc ConverseStream (ChatReq) returns (stream hi.ai.ConverseStreamResp) { option (hi.auth) = AUTH_USER; }           // 同上,流式(原 CompleteStream)
