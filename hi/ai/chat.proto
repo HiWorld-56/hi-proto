@@ -20,12 +20,35 @@ message NewSessionResp {
   optional string cid = 1 [(hi.visibility) = VIS_SELF]; // 新会话 id;原 GenerateCidResp
 }
 
-message ClearHistoryReq {
-  optional string cid = 1;
+// ── 上下文(context):喂给模型的那几组问答,**不是聊天记录(history)** ─────────────
+//
+// 二者是两件不相关的事:
+//   · **上下文**在 hi-ai(redis,按 cid 存 QA 成对,最多 30 对、30 天滑动过期),只用于推理;
+//   · **聊天记录**在 hi-club(消息时间线,`Group.ListMessages` / `Group.ListRecentMessages`),给人看、给插件读。
+// 所以这组方法叫 Get/Clear/AppendContext(曾一度叫 *History,已改回来)。
+//
+// ── 谁能碰哪个 cid(Get/Clear/AppendContext 与 Converse*/Resume* 同一条规则)──────────
+//
+// 「调用者」= `caller`(商户替它的用户填,club 填的是登录主体);**不传 = 商户自己**(hiai-web、商户 apikey)。
+//   · **机器人格式的 cid** —— `hiclub:embedded:<机器人>` / `hiclub:single:<对方>:<机器人>` / `hiclub:group:<群>:<机器人>`,
+//     **最后一段是机器人**:该机器人须是本商户的 agent,且调用者 == 该机器人,或 `master` 有值且调用者 == master。
+//     以 `hiclub:` 开头却不是这三种形状的 → InvalidArgument。
+//   · **其它 cid**(`NewSession` 发的 uuid,web / app 与助手对话用)—— **第一个用它的调用者就是它的主人**,
+//     此后只认他(归属记录与上下文同 TTL,随对话顶回)。
+//   · 不满足 → **NotFound**「会话不存在」(不替人确认别人的会话存在)。
+//
+// ⚠️ `caller` / `master` 是**商户替用户说的话**,hi-ai 信商户、不信用户 —— 所以 hi.club 的同名入参
+//    **故意没有**这两个字段(club 用自己的 Req 类型,由服务端按登录主体与 masterOf 现填)。
+message ClearContextReq {
+  optional string cid    = 1;
+  optional string caller = 2; // 调用者 did(商户替它的用户填);不传 = 商户自己
+  optional string master = 3; // cid 里那台机器人的主人(商户现取的权威值);没主人不传
 }
 
-message GetHistoryReq {
-  optional string cid = 1; // cid 已唯一定位会话,不再带 agent
+message GetContextReq {
+  optional string cid    = 1; // cid 已唯一定位会话,不再带 agent。条数按该会话机器人的 qa_num 截
+  optional string caller = 2; // 同 ClearContextReq
+  optional string master = 3; // 同 ClearContextReq
 }
 
 // 往会话上下文里补一对问答。
@@ -40,10 +63,12 @@ message GetHistoryReq {
 // ⚠️ 上下文只保留最近 30 对,补进来的会挤掉最老的 —— 所以**别拿它记流水账**
 // (高频的周期任务就不该往这里补,否则机器人会"只记得自己在提醒吃药,
 //  不记得主人昨天说过什么")。
-message AppendHistoryReq {
+message AppendContextReq {
   optional string cid       = 1;
   optional string user      = 2; // 摆成"用户问的"那一句,通常是「执行结果查询：<摘要>」
   optional string assistant = 3; // 摆成"机器人答的"那一句,即真正要让它记住的内容
+  optional string caller    = 4; // 同 ClearContextReq
+  optional string master    = 5; // 同 ClearContextReq
 }
 
 message QA {
@@ -52,7 +77,7 @@ message QA {
   repeated Content q = 2 [(hi.visibility) = VIS_SELF]; // User
 }
 
-message GetHistoryResp {
+message GetContextResp {
   option (hi.audience) = VIS_SELF;
   repeated QA list = 1 [(hi.visibility) = VIS_SELF];
 }
@@ -125,6 +150,12 @@ message ChatReq {
   //  null != null 不成立,但**仍然必须先判 master 有值**,别只写相等。)
   // **动钱一律打给 `master`,不打给 `asker`**(NATIVE 内置插件的 withdraw 就是这么写的)。
   optional string     master          = 13;
+  // 调用者 did —— **谁在调这一轮**(商户替它的用户填;club 填登录主体)。不传 = 商户自己。
+  //
+  // 与 `asker` 不是一回事:asker 是"这句话是谁说的"(消息事实),caller 是"谁在用这个 cid"(会话归属的判据)。
+  // 判据见上面 Get/Clear/AppendContext 那段:机器人格式的 cid 只认机器人本人与它的主人(`master`),
+  // 且 cid 里的机器人必须就是 `agent`;其它 cid 第一个用它的人就是主人。不满足 → NotFound。
+  optional string     caller          = 14;
 }
 
 message ToolCallResult {
@@ -134,8 +165,11 @@ message ToolCallResult {
 
 // 工具结果续跑入参(Resume):客户端执行完工具后把结果交回来,接着跑。续跑的模态由原始调用的 id 决定。
 message ToolCallResultsReq {
-  optional string         id   = 1;
-  repeated ToolCallResult list = 2;
+  optional string         id     = 1;
+  repeated ToolCallResult list   = 2;
+  // 调用者 did(同 ChatReq.caller)。**必须与发起这一轮的那个调用者相同**,否则 NotFound ——
+  // 续跑 id 背后是那一轮的完整消息数组(含上下文),拿到 id 的别人不能接着跑、也不能看到答复。
+  optional string         caller = 3;
 }
 
 message ToolSupply {
@@ -175,6 +209,11 @@ message ChatResp {
   optional bool     final  = 1 [(hi.visibility) = VIS_SELF];
   optional string   result = 2 [(hi.visibility) = VIS_SELF];
   repeated ToolCall tools  = 3 [(hi.visibility) = VIS_SELF];
+  // 这一轮的**问题**:请求里的 `conts` 原样、同序,只把每段语音(audio_url)换成 hi-ai 识别出的那段 text。
+  // 语音转文字只在 hi-ai 做一次(推理前必转,见 service/chat.go 的 Prepare),调用方别另做一遍 ——
+  // 两处识别结果可能不一致。Converse 与 Resume 的回包都带(final 与否都带,续跑带的是开轮那一句)。
+  // 用途:club 把机器人的语音对话记进聊天记录时,用户那句存成文字而不是一段录音 url。
+  repeated Content  question = 4 [(hi.visibility) = VIS_SELF];
 }
 
 // 流式帧(ConverseStream / ResumeStream)。
@@ -215,6 +254,8 @@ message ConverseStreamResp {
   // 仅 type="toolCalls" 时有值 —— 与 ChatResp 的 result/tools 同义。
   optional string   id      = 4 [(hi.visibility) = VIS_SELF]; // 续跑 id(Resume 时带回)
   repeated ToolCall tools   = 5 [(hi.visibility) = VIS_SELF]; // 待客户端执行的工具
+  // 同 ChatResp.question。挂在每条流的收尾帧(`msg` 或 `toolCalls`)上,ConverseStream 与 ResumeStream 都带。
+  repeated Content  question = 6 [(hi.visibility) = VIS_SELF];
 }
 
 // 对话(主体=会话)。商户档:hiai web(token)与商户后台服务(apikey)都会调。
@@ -243,9 +284,9 @@ message ConverseStreamResp {
 service Chat {
   // ── 会话管理 ──
   rpc NewSession (google.protobuf.Empty) returns (NewSessionResp) { option (hi.auth) = AUTH_MERCHANT; }   // 建会话(原 GenerateCid)
-  rpc GetHistory (GetHistoryReq) returns (GetHistoryResp) { option (hi.auth) = AUTH_MERCHANT; }            // 取会话上下文(原 GetContext)
-  rpc ClearHistory (ClearHistoryReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 清上下文(原 ClearContext)
-  rpc AppendHistory (AppendHistoryReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 补一对问答(机器人自己做完事之后,见 AppendHistoryReq)
+  rpc GetContext (GetContextReq) returns (GetContextResp) { option (hi.auth) = AUTH_MERCHANT; }            // 取会话上下文(按该机器人的 qa_num 截;一度叫 GetHistory)
+  rpc ClearContext (ClearContextReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 清上下文(一度叫 ClearHistory)
+  rpc AppendContext (AppendContextReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 补一对问答(机器人自己做完事之后,见 AppendContextReq;一度叫 AppendHistory)
   // ── 对话:一轮 = 一个循环,中途只在"轮到客户端"时返回 ──
   rpc Converse (ChatReq) returns (ChatResp) { option (hi.auth) = AUTH_MERCHANT; }                          // 一轮对话(原 Complete + 原 Converse)
   rpc ConverseStream (ChatReq) returns (stream ConverseStreamResp) { option (hi.auth) = AUTH_MERCHANT; }   // 同上,流式(原 CompleteStream)

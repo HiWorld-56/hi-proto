@@ -1,20 +1,20 @@
 # hi-proto 接口全量核对表
 
-**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.10-dev.5` @ `c12a0a6`)。
+**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.25-dev.2` @ `6cc0c0a`)。
 上一版是手写的,内容停在重构前 —— 档位名、rpc 数量、方法名全部过时,当成当前清单会被误导,故改为随发布自动重生成。
 
-共 **357** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
+共 **390** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
 
 ## 档位分布
 
 | 档位 | 数量 |
 |---|---|
-| `AUTH_USER` | 147 |
-| `AUTH_MERCHANT` | 95 |
-| `AUTH_NONE` | 57 |
-| `AUTH_SUPERADMIN` | 32 |
-| `AUTH_WEB3` | 17 |
-| `AUTH_INTERNAL` | 11 |
+| `AUTH_USER` | 160 |
+| `AUTH_MERCHANT` | 98 |
+| `AUTH_NONE` | 63 |
+| `AUTH_SUPERADMIN` | 51 |
+| `AUTH_WEB3` | 14 |
+| `AUTH_INTERNAL` | 6 |
 
 ## 全量清单
 
@@ -59,8 +59,9 @@
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
-| GenerateReqId | `AUTH_NONE` | hi.did.GenerateReqIdReq | hi.RequestId | POST /api/v1/auth/generate_req_id |
+| GenerateReqId | `AUTH_NONE` | hi.did.GenerateReqIdReq | hi.did.LoginQr | POST /api/v1/auth/generate_req_id |
 | GetReqStatus | `AUTH_NONE` | hi.RequestId | hi.did.ReqStatusResp | POST /api/v1/auth/get_req_status |
+| Logout | `AUTH_NONE` | hi.did.RefreshTokenReq | google.protobuf.Empty | POST /api/v1/auth/logout |
 | RefreshToken | `AUTH_NONE` | hi.did.RefreshTokenReq | hi.AuthToken | POST /api/v1/auth/refresh_token |
 
 ### hi.ai.Base
@@ -73,10 +74,11 @@
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
-| ClearHistory | `AUTH_MERCHANT` | ClearHistoryReq | google.protobuf.Empty | POST /api/v1/chat/clear_history |
+| AppendContext | `AUTH_MERCHANT` | AppendContextReq | google.protobuf.Empty | — |
+| ClearContext | `AUTH_MERCHANT` | ClearContextReq | google.protobuf.Empty | POST /api/v1/chat/clear_context |
 | Converse | `AUTH_MERCHANT` | ChatReq | ChatResp | POST /api/v1/chat/converse |
 | ConverseStream ⇄ | `AUTH_MERCHANT` | ChatReq | ConverseStreamResp | POST /api/v1/chat/converse_stream |
-| GetHistory | `AUTH_MERCHANT` | GetHistoryReq | GetHistoryResp | POST /api/v1/chat/get_history |
+| GetContext | `AUTH_MERCHANT` | GetContextReq | GetContextResp | POST /api/v1/chat/get_context |
 | NewSession | `AUTH_MERCHANT` | google.protobuf.Empty | NewSessionResp | GET /api/v1/chat/new_session |
 | Resume | `AUTH_MERCHANT` | ToolCallResultsReq | ChatResp | POST /api/v1/chat/resume |
 | ResumeStream ⇄ | `AUTH_MERCHANT` | ToolCallResultsReq | ConverseStreamResp | POST /api/v1/chat/resume_stream |
@@ -132,7 +134,7 @@
 | Edit | `AUTH_MERCHANT` | EditPluginReq | google.protobuf.Empty | POST /api/v1/plugin/edit |
 | Get | `AUTH_MERCHANT` | GetPluginReq | GetPluginResp | GET /api/v1/plugin/get |
 | List | `AUTH_MERCHANT` | ListPluginsReq | ListPluginsResp | POST /api/v1/plugin/list |
-| ListNative | `AUTH_MERCHANT` | ListNativeReq | ListNativeResp | — |
+| ListOnDevice | `AUTH_MERCHANT` | ListOnDeviceReq | ListOnDeviceResp | — |
 | ListVersions | `AUTH_MERCHANT` | ListVersionsReq | ListVersionsResp | POST /api/v1/plugin/list_versions |
 | PublicBriefs | `AUTH_MERCHANT` | PublicBriefsReq | PublicBriefsResp | — |
 | RetryBuild | `AUTH_MERCHANT` | RetryBuildReq | google.protobuf.Empty | POST /api/v1/plugin/retry_build |
@@ -202,6 +204,9 @@
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | Build | `AUTH_INTERNAL` | BuildReq | BuildResp | — |
+| BuildLuaDep | `AUTH_INTERNAL` | BuildLuaDepReq | BuildLuaDepResp | — |
+| LuaDepRequires | `AUTH_INTERNAL` | LuaDepRequiresReq | LuaDepRequiresResp | — |
+| VerifyLua | `AUTH_INTERNAL` | VerifyLuaReq | VerifyLuaResp | — |
 
 ### hi.ai.plugin.Runner
 
@@ -223,6 +228,7 @@
 | GetDefaultConfig | `AUTH_USER` | google.protobuf.Empty | hi.ai.DefaultConfigResp | GET /api/v1/agent/get_default_config |
 | GetUsage | `AUTH_USER` | hi.ai.AgentUsageReq | hi.ai.AgentUsageResp | POST /api/v1/agent/get_usage |
 | List | `AUTH_USER` | hi.ai.ListAgentsReq | ListAgentsResp | POST /api/v1/agent/list |
+| SetMoment | `AUTH_USER` | SetAgentMomentReq | google.protobuf.Empty | POST /api/v1/agent/set_moment |
 | Transfer | `AUTH_USER` | TransferReq | google.protobuf.Empty | POST /api/v1/agent/transfer |
 | UnbindMaster | `AUTH_USER` | MasterBindReq | google.protobuf.Empty | POST /api/v1/agent/unbind_master |
 
@@ -230,6 +236,7 @@
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
+| GetMoment | `AUTH_NONE` | GetAgentMomentReq | GetAgentMomentResp | POST /api/v1/agent_directory/get_moment |
 | ListOnline | `AUTH_NONE` | ListOnlineReq | ListOnlineResp | POST /api/v1/agent_directory/list_online |
 
 ### hi.club.AgentManage
@@ -242,7 +249,7 @@
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
-| ListNative | `AUTH_USER` | ListNativeReq | hi.ai.ListNativeResp | — |
+| ListOnDevice | `AUTH_USER` | ListOnDeviceReq | hi.ai.ListOnDeviceResp | — |
 
 ### hi.club.ApiKey
 
@@ -263,7 +270,7 @@
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
-| GenerateReqId | `AUTH_NONE` | hi.did.GenerateReqIdReq | hi.RequestId | POST /api/v1/auth/generate_req_id |
+| GenerateReqId | `AUTH_NONE` | hi.did.GenerateReqIdReq | hi.did.LoginQr | POST /api/v1/auth/generate_req_id |
 | GetReqStatus | `AUTH_NONE` | hi.RequestId | hi.did.ReqStatusResp | POST /api/v1/auth/get_req_status |
 | Logout | `AUTH_NONE` | hi.did.RefreshTokenReq | google.protobuf.Empty | POST /api/v1/auth/logout |
 | RefreshToken | `AUTH_NONE` | hi.did.RefreshTokenReq | hi.AuthToken | POST /api/v1/auth/refresh_token |
@@ -280,10 +287,11 @@
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
-| ClearHistory | `AUTH_USER` | hi.ai.ClearHistoryReq | google.protobuf.Empty | POST /api/v1/chat/clear_history |
+| AppendContext | `AUTH_USER` | AppendContextReq | google.protobuf.Empty | — |
+| ClearContext | `AUTH_USER` | ClearContextReq | google.protobuf.Empty | POST /api/v1/chat/clear_context |
 | Converse | `AUTH_USER` | ChatReq | hi.ai.ChatResp | POST /api/v1/chat/converse |
 | ConverseStream ⇄ | `AUTH_USER` | ChatReq | hi.ai.ConverseStreamResp | POST /api/v1/chat/converse_stream |
-| GetHistory | `AUTH_USER` | hi.ai.GetHistoryReq | GetHistoryResp | POST /api/v1/chat/get_history |
+| GetContext | `AUTH_USER` | GetContextReq | GetContextResp | POST /api/v1/chat/get_context |
 | NewSession | `AUTH_USER` | google.protobuf.Empty | hi.ai.NewSessionResp | GET /api/v1/chat/new_session |
 | Resume | `AUTH_USER` | ToolCallResultsReq | hi.ai.ChatResp | POST /api/v1/chat/resume |
 | ResumeStream ⇄ | `AUTH_USER` | ToolCallResultsReq | hi.ai.ConverseStreamResp | POST /api/v1/chat/resume_stream |
@@ -299,8 +307,10 @@
 | GetRole | `AUTH_USER` | GetRoleReq | GetRoleResp | — |
 | Invite | `AUTH_USER` | InviteGroupReq | google.protobuf.Empty | — |
 | Join | `AUTH_USER` | JoinGroupReq | google.protobuf.Empty | — |
+| ListByCreator | `AUTH_USER` | ListGroupsByCreatorReq | ListGroupsByCreatorResp | — |
 | ListMembers | `AUTH_USER` | ListGroupMembersReq | GroupInfo | — |
 | ListMessages | `AUTH_USER` | ListGroupMessagesReq | ListGroupMessagesResp | — |
+| ListRecentMessages | `AUTH_USER` | ListRecentMessagesReq | ListRecentMessagesResp | — |
 | MuteMembers | `AUTH_USER` | MuteMembersReq | google.protobuf.Empty | — |
 | Quit | `AUTH_USER` | QuitGroupReq | google.protobuf.Empty | — |
 | Remove | `AUTH_USER` | RemoveGroupReq | google.protobuf.Empty | — |
@@ -351,7 +361,10 @@
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | GetListing | `AUTH_NONE` | GetListingReq | GetListingResp | POST /api/v1/market_directory/get_listing |
+| GetSeller | `AUTH_NONE` | GetSellerReq | MarketSeller | POST /api/v1/market_directory/get_seller |
 | ListAgentListings | `AUTH_NONE` | ListAgentListingsReq | SearchListingsResp | POST /api/v1/market_directory/list_agent_listings |
+| ListSellerStalls | `AUTH_NONE` | ListSellerStallsReq | ListSellerStallsResp | POST /api/v1/market_directory/list_seller_stalls |
+| ListSellerUsers | `AUTH_NONE` | ListSellerUsersReq | ListSellerUsersResp | POST /api/v1/market_directory/list_seller_users |
 | ListSellers | `AUTH_NONE` | hi.Pagination | ListSellersResp | POST /api/v1/market_directory/list_sellers |
 | SearchListings | `AUTH_NONE` | SearchListingsReq | SearchListingsResp | POST /api/v1/market_directory/search_listings |
 
@@ -367,8 +380,10 @@
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
+| Join | `AUTH_USER` | JoinMerchantReq | google.protobuf.Empty | POST /api/v1/merchant/join |
 | List | `AUTH_USER` | google.protobuf.Empty | hi.did.MerchantListResp | GET /api/v1/merchant/list |
 | ListGreeters | `AUTH_USER` | ListGreetersReq | hi.did.ListUsersResp | POST /api/v1/merchant/list_greeters |
+| ListUsers | `AUTH_USER` | ListMerchantUsersReq | MerchantListUsersResp | POST /api/v1/merchant/list_users |
 
 ### hi.club.MerchantManage
 
@@ -384,13 +399,6 @@
 | ListLlms | `AUTH_USER` | google.protobuf.Empty | hi.ai.ModelListResp | GET /api/v1/model/list_llms |
 | ListStts | `AUTH_USER` | google.protobuf.Empty | hi.ai.ListSTTResp | GET /api/v1/model/list_stts |
 | ListTts | `AUTH_USER` | google.protobuf.Empty | hi.ai.ModelListResp | GET /api/v1/model/list_tts |
-
-### hi.club.Order
-
-| 方法 | 档位 | 入参 | 返回 | HTTP |
-|---|---|---|---|---|
-| Pull | `AUTH_WEB3` | hi.SignedData | PullOrdersResp | — |
-| Report | `AUTH_WEB3` | hi.SignedData | google.protobuf.Empty | — |
 
 ### hi.club.Permission
 
@@ -435,12 +443,6 @@
 |---|---|---|---|---|
 | Get | `AUTH_NONE` | hi.did.GetPriceReq | hi.did.GetPriceResp | — |
 
-### hi.club.Publisher
-
-| 方法 | 档位 | 入参 | 返回 | HTTP |
-|---|---|---|---|---|
-| Publish | `AUTH_USER` | PublishReq | google.protobuf.Empty | — |
-
 ### hi.club.PushManager
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
@@ -482,22 +484,6 @@
 |---|---|---|---|---|
 | List | `AUTH_USER` | google.protobuf.Empty | hi.did.ListSuperAdminUsersResp | GET /api/v1/super_admin/list |
 
-### hi.club.Trade
-
-| 方法 | 档位 | 入参 | 返回 | HTTP |
-|---|---|---|---|---|
-| Add | `AUTH_USER` | AddTradeReq | AddTradeResp | — |
-| Get | `AUTH_USER` | GetTradeReq | GetTradeResp | GET /api/v1/trade/get |
-| GetFee | `AUTH_USER` | GetTradeFeeReq | GetTradeFeeResp | — |
-| List | `AUTH_USER` | ListTradesReq | ListTradesResp | POST /api/v1/trade/list |
-| UpdateTransHash | `AUTH_USER` | UpdateTransHashReq | google.protobuf.Empty | — |
-
-### hi.club.TradeManage
-
-| 方法 | 档位 | 入参 | 返回 | HTTP |
-|---|---|---|---|---|
-| List | `AUTH_SUPERADMIN` | TradeManageListReq | ListTradesResp | POST /api/v1/trade_manage/list |
-
 ### hi.club.Training
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
@@ -517,18 +503,17 @@
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | AddFriend | `AUTH_USER` | AddFriendReq | AddFriendResp | — |
-| DeleteAllSystemMessage | `AUTH_USER` | google.protobuf.Empty | google.protobuf.Empty | — |
 | DeleteFriend | `AUTH_USER` | DeleteFriendReq | google.protobuf.Empty | — |
-| DeleteSystemMessage | `AUTH_USER` | DeleteSystemMessageReq | google.protobuf.Empty | — |
 | GetCurrent | `AUTH_USER` | google.protobuf.Empty | UserInfo | — |
 | GetOther | `AUTH_USER` | GetUserReq | hi.Entity | — |
-| HandleSystemMessage | `AUTH_USER` | HandleSystemMessageReq | google.protobuf.Empty | — |
+| HandleNotice | `AUTH_USER` | HandleNoticeReq | google.protobuf.Empty | — |
 | ListGroups | `AUTH_USER` | google.protobuf.Empty | ListGroupsResp | — |
+| ListNoticeStatuses | `AUTH_USER` | ListNoticeStatusesReq | ListNoticeStatusesResp | — |
+| ListNotices | `AUTH_USER` | ListNoticesReq | ListNoticesResp | — |
+| ListPendingNotices | `AUTH_USER` | google.protobuf.Empty | ListPendingNoticesResp | — |
 | ListRelations | `AUTH_USER` | google.protobuf.Empty | ListRelationsResp | — |
-| ListSystemMessages | `AUTH_USER` | ListSystemMessagesReq | SystemMessages | — |
 | MarkNoticeProcessed | `AUTH_USER` | MarkNoticeProcessedReq | google.protobuf.Empty | — |
 | SetRemark | `AUTH_USER` | SetRemarkReq | google.protobuf.Empty | — |
-| UnprocessedSysMsgCount | `AUTH_USER` | google.protobuf.Empty | UnprocessedSysMsgCountResp | — |
 | Update | `AUTH_USER` | UpdateUserReq | UserInfo | — |
 
 ### hi.club.UserDirectory
@@ -542,29 +527,6 @@
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | UpdateAddresses | `AUTH_WEB3` | hi.SignedData | google.protobuf.Empty | — |
-
-### hi.club.trade.Order
-
-| 方法 | 档位 | 入参 | 返回 | HTTP |
-|---|---|---|---|---|
-| Pull | `AUTH_INTERNAL` | hi.SignedData | hi.club.PullOrdersResp | — |
-| Report | `AUTH_INTERNAL` | hi.SignedData | google.protobuf.Empty | — |
-
-### hi.club.trade.Trade
-
-| 方法 | 档位 | 入参 | 返回 | HTTP |
-|---|---|---|---|---|
-| Add | `AUTH_INTERNAL` | hi.club.AddTradeReq | hi.club.AddTradeResp | — |
-| Get | `AUTH_INTERNAL` | hi.club.GetTradeReq | hi.club.GetTradeResp | — |
-| GetFee | `AUTH_INTERNAL` | hi.club.GetTradeFeeReq | hi.club.GetTradeFeeResp | — |
-| List | `AUTH_INTERNAL` | ListTradesReq | hi.club.ListTradesResp | — |
-| UpdateTransHash | `AUTH_INTERNAL` | hi.club.UpdateTransHashReq | google.protobuf.Empty | — |
-
-### hi.club.trade.TradeManage
-
-| 方法 | 档位 | 入参 | 返回 | HTTP |
-|---|---|---|---|---|
-| List | `AUTH_INTERNAL` | hi.club.TradeManageListReq | hi.club.ListTradesResp | — |
 
 ### hi.did.Assets
 
@@ -580,9 +542,9 @@
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
-| GenerateReqId | `AUTH_NONE` | GenerateReqIdReq | hi.RequestId | POST /api/v1/auth/generate_req_id |
+| GenerateReqId | `AUTH_NONE` | GenerateReqIdReq | LoginQr | POST /api/v1/auth/generate_req_id |
 | GetReqStatus | `AUTH_NONE` | hi.RequestId | ReqStatusResp | POST /api/v1/auth/get_req_status |
-| Logout | `AUTH_WEB3` | hi.SignedData | google.protobuf.Empty | — |
+| Logout | `AUTH_NONE` | RefreshTokenReq | google.protobuf.Empty | POST /api/v1/auth/logout |
 | RefreshToken | `AUTH_NONE` | RefreshTokenReq | hi.AuthToken | POST /api/v1/auth/refresh_token |
 | Verify | `AUTH_WEB3` | hi.SignedData | LoginResp | — |
 | VerifyOffline | `AUTH_WEB3` | hi.SignedData | LoginResp | — |
@@ -644,16 +606,16 @@
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
-| AddGrant | `AUTH_MERCHANT` | GrantReq | google.protobuf.Empty | — |
+| AddGrant | `AUTH_MERCHANT` | AddGrantReq | google.protobuf.Empty | POST /api/v1/merchant/add_grant |
 | AddUsers | `AUTH_MERCHANT` | AddUsersReq | google.protobuf.Empty | POST /api/v1/merchant/add_users |
 | Get | `AUTH_MERCHANT` | google.protobuf.Empty | MerchantGetResp | GET /api/v1/merchant/get |
 | GetUser | `AUTH_MERCHANT` | GetUserReq | UserExtensionUnit | — |
 | GetUserMqtt | `AUTH_MERCHANT` | GetUserMqttReq | GetUserMqttResp | — |
 | List | `AUTH_MERCHANT` | ListMerchantsReq | MerchantListResp | POST /api/v1/merchant/list |
-| ListGrants | `AUTH_MERCHANT` | google.protobuf.Empty | ListGrantsResp | — |
+| ListGrants | `AUTH_MERCHANT` | google.protobuf.Empty | ListGrantsResp | GET /api/v1/merchant/list_grants |
 | ListGreeters | `AUTH_MERCHANT` | ListGreetersReq | ListUsersResp | POST /api/v1/merchant/list_greeters |
 | ListUsers | `AUTH_MERCHANT` | ListUsersReq | ListUsersResp | POST /api/v1/merchant/list_users |
-| RemoveGrant | `AUTH_MERCHANT` | GrantReq | google.protobuf.Empty | — |
+| RemoveGrant | `AUTH_MERCHANT` | RemoveGrantReq | google.protobuf.Empty | POST /api/v1/merchant/remove_grant |
 | RemoveUsers | `AUTH_MERCHANT` | RemoveUsersReq | google.protobuf.Empty | POST /api/v1/merchant/remove_users |
 | SetUserCard | `AUTH_MERCHANT` | SetUserCardReq | google.protobuf.Empty | POST /api/v1/merchant/set_user_card |
 | SetUsers | `AUTH_MERCHANT` | SetUsersReq | SetUsersResp | POST /api/v1/merchant/set_users |
@@ -663,7 +625,9 @@
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
+| AddUsers | `AUTH_MERCHANT` | GrantedAddUsersReq | google.protobuf.Empty | POST /api/v1/merchant_granted/add_users |
 | GetUser | `AUTH_MERCHANT` | GrantedGetUserReq | UserExtensionUnit | POST /api/v1/merchant_granted/get_user |
+| ListCoins | `AUTH_MERCHANT` | GrantedListCoinsReq | MerchantCoinsResp | POST /api/v1/merchant_granted/list_coins |
 | ListGreeters | `AUTH_MERCHANT` | GrantedListGreetersReq | ListUsersResp | POST /api/v1/merchant_granted/list_greeters |
 | ListUsers | `AUTH_MERCHANT` | GrantedListUsersReq | ListUsersResp | POST /api/v1/merchant_granted/list_users |
 
@@ -696,18 +660,6 @@
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | Transaction | `AUTH_WEB3` | hi.SignedData | google.protobuf.Empty | — |
-
-### hi.did.OrderEvent
-
-| 方法 | 档位 | 入参 | 返回 | HTTP |
-|---|---|---|---|---|
-| Sub ⇄ | `AUTH_USER` | google.protobuf.Empty | OrderEventResp | — |
-
-### hi.did.OrderNotify
-
-| 方法 | 档位 | 入参 | 返回 | HTTP |
-|---|---|---|---|---|
-| Send | `AUTH_NONE` | MerchantNotifyReq | google.protobuf.Empty | — |
 
 ### hi.did.Pay
 
@@ -759,7 +711,7 @@
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | Publish | `AUTH_SUPERADMIN` | PublishReq | google.protobuf.Empty | POST /api/v1/release_manage/publish |
-| UploadPackage ⇄ | `AUTH_SUPERADMIN` | hi.UploadStreamReq | UploadPackageResp | — |
+| UploadPackage ⇄ | `AUTH_SUPERADMIN` | hi.UploadStreamReq | UploadPackageResp | POST /api/v1/release_manage/upload_package |
 
 ### hi.did.Source
 
@@ -804,7 +756,7 @@
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
-| GenerateReqId | `AUTH_NONE` | hi.did.GenerateReqIdReq | hi.RequestId | POST /api/v1/auth/generate_req_id |
+| GenerateReqId | `AUTH_NONE` | hi.did.GenerateReqIdReq | hi.did.LoginQr | POST /api/v1/auth/generate_req_id |
 | GetReqStatus | `AUTH_NONE` | hi.RequestId | hi.did.ReqStatusResp | POST /api/v1/auth/get_req_status |
 | Logout | `AUTH_NONE` | hi.did.RefreshTokenReq | google.protobuf.Empty | POST /api/v1/auth/logout |
 | RefreshToken | `AUTH_NONE` | hi.did.RefreshTokenReq | hi.AuthToken | POST /api/v1/auth/refresh_token |
@@ -814,6 +766,92 @@
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | ServerVersion | `AUTH_NONE` | google.protobuf.Empty | hi.ServerVersionResp | GET /api/v1/base/server_version |
+
+### hi.media.File
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| Delete | `AUTH_USER` | DeleteFileReq | DeleteFileResp | POST /api/v1/file/delete |
+| GetAccessUrls | `AUTH_USER` | GetFileAccessUrlsReq | GetFileAccessUrlsResp | POST /api/v1/file/get_access_urls |
+| GetUploadResult | `AUTH_USER` | GetUploadResultReq | GetUploadResultResp | GET /api/v1/file/get_upload_result |
+| List | `AUTH_USER` | ListFilesReq | ListFilesResp | POST /api/v1/file/list |
+
+### hi.media.Function
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| Get | `AUTH_USER` | GetFunctionReq | GetFunctionResp | GET /api/v1/function/get |
+| List | `AUTH_USER` | google.protobuf.Empty | ListFunctionsResp | GET /api/v1/function/list |
+
+### hi.media.InviteCode
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| Create | `AUTH_SUPERADMIN` | google.protobuf.Empty | InviteCodeCreateResp | POST /api/v1/invite_code/create |
+| Delete | `AUTH_SUPERADMIN` | InviteCodeDeleteReq | google.protobuf.Empty | POST /api/v1/invite_code/delete |
+| Edit | `AUTH_SUPERADMIN` | InviteCodeEditReq | google.protobuf.Empty | POST /api/v1/invite_code/edit |
+| List | `AUTH_SUPERADMIN` | hi.Pagination | InviteCodeListResp | POST /api/v1/invite_code/list |
+
+### hi.media.ModelManage
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| Create | `AUTH_SUPERADMIN` | CreateModelReq | CreateModelResp | POST /api/v1/model_manage/create |
+| Delete | `AUTH_SUPERADMIN` | DeleteModelReq | google.protobuf.Empty | POST /api/v1/model_manage/delete |
+| Get | `AUTH_SUPERADMIN` | GetModelReq | GetModelResp | GET /api/v1/model_manage/get |
+| List | `AUTH_SUPERADMIN` | ListModelsReq | ListModelsResp | POST /api/v1/model_manage/list |
+| Update | `AUTH_SUPERADMIN` | UpdateModelReq | UpdateModelResp | POST /api/v1/model_manage/update |
+
+### hi.media.Quota
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| Get | `AUTH_USER` | google.protobuf.Empty | GetQuotaResp | GET /api/v1/quota/get |
+
+### hi.media.Register
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| Verify | `AUTH_NONE` | InviteCodeVerifyReq | hi.AuthToken | POST /api/v1/register/verify |
+
+### hi.media.SuperAdmin
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| List | `AUTH_USER` | google.protobuf.Empty | hi.did.ListSuperAdminUsersResp | GET /api/v1/super_admin/list |
+
+### hi.media.Task
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| Cancel | `AUTH_USER` | CancelTaskReq | CancelTaskResp | POST /api/v1/task/cancel |
+| CreateImageToVideo | `AUTH_USER` | CreateImageToVideoTaskReq | CreateTaskResp | POST /api/v1/task/create_image_to_video |
+| CreateTextToVideo | `AUTH_USER` | CreateTextToVideoTaskReq | CreateTaskResp | POST /api/v1/task/create_text_to_video |
+| Delete | `AUTH_USER` | DeleteTaskReq | google.protobuf.Empty | POST /api/v1/task/delete |
+| Get | `AUTH_USER` | GetTaskReq | GetTaskResp | GET /api/v1/task/get |
+| List | `AUTH_USER` | ListTasksReq | ListTasksResp | POST /api/v1/task/list |
+| RecoverSave | `AUTH_USER` | RecoverSaveTaskReq | RecoverSaveTaskResp | POST /api/v1/task/recover_save |
+
+### hi.media.UserManage
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| Delete | `AUTH_SUPERADMIN` | UserManageDeleteReq | google.protobuf.Empty | POST /api/v1/user_manage/delete |
+| Edit | `AUTH_SUPERADMIN` | UserManageEditReq | google.protobuf.Empty | POST /api/v1/user_manage/edit |
+| List | `AUTH_SUPERADMIN` | UserManageListReq | UserManageListResp | POST /api/v1/user_manage/list |
+
+### hi.media.WorkflowManage
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| Get | `AUTH_SUPERADMIN` | GetWorkflowReq | GetWorkflowResp | GET /api/v1/workflow_manage/get |
+| List | `AUTH_SUPERADMIN` | ListWorkflowsReq | ListWorkflowsResp | POST /api/v1/workflow_manage/list |
+| ListTests | `AUTH_SUPERADMIN` | ListWorkflowTestsReq | ListWorkflowTestsResp | POST /api/v1/workflow_manage/list_tests |
+| SetDefault | `AUTH_SUPERADMIN` | SetDefaultWorkflowReq | SetDefaultWorkflowResp | POST /api/v1/workflow_manage/set_default |
+| Test | `AUTH_SUPERADMIN` | TestWorkflowReq | TestWorkflowResp | POST /api/v1/workflow_manage/test |
+| Update | `AUTH_SUPERADMIN` | UpdateWorkflowReq | UpdateWorkflowResp | POST /api/v1/workflow_manage/update |
+| UpdateSortOrder | `AUTH_SUPERADMIN` | UpdateWorkflowSortOrderReq | UpdateWorkflowSortOrderResp | POST /api/v1/workflow_manage/update_sort_order |
+| Validate | `AUTH_SUPERADMIN` | ValidateWorkflowReq | ValidateWorkflowResp | POST /api/v1/workflow_manage/validate |
 
 ### hi.source.Base
 

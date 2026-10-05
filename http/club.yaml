@@ -122,11 +122,11 @@ http:
 # Chat
   - selector: hi.club.Chat.NewSession
     get: /api/v1/chat/new_session
-  - selector: hi.club.Chat.ClearHistory
-    post: /api/v1/chat/clear_history
+  - selector: hi.club.Chat.ClearContext
+    post: /api/v1/chat/clear_context
     body: "*"
-  - selector: hi.club.Chat.GetHistory
-    post: /api/v1/chat/get_history
+  - selector: hi.club.Chat.GetContext
+    post: /api/v1/chat/get_context
     body: "*"
   - selector: hi.club.Speech.Synthesize
     post: /api/v1/speech/synthesize

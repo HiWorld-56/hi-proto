@@ -84,6 +84,33 @@ message ListGroupMessagesResp {
   repeated Packet list = 1 [(hi.visibility) = VIS_PARTICIPANT]; // Packet=PARTICIPANT
 }
 
+// 读一个会话**最近 N 条**(群、单聊、机器人的语音聊天记录都是会话)。
+//
+// 与 `ListMessages` 的区别:那是**同步**用的 —— 按游标往后翻,并推进这一端的同步指针;
+// 这个是**看一眼**用的 —— 从最新往回取 N 条,**不碰同步指针**(插件、转发读记录用它,不会让本端同步漏拉)。
+//
+// 会话二选一:
+//   · `code` —— 群号(或单聊会话号);
+//   · `peer` —— 单聊对方的 did,后端按 `BuildSingleGroupCode(我, peer)` 算会话号。
+//     机器人读自己的**语音聊天记录**:`peer = "voice_chat"`(语音的固定虚拟对方,见 hi/club/chat.proto 的 Converse)。
+// 权限:调用者必须是该会话成员(语音会话里机器人是成员);私有群、单聊群对非成员回 NotFound,与 Group.Get 同口径。
+// 范围:最长保留期之内、且不早于调用者入群的时间(与 ListMessages 同一条可见性规则)。
+message ListRecentMessagesReq {
+  optional string code  = 1; // 群号 / 单聊会话号(与 peer 二选一)
+  optional string peer  = 2; // 单聊对方 did,含 "voice_chat"(与 code 二选一)
+  // 要几条。**不传 = 20**;不设上限,上限由后端统一做 —— 超了按后端上限截,并在回包里如实说(capped)。
+  // ≤ 0 → InvalidArgument。
+  optional int32  limit = 3;
+}
+
+message ListRecentMessagesResp {
+  option (hi.audience) = VIS_PARTICIPANT; // 会话消息,成员可见
+  repeated Packet list   = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 按时间先后(旧 → 新),最后一条是最新的
+  optional string code   = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 实际读的会话号(传 peer 时由后端算出)
+  optional int32  limit  = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 这次实际按几条取(没截 = 请求的条数;截了 = 后端上限)
+  optional bool   capped = 4 [(hi.visibility) = VIS_PARTICIPANT]; // true = 请求的条数超过后端上限,已按上限截
+}
+
 message ListGroupMembersReq {
   optional string code       = 1;
   hi.Pagination   pagination = 2;
@@ -225,7 +252,8 @@ service Group {
   rpc ListByCreator (ListGroupsByCreatorReq) returns (ListGroupsByCreatorResp) { option (hi.auth) = AUTH_USER; }   // 按创建者找群(只回透明群 group-open;人少的在前)
   rpc Quit (QuitGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                         // 主动退群;owner 退=解散群
   rpc Remove (RemoveGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                     // 【owner/admin】踢人/踢机器人(只能踢比自己低级别)
-  rpc ListMessages (ListGroupMessagesReq) returns (ListGroupMessagesResp) { option (hi.auth) = AUTH_USER; }           // 群消息列表
+  rpc ListMessages (ListGroupMessagesReq) returns (ListGroupMessagesResp) { option (hi.auth) = AUTH_USER; }           // 群消息列表(同步用:按游标翻,推进本端同步指针)
+  rpc ListRecentMessages (ListRecentMessagesReq) returns (ListRecentMessagesResp) { option (hi.auth) = AUTH_USER; }  // 最近 N 条(看一眼用:不碰同步指针;含语音聊天记录 peer=voice_chat)
   rpc SetRole (SetRoleReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                        // 【仅 owner】加/取消管理员
   rpc GetRole (GetRoleReq) returns (GetRoleResp) { option (hi.auth) = AUTH_USER; }                                  // 获取自己在群里的角色
   rpc SetDnd (SetDndReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                          // 自己:设/取消免打扰(原 Mute)

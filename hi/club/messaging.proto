@@ -327,6 +327,7 @@ message Member {
      broadcast   广播
      binance     币安操作结果卡      kind=binance(hi.binance.BinanceResult)
      binance_cmd 币安指令            kind=binance_cmd(hi.binance.BinanceCommand)—— 群里要 @ 执行的机器人,见 hi/binance/command.proto
+     chat_record 聊天记录(合并转发)  kind=record(hi.club.ChatRecord)—— 标题 + 若干条原消息,点开看全部
 
    ⚠️ **注意是 `image_url` 不是 `image`、`audio_url` 不是 `audio`。**
 
@@ -366,7 +367,35 @@ message Content {
     hi.binance.BinanceResult binance = 5 [(hi.visibility) = VIS_PARTICIPANT];
     // 给机器人的币安指令。就是一条普通消息:群里 @ 谁谁执行,发令人是信封的 from。
     hi.binance.BinanceCommand binance_cmd = 6 [(hi.visibility) = VIS_PARTICIPANT];
+    // 聊天记录(合并转发):标题 + 若干条原消息,点开看全部。见下面 ChatRecord。
+    ChatRecord record = 7 [(hi.visibility) = VIS_PARTICIPANT];
   }
+}
+
+// 聊天记录 —— **合并转发**出来的那一条(类似微信「聊天记录」卡片)。`Content.type = "chat_record"`。
+//
+// 它就是一条普通消息的一段内容:中间层(core / 后端 / broker)不认识它、也不需要认识它,
+// 原样存、原样转;显示是端上的事(卡片显示 `title` 与前几条摘要,点开看 `list` 全部)。
+//
+// 每一条保留**原消息的内容字节**(`Message.contents` 原样,即序列化后的 `hi.club.Contents`),
+// 不解开重编 —— 转发方用的 proto 比原消息旧时,解开再编会把新内容类型静默丢掉。
+// 端上显示时照常解一遍;解不开的那条显示「不支持的消息类型」,不影响其余几条。
+// 聊天记录里套聊天记录(转发一条已经是聊天记录的消息)是允许的,同样原样。
+//
+// 逐条转发不用它:那是把原 `contents` 换个 uuid / 会话原样再发一次。
+//
+// 机器人把语音聊天记录发给主人(内置插件)发的也是这个。
+message ChatRecord {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string        title = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 卡片标题,如「张三与李四的聊天记录」;发送方写好
+  repeated ChatRecordItem list = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 按原时间先后
+}
+
+message ChatRecordItem {
+  option (hi.audience) = VIS_PARTICIPANT;
+  hi.Entity      from      = 1 [(hi.visibility) = VIS_PUBLIC];      // 原发件人(原消息信封的 from,原样;Entity=公开门面)
+  optional int64 timestamp = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 原消息的时间(微秒,服务器时间)
+  optional bytes contents  = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 原消息的 `Message.contents` 原样
 }
 
 // ⚠️ **没有「请后端代发一条 mqtt 消息」这种 rpc,不要再加回来。**
