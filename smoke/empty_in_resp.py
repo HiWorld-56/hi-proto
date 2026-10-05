@@ -149,7 +149,9 @@ BODIES = {
     "training/list_files": '{"agent":"{agent}","pagination":{"page":1,"limit":50}}',
     "market_directory/list_agent_listings": '{"agent":"{agent}","pagination":{"page":1,"limit":50}}',
     "market_directory/get_listing": '{"uuid":"{listing}"}',
-    "chat/get_history": '{"agent":"{agent}","pagination":{"page":1,"limit":20}}',
+    # GetContext 只收 cid(一度叫 get_history;agent/pagination 早已不是它的入参)。
+    # 用一个固定的 uuid 形 cid:第一次调用的人成为它的主人,之后同一身份再来照常可读。
+    "chat/get_context": '{"cid":"smoke-empty-in-resp"}',
     "agent_bench/list": '{"agent":"{agent}","pagination":{"page":1,"limit":50}}',
     "agent_bench/list_history": '{"agent":"{agent}","pagination":{"page":1,"limit":20}}',
     "market/list_payments": '{"order":"","pagination":{"page":1,"limit":50}}',

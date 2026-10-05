@@ -96,11 +96,11 @@ http:
 # Chat
   - selector: hi.ai.Chat.NewSession
     get: /api/v1/chat/new_session
-  - selector: hi.ai.Chat.GetHistory
-    post: /api/v1/chat/get_history
+  - selector: hi.ai.Chat.GetContext
+    post: /api/v1/chat/get_context
     body: "*"
-  - selector: hi.ai.Chat.ClearHistory
-    post: /api/v1/chat/clear_history
+  - selector: hi.ai.Chat.ClearContext
+    post: /api/v1/chat/clear_context
     body: "*"
   - selector: hi.ai.Chat.Converse
     post: /api/v1/chat/converse
