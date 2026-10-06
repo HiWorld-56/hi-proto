@@ -42,23 +42,10 @@ message LuaCtx {
   // **只给宿主用,不给 lua 脚本看**:执行器随 HostCallReq.ctx 原样带回,宿主发消息
   // (host.send_message)就沿用这个等级 —— 问题是哪一级,发出去的就是哪一级。插件不能自己选。
   optional uint32 dark   = 4;
-  // 引起这次调用的那条消息里带的**媒体**(图片 / 语音 / 文件),按在消息里的先后。
-  // 脚本里是 `ctx.attachments`(数组,`{type, url, name}`);消息没带媒体就是空数组。
-  //
-  // 为什么要给插件:模型看到的图是内联进请求的图片数据(hi.ai 把 url 换成了 base64),
-  // **它手上没有这张图的地址**。让它把「主人发来的这张图」转给别人,它只能编一个 url ——
-  // 生产实测(2026-10-06)编出的是 `files.oaiusercontent.com/...`,收件人看到一张裂图。
-  // 地址是 brain 从消息里拿到的,插件按序号取(「第 1 张图」),不经模型的手。
-  // 与 `.so` 插件那侧 SDK 的 `Ctx.attachments` 同形。
-  repeated LuaAttachment attachments = 5;
-}
-
-// LuaAttachment 消息里的一段媒体。`type` 取 hi.club.Content.type 那张表里的词
-// (`image_url` / `audio_url` / `file`),`url` 是那一段 chat.content 原样。
-message LuaAttachment {
-  optional string type = 1;
-  optional string url  = 2;
-  optional string name = 3; // 原文件名;消息里没写就不给
+  // ⚠️ **没有 `attachments`(消息里的媒体),不要加回来**(v1.5.27-dev.1 加过,10-07 删):
+  //    模型手上没有图的地址、转发时只能编一个 —— 这件事改由 hi.ai 在用户那句话后面附一份
+  //    附件列表(名字 → url,随问答存进上下文,见 hi/ai/chat.proto `Content`)解决,模型从列表里取 url
+  //    填进插件参数,插件发之前用 sdk 方法 `probe_url` 真取一次。只有一套机制,不留两条路。
 }
 
 // OpenReq 装一个插件：跑一遍顶层，读出 contract 与 manifest。

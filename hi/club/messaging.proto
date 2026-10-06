@@ -327,7 +327,7 @@ message Member {
      broadcast   广播
      binance     币安操作结果卡      kind=binance(hi.binance.BinanceResult)
      binance_cmd 币安指令            kind=binance_cmd(hi.binance.BinanceCommand)—— 群里要 @ 执行的机器人,见 hi/binance/command.proto
-     chat_record 聊天记录(合并转发)  kind=record(hi.club.ChatRecord)—— 标题 + 若干条原消息,点开看全部
+     chat_record 聊天记录(合并转发)  kind=record(hi.club.ChatRecord)—— 一个聊天记录文件:url / 标题 / 条数,点开按 url 取回
 
    ⚠️ **注意是 `image_url` 不是 `image`、`audio_url` 不是 `audio`。**
 
@@ -367,27 +367,55 @@ message Content {
     hi.binance.BinanceResult binance = 5 [(hi.visibility) = VIS_PARTICIPANT];
     // 给机器人的币安指令。就是一条普通消息:群里 @ 谁谁执行,发令人是信封的 from。
     hi.binance.BinanceCommand binance_cmd = 6 [(hi.visibility) = VIS_PARTICIPANT];
-    // 聊天记录(合并转发):标题 + 若干条原消息,点开看全部。见下面 ChatRecord。
+    // 聊天记录(合并转发):一个文件(url / 标题 / 条数),点开按 url 取回。见下面 ChatRecord。
     ChatRecord record = 7 [(hi.visibility) = VIS_PARTICIPANT];
   }
 }
 
 // 聊天记录 —— **合并转发**出来的那一条(类似微信「聊天记录」卡片)。`Content.type = "chat_record"`。
 //
-// 它就是一条普通消息的一段内容:中间层(core / 后端 / broker)不认识它、也不需要认识它,
-// 原样存、原样转;显示是端上的事(卡片显示 `title` 与前几条摘要,点开看 `list` 全部)。
+// **它是一种文件**(本质是文本):记录的内容是一个 JSON 文件(见下面 ChatRecordFile),发送方上传到
+// 聊天媒体桶(与图片同一个临时桶、同一个保留期)拿到 url;消息里只放 url / 标题 / 条数。
+// 卡片显示 `title` 与 `count`,点开时按 `url` 取回文件再渲染;**再转发 = 引用同一个 url**,不重新上传。
+//
+// 它就是一条普通消息的一段内容:中间层(core / 后端 / broker)不认识它、也不需要认识它,原样存、原样转。
+//
+// ⚠️ **没有内嵌的 `list` 了,不要加回来**(原 `repeated ChatRecordItem list = 2`,10-05 ~ 10-07 那一版):
+//    用户 10-07 定「聊天记录作为一个文件类型,本质是文本类型」—— 文件才有 url,有 url 才能
+//    像图片、文件一样出现在给模型的附件列表里(hi.ai `Content` 那段),模型才能在几轮之后
+//    「把那段聊天记录转给某人」时按 url 引用它;内嵌的那份没有地址,模型只能看不能指。
+//    **旧数据**(那一版发出去的,字段 2 在新版里是未知字段、解码时跳过)解出来 `url` 缺席 ——
+//    判据只有这一个:**`url` 没有值 = 旧版聊天记录**,端上显示「旧版聊天记录」、不能点开,
+//    给模型时也只有标题。不迁移、不做读侧兼容(激进开发)。
+//
+// 字段号 3 / 4 不复用 2:旧数据的字段 2 是一个嵌套消息,要是把 `url` 放在 2 上,
+// 那段字节会被当成字符串解 —— 不是合法 UTF-8 时整个 Contents 解不开,一条消息的全部内容一起消失。
+//
+// 机器人把语音聊天记录发给主人(内置插件 `send_chat_record`)发的也是这个。
+message ChatRecord {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string title = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 卡片标题,如「张三与李四的聊天记录」;发送方写好,与文件里的 title 相同
+  optional string url   = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 聊天记录文件的地址(内容见 ChatRecordFile);没有值 = 旧版(见上)
+  optional uint32 count = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 文件里有几条(= ChatRecordFile.list 的长度),卡片上显示「共 N 条」
+}
+
+// 聊天记录文件 —— `ChatRecord.url` 指向的那个文件。
+//
+// **格式:这个消息的 protojson**(UTF-8 的 JSON,`application/json`,文件名 `chat_record.json`)。
+// 用 protojson 是因为四种语言都有现成的编解码,字段名就是下面这些(int64 写成字符串、bytes 写成 base64):
+//
+//     {"title":"我和张三的聊天记录",
+//      "list":[{"from":{"did":"z…","name":"张三"},"timestamp":"1759800000000000","contents":"CgYKBHRleHQ…"}]}
 //
 // 每一条保留**原消息的内容字节**(`Message.contents` 原样,即序列化后的 `hi.club.Contents`),
 // 不解开重编 —— 转发方用的 proto 比原消息旧时,解开再编会把新内容类型静默丢掉。
 // 端上显示时照常解一遍;解不开的那条显示「不支持的消息类型」,不影响其余几条。
-// 聊天记录里套聊天记录(转发一条已经是聊天记录的消息)是允许的,同样原样。
+// 聊天记录里套聊天记录(转发一条已经是聊天记录的消息)是允许的,里面那条同样只是 url,点开再取。
 //
 // 逐条转发不用它:那是把原 `contents` 换个 uuid / 会话原样再发一次。
-//
-// 机器人把语音聊天记录发给主人(内置插件)发的也是这个。
-message ChatRecord {
+message ChatRecordFile {
   option (hi.audience) = VIS_PARTICIPANT;
-  optional string        title = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 卡片标题,如「张三与李四的聊天记录」;发送方写好
+  optional string        title = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 与 ChatRecord.title 相同
   repeated ChatRecordItem list = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 按原时间先后
 }
 
