@@ -707,6 +707,49 @@ message BinanceFuturesPnl {
   option (hi.audience) = VIS_PARTICIPANT;
 }
 
+// ──────────────── 撤销所有交易对的挂单(机器人算的操作) ────────────────
+
+// **现货:撤掉所有交易对上的全部挂单**(普通委托 + OCO / OTO 等组合单,含 bStocks)。**没有参数**。
+// **不是币安的一个接口**:币安的「撤全部」(`DELETE /api/v3/openOrders`)必须给交易对,没有不分交易对的撤法。
+// 所以由机器人在自己那边做完:
+//
+//   1. 列出现在挂着的:`GET /api/v3/openOrders`(不给交易对 = 全部)+ `GET /api/v3/openOrderList`(组合单),
+//      **当场问币安**,不用快照(快照里没有别处刚挂的单);两条有一条没取到就**一张都不撤**,原样回那一次的结果;
+//   2. 有挂单的每个交易对各发一次 `DELETE /api/v3/openOrders`(连同它上面的组合单);
+//      **某个交易对没撤成不停**,接着撤下一个,失败的逐个记下;
+//   3. 账户快照作废(与其它写操作同一个时机)。
+//
+// 结果在 `BinanceResult.body`(`http_status` = 200),是**机器人写的 JSON**(不是币安原文):
+//
+//   { "symbols": [ { "symbol": "BNBUSDT", "orders": 6, "order_lists": 2 },
+//                  { "symbol": "ETHUSDT", "failed": [ { "kind": "orders", "http_status": 429,
+//                                                       "code": -1003, "msg": "…" } ] } ] }
+//
+//   symbols      列表里挂着单的每个交易对一项(空列表 = 一张挂单都没有,什么都没撤)
+//   orders       撤掉的委托张数(组合单的每条腿各算一张;按币安撤单回包里的数,不是列出来的数)
+//   order_lists  其中组合单的组数
+//   algo_orders  (合约)撤掉的止盈止损单(条件单)张数
+//   failed       这一项里没撤成的那几类:`kind` = orders / algo_orders;
+//                发出去了被拒 → `http_status` + 币安的 `code` / `msg`;没发出去 → 只有 `msg`(人话)
+//
+// 某一类撤成了才带它的数;没撤成的那一类只出现在 `failed` 里。币安回「订单不存在」(-2011:列出来之后、撤之前
+// 已经成交或被撤)算撤成,数是 0。
+message BinanceSpotCancelAllSymbols {
+  option (hi.audience) = VIS_PARTICIPANT;
+}
+
+// **U 本位合约:撤掉所有交易对上的全部挂单**(普通委托 + 止盈止损单(条件单);TradFi 永续在同一个合约账户里,一并撤)。
+// **没有参数**。币安的两个「撤全部」(`DELETE /fapi/v1/allOpenOrders`、`DELETE /fapi/v1/algoOpenOrders`)都必须给交易对。
+//
+// 做法、结果的 JSON 与 `BinanceSpotCancelAllSymbols` 相同,只是:
+//   · 列的是 `GET /fapi/v1/openOrders` + `GET /fapi/v1/openAlgoOrders`(都不给交易对);
+//   · 每个交易对有普通委托就发 `allOpenOrders`、有条件单就发 `algoOpenOrders`,两类各自成败;
+//   · 币安这两个撤单回包不列出撤了哪些(只回 `{"code":200,…}`),**数是撤之前列出来的张数**;
+//     没有 `order_lists`。
+message BinanceFuturesCancelAllSymbols {
+  option (hi.audience) = VIS_PARTICIPANT;
+}
+
 // 签 **TradFi 永续合约协议**。`POST /fapi/v1/stock/contract`
 //
 // 股票、商品、外汇这类永续(`contractType == TRADIFI_PERPETUAL`)**要先签才能交易**;查询不用签。

@@ -100,5 +100,8 @@ message BinanceCommand {
     BinanceSpotKlines             spot_klines                        = 56 [(hi.visibility) = VIS_PARTICIPANT]; // spot.klines
     BinanceFuturesKlines          usds_futures_klines                = 57 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.klines
     BinanceFuturesPnl             usds_futures_pnl                   = 58 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.pnl(机器人算的收益率)
+    // 撤销所有交易对的挂单(币安没有不分交易对的撤法,机器人列出来逐个撤)
+    BinanceSpotCancelAllSymbols    spot_cancel_all_symbols            = 59 [(hi.visibility) = VIS_PARTICIPANT]; // spot.cancel_all_symbols
+    BinanceFuturesCancelAllSymbols usds_futures_cancel_all_symbols    = 60 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.cancel_all_symbols
   }
 }
