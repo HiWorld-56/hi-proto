@@ -327,7 +327,7 @@ message Member {
      broadcast   广播
      binance     币安操作结果卡      kind=binance(hi.binance.BinanceResult)
      binance_cmd 币安指令            kind=binance_cmd(hi.binance.BinanceCommand)—— 群里要 @ 执行的机器人,见 hi/binance/command.proto
-     chat_record 聊天记录(合并转发)  kind=record(hi.club.ChatRecord)—— 标题 + 若干条原消息,点开看全部
+     chat_record 聊天记录(合并转发)  kind=record(hi.club.ChatRecord)—— 原样内嵌被转发的那几条完整消息
 
    ⚠️ **注意是 `image_url` 不是 `image`、`audio_url` 不是 `audio`。**
 
@@ -367,35 +367,59 @@ message Content {
     hi.binance.BinanceResult binance = 5 [(hi.visibility) = VIS_PARTICIPANT];
     // 给机器人的币安指令。就是一条普通消息:群里 @ 谁谁执行,发令人是信封的 from。
     hi.binance.BinanceCommand binance_cmd = 6 [(hi.visibility) = VIS_PARTICIPANT];
-    // 聊天记录(合并转发):标题 + 若干条原消息,点开看全部。见下面 ChatRecord。
+    // 聊天记录(合并转发):原样内嵌被转发的那几条完整消息。见下面 ChatRecord。
     ChatRecord record = 7 [(hi.visibility) = VIS_PARTICIPANT];
   }
+  // 这一段在**本条消息里**的编号:从 1 起按先后编(第一段 1、第二段 2……),同一条消息内天然不重。
+  // **由 hiclub-core-mqtt 在发出前统一填**(UI / brain 照旧只管组内容,填不填、填什么都会被 core 覆盖);
+  // 后端自己组的消息(语音聊天记录、软件机器人的回话)由后端按同一规则填。
+  // 用途:引用消息里的某一段 —— `<消息 uuid>#<id>`,见下面「引用」那段。
+  optional uint32 id = 8 [(hi.visibility) = VIS_PARTICIPANT];
 }
+
+/*
+   ## 引用:指向「某条消息里的某一段」(2026-10-07 定)
+
+   给模型的附件列表、内置插件 `send_message` 的附件、app 里的转发,都用同一种写法指向一段内容:
+
+     · **用 url 带过来的**(图片 / 语音 / 文件 —— 内容在别处,消息里只是地址):**引用就是那个 url**;
+     · **原样内嵌的**(聊天记录 —— 内容就在消息里):`<消息 uuid>#<Content.id>`,例如 `9f1c…#2`;
+       聊天记录里套着的那几条消息,用路径往下走:`<外层消息 uuid>#<id>/<里层消息 uuid>#<id>`。
+
+   **解析永远只在本层找**:
+     · 附件列表 / 插件参数里的 `<uuid>#<id>`,只在**当前会话**(问话所在的那个会话)的消息里找;
+     · 路径的后一段,只在前一段那份聊天记录**自己带的**消息里找;
+     · 找不到就明确报「无内容(未转发)」,**不往别的会话、别的聊天记录里搜**(否则没边)。
+
+   解析与封装的入口:前端在 hiclub-core-mqtt(app 转发、机器人插件发消息都走它),后端在 club
+   (交给 hi.ai 之前把内容段整理成附件列表,见 hi/ai/chat.proto `Attachment`)。
+*/
 
 // 聊天记录 —— **合并转发**出来的那一条(类似微信「聊天记录」卡片)。`Content.type = "chat_record"`。
 //
-// 它就是一条普通消息的一段内容:中间层(core / 后端 / broker)不认识它、也不需要认识它,
-// 原样存、原样转;显示是端上的事(卡片显示 `title` 与前几条摘要,点开看 `list` 全部)。
+// **原样内嵌被转发消息的完整 `Message`**(信封:uuid / 发件人 / 时间……;内容:`contents` 原字节),
+// 转发这一段就是把它原样搬过去;展开时每条照常按它自己的内容类型解析、显示。
+// 套娃(转发一条已经是聊天记录的消息)照样内嵌,一层套一层。
 //
-// 每一条保留**原消息的内容字节**(`Message.contents` 原样,即序列化后的 `hi.club.Contents`),
-// 不解开重编 —— 转发方用的 proto 比原消息旧时,解开再编会把新内容类型静默丢掉。
-// 端上显示时照常解一遍;解不开的那条显示「不支持的消息类型」,不影响其余几条。
-// 聊天记录里套聊天记录(转发一条已经是聊天记录的消息)是允许的,同样原样。
+// 它就是一条普通消息的一段内容:中间层(core / 后端 / broker)不认识它、也不需要认识它,原样存、原样转。
 //
-// 逐条转发不用它:那是把原 `contents` 换个 uuid / 会话原样再发一次。
+// ⚠️ **不存成文件、不放 url,不要改回去**(10-07 有过一版:内容做成 JSON 文件传聊天媒体桶,消息里只放 url / 标题 / 条数):
+//    转发的可能是**别人聊天里的消息**,收件人不一定有权限去取那个文件;内嵌的话,收到这条消息就收到了全部内容。
+//    那一版的 `url` / `count` 与文件格式 `ChatRecordFile` / `ChatRecordItem` 已删。
+//    **旧数据不做兼容**(用户 10-07 定):10-05 那一版的字段 2(`ChatRecordItem` 列表)与 10-07 那一版的 3 / 4
+//    在这里都是未知字段,解码跳过,只剩标题、没有条目。`list` 用新号 5,不复用 2 —— 复用的话旧数据的
+//    条目会被当成 `Message` 解(字段号对不上,uuid 位置上是一个 Entity),整条消息的内容可能一起解不开。
 //
-// 机器人把语音聊天记录发给主人(内置插件)发的也是这个。
+// 每条 `Message.contents` 是原消息的内容字节**原样**,不解开重编 —— 转发方的 proto 比原消息旧时,
+// 解开再编会把新内容类型静默丢掉。解不开的那条显示「不支持的消息类型」,不影响其余几条。
+//
+// 引用里面的某一段:`<这条聊天记录所在消息的 uuid>#<这段的 id>/<里面那条消息的 uuid>#<id>`(见上面「引用」)。
+//
+// 机器人把语音聊天记录发给主人(内置插件 `send_chat_record`)发的也是这个。
 message ChatRecord {
   option (hi.audience) = VIS_PARTICIPANT;
-  optional string        title = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 卡片标题,如「张三与李四的聊天记录」;发送方写好
-  repeated ChatRecordItem list = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 按原时间先后
-}
-
-message ChatRecordItem {
-  option (hi.audience) = VIS_PARTICIPANT;
-  hi.Entity      from      = 1 [(hi.visibility) = VIS_PUBLIC];      // 原发件人(原消息信封的 from,原样;Entity=公开门面)
-  optional int64 timestamp = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 原消息的时间(微秒,服务器时间)
-  optional bytes contents  = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 原消息的 `Message.contents` 原样
+  optional string title = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 卡片标题,如「张三与李四的聊天记录」
+  repeated Message list = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 被转发的消息,原样(按原时间先后)
 }
 
 // ⚠️ **没有「请后端代发一条 mqtt 消息」这种 rpc,不要再加回来。**

@@ -9,10 +9,44 @@ import "hi/options.proto";
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
 
 // ── AI 对话全链路都是私有:会话/上下文/回复只发给发起对话的本人 ──────────────
+//
+// 对话内容的一段。`type` 取 hi.club `Content.type` 那张表里的词(`text` / `image_url` / `audio_url`;
+// 另有 web 直连用的 `file_url`),`content` 是正文或地址。图片作视觉输入、语音识别成文字进 Q。
 message Content {
   option (hi.audience) = VIS_SELF;
   optional string type    = 1 [(hi.visibility) = VIS_SELF];
   optional string content = 2 [(hi.visibility) = VIS_SELF];
+  // ⚠️ 没有 `name` / `count`(10-07 加过一版,同日删):附件的名字与条数现在在 `Attachment` 里,
+  //    由调用方整理好交过来,hi.ai 不再从内容段里推。
+}
+
+// ## 附件列表的一行 —— hiclub 与 hi.ai 之间约定的辅助格式(2026-10-07 定)
+//
+// 用户那句话里有文本以外的内容(图片 / 语音 / 文件 / 聊天记录),或机器人这一轮发出了附件,
+// hi.ai 就把它们按**固定规则**拼成文字,附在 Q(问题侧)/ A(回答侧)后面,**随这一轮问答存进上下文**:
+//
+//     【附件】
+//     1. 文件 合同草稿.pdf → https://…/合同草稿.pdf
+//     2. 聊天记录 《我和王总的聊天记录》共 3 条 → 9f1c…#2
+//     3. 图片 图片3 → https://…/a.jpg
+//
+// 每行「序号. 类型 名字 → 引用」:序号按列表先后从 1 编;类型、名字、引用都是调用方给的字,hi.ai **原样照抄**。
+// **hi.ai 不认 hiclub 的内容类型、也不需要知道前端怎么用这些引用** —— 它只负责拼成文字、随问答存。
+// 目的:模型一眼看懂这一轮有哪些附件、各叫什么;几轮之后「把合同草稿转给李总」,它在上下文里按名字找得到引用,
+// 把「引用 + 名字」原样填进插件参数(内置插件 `send_message` 的 `attachments`)。
+//
+// 谁来整理:**前端**(app / 机器人)在 hiclub-core-mqtt 里解析与封装 —— 机器人这一轮发出去的附件由 core 发送时给出;
+// **后端**在 club 里解析与封装 —— 交给 hi.ai 之前从用户那条消息的内容段整理出来(`ChatReq.attachments`)。
+// 引用的写法与解析规则见 hi/club/messaging.proto「引用」那段(url,或 `<消息 uuid>#<段 id>`)。
+//
+// 为什么要有:模型看到的图是内联的图片数据、语音是识别稿 —— **它手上没有地址**,转发时只能编一个
+// (生产 10-06 编出 `files.oaiusercontent.com/…`,7 个好友各收到一张裂图)。
+message Attachment {
+  option (hi.audience) = VIS_SELF;
+  optional string type = 1 [(hi.visibility) = VIS_SELF]; // 类型词:图片 / 语音 / 视频 / 文件 / 聊天记录(调用方给,hi.ai 原样写)
+  // 名字:文件是原文件名;聊天记录是「《标题》共 N 条」;图片 / 语音没有名字就是「图片1」「语音2」(数字 = 这一行的序号)
+  optional string name = 2 [(hi.visibility) = VIS_SELF];
+  optional string ref  = 3 [(hi.visibility) = VIS_SELF]; // 引用:url,或 `<消息 uuid>#<段 id>`(见 hi/club/messaging.proto「引用」)
 }
 
 message NewSessionResp {
@@ -156,11 +190,18 @@ message ChatReq {
   // 判据见上面 Get/Clear/AppendContext 那段:机器人格式的 cid 只认机器人本人与它的主人(`master`),
   // 且 cid 里的机器人必须就是 `agent`;其它 cid 第一个用它的人就是主人。不满足 → NotFound。
   optional string     caller          = 14;
+  // 用户这句话里的附件(问题侧),hi.ai 拼成「【附件】」附在 Q 后面、随问答存进上下文(见 `Attachment`)。
+  // 由调用方整理:club 从那条消息的内容段整理好填这里(hiclub 的前端不直接填)。不给 = 没有附件。
+  repeated Attachment attachments     = 15;
 }
 
 message ToolCallResult {
   optional string  id    = 1;
   repeated Content conts = 2;
+  // 这次工具调用**发出去的附件**(回答侧,如拍的照片、转发的文件 / 聊天记录)。hi.ai 把这一轮所有工具调用的
+  // 这一项按先后合在一起,拼成「【附件】」附在 A 后面存进上下文 —— 几轮之后「刚才那张也发给李总」,模型照样找得到引用。
+  // hi.ai 只认这一个字段,不看工具结果里写了什么。
+  repeated Attachment attachments = 3;
 }
 
 // 工具结果续跑入参(Resume):客户端执行完工具后把结果交回来,接着跑。续跑的模态由原始调用的 id 决定。

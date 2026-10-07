@@ -1,15 +1,15 @@
 # hi-proto 接口全量核对表
 
-**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.25-dev.2` @ `6cc0c0a`)。
+**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.27-dev.2` @ `bdae298`)。
 上一版是手写的,内容停在重构前 —— 档位名、rpc 数量、方法名全部过时,当成当前清单会被误导,故改为随发布自动重生成。
 
-共 **390** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
+共 **391** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
 
 ## 档位分布
 
 | 档位 | 数量 |
 |---|---|
-| `AUTH_USER` | 160 |
+| `AUTH_USER` | 161 |
 | `AUTH_MERCHANT` | 98 |
 | `AUTH_NONE` | 63 |
 | `AUTH_SUPERADMIN` | 51 |
@@ -304,6 +304,7 @@
 | CreateSingle | `AUTH_USER` | CreateSingleReq | GroupBase | — |
 | Get | `AUTH_USER` | GetGroupReq | GroupMemberView | — |
 | GetMemberTotal | `AUTH_USER` | GetGroupMemberTotalReq | GetGroupMemberTotalResp | — |
+| GetMessage | `AUTH_USER` | GetMessageReq | Packet | — |
 | GetRole | `AUTH_USER` | GetRoleReq | GetRoleResp | — |
 | Invite | `AUTH_USER` | InviteGroupReq | google.protobuf.Empty | — |
 | Join | `AUTH_USER` | JoinGroupReq | google.protobuf.Empty | — |

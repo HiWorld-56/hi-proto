@@ -111,6 +111,17 @@ message ListRecentMessagesResp {
   optional bool   capped = 4 [(hi.visibility) = VIS_PARTICIPANT]; // true = 请求的条数超过后端上限,已按上限截
 }
 
+// 按 uuid 取会话里的**一条**消息(原样:信封 + 内容原字节)。
+//
+// 用途:引用 `<消息 uuid>#<段 id>` 要拿到那条消息才能取出那一段(hi/club/messaging.proto「引用」)——
+// hiclub-core-mqtt 先查本机库,本机没有(换了设备、清过本地、早于本机登录)才来这里取。
+// **只在给定的会话里找**(解析只在本层):不在这个会话的 uuid 一律 NotFound,不替人确认它在别处存在。
+// 权限与可见范围同 `ListRecentMessages`:调用者必须是该会话成员,最长保留期之内、且不早于调用者入群的时间。
+message GetMessageReq {
+  optional string code = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true]; // 群号 / 单聊会话号
+  optional string uuid = 2 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true]; // 消息 uuid
+}
+
 message ListGroupMembersReq {
   optional string code       = 1;
   hi.Pagination   pagination = 2;
@@ -254,6 +265,7 @@ service Group {
   rpc Remove (RemoveGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                     // 【owner/admin】踢人/踢机器人(只能踢比自己低级别)
   rpc ListMessages (ListGroupMessagesReq) returns (ListGroupMessagesResp) { option (hi.auth) = AUTH_USER; }           // 群消息列表(同步用:按游标翻,推进本端同步指针)
   rpc ListRecentMessages (ListRecentMessagesReq) returns (ListRecentMessagesResp) { option (hi.auth) = AUTH_USER; }  // 最近 N 条(看一眼用:不碰同步指针;含语音聊天记录 peer=voice_chat)
+  rpc GetMessage (GetMessageReq) returns (Packet) { option (hi.auth) = AUTH_USER; }                                // 按 uuid 取会话里的一条消息(引用 `<uuid>#<段 id>` 本机库没有时用;只在给定会话里找)
   rpc SetRole (SetRoleReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                        // 【仅 owner】加/取消管理员
   rpc GetRole (GetRoleReq) returns (GetRoleResp) { option (hi.auth) = AUTH_USER; }                                  // 获取自己在群里的角色
   rpc SetDnd (SetDndReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }                          // 自己:设/取消免打扰(原 Mute)
