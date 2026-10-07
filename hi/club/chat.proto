@@ -102,11 +102,19 @@ message ChatReq {
   //
   // ⚠️ 人自己在 app/web 里直接跟助手聊时可以不传,服务端按登录主体推导。
   optional string           asker           = 12;
+  // 这句话所在那条消息的 uuid(IM 路:机器人收到的那条 mqtt 消息的 uuid)。
+  // club 据此给聊天记录这类原样内嵌的内容写引用 `<uuid>#<段 id>`(附件列表,见 hi/ai/chat.proto `Attachment`)。
+  // **语音路不用传**:那一轮的 uuid 由 club 在调 hi.ai 之前生成,写进语音聊天记录时用的是同一个。
+  optional string           uuid            = 13;
 }
 
 message ToolCallResult {
   optional string  id    = 1;
   repeated Content conts = 2;
+  // 这次工具调用发出去的附件(回答侧),club 原样交给 hi.ai(见 hi.ai.ToolCallResult.attachments)。
+  // 一行的格式与问题侧同一份(hi.ai.Attachment):机器人那侧由 hiclub-core-mqtt 发送时给出,插件把它放进
+  // 结果的 `attachments` 键,brain 照搬到这里。
+  repeated hi.ai.Attachment attachments = 3;
 }
 
 // 工具结果续跑入参(Resume):客户端执行完工具后把结果交回来,接着跑。

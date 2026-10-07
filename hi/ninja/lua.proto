@@ -43,9 +43,13 @@ message LuaCtx {
   // (host.send_message)就沿用这个等级 —— 问题是哪一级,发出去的就是哪一级。插件不能自己选。
   optional uint32 dark   = 4;
   // ⚠️ **没有 `attachments`(消息里的媒体),不要加回来**(v1.5.27-dev.1 加过,10-07 删):
-  //    模型手上没有图的地址、转发时只能编一个 —— 这件事改由 hi.ai 在用户那句话后面附一份
-  //    附件列表(名字 → url,随问答存进上下文,见 hi/ai/chat.proto `Content`)解决,模型从列表里取 url
-  //    填进插件参数,插件发之前用 sdk 方法 `probe_url` 真取一次。只有一套机制,不留两条路。
+  //    模型手上没有图的地址、转发时只能编一个 —— 这件事改由附件列表解决(club 整理、hi.ai 拼进问答,
+  //    见 hi/ai/chat.proto `Attachment`),模型从列表里抄「引用 + 名字」填进插件参数。只有一套机制,不留两条路。
+  // 引起这次调用的那条消息所在的**会话号**(群号 / 单聊会话号);语音路、币安指令那类没有会话的不给。
+  // **只给宿主用,不给 lua 脚本看**(同 `dark`):插件带附件发消息时(sdk `send_with_attachments`),
+  // `<消息 uuid>#<段 id>` 这种引用只在这个会话里找(hi/club/messaging.proto「引用」:解析只在本层)。
+  // 号用 6 不用 5:5 是 dev.1 ~ dev.2 那几天的 `attachments`(消息型),复用会让还没换的执行器把它解坏。
+  optional string conv   = 6;
 }
 
 // OpenReq 装一个插件：跑一遍顶层，读出 contract 与 manifest。
