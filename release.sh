@@ -14,6 +14,20 @@ export PATH="/home/lo/golang/go/bin:/home/lo/go/bin:$HOME/.cargo/bin:$PATH"
 
 [ -d "$CODE/.git" ] || { echo "找不到 $CODE(先 clone hi-proto-code 到此)"; exit 1; }
 
+# dart / python 用的是 BSR **远程插件**(buf.build 上跑),每一轮都要出公网。它偶尔抖一下
+# (「the server hosted at that remote is unavailable」),整轮 CI 就废了、不出号 —— 而下游只会看到
+# 「推了 dev 却没有 tag」,零报错。2026-10-08 那一轮(task 548)就是这么断的,三分钟后手动重跑即过。
+# 重试与 run-ci.sh 里 git 那套同形;生成前先 rm -rf 输出目录,重来一遍是幂等的。
+retry_remote() {
+  local n=0 max=4
+  until "$@"; do
+    n=$((n+1))
+    [ $n -ge $max ] && { echo "[release] 重试 $max 次仍失败: $*" >&2; return 1; }
+    echo "[release] 第 $n 次失败,$((n*10))s 后重试: $*" >&2
+    sleep $((n*10))
+  done
+}
+
 echo "[hi-proto] $(git -C "$HIPROTO" rev-parse --short HEAD)"
 
 # 鉴权标注校验:每个 rpc 必须显式标注 hi.auth。规则长在方法上,后端拦截器读 descriptor;
@@ -110,14 +124,14 @@ echo "[3/6] rust → $CODE/rust/src/gen"
 echo "[4/6] dart → $CODE/dart/lib"
 ( cd "$HIPROTO"; unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy
   rm -rf "$CODE/dart/lib/hi" "$CODE/dart/lib/google" "$CODE/dart/lib/buf"
-  buf generate --template codegen/dart_code.yaml )
+  retry_remote buf generate --template codegen/dart_code.yaml )
 
 echo "[5/6] python → $CODE/python"
 # 谁在用:**三方插件作者的本地调试**。插件里的 plugin_builtin.call 一律走 grpc + protobuf,
 # 本地也必须走同一套 —— 不给生成物、让作者自己拼 JSON,就是把"多端一致"这个前提破掉。
 ( cd "$HIPROTO"; unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy
   rm -rf "$CODE/python/hi" "$CODE/python/google" "$CODE/python/buf"
-  buf generate --template codegen/python_code.yaml )
+  retry_remote buf generate --template codegen/python_code.yaml )
 
 echo "[6/6] lua descriptor → $CODE/lua/hi.pb"
 # lua-protobuf(pb.load)吃 FileDescriptorSet。Lua 工程(如 hinj-face)pin hi-proto-code 版本、

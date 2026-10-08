@@ -157,8 +157,18 @@ message BrainToFace {
     // face 上**不做重试** —— 哪个插件、为什么,屏幕上说不清也点不准;
     // 主人在 App 里问机器人(内置插件的 plugin_status / plugin_retry_install)就能查、能重试。
     Tip                   show_tip               = 24;
+    // 在屏幕上显示一张**内容由调用方给**的二维码(比如插件签好的 `{data,signature}`)。
+    // 与 `show_qr_code` 分开:那个只显示机器人自己的 did,内容是 face 现取的。
+    QrCard                show_qr                = 25;
 
   }
+}
+
+// 内容由调用方给的二维码。`content` 原样编进码里,face 不解析、不改写;
+// 装不下(超过二维码容量)就不显示并在日志里说一句 —— 截断了的码扫出来是另一份数据。
+message QrCard {
+  optional string content = 1; // 编进二维码的原文
+  optional string title   = 2; // 码上方的标题;不传用 face 的默认标题
 }
 
 // 通用提示:给人看的一句话。**文案由 brain 定**,face 不另编。
