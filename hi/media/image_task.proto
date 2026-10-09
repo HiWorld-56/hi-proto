@@ -83,11 +83,11 @@ message CreateMultipleImageEditTaskReq {
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
-  // 图1至图N的本人 available 静态 JPEG/PNG；FLUX 固定2张，Qwen 支持2～10张。
+  // 图1至图N的本人 available 静态 JPEG/PNG；FLUX 固定2张，Qwen 支持2～4张。
   // 工作流的 inputImages.min/max 是创建期强校验依据，全部资产在同一事务登记引用。
   repeated string input_asset_ids = 3 [(buf.validate.field).repeated = {
     min_items: 2
-    max_items: 10
+    max_items: 4
     items: {
       string: {min_len: 1}
     }

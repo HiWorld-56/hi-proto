@@ -226,7 +226,7 @@ message WorkflowFixedImageInputs {
   repeated WorkflowInputBinding bindings = 1 [
     (buf.validate.field).repeated = {
       min_items: 2
-      max_items: 10
+      max_items: 4
     },
     (hi.visibility) = VIS_SELF
   ];
@@ -250,7 +250,7 @@ message WorkflowQwenDynamicImageInputs {
   ];
 }
 
-// 多图数量与接入方式；FLUX 为固定 2/2，Qwen 为动态 2/10。
+// 多图数量与接入方式；FLUX 为固定 2/2，Qwen 为动态 2/4。
 message WorkflowMultipleImageInputs {
   option (hi.audience) = VIS_SELF;
   InputImagesConfig count = 1 [
@@ -649,9 +649,9 @@ message TestWorkflowReq {
   // 图生视频、单图修改、角色生成使用管理员本人的可用 JPEG/PNG 资产；其他功能省略。
   // 视频分辨率、时长和帧率以及文生图尺寸使用工作流默认值或固定值。
   optional string input_asset_id = 4 [(buf.validate.field).string.min_len = 1];
-  // 仅多图修改使用，提交顺序即图1至图N；FLUX 为2张，Qwen 为2～10张。
+  // 仅多图修改使用，提交顺序即图1至图N；FLUX 为2张，Qwen 为2～4张。
   repeated string input_asset_ids = 5 [(buf.validate.field).repeated = {
-    max_items: 10
+    max_items: 4
     items: {
       string: {min_len: 1}
     }
