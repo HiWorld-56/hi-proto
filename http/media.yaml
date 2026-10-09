@@ -41,6 +41,18 @@ http:
   - selector: hi.media.Task.CreateTextToVideo
     post: /api/v1/task/create_text_to_video
     body: "*"
+  - selector: hi.media.Task.CreateTextToImage
+    post: /api/v1/task/create_text_to_image
+    body: "*"
+  - selector: hi.media.Task.CreateSingleImageEdit
+    post: /api/v1/task/create_single_image_edit
+    body: "*"
+  - selector: hi.media.Task.CreateMultipleImageEdit
+    post: /api/v1/task/create_multiple_image_edit
+    body: "*"
+  - selector: hi.media.Task.CreateCharacter
+    post: /api/v1/task/create_character
+    body: "*"
   - selector: hi.media.Task.Get
     get: /api/v1/task/get
   - selector: hi.media.Task.List

@@ -117,7 +117,64 @@ message FrameRateConfig {
   }
 }
 
-// 工作流向普通用户开放的视频参数，不包含管理员固定输入。
+// 输入图片数量，含 min/max 边界；多图列表始终有序，不另设 ordered 字段。
+message InputImagesConfig {
+  option (hi.audience) = VIS_PUBLIC;
+  option (buf.validate.message).cel = {
+    id: "input_images.bounds"
+    message: "min must not exceed max"
+    expression: "this.min <= this.max"
+  };
+  // 单图修改与角色生成为 1；多图修改按工作流配置，当前最少 2 张。
+  optional uint32 min = 1 [
+    (buf.validate.field).uint32.gt = 0,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_PUBLIC
+  ];
+  // FLUX 多图为 2，Qwen 多图最多 10；创建时由后端强校验。
+  optional uint32 max = 2 [
+    (buf.validate.field).uint32 = {
+      gt: 0
+      lte: 10
+    },
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_PUBLIC
+  ];
+}
+
+// 文生图宽高范围与默认值，单位像素；min/max/default 均须为 16 的倍数。
+message ImageDimensionsConfig {
+  option (hi.audience) = VIS_PUBLIC;
+  option (buf.validate.message).cel = {
+    id: "image_dimensions.alignment"
+    message: "width and height bounds and defaults must be multiples of 16"
+    expression: "this.width.min_value % 16 == 0 && this.width.max_value % 16 == 0 && this.width.default_value % 16 == 0 && this.height.min_value % 16 == 0 && this.height.max_value % 16 == 0 && this.height.default_value % 16 == 0"
+  };
+  IntRangeConfig width = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_PUBLIC
+  ];
+  IntRangeConfig height = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_PUBLIC
+  ];
+}
+
+// 文生图的 ResolutionSelector 参数，宽高比传完整选项，像素量传十进制字符串。
+message ImageResolutionConfig {
+  option (hi.audience) = VIS_PUBLIC;
+  StringOptionConfig aspect_ratio = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_PUBLIC
+  ];
+  DecimalOptionConfig megapixels = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_PUBLIC
+  ];
+}
+
+// 工作流向普通用户开放的参数，不包含节点或管理员固定输入。
+// 为兼容已发布协议保留历史消息名；字段 1～5 是视频参数，图片扩展追加字段。
 message VideoParameterConfig {
   option (hi.audience) = VIS_PUBLIC;
   TextLimit prompt = 1 [(hi.visibility) = VIS_PUBLIC];
@@ -125,12 +182,21 @@ message VideoParameterConfig {
   DecimalOptionConfig megapixels = 3 [(hi.visibility) = VIS_PUBLIC];
   IntRangeConfig duration_seconds = 4 [(hi.visibility) = VIS_PUBLIC];
   FrameRateConfig frame_rate = 5 [(hi.visibility) = VIS_PUBLIC];
+  // 单图修改、角色生成及多图修改提供；文生图省略。提交顺序即图片接入顺序。
+  InputImagesConfig input_images = 6 [(hi.visibility) = VIS_PUBLIC];
+  // 仅文生图提供一种尺寸模式；图片修改与角色生成的尺寸由工作流决定。
+  oneof image_size {
+    ImageDimensionsConfig image_dimensions = 7 [(hi.visibility) = VIS_PUBLIC];
+    ImageResolutionConfig image_resolution = 8 [(hi.visibility) = VIS_PUBLIC];
+  }
 }
 
 // 系统初始化的功能；客户端从 Function.List 获取 ID，不自行按名称推导。
 message FunctionSummary {
   option (hi.audience) = VIS_PUBLIC;
   // 固定值：video.img2vid（图生视频）、video.txt2vid（文生视频）。
+  // 图片增量：image.txt2img（文生图）、image.edit_single（单图修改）、
+  // image.edit_multiple（多图修改）、image.character（角色生成）。
   optional string function_id = 1 [(hi.visibility) = VIS_PUBLIC];
   optional string display_name = 2 [(hi.visibility) = VIS_PUBLIC];
 }
@@ -143,7 +209,7 @@ message ListFunctionsResp {
 
 // 查询选中功能及其当前启用的工作流。
 message GetFunctionReq {
-  // 必须来自 Function.List：video.img2vid 或 video.txt2vid。
+  // 必须来自 Function.List；功能 ID 的支持值及中文用途见 FunctionSummary.function_id。
   optional string function_id = 1 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
