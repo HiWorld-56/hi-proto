@@ -28,7 +28,8 @@ message WorkflowInputBinding {
   ];
 }
 
-// 唯一主输出 SaveVideo 节点，用于解析 history，不绑定 output_name。
+// 唯一主输出节点：视频为 SaveVideo，图片为 SaveImage 或 SaveImageAdvanced。
+// 用于解析 history，不绑定 output_name；每个任务必须只产生一个有效主文件。
 message WorkflowOutputConfig {
   option (hi.audience) = VIS_SELF;
   // 主输出只绑定节点；后端按节点 class_type 使用固定 history 解析器。
@@ -65,7 +66,7 @@ message WorkflowDecimalOptionInput {
   ];
 }
 
-// 正整数范围及其写入节点，适用于视频时长。
+// 正整数范围及其写入节点，适用于视频时长和文生图像素宽高。
 message WorkflowIntRangeInput {
   option (hi.audience) = VIS_SELF;
   WorkflowInputBinding binding = 1 [
@@ -192,6 +193,179 @@ message TextToVideoWorkflowConfig {
   ];
 }
 
+// 文生图像素宽高绑定；两者的范围与默认值均为 16 的倍数，校验阶段核对。
+message WorkflowImageDimensions {
+  option (hi.audience) = VIS_SELF;
+  WorkflowIntRangeInput width = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  WorkflowIntRangeInput height = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+}
+
+// 文生图 ResolutionSelector 的两项绑定；multiple 保留在工作流文件中。
+message WorkflowImageResolution {
+  option (hi.audience) = VIS_SELF;
+  WorkflowStringOptionInput aspect_ratio = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  WorkflowDecimalOptionInput megapixels = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+}
+
+// 固定图片接入，列表顺序对应用户图1、图2等；不复制节点或改变连线。
+message WorkflowFixedImageInputs {
+  option (hi.audience) = VIS_SELF;
+  // 当前 FLUX 多图配置两项 LoadImage.image；数量必须与 min/max 一致。
+  repeated WorkflowInputBinding bindings = 1 [
+    (buf.validate.field).repeated = {
+      min_items: 2
+      max_items: 10
+    },
+    (hi.visibility) = VIS_SELF
+  ];
+}
+
+// Qwen 可变图片接入，仅配置两个节点 ID，不保存既有加载节点有序列表。
+message WorkflowQwenDynamicImageInputs {
+  option (hi.audience) = VIS_SELF;
+  // 克隆模板必须为具有 image 输入的 LoadImage；从用户第3张图片起复制。
+  optional string template_node_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // TextEncodeQwenImage21；从 images.image_1/image_2 连线读取前两项加载节点并复用。
+  // images.image_3 至实际图片数量按动态声明追加，不回写原始 API JSON。
+  optional string encoder_node_id = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+}
+
+// 多图数量与接入方式；FLUX 为固定 2/2，Qwen 为动态 2/10。
+message WorkflowMultipleImageInputs {
+  option (hi.audience) = VIS_SELF;
+  InputImagesConfig count = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  oneof mode {
+    option (buf.validate.oneof).required = true;
+    WorkflowFixedImageInputs fixed = 2 [(hi.visibility) = VIS_SELF];
+    WorkflowQwenDynamicImageInputs qwen_dynamic = 3 [(hi.visibility) = VIS_SELF];
+  }
+}
+
+// 文生图执行配置，对应 image.txt2img；用户提示词原文写入，后端随机生成 seed。
+message TextToImageWorkflowConfig {
+  option (hi.audience) = VIS_SELF;
+  WorkflowInputBinding prompt = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // 正向提示词 Unicode 码点上限，不是字节数。
+  optional uint32 prompt_max_length = 2 [
+    (buf.validate.field).uint32.gt = 0,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // 可选固定负向词；省略时保留工作流原值，不向普通用户开放。
+  WorkflowFixedTextInput negative_prompt = 3 [(hi.visibility) = VIS_SELF];
+  // KSampler.seed 或 RandomNoise.noise_seed；每个新任务及试跑生成并保存一个值。
+  WorkflowInputBinding seed = 4 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  oneof size {
+    option (buf.validate.oneof).required = true;
+    WorkflowImageDimensions dimensions = 5 [(hi.visibility) = VIS_SELF];
+    WorkflowImageResolution resolution = 6 [(hi.visibility) = VIS_SELF];
+  }
+}
+
+// 单图修改执行配置，对应 image.edit_single；不开放尺寸选择。
+message SingleImageEditWorkflowConfig {
+  option (hi.audience) = VIS_SELF;
+  WorkflowInputBinding input_image = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  WorkflowInputBinding prompt = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // 正向提示词 Unicode 码点上限。
+  optional uint32 prompt_max_length = 3 [
+    (buf.validate.field).uint32.gt = 0,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // FLUX 修改类使用 ConditioningZeroOut，省略此项；Qwen 可配置固定负向词。
+  WorkflowFixedTextInput negative_prompt = 4 [(hi.visibility) = VIS_SELF];
+  WorkflowInputBinding seed = 5 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+}
+
+// 多图修改执行配置，对应 image.edit_multiple；输入顺序必须保留，不开放尺寸选择。
+message MultipleImageEditWorkflowConfig {
+  option (hi.audience) = VIS_SELF;
+  WorkflowMultipleImageInputs input_images = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  WorkflowInputBinding prompt = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // 正向提示词 Unicode 码点上限。
+  optional uint32 prompt_max_length = 3 [
+    (buf.validate.field).uint32.gt = 0,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  WorkflowFixedTextInput negative_prompt = 4 [(hi.visibility) = VIS_SELF];
+  WorkflowInputBinding seed = 5 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+}
+
+// 角色生成执行配置，对应 image.character；用户提供一张角色参考图和正向提示词。
+message CharacterWorkflowConfig {
+  option (hi.audience) = VIS_SELF;
+  WorkflowInputBinding input_image = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // 用户正向提示词绑定；执行时写入用户原文，不拼接固定文本或回退示例值。
+  WorkflowInputBinding prompt = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // 可选管理员固定负向词，不向用户开放。
+  WorkflowFixedTextInput negative_prompt = 3 [(hi.visibility) = VIS_SELF];
+  WorkflowInputBinding seed = 4 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // 用户正向提示词 Unicode 码点上限；Function.Get 的 parameterConfig.prompt 返回此长度。
+  optional uint32 prompt_max_length = 5 [
+    (buf.validate.field).uint32.gt = 0,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+}
+
 // 完整执行配置；功能配置必须与工作流归属一致，保存时不建立产物预占。
 message WorkflowExecutionConfig {
   option (hi.audience) = VIS_SELF;
@@ -200,6 +374,10 @@ message WorkflowExecutionConfig {
 
     ImageToVideoWorkflowConfig image_to_video = 1 [(hi.visibility) = VIS_SELF];
     TextToVideoWorkflowConfig text_to_video = 2 [(hi.visibility) = VIS_SELF];
+    TextToImageWorkflowConfig text_to_image = 5 [(hi.visibility) = VIS_SELF];
+    SingleImageEditWorkflowConfig single_image_edit = 6 [(hi.visibility) = VIS_SELF];
+    MultipleImageEditWorkflowConfig multiple_image_edit = 7 [(hi.visibility) = VIS_SELF];
+    CharacterWorkflowConfig character = 8 [(hi.visibility) = VIS_SELF];
   }
   WorkflowOutputConfig output = 3 [
     (buf.validate.field).required = true,
@@ -463,14 +641,21 @@ message TestWorkflowReq {
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
-  // 本次真实试跑的正向提示词，按工作流 Unicode 码点上限校验。
+  // 六类功能均必填正向提示词，角色生成同样使用本次提交的原文；长度按工作流配置校验。
   optional string prompt = 3 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
-  // 图生视频必须提交管理员本人的可用 JPEG/PNG 资产；文生视频必须省略。
-  // 分辨率、时长和帧率统一使用工作流默认值或固定值。
+  // 图生视频、单图修改、角色生成使用管理员本人的可用 JPEG/PNG 资产；其他功能省略。
+  // 视频分辨率、时长和帧率以及文生图尺寸使用工作流默认值或固定值。
   optional string input_asset_id = 4 [(buf.validate.field).string.min_len = 1];
+  // 仅多图修改使用，提交顺序即图1至图N；FLUX 为2张，Qwen 为2～10张。
+  repeated string input_asset_ids = 5 [(buf.validate.field).repeated = {
+    max_items: 10
+    items: {
+      string: {min_len: 1}
+    }
+  }];
 }
 
 // 返回受理的试跑任务 ID；试跑成功保存并结算后才自动启用草稿，不支持恢复保存。

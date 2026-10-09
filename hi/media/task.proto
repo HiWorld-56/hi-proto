@@ -5,6 +5,7 @@ package hi.media;
 import "buf/validate/validate.proto";
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "hi/media/image_task.proto";
 import "hi/options.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
@@ -132,7 +133,7 @@ message TextToVideoTaskParams {
 
 // 唯一主产物；size_bytes 为字节，duration_ms 为毫秒，访问地址通过 File.GetAccessUrls 获取。
 // Task.List 的 tasks[].output 与 Task.Get 的 task.summary.output 共用此结构。
-// 实际宽高直接供前端布局使用，无需逐条查询详情或加载视频；尚无产物时不提供宽高。
+// 实际宽高直接供前端布局使用，无需逐条查询详情或加载媒体；尚无产物时不提供宽高。
 message TaskOutput {
   option (hi.audience) = VIS_SELF;
   optional string asset_id = 1 [(hi.visibility) = VIS_SELF];
@@ -140,15 +141,17 @@ message TaskOutput {
   optional MediaType media_type = 3 [(hi.visibility) = VIS_SELF];
   optional string mime_type = 4 [(hi.visibility) = VIS_SELF];
   optional uint64 size_bytes = 5 [(hi.visibility) = VIS_SELF];
+  // 仅视频产物返回实际时长；图片省略。
   optional int64 duration_ms = 6 [(hi.visibility) = VIS_SELF];
   // 资产删除后任务仍可保持成功，但该值为 false 且不能播放。
   optional bool available = 7 [(hi.visibility) = VIS_SELF];
-  // 实际产物宽度，单位像素；读取已保存的视频探测结果，不根据生成参数推算。
+  // 实际产物宽度，单位像素；读取已保存的媒体事实，不根据生成参数推算。
   optional uint32 width = 8 [(hi.visibility) = VIS_SELF];
-  // 实际产物高度，单位像素；与 width 一同返回，查询时不重新探测视频。
+  // 实际产物高度，单位像素；与 width 一同返回，查询时不重新读取媒体。
   optional uint32 height = 9 [(hi.visibility) = VIS_SELF];
   // 资产可用且有已保存的视频封面；用 asset_id 申请 COVER 地址时为 true 返回封面，否则返回原文件。
   // 无封面或资产不可用时为 false，不影响视频任务的成功状态；size_bytes 不含封面。
+  // 图片始终为 false，COVER/PREVIEW 直接返回原图地址，不表示图片不能预览。
   optional bool has_cover = 10 [(hi.visibility) = VIS_SELF];
 }
 
@@ -157,7 +160,7 @@ message TaskSummary {
   option (hi.audience) = VIS_SELF;
   optional string task_id = 1 [(hi.visibility) = VIS_SELF];
   optional TaskPurpose purpose = 2 [(hi.visibility) = VIS_SELF];
-  // 任务受理时确定的功能 ID：video.img2vid 或 video.txt2vid。
+  // 任务受理时确定的功能 ID；六种支持值及中文用途见 FunctionSummary.function_id。
   optional string function_id = 3 [(hi.visibility) = VIS_SELF];
   // 从当前功能记录读取的用户可见名称。
   optional string function_display_name = 4 [(hi.visibility) = VIS_SELF];
@@ -190,7 +193,7 @@ message TaskSummary {
   // 从 created_at 到当前时间或 completed_at 的墙钟秒数。
   optional int64 elapsed_seconds = 18 [(hi.visibility) = VIS_SELF];
   // 图生视频的原始输入图片资产 ID，列表和详情摘要均返回；文生视频不返回。
-  // 前端通过 File.GetAccessUrls 申请 PREVIEW 地址作为视频封面，不是视频 output.asset_id。
+  // 只表示输入素材，不是视频封面或 output.asset_id；视频封面通过产物 ID 申请 COVER。
   // 原图删除后仍保留该历史 ID；无法获取预览时显示占位图，不延长原图保留期。
   optional string input_asset_id = 19 [(hi.visibility) = VIS_SELF];
   // 创建任务时保存的实际业务参数 JSON 字符串，包含已补齐的默认值或固定值。
@@ -198,6 +201,8 @@ message TaskSummary {
   // HTTP 字段为 effectiveParamsJson；解析字符串后，内部键使用 snake_case：
   // prompt、aspect_ratio、megapixels（字符串）、duration_seconds、frame_rate（整数），
   // 图生视频另含 input_asset_id；不包含工作流图、节点绑定或管理员负向提示词。
+  // 图片任务另含后端生成的 seed；单图/角色含 input_asset_id，多图含有序 input_asset_ids。
+  // 文生图按尺寸模式包含 width/height 或 aspect_ratio/megapixels；角色 prompt 为用户原文。
   optional string effective_params_json = 20 [(hi.visibility) = VIS_SELF];
 }
 
@@ -208,6 +213,10 @@ message TaskDetail {
   oneof effective_params {
     ImageToVideoTaskParams image_to_video = 2 [(hi.visibility) = VIS_SELF];
     TextToVideoTaskParams text_to_video = 3 [(hi.visibility) = VIS_SELF];
+    TextToImageTaskParams text_to_image = 4 [(hi.visibility) = VIS_SELF];
+    SingleImageEditTaskParams single_image_edit = 5 [(hi.visibility) = VIS_SELF];
+    MultipleImageEditTaskParams multiple_image_edit = 6 [(hi.visibility) = VIS_SELF];
+    CharacterTaskParams character = 7 [(hi.visibility) = VIS_SELF];
   }
 }
 
@@ -293,7 +302,7 @@ message RecoverSaveTaskResp {
   optional string status_message = 3 [(hi.visibility) = VIS_SELF];
 }
 
-// 普通用户视频任务创建、查询、取消和一次性恢复保存。
+// 普通用户图片与视频任务创建、查询、取消和一次性恢复保存，共用 FIFO 和任务状态。
 service Task {
   // 创建图生视频任务；只提交 workflow_id 与业务参数，不组合功能或模型 ID。
   rpc CreateImageToVideo(CreateImageToVideoTaskReq) returns (CreateTaskResp) {
@@ -301,6 +310,22 @@ service Task {
   }
   // 创建文生视频任务；只提交 workflow_id 与业务参数。
   rpc CreateTextToVideo(CreateTextToVideoTaskReq) returns (CreateTaskResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  // 文生图 image.txt2img；只传工作流 ID、提示词和匹配的尺寸参数，seed 由后端生成。
+  rpc CreateTextToImage(CreateTextToImageTaskReq) returns (CreateTaskResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  // 单图修改 image.edit_single；一张本人图片和修改要求，不开放尺寸选择。
+  rpc CreateSingleImageEdit(CreateSingleImageEditTaskReq) returns (CreateTaskResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  // 多图修改 image.edit_multiple；图片数量来自工作流配置，顺序不可丢失。
+  rpc CreateMultipleImageEdit(CreateMultipleImageEditTaskReq) returns (CreateTaskResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  // 角色生成 image.character；用户提交一张参考图与正向提示词，负向词及内部尺寸由管理员维护。
+  rpc CreateCharacter(CreateCharacterTaskReq) returns (CreateTaskResp) {
     option (hi.auth) = AUTH_USER;
   }
   // 查询本人任务详情及产物资产 ID。

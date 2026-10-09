@@ -1,0 +1,166 @@
+syntax = "proto3";
+
+package hi.media;
+
+import "buf/validate/validate.proto";
+import "hi/options.proto";
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
+
+// 文生图宽高选择，单位像素；省略某项时使用该工作流对应默认值。
+message ImageDimensions {
+  // FLUX 文生图宽度，必须为 16 的倍数；范围由 Function.Get 返回。
+  optional int32 width = 1 [(buf.validate.field).int32.gt = 0];
+  // FLUX 文生图高度，必须为 16 的倍数；不是最终产物尺寸声明。
+  optional int32 height = 2 [(buf.validate.field).int32.gt = 0];
+}
+
+// 文生图 ResolutionSelector 参数；两项分别按工作流默认值补齐。
+message ImageResolution {
+  // 节点接受的完整选项字符串，例如 "1:1 (Square)"，不能只传 "1:1"。
+  optional string aspect_ratio = 1 [(buf.validate.field).string.min_len = 1];
+  // 规范十进制字符串，例如 "1" 或 "0.5"；写入 ComfyUI 节点时转为 JSON 数字。
+  optional string megapixels = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+// 创建文生图任务，对应 image.txt2img；不接收输入图片、用户 seed 或负向词。
+message CreateTextToImageTaskReq {
+  // 本人范围内的幂等键；重发复用，不同值即使参数相同也创建新任务。
+  optional string request_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 来自 image.txt2img 的 Function.Get；必须已启用，不再传模型或功能 ID。
+  optional string workflow_id = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 正向提示词原文，不翻译、不追加、不增强；按工作流 Unicode 码点上限校验。
+  optional string prompt = 3 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 必须匹配工作流的尺寸模式；整体省略时采用该工作流全部尺寸默认值。
+  oneof size {
+    ImageDimensions dimensions = 4;
+    ImageResolution resolution = 5;
+  }
+}
+
+// 创建单图修改任务，对应 image.edit_single；不开放尺寸或用户 seed。
+message CreateSingleImageEditTaskReq {
+  // 本人范围内的创建幂等键。
+  optional string request_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 来自 image.edit_single 的 Function.Get，服务端检查归属与启用状态。
+  optional string workflow_id = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 本人 available 的静态 JPEG/PNG 资产；创建事务登记引用。
+  optional string input_asset_id = 3 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 用户修改要求原文；输出尺寸由工作流按输入图片处理，不保证与原图等宽高。
+  optional string prompt = 4 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+}
+
+// 创建多图修改任务，对应 image.edit_multiple；图片按提交顺序接入，不排序。
+message CreateMultipleImageEditTaskReq {
+  // 本人范围内的创建幂等键，相同参数使用不同键可生成用于对比的新结果。
+  optional string request_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 来自 image.edit_multiple 的 Function.Get，不按模型名推断图片数量。
+  optional string workflow_id = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 图1至图N的本人 available 静态 JPEG/PNG；FLUX 固定2张，Qwen 支持2～10张。
+  // 工作流的 inputImages.min/max 是创建期强校验依据，全部资产在同一事务登记引用。
+  repeated string input_asset_ids = 3 [(buf.validate.field).repeated = {
+    min_items: 2
+    max_items: 10
+    items: {
+      string: {min_len: 1}
+    }
+  }];
+  // 第一张为主要编辑对象，其余为参考；图片引用写法按工作流说明填写。
+  optional string prompt = 4 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+}
+
+// 创建角色生成任务，对应 image.character；用户提供参考图和必填正向提示词。
+message CreateCharacterTaskReq {
+  // 本人范围内的创建幂等键；新任务由后端生成新的 seed。
+  optional string request_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 来自 image.character 的 Function.Get；模型记录可与 FLUX 其他功能共用。
+  optional string workflow_id = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 本人 available 的静态 JPEG/PNG 角色参考图；输出为一张完整角色展示 PNG。
+  optional string input_asset_id = 3 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 用户正向提示词原文，不拼接管理员文本或回退示例值；长度按工作流配置校验。
+  optional string prompt = 4 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+}
+
+// 文生图实际参数，尺寸为创建时补齐的选择值；最终实际尺寸从 TaskOutput 读取。
+message TextToImageTaskParams {
+  option (hi.audience) = VIS_SELF;
+  optional string prompt = 1 [(hi.visibility) = VIS_SELF];
+  // 后端创建时随机生成，重启及恢复保存不改变；uint64 在 HTTP 中为十进制字符串。
+  optional uint64 seed = 2 [(hi.visibility) = VIS_SELF];
+  // 宽高模式返回像素宽高，ResolutionSelector 模式省略这两项。
+  optional int32 width = 3 [(hi.visibility) = VIS_SELF];
+  optional int32 height = 4 [(hi.visibility) = VIS_SELF];
+  // ResolutionSelector 模式返回完整宽高比选项与规范像素量，宽高模式省略。
+  optional string aspect_ratio = 5 [(hi.visibility) = VIS_SELF];
+  optional string megapixels = 6 [(hi.visibility) = VIS_SELF];
+}
+
+// 单图修改实际参数，不含负向词或节点绑定。
+message SingleImageEditTaskParams {
+  option (hi.audience) = VIS_SELF;
+  // 创建时固定的原始素材 ID，素材删除后仍保留，不保证可预览或重新生成。
+  optional string input_asset_id = 1 [(hi.visibility) = VIS_SELF];
+  optional string prompt = 2 [(hi.visibility) = VIS_SELF];
+  // 后端为本任务生成的 seed，不接受用户指定。
+  optional uint64 seed = 3 [(hi.visibility) = VIS_SELF];
+}
+
+// 多图修改实际参数，图片列表保留用户提交顺序。
+message MultipleImageEditTaskParams {
+  option (hi.audience) = VIS_SELF;
+  repeated string input_asset_ids = 1 [(hi.visibility) = VIS_SELF];
+  optional string prompt = 2 [(hi.visibility) = VIS_SELF];
+  // 后端为本任务生成的 seed；重新生成创建独立任务并生成新值。
+  optional uint64 seed = 3 [(hi.visibility) = VIS_SELF];
+}
+
+// 角色生成实际参数；重新生成预填参考图与用户提示词，确认后创建任务并生成新 seed。
+message CharacterTaskParams {
+  option (hi.audience) = VIS_SELF;
+  optional string input_asset_id = 1 [(hi.visibility) = VIS_SELF];
+  // 本任务创建时提交的用户正向提示词原文，不随后续配置修改变化。
+  optional string prompt = 2 [(hi.visibility) = VIS_SELF];
+  optional uint64 seed = 3 [(hi.visibility) = VIS_SELF];
+}
