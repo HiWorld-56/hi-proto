@@ -191,23 +191,29 @@ message VideoParameterConfig {
   }
 }
 
-// 系统初始化的功能；客户端从 Function.List 获取 ID，不自行按名称推导。
+// 系统初始化的功能，包括已实现和开发中的入口；客户端从 Function.List 获取 ID。
 message FunctionSummary {
   option (hi.audience) = VIS_PUBLIC;
   // 固定值：video.img2vid（图生视频）、video.txt2vid（文生视频）。
   // 图片增量：image.txt2img（文生图）、image.edit_single（单图修改）、
   // image.edit_multiple（多图修改）、image.character（角色生成）。
+  // 开发中：video.first_last_frame（首尾帧生成）、video.motion_transfer（模仿生成）、
+  // video.continuation（引导生成）、video.reference（参考生成）、
+  // video.advanced_replace（高级替换）；登记入口不代表已实现生成接口。
   optional string function_id = 1 [(hi.visibility) = VIS_PUBLIC];
   optional string display_name = 2 [(hi.visibility) = VIS_PUBLIC];
+  // 管理员控制的开放开关；false 仍展示入口，但普通用户不能创建新任务。
+  // 与工作流 ENABLED 状态独立，不影响已受理任务或管理员试跑。
+  optional bool enabled = 3 [(hi.visibility) = VIS_PUBLIC];
 }
 
-// 返回全部固定功能；功能是否可创建任务由 Get 的 workflows 判断。
+// 返回全部登记功能，不按开放开关或工作流数量过滤。
 message ListFunctionsResp {
   option (hi.audience) = VIS_PUBLIC;
   repeated FunctionSummary functions = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
-// 查询选中功能及其当前启用的工作流。
+// 查询登记功能；关闭时正常返回功能信息，workflows 为空。
 message GetFunctionReq {
   // 必须来自 Function.List；功能 ID 的支持值及中文用途见 FunctionSummary.function_id。
   optional string function_id = 1 [
@@ -242,18 +248,38 @@ message WorkflowOption {
 message GetFunctionResp {
   option (hi.audience) = VIS_PUBLIC;
   FunctionSummary function = 1 [(hi.visibility) = VIS_PUBLIC];
-  // 只包含 ENABLED 工作流，按管理员顺序及稳定次序排列；空列表表示当前不可创建。
+  // 功能关闭时为空；开放时只包含 ENABLED 工作流，按管理员顺序及稳定次序排列。
+  // enabled=false 提示开发中；enabled=true 且列表为空提示暂无可用工作流。
   repeated WorkflowOption workflows = 2 [(hi.visibility) = VIS_PUBLIC];
 }
 
 // 普通用户的功能选择入口。
 service Function {
-  // 返回系统固定功能 ID 及显示名。
+  // 返回全部登记功能的 ID、显示名及开放开关，管理员页面也复用此列表。
   rpc List(google.protobuf.Empty) returns (ListFunctionsResp) {
     option (hi.auth) = AUTH_USER;
   }
-  // 返回指定功能及全部已启用工作流，各自携带模型信息与用户参数配置。
+  // 返回指定功能；仅开放时返回全部已启用工作流及用户参数配置。
   rpc Get(GetFunctionReq) returns (GetFunctionResp) {
     option (hi.auth) = AUTH_USER;
+  }
+}
+
+// 修改功能开放开关；function_id 与 enabled 必须显式提供，包括 enabled=false。
+message SetFunctionEnabledReq {
+  optional string function_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // true 允许普通用户创建新任务；开启不要求已有工作流，不自动启用工作流。
+  optional bool enabled = 2 [(buf.validate.field).required = true];
+}
+
+// 管理员只调整功能开放开关；功能 ID 和显示名称随开发初始化。
+service FunctionManage {
+  // 关闭只阻止新建普通任务，不取消已有任务，也不限制管理员配置、校验和试跑。
+  // 目标功能不存在返回 NotFound；重复设置同一值仍成功。
+  rpc SetEnabled(SetFunctionEnabledReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_SUPERADMIN;
   }
 }

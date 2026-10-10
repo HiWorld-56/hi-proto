@@ -35,6 +35,9 @@ http:
     get: /api/v1/function/list
   - selector: hi.media.Function.Get
     get: /api/v1/function/get
+  - selector: hi.media.FunctionManage.SetEnabled
+    post: /api/v1/function_manage/set_enabled
+    body: "*"
   - selector: hi.media.Task.CreateImageToVideo
     post: /api/v1/task/create_image_to_video
     body: "*"
