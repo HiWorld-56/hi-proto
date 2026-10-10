@@ -76,7 +76,7 @@ message PluginVersion {                                  // b:按 (uuid,version)
   //
   // 拿它跟包里的文件比对会对不上,**这是预期行为,别当 bug 查**。
   //
-  // PUBLIC:买家在挂牌页看的 `MarketListingDetail.capabilities` 就是这一份 ——
+  // PUBLIC:买家在挂牌页看的 `MarketListingDetail.active.description` 就是这一份 ——
   // 那边早就是公开的了,源头这边却标着 SELF,两边对不上。以这边为准改成 PUBLIC。
   optional string description = 6 [(hi.visibility) = VIS_PUBLIC];
   // 插件提示词(包里的 `prompt.md`):用这个插件要知道的**概念**,对话时由后端拼进系统消息(每个插件一行)。
@@ -84,6 +84,24 @@ message PluginVersion {                                  // b:按 (uuid,version)
   // (换行保留,每行去首尾空白、连续空白压成一个,空行去掉;上限 800 字)。不带 = 这个插件没写。
   // web 拿它展示「这个插件给模型加了什么话」(2026-09-27 起)。可见性同 description:它本来就是喂给模型的。
   optional string prompt      = 7 [(hi.visibility) = VIS_PUBLIC];
+}
+
+// PluginVersionPublic 一个版本**给别人看的那一面** —— PluginVersion 去掉私有字段(壳 uuid、脚本 url)。
+//
+// 为什么另立一个类型:PluginVersion 里有 SELF 字段,整条放不进 PUBLIC 消息(lint 挡的正是这个)。
+// **门面是另一个类型,不是另一套值** —— 每个字段都在读侧从 PluginVersion 原样取,不另存、不另填。
+// 字段号与 PluginVersion 里同名字段一一相同,一眼看得出是同一份东西的子集。
+//
+// 用在挂牌详情(hi.club.MarketListingDetail.active):买家装之前就该知道这个插件
+// 提供哪些方法、给模型加了什么话。2026-10-10 起替掉原来那个拍平的 `capabilities` 字符串 ——
+// 那个只带了方法,提示词没地方放。
+message PluginVersionPublic {
+  option (hi.audience) = VIS_PUBLIC;
+  optional string version     = 2 [(hi.visibility) = VIS_PUBLIC];
+  optional string logo        = 3 [(hi.visibility) = VIS_PUBLIC];
+  optional string summary     = 4 [(hi.visibility) = VIS_PUBLIC];
+  optional string description = 6 [(hi.visibility) = VIS_PUBLIC]; // 方法(tools 数组),同 PluginVersion.description
+  optional string prompt      = 7 [(hi.visibility) = VIS_PUBLIC]; // 插件提示词,同 PluginVersion.prompt;不带 = 没写
 }
 
 // ── 插件用什么语言写 —— **壳的属性**(同一个包不会一半 py 一半 rust),发版后冻结 ──

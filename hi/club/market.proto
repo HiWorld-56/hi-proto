@@ -7,6 +7,7 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/struct.proto";
 import "hi/common.proto";
 import "hi/options.proto";
+import "hi/ai/plugin.proto";
 import "hi/did/base.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
@@ -169,7 +170,7 @@ enum GrantStatus {
 //    那两个是主人的私有配置(VIS_SELF)」,并据此让挂牌**再填一遍** title/summary/logo。
 //    两头都不成立:
 //      · 那两个字段**标错了** —— 展示物没有"只给自己看"的语义,现已改成 VIS_PUBLIC;
-//        旁边 `capabilities`(取自 `PluginVersion.description`)和 `versions` 早就是公开的,
+//        旁边的能力(取自 `PluginVersion.description`,当时叫 `capabilities`)和 `versions` 早就是公开的,
 //        同一条数据在门面里公开、在源头标私有,自相矛盾。
 //      · lint **从没逼过这件事** —— 规则是 `level(field) <= level(message)`,
 //        挡的只有反方向;PUBLIC 字段放进 SELF 消息一直是合法的。
@@ -205,9 +206,13 @@ message MarketListingBrief {
 message MarketListingDetail {
   option (hi.audience) = VIS_PUBLIC;
   MarketListingBrief brief = 1 [(hi.visibility) = VIS_PUBLIC];
-  // 这个包提供哪些方法。直接取自 hi.ai 那份 tools 数组(已是最终形态、name 带壳前缀),
-  // 买家装之前就知道会得到什么能力。
-  optional string capabilities = 2 [(hi.visibility) = VIS_PUBLIC];
+  // 出让方**当前激活版**的公开面(与 brief 的 logo/summary 同一口径):
+  // `description` 是这个包提供哪些方法(hi.ai 那份 tools 数组,已是最终形态、name 带壳前缀),
+  // `prompt` 是它给模型加的话。买家装之前就该知道这两样。取不到(ai 抖了)就不带。
+  //
+  // ⚠️ 原来这里是拍平的 `capabilities` 字符串(只放了 description),提示词没地方放 ——
+  //    2026-10-10 换成整个对象,以后版本多一个公开字段,这里一行都不用改。
+  hi.ai.PluginVersionPublic active = 7 [(hi.visibility) = VIS_PUBLIC];
   // ⚠️ **没有 allow_follow_latest,不要再加回来。**
   // "要不要自动跟新版"是**使用方自己的事**,归在 hi.ai 的使用行上
   // (`hi.ai.PluginView.follow_latest`,在"机器人 → 插件"那一行上开关)。
