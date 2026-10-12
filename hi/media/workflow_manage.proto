@@ -383,6 +383,7 @@ message FirstLastFrameWorkflowConfig {
     (buf.validate.field).required = true,
     (hi.visibility) = VIS_SELF
   ];
+  // 用户提示词上限，单位 Unicode 码点；不能按 UTF-8 字节计数。
   optional uint32 prompt_max_length = 4 [
     (buf.validate.field).uint32.gt = 0,
     (buf.validate.field).required = true,
@@ -448,6 +449,7 @@ message MotionTransferWorkflowConfig {
     (buf.validate.field).required = true,
     (hi.visibility) = VIS_SELF
   ];
+  // 用户提示词 Unicode 码点上限。
   optional uint32 prompt_max_length = 5 [
     (buf.validate.field).uint32.gt = 0,
     (buf.validate.field).required = true,
@@ -496,6 +498,7 @@ message MiniMaxVideoWorkflowConfig {
     (buf.validate.field).required = true,
     (hi.visibility) = VIS_SELF
   ];
+  // 用户提示词 Unicode 码点上限，各工作流独立配置。
   optional uint32 prompt_max_length = 4 [
     (buf.validate.field).uint32.gt = 0,
     (buf.validate.field).required = true,
