@@ -366,9 +366,172 @@ message CharacterWorkflowConfig {
   ];
 }
 
+// 首尾帧执行配置；输出宽高由宽高比和像素量计算后按 32 对齐，分别写入宽、高绑定。
+message FirstLastFrameWorkflowConfig {
+  option (hi.audience) = VIS_SELF;
+  // 两个 LoadImage.image，分别承担首帧、尾帧；管理员按角色绑定。
+  WorkflowInputBinding first_frame = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  WorkflowInputBinding last_frame = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // 用户原文写入有效路径；不翻译、拼接或启用提示词增强。
+  WorkflowInputBinding prompt = 3 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  optional uint32 prompt_max_length = 4 [
+    (buf.validate.field).uint32.gt = 0,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // 可选管理员负向词；省略时保留工作流原值。
+  WorkflowFixedTextInput negative_prompt = 5 [(hi.visibility) = VIS_SELF];
+  // 计算后的像素宽高绑定；允许整数业务值写入兼容 INT/FLOAT 节点。
+  WorkflowInputBinding width = 6 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  WorkflowInputBinding height = 7 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // 公开允许值与默认值，不直接写入节点；初始 16:9 (Widescreen)。
+  StringOptionConfig aspect_ratio = 8 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // 规范十进制字符串，初始默认 "0.9"；用于计算像素宽高。
+  DecimalOptionConfig megapixels = 9 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // 初始 3～15 秒、默认 5；每个工作流独立可调。
+  WorkflowIntRangeInput duration_seconds = 10 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // 初始默认 24，可选或固定；固定值须与执行图一致。
+  WorkflowFrameRateInput frame_rate = 11 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // 一个或多个主生成 seed 输入，全部写入同一个后端任务随机值。
+  repeated WorkflowInputBinding seeds = 12 [
+    (buf.validate.field).repeated.min_items = 1,
+    (hi.visibility) = VIS_SELF
+  ];
+}
+
+// 模仿生成配置；当前为深度控制，不提供用户输出尺寸、时长或帧率参数。
+message MotionTransferWorkflowConfig {
+  option (hi.audience) = VIS_SELF;
+  // LoadVideo.file，执行时写入本次上传响应对应的文件引用。
+  WorkflowInputBinding input_video = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // 可选首帧的 LoadImage.image 位置；绑定必填，用户素材可省略。
+  WorkflowInputBinding first_frame = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // 布尔输入，由是否提供首帧决定；无图时后端还须旁路两阶段图片条件并清除无用分支。
+  WorkflowInputBinding use_first_frame = 3 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  WorkflowInputBinding prompt = 4 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  optional uint32 prompt_max_length = 5 [
+    (buf.validate.field).uint32.gt = 0,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  WorkflowFixedTextInput negative_prompt = 6 [(hi.visibility) = VIS_SELF];
+  // 多阶段主生成使用同一个后端 seed，不修改原有视频功能的种子行为。
+  repeated WorkflowInputBinding seeds = 7 [
+    (buf.validate.field).repeated.min_items = 1,
+    (hi.visibility) = VIS_SELF
+  ];
+}
+
+// MiniMax 零至四张有序参考图片接入；只配置模板和接收节点，不配置通用重连规则。
+message WorkflowMiniMaxReferenceImages {
+  option (hi.audience) = VIS_SELF;
+  // 可克隆的 LoadImage，后端按实际图片数量准备加载节点，移除未使用示例。
+  optional string template_node_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // MiniMaxH3ReferenceToVideo；按顺序写入 ref_images.ref_image_0 至实际图片数。
+  optional string reference_node_id = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+}
+
+// 引导、参考及高级替换共用的 MiniMax 参数结构，由外层 function_config 确定功能。
+// 固定输出 24 FPS；输入视频在执行前适配临时副本，不改存储原件。
+message MiniMaxVideoWorkflowConfig {
+  option (hi.audience) = VIS_SELF;
+  // LoadVideo.file；绑定必填，参考生成用户可不提供视频，此时断开视频与音频分支。
+  WorkflowInputBinding input_video = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // 用户可选 0～4 张图片，按提交顺序接入；不存在的素材不沿用示例。
+  WorkflowMiniMaxReferenceImages reference_images = 2 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  WorkflowInputBinding prompt = 3 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  optional uint32 prompt_max_length = 4 [
+    (buf.validate.field).uint32.gt = 0,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // ResolutionSelector 完整选项字符串，初始默认 16:9 (Widescreen)。
+  WorkflowStringOptionInput aspect_ratio = 5 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // 业务保存十进制字符串，执行写为 JSON 数字；初始默认 "0.4"。
+  WorkflowDecimalOptionInput megapixels = 6 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // 初始 3～10 秒、默认 5；引导生成表示新增片段，后端补前导并裁剪。
+  WorkflowIntRangeInput duration_seconds = 7 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  repeated WorkflowInputBinding seeds = 8 [
+    (buf.validate.field).repeated.min_items = 1,
+    (hi.visibility) = VIS_SELF
+  ];
+  // 仅高级替换必填，其他两类不得配置；用户原文传 SAM，固定最多 200 个码点。
+  WorkflowInputBinding region_description = 9 [(hi.visibility) = VIS_SELF];
+}
+
 // 完整执行配置；功能配置必须与工作流归属一致，保存时不建立产物预占。
 message WorkflowExecutionConfig {
   option (hi.audience) = VIS_SELF;
+  option (buf.validate.message).cel = {
+    id: "video_workflow.region_binding"
+    message: "region_description is required only for advanced_replace"
+    expression: "(!has(this.advanced_replace) || has(this.advanced_replace.region_description)) && (!has(this.continuation) || !has(this.continuation.region_description)) && (!has(this.reference) || !has(this.reference.region_description))"
+  };
   oneof function_config {
     option (buf.validate.oneof).required = true;
 
@@ -378,6 +541,11 @@ message WorkflowExecutionConfig {
     SingleImageEditWorkflowConfig single_image_edit = 6 [(hi.visibility) = VIS_SELF];
     MultipleImageEditWorkflowConfig multiple_image_edit = 7 [(hi.visibility) = VIS_SELF];
     CharacterWorkflowConfig character = 8 [(hi.visibility) = VIS_SELF];
+    FirstLastFrameWorkflowConfig first_last_frame = 9 [(hi.visibility) = VIS_SELF];
+    MotionTransferWorkflowConfig motion_transfer = 10 [(hi.visibility) = VIS_SELF];
+    MiniMaxVideoWorkflowConfig continuation = 11 [(hi.visibility) = VIS_SELF];
+    MiniMaxVideoWorkflowConfig reference = 12 [(hi.visibility) = VIS_SELF];
+    MiniMaxVideoWorkflowConfig advanced_replace = 13 [(hi.visibility) = VIS_SELF];
   }
   WorkflowOutputConfig output = 3 [
     (buf.validate.field).required = true,
@@ -523,7 +691,7 @@ message WorkflowDetail {
 // 第二项 workflow 为完整 UTF-8 API JSON .json 文件，非空，默认上限 10 MiB。
 // 不接受编辑器 Workflow JSON；组合已存在时返回 Aborted，不覆盖原工作流。
 message WorkflowImportMetadata {
-  // 来自 Function.List 的 video.img2vid 或 video.txt2vid。
+  // 来自 Function.List，支持值及中文用途见 FunctionSummary.function_id。
   optional string function_id = 1 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
@@ -641,7 +809,7 @@ message TestWorkflowReq {
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
   ];
-  // 六类功能均必填正向提示词，角色生成同样使用本次提交的原文；长度按工作流配置校验。
+  // 全部功能均必填用户正向提示词原文；长度按工作流配置校验。
   optional string prompt = 3 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).required = true
@@ -649,13 +817,32 @@ message TestWorkflowReq {
   // 图生视频、单图修改、角色生成使用管理员本人的可用 JPEG/PNG 资产；其他功能省略。
   // 视频分辨率、时长和帧率以及文生图尺寸使用工作流默认值或固定值。
   optional string input_asset_id = 4 [(buf.validate.field).string.min_len = 1];
-  // 仅多图修改使用，提交顺序即图1至图N；FLUX 为2张，Qwen 为2～4张。
+  // 多图修改及三个新增 MiniMax 功能使用，提交顺序即图1至图N；最多四张。
+  // FLUX 为2张，Qwen 为2～4张，MiniMax 为0～4张，由目标功能校验。
   repeated string input_asset_ids = 5 [(buf.validate.field).repeated = {
     max_items: 4
     items: {
       string: {min_len: 1}
     }
   }];
+  // 模仿、引导及高级替换必填；参考生成可选，但至少一份视频或图片。
+  // 使用管理员本人 available 视频，执行与普通创建相同的格式／大小／时长检查。
+  optional string input_video_asset_id = 6 [(buf.validate.field).string.min_len = 1];
+  // 首尾帧必填首帧，模仿可选；不提供模仿首帧时旁路图片条件。
+  optional string first_frame_asset_id = 7 [(buf.validate.field).string.min_len = 1];
+  // 仅首尾帧必填尾帧，其他功能省略。
+  optional string last_frame_asset_id = 8 [(buf.validate.field).string.min_len = 1];
+  // 仅高级替换必填；最多 200 个码点，原样使用，不翻译或自动补 head。
+  optional string region_description = 9 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 200
+  }];
+  // 首尾帧和三个 MiniMax 功能可传；不传补默认。原有六项仍使用其原有试跑规则。
+  VideoResolution resolution = 10;
+  // 新增功能适用的输出时长，整数秒；引导表示新增片段，模仿不接受。
+  optional int32 duration_seconds = 11 [(buf.validate.field).int32.gt = 0];
+  // 仅新增首尾帧可传；其他新增功能由素材或工作流固定帧率决定。
+  optional int32 frame_rate = 12 [(buf.validate.field).int32.gt = 0];
 }
 
 // 返回受理的试跑任务 ID；试跑成功保存并结算后才自动启用草稿，不支持恢复保存。
