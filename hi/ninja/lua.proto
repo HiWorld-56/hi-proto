@@ -52,7 +52,9 @@ message LuaCtx {
   optional string conv   = 6;
 }
 
-// OpenReq 装一个插件：跑一遍顶层，读出 contract 与 manifest。
+// OpenReq 装一个插件：跑一遍顶层，读出 manifest。
+//
+// 兼容与否(SDK 版本头)由 brain 在发过来之前就判完了,执行器不再管版本。
 //
 // **脚本按字节传，不传路径。** 插件产物是 brain 下载并校验过的，执行器不该也
 // 够不着那个目录（它只需要 `/opt/hinj/luadeps/`）。现在制品是 KB 量级
@@ -89,7 +91,6 @@ message LuaRock {
 
 message OpenResp {
   optional bool   ok       = 1;
-  optional uint32 contract = 2; // 插件声明的契约号
   optional string manifest = 3; // 原始字符串，由 brain 按与 .so 同一条路径解析
   optional string error    = 4;
 }
