@@ -75,6 +75,21 @@ has "**制品 target=any**(与架构无关,一份通吃)" "$ART" '"target": "any
 has "**制品发版当场就是 SUCCEEDED**(不需要编译)" "$ART" 'PLUGIN_ARTIFACT_STATUS_SUCCEEDED'
 
 echo
+echo "── 产物第一行是 SDK 版本头(构建服务验收时盖的,机器人据此判兼容)──"
+# 作者的包里没写版本(见 build_luapkg.py);下发的产物必须是**构建服务盖过章、验过的那份**,
+# 第一行就是构建服务镜像里那份 SDK 的版本。没有这一行的 lua 插件,新 brain 一律不启用。
+AU=$(mysqlq hi_ai "select artifact_url from hi_ai_plugin_artifact where uuid='$P' and version='1.0.0'")
+HDR=$("$_SMK_GRPCURL" $(tp $SRC_GRPC) -protoset "$PS" -d "{\"url\":\"$AU\"}" "$SRC_GRPC" hi.source.File/Download 2>/dev/null \
+      | python3 -c 'import sys,json,base64;print(base64.b64decode(json.load(sys.stdin)["content"]).decode().splitlines()[0])' 2>/dev/null)
+WANT=$(ssh -n -o ConnectTimeout=10 192.168.1.66 "docker exec hi-plugin-build /opt/hinj/verify-lua --sdk-version" 2>/dev/null)
+if [ -z "$WANT" ]; then
+  bad "问不到构建服务的 SDK 版本(.66 hi-plugin-build)" "前提不成立,这一条没法判"
+else
+  [ "$HDR" = "--@hinj-sdk $WANT" ] && ok "**产物第一行 = --@hinj-sdk $WANT**(构建服务盖的章)" \
+                                  || bad "产物第一行不是 SDK 版本头" "得到 '$HDR',应为 '--@hinj-sdk $WANT'(制品 $AU)"
+fi
+
+echo
 echo "── 下发清单(机器人问「我该装什么」)──"
 #
 # `hi.club.AgentPlugin` 整个 service 在 http_optout 里(机器人经 core 的 grpc 通道调),
