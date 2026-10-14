@@ -122,14 +122,17 @@ echo "[3/6] rust → $CODE/rust/src/gen"
   cargo run --quiet -- "$HIPROTO" "$CODE/rust/src/gen" )
 
 echo "[4/6] dart → $CODE/dart/lib"
-( cd "$HIPROTO"; unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy
+# dart / python 用的是 buf.build 的**远程插件**,每轮都要出国 —— **走梯子**(与 cargo 同一个 $PROXY)。
+# 原来这两步专门剥掉代理直连,10-08 加了重试扛偶发抖动;10-13 直连整段不通(两轮各 4 次全超时、不出号),
+# 同一时刻走 $PROXY 7 秒生成完。出国的流量就该走梯子,重试只管梯子本身的抖动。
+( cd "$HIPROTO"; export HTTPS_PROXY=$PROXY HTTP_PROXY=$PROXY
   rm -rf "$CODE/dart/lib/hi" "$CODE/dart/lib/google" "$CODE/dart/lib/buf"
   retry_remote buf generate --template codegen/dart_code.yaml )
 
 echo "[5/6] python → $CODE/python"
 # 谁在用:**三方插件作者的本地调试**。插件里的 plugin_builtin.call 一律走 grpc + protobuf,
 # 本地也必须走同一套 —— 不给生成物、让作者自己拼 JSON,就是把"多端一致"这个前提破掉。
-( cd "$HIPROTO"; unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy
+( cd "$HIPROTO"; export HTTPS_PROXY=$PROXY HTTP_PROXY=$PROXY   # 远程插件,同上
   rm -rf "$CODE/python/hi" "$CODE/python/google" "$CODE/python/buf"
   retry_remote buf generate --template codegen/python_code.yaml )
 

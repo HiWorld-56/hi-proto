@@ -99,6 +99,208 @@ message CreateTextToVideoTaskReq {
   optional int32 frame_rate = 6 [(buf.validate.field).int32.gt = 0];
 }
 
+// 创建首尾帧视频，对应 video.first_last_frame；两张本人 JPEG/PNG 分别承担首帧和尾帧。
+message CreateFirstLastFrameTaskReq {
+  // 本人范围内幂等键；重新生成使用新值，由后端生成新 seed。
+  optional string request_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 来自对应 Function.Get，必须属于本功能且已启用。
+  optional string workflow_id = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 首帧图片资产 ID；允许与尾帧尺寸不同，工作流按目标画面缩放和居中裁剪。
+  optional string first_frame_asset_id = 3 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 尾帧图片资产 ID；素材须属于本人并为 available。
+  optional string last_frame_asset_id = 4 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 用户生成要求原文，可以中文；Unicode 码点长度上限由工作流决定。
+  optional string prompt = 5 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 不传某项时采用工作流默认值；后端计算按 32 对齐的目标宽高。
+  VideoResolution resolution = 6;
+  // 整数秒；初始工作流范围 3～15、默认 5，实际范围以工作流配置为准。
+  optional int32 duration_seconds = 7 [(buf.validate.field).int32.gt = 0];
+  // 帧/秒；不传时采用默认或固定值，固定模式显式提交时须与固定值相同。
+  optional int32 frame_rate = 8 [(buf.validate.field).int32.gt = 0];
+}
+
+// 模仿生成，对应 video.motion_transfer；当前工作流为深度控制，不承诺骨骼姿态控制。
+// 时长、尺寸和帧率由输入视频及工作流确定，不接受对应用户参数。
+message CreateMotionTransferTaskReq {
+  // 本人范围内幂等键，同一次创建重发复用。
+  optional string request_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 来自 video.motion_transfer 的 Function.Get。
+  optional string workflow_id = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 本人 available 视频；MP4/WebM、50 MiB、1～15 秒，音轨可选。
+  // 时长上限允许一个帧间隔误差；上传或自产来源均执行相同输入限制。
+  optional string input_video_asset_id = 3 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 不传则关闭并旁路首帧条件；提供则启用，本人 available JPEG/PNG，不另传开关。
+  optional string first_frame_asset_id = 4 [(buf.validate.field).string.min_len = 1];
+  // 用户生成要求原文；可以中文，不自动翻译或增强。
+  optional string prompt = 5 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+}
+
+// 引导生成，对应 video.continuation；仅交付新增片段，不拼接完整原视频。
+message CreateContinuationTaskReq {
+  // 本人范围内幂等键；新任务由后端随机生成 seed。
+  optional string request_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 来自 video.continuation 的 Function.Get。
+  optional string workflow_id = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 本人 available MP4/WebM，最大 50 MiB、1～15 秒（上限允许一帧误差）。
+  // 后端在执行前准备 24 FPS 临时副本，用户原件不变；音轨可选。
+  optional string input_video_asset_id = 3 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 零至四张有序参考图片，不传则不接入图片，不用示例或重复图补齐。
+  repeated string input_asset_ids = 4 [(buf.validate.field).repeated = {
+    max_items: 4
+    items: {
+      string: {min_len: 1}
+    }
+  }];
+  // 续接内容的生成要求，可以中文；按工作流提示词长度校验。
+  optional string prompt = 5 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  VideoResolution resolution = 6;
+  // 新增片段的整数秒数，不含前导；不传用默认值，初始 3～10 秒、默认 5。
+  // 输出固定 24 FPS，不提供用户帧率字段。
+  optional int32 duration_seconds = 7 [(buf.validate.field).int32.gt = 0];
+}
+
+// 参考生成，对应 video.reference；至少提供视频或一张图片，不承诺局部修补。
+message CreateReferenceTaskReq {
+  option (buf.validate.message).cel = {
+    id: "reference_task.materials"
+    message: "at least one video or reference image is required"
+    expression: "has(this.input_video_asset_id) || size(this.input_asset_ids) > 0"
+  };
+  // 本人范围内幂等键，同一次创建重发复用。
+  optional string request_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 来自 video.reference 的 Function.Get。
+  optional string workflow_id = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 可选本人 available 视频，限制与引导生成相同；不传则断开视频和音频参考。
+  optional string input_video_asset_id = 3 [(buf.validate.field).string.min_len = 1];
+  // 零至四张有序 JPEG/PNG；没有视频时至少一张。
+  repeated string input_asset_ids = 4 [(buf.validate.field).repeated = {
+    max_items: 4
+    items: {
+      string: {min_len: 1}
+    }
+  }];
+  // 用户生成要求原文，可以中文。
+  optional string prompt = 5 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  VideoResolution resolution = 6;
+  // 输出整数秒，不要求与参考视频等长；不传采用默认值，输出固定 24 FPS。
+  optional int32 duration_seconds = 7 [(buf.validate.field).int32.gt = 0];
+}
+
+// 高级替换，对应 video.advanced_replace；SAM 遮盖选区后参考生成，不是像素级局部修补。
+message CreateAdvancedReplaceTaskReq {
+  // 本人范围内幂等键；重新生成用新键和新 seed。
+  optional string request_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 来自 video.advanced_replace 的 Function.Get。
+  optional string workflow_id = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 必填本人 available 视频；输入限制与引导生成相同，音轨可选。
+  optional string input_video_asset_id = 3 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 零至四张有序参考图片；不传时由生成提示词描述替换后的外观。
+  repeated string input_asset_ids = 4 [(buf.validate.field).repeated = {
+    max_items: 4
+    items: {
+      string: {min_len: 1}
+    }
+  }];
+  // 描述目标外观和动作，可以中文，与 SAM 区域描述独立。
+  optional string prompt = 5 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  VideoResolution resolution = 6;
+  // 不传采用工作流默认秒数；固定 24 FPS，无用户帧率字段。
+  optional int32 duration_seconds = 7 [(buf.validate.field).int32.gt = 0];
+  // 必填，最多 200 个 Unicode 码点，去除首尾空白后须非空。
+  // 页面初始 head，提示简短英文；原样传 SAM，不识别语言、不翻译、不回退默认。
+  optional string region_description = 8 [
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 200
+    },
+    (buf.validate.field).required = true
+  ];
+}
+
+// 五项新增视频的实际参数；按功能只返回适用字段，不另建素材或执行图快照。
+message VideoExtensionTaskParams {
+  option (hi.audience) = VIS_SELF;
+  // 首尾帧省略视频；其他功能按本次实际素材返回，参考生成可省略。
+  optional string input_video_asset_id = 1 [(hi.visibility) = VIS_SELF];
+  // 首尾帧必有，模仿可选；三个 MiniMax 功能省略。
+  optional string first_frame_asset_id = 2 [(hi.visibility) = VIS_SELF];
+  // 仅首尾帧生成返回。
+  optional string last_frame_asset_id = 3 [(hi.visibility) = VIS_SELF];
+  // 三个 MiniMax 功能的参考图片，保持用户提交顺序。
+  repeated string input_asset_ids = 4 [(hi.visibility) = VIS_SELF];
+  optional string prompt = 5 [(hi.visibility) = VIS_SELF];
+  // 仅高级替换返回用户提交的原文。
+  optional string region_description = 6 [(hi.visibility) = VIS_SELF];
+  // 后端为新任务生成；重发、重启、恢复保存不改，重新生成创建新值。
+  optional uint64 seed = 7 [(hi.visibility) = VIS_SELF];
+  // 适用输出参数的实际选择值；模仿生成省略，不代表最终产物尺寸或时长。
+  optional string aspect_ratio = 8 [(hi.visibility) = VIS_SELF];
+  optional string megapixels = 9 [(hi.visibility) = VIS_SELF];
+  optional int32 duration_seconds = 10 [(hi.visibility) = VIS_SELF];
+  // 首尾帧实际选择值，三个 MiniMax 为 24；模仿省略。
+  optional int32 frame_rate = 11 [(hi.visibility) = VIS_SELF];
+}
+
 // 返回已受理任务的 ID；同一 request_id 重发返回原任务，不比较重发参数。
 message CreateTaskResp {
   option (hi.audience) = VIS_SELF;
@@ -160,7 +362,7 @@ message TaskSummary {
   option (hi.audience) = VIS_SELF;
   optional string task_id = 1 [(hi.visibility) = VIS_SELF];
   optional TaskPurpose purpose = 2 [(hi.visibility) = VIS_SELF];
-  // 任务受理时确定的功能 ID；六种支持值及中文用途见 FunctionSummary.function_id。
+  // 任务受理时确定的功能 ID；支持值及中文用途见 FunctionSummary.function_id。
   optional string function_id = 3 [(hi.visibility) = VIS_SELF];
   // 从当前功能记录读取的用户可见名称。
   optional string function_display_name = 4 [(hi.visibility) = VIS_SELF];
@@ -203,6 +405,8 @@ message TaskSummary {
   // 图生视频另含 input_asset_id；不包含工作流图、节点绑定或管理员负向提示词。
   // 图片任务另含后端生成的 seed；单图/角色含 input_asset_id，多图含有序 input_asset_ids。
   // 文生图按尺寸模式包含 width/height 或 aspect_ratio/megapixels；角色 prompt 为用户原文。
+  // 新增视频含 seed 及适用的 input_video_asset_id/first_frame_asset_id/last_frame_asset_id/
+  // input_asset_ids/region_description；模仿不返回输出尺寸、时长或帧率选择值。
   optional string effective_params_json = 20 [(hi.visibility) = VIS_SELF];
 }
 
@@ -217,6 +421,8 @@ message TaskDetail {
     SingleImageEditTaskParams single_image_edit = 5 [(hi.visibility) = VIS_SELF];
     MultipleImageEditTaskParams multiple_image_edit = 6 [(hi.visibility) = VIS_SELF];
     CharacterTaskParams character = 7 [(hi.visibility) = VIS_SELF];
+    // 五项新增视频共用参数结构，通过 summary.function_id 区分适用字段。
+    VideoExtensionTaskParams video_extension = 8 [(hi.visibility) = VIS_SELF];
   }
 }
 
@@ -326,6 +532,26 @@ service Task {
   }
   // 角色生成 image.character；用户提交一张参考图与正向提示词，负向词及内部尺寸由管理员维护。
   rpc CreateCharacter(CreateCharacterTaskReq) returns (CreateTaskResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  // 首尾帧生成 video.first_last_frame，用户明确提交两张图片的角色。
+  rpc CreateFirstLastFrame(CreateFirstLastFrameTaskReq) returns (CreateTaskResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  // 模仿生成 video.motion_transfer，视频必填、首帧可选，输出参数由素材和工作流决定。
+  rpc CreateMotionTransfer(CreateMotionTransferTaskReq) returns (CreateTaskResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  // 引导生成 video.continuation，时长表示新增片段，不包含原视频或前导。
+  rpc CreateContinuation(CreateContinuationTaskReq) returns (CreateTaskResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  // 参考生成 video.reference，至少一份视频或图片，不接收区域描述。
+  rpc CreateReference(CreateReferenceTaskReq) returns (CreateTaskResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  // 高级替换 video.advanced_replace，必填视频与自由区域描述，不自动翻译。
+  rpc CreateAdvancedReplace(CreateAdvancedReplaceTaskReq) returns (CreateTaskResp) {
     option (hi.auth) = AUTH_USER;
   }
   // 查询本人任务详情及产物资产 ID。

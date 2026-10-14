@@ -125,17 +125,17 @@ message InputImagesConfig {
     message: "min must not exceed max"
     expression: "this.min <= this.max"
   };
-  // 单图修改与角色生成为 1；多图修改按工作流配置，当前最少 2 张。
+  // 单图修改与角色生成为 1，多图修改最少 2；首尾帧为 2，模仿及 MiniMax 参考图可为 0。
   optional uint32 min = 1 [
-    (buf.validate.field).uint32.gt = 0,
     (buf.validate.field).required = true,
     (hi.visibility) = VIS_PUBLIC
   ];
-  // FLUX 多图为 2，Qwen 多图最多 10；创建时由后端强校验。
+  // FLUX 多图为 2，Qwen 多图为 4；首尾帧为 2，模仿为 1，MiniMax 参考图为 4。
+  // 图片功能原有数量约束不变，创建时按目标功能和工作流配置强校验。
   optional uint32 max = 2 [
     (buf.validate.field).uint32 = {
       gt: 0
-      lte: 10
+      lte: 4
     },
     (buf.validate.field).required = true,
     (hi.visibility) = VIS_PUBLIC
@@ -182,7 +182,8 @@ message VideoParameterConfig {
   DecimalOptionConfig megapixels = 3 [(hi.visibility) = VIS_PUBLIC];
   IntRangeConfig duration_seconds = 4 [(hi.visibility) = VIS_PUBLIC];
   FrameRateConfig frame_rate = 5 [(hi.visibility) = VIS_PUBLIC];
-  // 单图修改、角色生成及多图修改提供；文生图省略。提交顺序即图片接入顺序。
+  // 图片修改、角色及新增视频的图片数量；文生图省略，素材角色由创建接口规定。
+  // 模仿生成只返回 prompt 和 input_images，省略输出尺寸、时长及帧率配置。
   InputImagesConfig input_images = 6 [(hi.visibility) = VIS_PUBLIC];
   // 仅文生图提供一种尺寸模式；图片修改与角色生成的尺寸由工作流决定。
   oneof image_size {
@@ -191,23 +192,41 @@ message VideoParameterConfig {
   }
 }
 
-// 系统初始化的功能；客户端从 Function.List 获取 ID，不自行按名称推导。
+// 固定功能分类，由 image.* / video.* 功能 ID 派生，不另建分类表。
+enum FunctionCategory {
+  FUNCTION_CATEGORY_UNSPECIFIED = 0;
+  FUNCTION_CATEGORY_IMAGE = 1;
+  FUNCTION_CATEGORY_VIDEO = 2;
+}
+
+// 系统初始化的功能，包括已实现和开发中的入口；客户端从 Function.List 获取 ID。
 message FunctionSummary {
   option (hi.audience) = VIS_PUBLIC;
   // 固定值：video.img2vid（图生视频）、video.txt2vid（文生视频）。
   // 图片增量：image.txt2img（文生图）、image.edit_single（单图修改）、
   // image.edit_multiple（多图修改）、image.character（角色生成）。
+  // 视频扩展：video.first_last_frame（首尾帧生成）、video.motion_transfer（模仿生成）、
+  // video.continuation（引导生成）、video.reference（参考生成）、
+  // video.advanced_replace（高级替换）；登记入口不代表已实现生成接口。
   optional string function_id = 1 [(hi.visibility) = VIS_PUBLIC];
   optional string display_name = 2 [(hi.visibility) = VIS_PUBLIC];
+  // 管理员控制的开放开关；false 仍展示入口，但普通用户不能创建新任务。
+  // 与工作流 ENABLED 状态独立，不影响已受理任务或管理员试跑。
+  optional bool enabled = 3 [(hi.visibility) = VIS_PUBLIC];
+  // 图片或视频分类；与功能开放开关、工作流数量无关。
+  optional FunctionCategory category = 4 [(hi.visibility) = VIS_PUBLIC];
+  // 分类内展示顺序，越小越靠前；允许同值，不要求连续，不影响任务执行优先级。
+  optional int32 sort_order = 5 [(hi.visibility) = VIS_PUBLIC];
 }
 
-// 返回全部固定功能；功能是否可创建任务由 Get 的 workflows 判断。
+// 返回全部登记功能的扁平列表，不按开放开关或工作流数量过滤。
+// 图片组在前、视频组在后；分类内按 sort_order 升序，同值按 function_id 排序。
 message ListFunctionsResp {
   option (hi.audience) = VIS_PUBLIC;
   repeated FunctionSummary functions = 1 [(hi.visibility) = VIS_PUBLIC];
 }
 
-// 查询选中功能及其当前启用的工作流。
+// 查询登记功能；关闭时正常返回功能信息，workflows 为空。
 message GetFunctionReq {
   // 必须来自 Function.List；功能 ID 的支持值及中文用途见 FunctionSummary.function_id。
   optional string function_id = 1 [
@@ -242,18 +261,53 @@ message WorkflowOption {
 message GetFunctionResp {
   option (hi.audience) = VIS_PUBLIC;
   FunctionSummary function = 1 [(hi.visibility) = VIS_PUBLIC];
-  // 只包含 ENABLED 工作流，按管理员顺序及稳定次序排列；空列表表示当前不可创建。
+  // 功能关闭时为空；开放时只包含 ENABLED 工作流，按管理员顺序及稳定次序排列。
+  // enabled=false 提示开发中；enabled=true 且列表为空提示暂无可用工作流。
   repeated WorkflowOption workflows = 2 [(hi.visibility) = VIS_PUBLIC];
 }
 
 // 普通用户的功能选择入口。
 service Function {
-  // 返回系统固定功能 ID 及显示名。
+  // 返回全部登记功能的 ID、显示名及开放开关，管理员页面也复用此列表。
   rpc List(google.protobuf.Empty) returns (ListFunctionsResp) {
     option (hi.auth) = AUTH_USER;
   }
-  // 返回指定功能及全部已启用工作流，各自携带模型信息与用户参数配置。
+  // 返回指定功能；仅开放时返回全部已启用工作流及用户参数配置。
   rpc Get(GetFunctionReq) returns (GetFunctionResp) {
     option (hi.auth) = AUTH_USER;
+  }
+}
+
+// 修改功能开放开关；function_id 与 enabled 必须显式提供，包括 enabled=false。
+message SetFunctionEnabledReq {
+  optional string function_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // true 允许普通用户创建新任务；开启不要求已有工作流，不自动启用工作流。
+  optional bool enabled = 2 [(buf.validate.field).required = true];
+}
+
+// 修改单个功能的分类内展示顺序；分类不可修改。
+message SetFunctionSortOrderReq {
+  // 来自 Function.List；不存在时返回 NotFound。
+  optional string function_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 必须显式提供，包括 0；重复设置同值成功，不改变开放开关或工作流排序。
+  optional int32 sort_order = 2 [(buf.validate.field).required = true];
+}
+
+// 管理员调整功能开放开关与分类内顺序；功能 ID 和显示名称随开发初始化。
+service FunctionManage {
+  // 关闭只阻止新建普通任务，不取消已有任务，也不限制管理员配置、校验和试跑。
+  // 目标功能不存在返回 NotFound；重复设置同一值仍成功。
+  rpc SetEnabled(SetFunctionEnabledReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
+  // 设置分类内展示顺序，不影响 FIFO 或工作流排序。
+  rpc SetSortOrder(SetFunctionSortOrderReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_SUPERADMIN;
   }
 }

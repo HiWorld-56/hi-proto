@@ -35,6 +35,12 @@ http:
     get: /api/v1/function/list
   - selector: hi.media.Function.Get
     get: /api/v1/function/get
+  - selector: hi.media.FunctionManage.SetEnabled
+    post: /api/v1/function_manage/set_enabled
+    body: "*"
+  - selector: hi.media.FunctionManage.SetSortOrder
+    post: /api/v1/function_manage/set_sort_order
+    body: "*"
   - selector: hi.media.Task.CreateImageToVideo
     post: /api/v1/task/create_image_to_video
     body: "*"
@@ -53,6 +59,21 @@ http:
   - selector: hi.media.Task.CreateCharacter
     post: /api/v1/task/create_character
     body: "*"
+  - selector: hi.media.Task.CreateFirstLastFrame
+    post: /api/v1/task/create_first_last_frame
+    body: "*"
+  - selector: hi.media.Task.CreateMotionTransfer
+    post: /api/v1/task/create_motion_transfer
+    body: "*"
+  - selector: hi.media.Task.CreateContinuation
+    post: /api/v1/task/create_continuation
+    body: "*"
+  - selector: hi.media.Task.CreateReference
+    post: /api/v1/task/create_reference
+    body: "*"
+  - selector: hi.media.Task.CreateAdvancedReplace
+    post: /api/v1/task/create_advanced_replace
+    body: "*"
   - selector: hi.media.Task.Get
     get: /api/v1/task/get
   - selector: hi.media.Task.List
@@ -68,13 +89,16 @@ http:
     post: /api/v1/task/recover_save
     body: "*"
 # File upload 是 HiMedia 手写的 AUTH_USER multipart/form-data HTTP 接口：
-#   POST /api/v1/file/upload
+#   POST /api/v1/file/upload        静态 JPEG/PNG 图片，原入口不变
+#   POST /api/v1/file/upload/video  MP4/WebM 视频，独立入口
 # 它不是 gRPC RPC，因此不能在此添加 selector，也不由 grpc-gateway 生成。
 # multipart 第一项是 application/json metadata（UploadMetadata）且不携带 filename，
 # metadata 仅接受 lowerCamelCase：requestId/files/clientFileId/filename/sizeBytes，
 # sizeBytes 使用 uint64 十进制字符串，不兼容 snake_case。
 # 后续文件项的 form name 与 clientFileId 一致，filename 必须与清单一致；
 # 成功响应 data 是 UploadBatchResult，超时或响应丢失后用同一 requestId 查询。
+# 成功项包含后端检测的 width/height，视频另含 durationMs（毫秒），图片省略时长。
+# 视频最大 50 MiB、1～15 秒（上限允许一个帧间隔误差），音轨可选；存储原件。
   - selector: hi.media.File.GetUploadResult
     get: /api/v1/file/get_upload_result
   - selector: hi.media.File.List

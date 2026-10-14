@@ -76,7 +76,7 @@ message PluginVersion {                                  // b:按 (uuid,version)
   //
   // 拿它跟包里的文件比对会对不上,**这是预期行为,别当 bug 查**。
   //
-  // PUBLIC:买家在挂牌页看的 `MarketListingDetail.capabilities` 就是这一份 ——
+  // PUBLIC:买家在挂牌页看的 `MarketListingDetail.active.description` 就是这一份 ——
   // 那边早就是公开的了,源头这边却标着 SELF,两边对不上。以这边为准改成 PUBLIC。
   optional string description = 6 [(hi.visibility) = VIS_PUBLIC];
   // 插件提示词(包里的 `prompt.md`):用这个插件要知道的**概念**,对话时由后端拼进系统消息(每个插件一行)。
@@ -84,6 +84,24 @@ message PluginVersion {                                  // b:按 (uuid,version)
   // (换行保留,每行去首尾空白、连续空白压成一个,空行去掉;上限 800 字)。不带 = 这个插件没写。
   // web 拿它展示「这个插件给模型加了什么话」(2026-09-27 起)。可见性同 description:它本来就是喂给模型的。
   optional string prompt      = 7 [(hi.visibility) = VIS_PUBLIC];
+}
+
+// PluginVersionPublic 一个版本**给别人看的那一面** —— PluginVersion 去掉私有字段(壳 uuid、脚本 url)。
+//
+// 为什么另立一个类型:PluginVersion 里有 SELF 字段,整条放不进 PUBLIC 消息(lint 挡的正是这个)。
+// **门面是另一个类型,不是另一套值** —— 每个字段都在读侧从 PluginVersion 原样取,不另存、不另填。
+// 字段号与 PluginVersion 里同名字段一一相同,一眼看得出是同一份东西的子集。
+//
+// 用在挂牌详情(hi.club.MarketListingDetail.active):买家装之前就该知道这个插件
+// 提供哪些方法、给模型加了什么话。2026-10-10 起替掉原来那个拍平的 `capabilities` 字符串 ——
+// 那个只带了方法,提示词没地方放。
+message PluginVersionPublic {
+  option (hi.audience) = VIS_PUBLIC;
+  optional string version     = 2 [(hi.visibility) = VIS_PUBLIC];
+  optional string logo        = 3 [(hi.visibility) = VIS_PUBLIC];
+  optional string summary     = 4 [(hi.visibility) = VIS_PUBLIC];
+  optional string description = 6 [(hi.visibility) = VIS_PUBLIC]; // 方法(tools 数组),同 PluginVersion.description
+  optional string prompt      = 7 [(hi.visibility) = VIS_PUBLIC]; // 插件提示词,同 PluginVersion.prompt;不带 = 没写
 }
 
 // ── 插件用什么语言写 —— **壳的属性**(同一个包不会一半 py 一半 rust),发版后冻结 ──
@@ -215,9 +233,8 @@ message PluginArtifact {
   // 都在私有桶,下发时现签 presigned。
   optional string               artifact_url = 4 [(hi.visibility) = VIS_SELF];
   optional string               sha256       = 5 [(hi.visibility) = VIS_SELF]; // 产物摘要,机器人下完照此核对
-  // 设备端插件的契约号。RUST 是从 `.so` 里真读出来的 C ABI 号(hinj_plugin_abi),
-  // LUA 是脚本里声明的 contract。**两者各涨各的,不共用计数器** ——
-  // 共用的话撞一次 C ABI 就逼所有 lua 插件重发,而它们根本不受影响。
+  // RUST 产物的 C ABI 号,从 `.so` 里真读出来的(hinj_plugin_abi)。LUA 没有这一项。
+  // 兼容与否机器人只看 SDK 版本(编进 `.so` / 盖在 lua 脚本第一行),不看这个号。
   optional uint32               abi_version  = 6 [(hi.visibility) = VIS_SELF];
   optional string               error        = 7 [(hi.visibility) = VIS_SELF]; // 失败原因(一句话)
   optional string               log          = 8 [(hi.visibility) = VIS_SELF]; // 编译/校验日志尾部
@@ -533,8 +550,8 @@ message DevicePlugin {
   // 产物下载地址。私有桶,**每次拉清单现签**(限期),不存库。
   optional string     url         = 5 [(hi.visibility) = VIS_SELF];
   optional string     sha256      = 6 [(hi.visibility) = VIS_SELF]; // 下完必须核对;对不上就是没下全或被改过
-  // 契约号。RUST 是 `.so` 里的 C ABI 号,LUA 是脚本里声明的 contract。
-  // 机器人可据此先筛掉对不上的,省一次下载。**两种语言各涨各的,不共用计数器。**
+  // RUST 产物的 C ABI 号;LUA 没有这一项。
+  // 机器人判兼容只看 SDK 版本(在产物自己身上),不看这个号。
   optional uint32     abi_version = 7 [(hi.visibility) = VIS_SELF];
   // 这份产物是给哪个 target 的。RUST 是 `aarch64` / `x86_64`;LUA 是 `any`。
   //
@@ -543,7 +560,7 @@ message DevicePlugin {
   //    机器人拿到清单先比这个,不符就跳过并说清楚。
   optional string     target      = 8 [(hi.visibility) = VIS_SELF];
   // ⭐ **这份产物是什么语言的** —— 机器人据此决定:落地成什么扩展名(`.so` / `.lua`)、
-  // 用哪条装载路径(dlopen + 对 C ABI / 沙箱里 load + 对 contract)。
+  // 用哪条装载路径(dlopen / 沙箱里 load)。
   //
   // 不给的话机器人只能猜(比如按 url 后缀),而猜错的表现是"下下来了、装不上",
   // 原因只在它自己的本地日志里。

@@ -152,7 +152,7 @@ cj market/set_listing_status "{\"uuid\":\"$LID\",\"status\":2}" "$SELLER_TOK" >/
 has "公开搜索:按插件名搜得到(免鉴权)" "$(pub market_directory/search_listings '{"keyword":"smk-demo","pagination":{"page":1,"limit":5}}')" "$LID"
 has "公开搜索:按插件 id 也搜得到" "$(pub market_directory/search_listings "{\"keyword\":\"$P\",\"pagination\":{\"page\":1,\"limit\":5}}")" "$LID"
 no  "公开搜索:搜不相干的词搜不到" "$(pub market_directory/search_listings '{"keyword":"绝不可能命中的词zzq","pagination":{"page":1,"limit":5}}')" "$LID"
-has "详情带 capabilities(方法名含壳前缀)" "$(pub market_directory/get_listing "{\"uuid\":\"$LID\"}")" "${PRE}_"
+has "详情带 active(激活版公开面,方法名含壳前缀)" "$(pub market_directory/get_listing "{\"uuid\":\"$LID\"}")" "${PRE}_"
 has "负面:拿别人的机器人挂牌被拒" "$(cj market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P\",\"settle_mode\":1}" "$BUYER_TOK")" "不属于你"
 
 A=$(cj market/apply "{\"listing_uuid\":\"$LID\",\"to_agent\":\"$BB\"}" "$BUYER_TOK")

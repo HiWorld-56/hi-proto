@@ -57,6 +57,12 @@ message FileSummary {
   // 是否有已保存且可访问的视频封面；本字段为 true 时 COVER 返回封面，否则返回原文件。
   // 用户上传图片、历史未补图视频及封面生成失败的视频为 false。
   optional bool has_cover = 8 [(hi.visibility) = VIS_SELF];
+  // 后端检测并保存的实际宽度，单位像素；查询不重新探测，无媒体信息的历史资产省略。
+  optional uint32 width = 9 [(hi.visibility) = VIS_SELF];
+  // 实际高度，单位像素；不是生成请求的目标尺寸。
+  optional uint32 height = 10 [(hi.visibility) = VIS_SELF];
+  // 视频实际时长，单位毫秒；图片省略，视频是否可复用仍由创建接口检查。
+  optional int64 duration_ms = 11 [(hi.visibility) = VIS_SELF];
 }
 
 // 分页查询本人 available 资产，不传筛选字段表示不过滤。
@@ -116,7 +122,8 @@ message GetFileAccessUrlsResp {
   repeated FileAccessUrl files = 1 [(hi.visibility) = VIS_SELF];
 }
 
-// POST /api/v1/file/upload 的单文件清单项。该上传口为 HiMedia 手写的
+// 图片 POST /api/v1/file/upload、视频 POST /api/v1/file/upload/video 的单文件清单项。
+// 两个上传口均为 HiMedia 手写的 AUTH_USER
 // multipart/form-data HTTP 接口，不是 gRPC RPC；文件项的 form name
 // 必须与 metadata 中的 clientFileId 一致，filename 也必须与清单一致。
 message UploadFileMetadata {
@@ -136,7 +143,11 @@ message UploadFileMetadata {
   ];
 }
 
-// POST /api/v1/file/upload 的 metadata 项。metadata 必须是 multipart 第一项，
+// 两个上传口共用的 metadata；图片入口保持不变，视频入口独立检查媒体类型。
+// 图片只接受静态 JPEG/PNG；视频接受 MP4/WebM，最大 50 MiB、1～15 秒，
+// 上限允许一个帧间隔的对齐误差，音轨可选，不额外限制分辨率或帧率。
+// 上传保存原件；MiniMax 24 FPS 适配仅在任务执行前处理临时副本。
+// metadata 必须是 multipart 第一项，
 // Content-Type 必须是 application/json，且 Content-Disposition 不能携带 filename。
 // JSON 仅接受 lowerCamelCase：requestId/files/clientFileId/filename/sizeBytes，
 // 不兼容 snake_case；其中 sizeBytes 按 uint64 十进制字符串传递。
@@ -162,10 +173,16 @@ message UploadFileResult {
   optional uint64 size_bytes = 6 [(hi.visibility) = VIS_SELF];
   optional string error_code = 7 [(hi.visibility) = VIS_SELF];
   optional string error_message = 8 [(hi.visibility) = VIS_SELF];
+  // 成功时返回实际像素宽度，由后端检测，不从 metadata 接收。
+  optional uint32 width = 9 [(hi.visibility) = VIS_SELF];
+  // 成功时返回实际像素高度；失败或无媒体信息时省略。
+  optional uint32 height = 10 [(hi.visibility) = VIS_SELF];
+  // 成功上传视频的实际毫秒时长；图片不返回。
+  optional int64 duration_ms = 11 [(hi.visibility) = VIS_SELF];
 }
 
-// POST /api/v1/file/upload 的 data 响应，同时也是 GetUploadResult 的批次结果。
-// HTTP 上使用 protojson lowerCamelCase 字段；成功文件的 assetId 用于图生视频任务。
+// 图片和视频上传的 data 响应，同时也是 GetUploadResult 的批次结果。
+// HTTP 使用 protojson lowerCamelCase；成功 assetId 用于对应任务素材，不回传宽高或时长。
 message UploadBatchResult {
   option (hi.audience) = VIS_SELF;
   optional string request_id = 1 [(hi.visibility) = VIS_SELF];
