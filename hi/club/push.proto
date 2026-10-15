@@ -24,6 +24,10 @@ message PushRegisterReq {
   // 不传 = FCM —— 加这个字段之前登记的全是 FCM token,在跑的安卓包也不会传。
   // 传了 UNSPECIFIED 或不认识的值回 InvalidArgument。
   optional PushChannel channel = 3;
+  // 苹果设备(APNS / APNS_SANDBOX)必填:这个 app 的套装 ID,即 APNs 投递时的 apns-topic
+  // (手机版 com.mados.hiclub、Mac 桌面版 com.mados.hiclubsimple)。后端只认配置里列出的几个,别的回 InvalidArgument。
+  // FCM 不传(传了回 InvalidArgument)—— FCM 的 token 本身就绑着 app。
+  optional string topic = 4;
 }
 
 message PushUnregisterReq {
