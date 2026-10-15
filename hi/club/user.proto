@@ -143,6 +143,47 @@ message DeleteFriendReq {
   string did = 1;
 }
 
+// ---- 拉黑与举报(App Store 对有用户生成内容的 app 的要求)----
+//
+// 拉黑是**我这一侧**的事：对方不会收到任何通知，也看不出自己被拉黑了。效果:
+//   · 对方发来的消息不再给我推送(单聊、群聊都算);
+//   · 对方加我好友当场按「对方设了自动拒绝」回 REJECTED(与真的自动拒绝分不出来);
+//   · 端上把对方的消息与好友申请藏起来(后端照常存转 —— 中间层只解信封，不按发件人丢消息)。
+// 不解除好友关系、不退群：要断关系另走 DeleteFriend / 退群。
+message BlockReq {
+  string did = 1;
+}
+
+message ListBlockedResp {
+  option (hi.audience) = VIS_SELF; // 我拉黑了谁，只有自己看得到
+  repeated hi.Entity users = 1 [(hi.visibility) = VIS_SELF];
+}
+
+enum ReportReason {
+  REPORT_REASON_UNSPECIFIED = 0;
+  REPORT_REASON_PORN        = 1; // 色情低俗
+  REPORT_REASON_VIOLENCE    = 2; // 暴力恐怖
+  REPORT_REASON_HARASSMENT  = 3; // 骚扰辱骂
+  REPORT_REASON_FRAUD       = 4; // 诈骗
+  REPORT_REASON_ILLEGAL     = 5; // 违法违规
+  REPORT_REASON_OTHER       = 6; // 其它(看 description)
+}
+
+// 举报一个人、一个群，或其中的某条消息。后端存下来并转到运维值守的群里，由人处理。
+//
+// 消息内容由**举报人端上带上来**(message_text):后端是中间层，只解信封、不解析消息内容
+// (见 hi/club/messaging.proto),而举报人手里本来就有解开的那条消息。
+message ReportReq {
+  oneof target {
+    string did        = 1; // 举报某个人(含机器人)
+    string group_code = 2; // 举报某个群
+  }
+  optional ReportReason reason       = 3;
+  optional string       description  = 4; // 举报人补充说明
+  optional string       message_uuid = 5; // 举报的是某条消息时带上
+  optional string       message_text = 6; // 那条消息举报人看到的文字(媒体写类型，如「[图片]」)
+}
+
 message ListGroupsResp {
   option (hi.audience) = VIS_SELF; // "我加入了哪些群"是跨群的本人成员身份聚合,仅本人可枚举
   repeated GroupBase list = 1 [(hi.visibility) = VIS_PUBLIC]; // 每个 GroupBase 本身公开(GroupBase=PUBLIC)
@@ -214,6 +255,10 @@ service User {
   //     没付的订单取消、MQTT 权限收回,最后删账号行。中途失败可以重调,做过的不会重做
   //   · 删完用同一个助记词再登录 = 一个全新的空账号
   rpc DeleteAccount (google.protobuf.Empty) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
+  rpc Block (BlockReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }           // 拉黑(幂等;语义见 BlockReq)
+  rpc Unblock (BlockReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }         // 解除拉黑(幂等)
+  rpc ListBlocked (google.protobuf.Empty) returns (ListBlockedResp) { option (hi.auth) = AUTH_USER; } // 我的黑名单
+  rpc Report (ReportReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }         // 举报(语义见 ReportReq)
 }
 
 // 在线用户目录(**公开**)。与 User(用户自服务)主体不同,故拆 service ——
