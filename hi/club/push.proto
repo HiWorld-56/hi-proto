@@ -8,9 +8,22 @@ import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/options.proto";
 
+// 推送 token 是哪条通道发的，后端按它决定怎么投递。
+// 安卓走 FCM;苹果设备直连 APNs(FCM 要先连 Google 才领得到 token,大陆网络领不到)。
+// APNs 分两个环境，token 不通用：推错环境苹果回 BadDeviceToken。
+enum PushChannel {
+  PUSH_CHANNEL_UNSPECIFIED  = 0;
+  PUSH_CHANNEL_FCM          = 1;
+  PUSH_CHANNEL_APNS         = 2; // 苹果正式环境:TestFlight / App Store 装的包
+  PUSH_CHANNEL_APNS_SANDBOX = 3; // 苹果沙盒环境:Xcode 直接装到设备上的包
+}
+
 message PushRegisterReq {
   hi.ClientInfo   node  = 1;
   optional string token = 2; // 设备Token
+  // 不传 = FCM —— 加这个字段之前登记的全是 FCM token,在跑的安卓包也不会传。
+  // 传了 UNSPECIFIED 或不认识的值回 InvalidArgument。
+  optional PushChannel channel = 3;
 }
 
 message PushUnregisterReq {

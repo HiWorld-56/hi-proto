@@ -391,22 +391,15 @@ message FirstLastFrameWorkflowConfig {
   ];
   // 可选管理员负向词；省略时保留工作流原值。
   WorkflowFixedTextInput negative_prompt = 5 [(hi.visibility) = VIS_SELF];
-  // 计算后的像素宽高绑定；允许整数业务值写入兼容 INT/FLOAT 节点。
-  WorkflowInputBinding width = 6 [
+  // 直接绑定工作流的比例输入，含允许值与默认值；初始 16:9 (Widescreen)。
+  // 宽高由工作流内部计算，不再配置宽高绑定或由 HiMedia 换算尺寸。
+  WorkflowStringOptionInput aspect_ratio = 8 [
     (buf.validate.field).required = true,
     (hi.visibility) = VIS_SELF
   ];
-  WorkflowInputBinding height = 7 [
-    (buf.validate.field).required = true,
-    (hi.visibility) = VIS_SELF
-  ];
-  // 公开允许值与默认值，不直接写入节点；初始 16:9 (Widescreen)。
-  StringOptionConfig aspect_ratio = 8 [
-    (buf.validate.field).required = true,
-    (hi.visibility) = VIS_SELF
-  ];
-  // 规范十进制字符串，初始默认 "0.9"；用于计算像素宽高。
-  DecimalOptionConfig megapixels = 9 [
+  // 直接绑定工作流 FLOAT 输入；配置用规范十进制字符串，执行时写入 JSON 数字。
+  // 初始默认 "0.9"；用户端仍选择比例与像素量，不填写宽高。
+  WorkflowDecimalOptionInput megapixels = 9 [
     (buf.validate.field).required = true,
     (hi.visibility) = VIS_SELF
   ];
