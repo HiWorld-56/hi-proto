@@ -38,6 +38,9 @@ http:
   - selector: hi.media.FunctionManage.SetEnabled
     post: /api/v1/function_manage/set_enabled
     body: "*"
+  - selector: hi.media.FunctionManage.SetDisplayName
+    post: /api/v1/function_manage/set_display_name
+    body: "*"
   - selector: hi.media.FunctionManage.SetSortOrder
     post: /api/v1/function_manage/set_sort_order
     body: "*"
