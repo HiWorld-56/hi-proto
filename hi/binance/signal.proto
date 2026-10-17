@@ -8,36 +8,32 @@ import "buf/validate/validate.proto";
 import "hi/binance/binance.proto";
 import "hi/options.proto";
 
-// **跟单信号**:一台机器人(信号源)账户上的变化,广播给群里别的机器人跟。
+// **开单信号**:一台机器人(信号源)账户上新开 / 加了仓,广播给群里别的机器人。
 // 装在消息里:`Content.type = "binance_signal"`、`Content.kind = binance_signal`。
 //
 // ## 谁发、发到哪(判据只在信号源的 brain)
 //
 // 信号源 = 在某个群里**能发言**、且那个群的发言等级(`GroupBase.speak`)不是 `all` 的机器人。
-// 它每轮把这一轮的变化发到**自己当前能发言的所有这种群**,一律 @所有人(机器人只处理 @ 到自己或 @所有人的)。
-// 群的发言等级就是这道闸 —— 收信号的一方**不校验**发信号的是谁。
+// 它每轮把这一轮新开的仓发到**自己当前能发言的所有这种群**,一律 @所有人(机器人只处理 @ 到自己或 @所有人的)。
+// 群的发言等级就是白名单 —— 收信号的一方**不校验**发信号的是谁。
 // 同一份信号发往几个群,`seq` 相同;收的一方按「信封 from + seq」去重。
 //
-// ## 口径:一律按占自己资金的比例(各人本金不同)
+// ## 只有开单(2026-10-18 用户定)
 //
-// 比例都是**十进制小数字符串**(`"0.05"` = 5%),不用浮点:
-//   · `ratio`    —— 开仓那一侧:这部分的**保证金**(现货:价值)÷ 信号源的**总资金**
-//                  (合约 = `totalMarginBalance`;现货 = 全部资产折成 USDT 的总价值)。跟单方 × 自己的总资金。
-//   · `fraction` —— 减仓那一侧:这次减掉的数量 ÷ 信号源减之前的持仓数量,(0, 1]。
-//                  跟单方 × **自己跟这个信号源开出来的那份**(不是自己的全部持仓)。
+// 只报**持仓变大**(新开仓、加仓;限价单成交让持仓变大也算 —— 挂单本身不算开单)。
+// 平仓、减仓、挂单、撤单一概不报:跟出来的仓位之后完全由跟单方的用户自己管。
 //
-// ## 是事件,不是状态
+// ## 收到之后
 //
-// 只报这一轮**发生了什么**。挂单的成交由挂单事件负责(跟单方自己的镜像单会照样成交),
-// 所以持仓事件只报**挂单解释不了**的那部分变化(在币安 App 里市价下的单、充值划转……)。
-// 刚成为信号源的那一轮只建基线,已有的持仓不报。
+// 跟单方**不自动下单**:在机器人屏幕上弹一张卡(信号源开了什么 + 我们打算开什么),
+// 人点「确认」才开。卡在本地只留 15 分钟(从收到那一刻算),过了就当放弃。见 hi/ninja/ui.proto 的 `BinanceOffer`。
 message BinanceSignal {
   option (hi.audience) = VIS_PARTICIPANT;
   optional uint64 seq        = 1 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT]; // 信号源自己的递增序号
   optional int64  at         = 2 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT]; // 发现这些变化的时刻,绝对微秒
-  // 过期时刻,绝对微秒。过了跟单方不跟(行情早变了)。
+  // 过期时刻,绝对微秒(= at + 15 分钟)。消息在路上耽搁过了这个点,跟单方就不弹卡。
   optional int64  expiration = 3 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT];
-  repeated BinanceSignalEvent events = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  repeated BinanceOpen opens = 4 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 // 市场。
@@ -47,68 +43,18 @@ enum BinanceMarket {
   BINANCE_MARKET_USDS_FUTURES = 2; // U 本位合约
 }
 
-message BinanceSignalEvent {
-  option (hi.audience) = VIS_PARTICIPANT;
-  oneof kind {
-    option (buf.validate.oneof).required = true;
-    BinancePositionChange position = 1 [(hi.visibility) = VIS_PARTICIPANT];
-    BinanceOrderPlaced    placed   = 2 [(hi.visibility) = VIS_PARTICIPANT];
-    BinanceOrderDone      done     = 3 [(hi.visibility) = VIS_PARTICIPANT];
-  }
-}
-
-// 持仓变了(挂单解释不了的那部分)。
-//   · 合约:按交易对 + 方向(单向持仓按 positionAmt 正负算 LONG / SHORT)。方向翻转 = 先一条平 1.0、再一条开。
-//   · 现货:按**币**(稳定币是现金,不算持仓);数量 = free + locked。跟单方用「币 + USDT」交易对去买卖。
-message BinancePositionChange {
+// 信号源新开 / 加的一笔仓。
+//   · 合约:按交易对 + 方向(单向持仓按 positionAmt 正负算 LONG / SHORT);方向翻转时,翻过去那一侧算新开。
+//   · 现货:按**币**(稳定币是现金,不算持仓);数量 = free + locked。跟单方用「币 + USDT」交易对买。
+//
+// `ratio`:新增这部分的**保证金**(现货:价值)÷ 信号源的**总资金**(合约 = `totalMarginBalance`;
+// 现货 = 全部资产折成 USDT 的总价值),十进制小数字符串(`"0.05"` = 5%)。各人本金不同,一律按比例。
+message BinanceOpen {
   option (hi.audience) = VIS_PARTICIPANT;
   optional BinanceMarket       market   = 1 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT];
   optional string              symbol   = 2 [(buf.validate.field).string.pattern = "^[A-Z0-9]+$", (buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT]; // 合约 = 交易对;现货 = 币(如 BTC)
   optional BinancePositionSide side     = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 合约:LONG / SHORT;现货不带
-  oneof change {
-    option (buf.validate.oneof).required = true;
-    string ratio    = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 加仓 / 开仓:新增这部分的比例(见文件头)
-    string fraction = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 减仓 / 平仓:减掉的占之前持仓的比例,1 = 全平
-  }
-  optional uint32              leverage = 6 [(hi.visibility) = VIS_PARTICIPANT]; // 合约:信号源这个交易对的杠杆
-  optional string              price    = 7 [(hi.visibility) = VIS_PARTICIPANT]; // 发现时的参考价(合约标记价、现货最新价),只作记录
-}
-
-// 信号源挂了一张单。跟单方照样挂一张镜像单:同交易对、同方向、同价格、同类型,数量按比例换算。
-// `order` 里的 quantity / quote_order_qty / percent **不带**(信号源的数量对跟单方没意义),由 ratio / fraction 换算。
-message BinanceOrderPlaced {
-  option (hi.audience) = VIS_PARTICIPANT;
-  // 信号源那边的单号(现货 / 合约普通单 = orderId,条件单 = algoId)。跟单方的镜像单号由「信号源 did + 这个号」确定性算出,
-  // 之后撤 / 查都靠它。
-  optional string id = 1 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT];
-  oneof order {
-    option (buf.validate.oneof).required = true;
-    BinanceSpotNewOrder        spot         = 2 [(hi.visibility) = VIS_PARTICIPANT];
-    BinanceFuturesNewOrder     futures      = 3 [(hi.visibility) = VIS_PARTICIPANT];
-    BinanceFuturesNewAlgoOrder futures_algo = 4 [(hi.visibility) = VIS_PARTICIPANT];
-  }
-  oneof size {
-    option (buf.validate.oneof).required = true;
-    string ratio    = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 开仓单 / 现货买单
-    string fraction = 6 [(hi.visibility) = VIS_PARTICIPANT]; // 减仓单(reduce_only、close_position、双向持仓里的平仓方向)/ 现货卖单
-  }
-}
-
-// 信号源的一张挂单没了。
-message BinanceOrderDone {
-  option (hi.audience) = VIS_PARTICIPANT;
-  optional BinanceMarket market = 1 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT];
-  optional string        symbol = 2 [(buf.validate.field).string.pattern = "^[A-Z0-9]+$", (buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT];
-  optional string        id     = 3 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT]; // 同 BinanceOrderPlaced.id
-  optional bool          algo   = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 是不是合约条件单
-  // 为什么没了:
-  //   · FILLED   —— 成交了(条件单:触发了)。跟单方查自己的镜像单,没成交完就撤掉、剩下的市价补上。
-  //   · CANCELED —— 撤了 / 过期了 / 被拒了。跟单方撤掉镜像单(已成交的那部分留着)。
-  optional BinanceOrderDoneReason reason = 5 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT];
-}
-
-enum BinanceOrderDoneReason {
-  BINANCE_ORDER_DONE_REASON_UNSPECIFIED = 0;
-  BINANCE_ORDER_DONE_REASON_FILLED      = 1;
-  BINANCE_ORDER_DONE_REASON_CANCELED    = 2;
+  optional string              ratio    = 4 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT];
+  optional uint32              leverage = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 合约:信号源这个交易对的杠杆
+  optional string              price    = 6 [(hi.visibility) = VIS_PARTICIPANT]; // 发现时的参考价(合约标记价、现货最新价)
 }

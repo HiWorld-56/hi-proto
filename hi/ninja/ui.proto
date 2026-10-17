@@ -10,6 +10,7 @@ import "hi/club/group.proto";
 import "hi/club/messaging.proto";
 import "hi/ai/plugin.proto";
 import "hi/binance/binance.proto";
+import "hi/binance/signal.proto";
 import "hi/did/transfer.proto";
 import "hi/ninja/updater.proto";
 
@@ -160,6 +161,9 @@ message BrainToFace {
     // 在屏幕上显示一张**内容由调用方给**的二维码(比如插件签好的 `{data,signature}`)。
     // 与 `show_qr_code` 分开:那个只显示机器人自己的 did,内容是 face 现取的。
     QrCard                show_qr                = 25;
+    // 待确认的开单卡**全量列表**(每次变化推一整份:来了新的、确认 / 取消 / 过期 / 执行完)。空列表 = 一张都没有。
+    // face 重启后用 `get_binance_offers` 要一次。
+    BinanceOffers         binance_offers         = 26;
 
   }
 }
@@ -204,7 +208,55 @@ message FaceToBrain {
     google.protobuf.Empty request_init          = 4;
     // 替我去币安做一次（face 自己不连币安，见 BinanceRequest 的说明）
     BinanceRequest        binance_request       = 5;
+    // 人在开单卡上点的「确认 / 取消」
+    BinanceOfferReply     binance_offer_reply   = 6;
+    // face 重启后要一次当前的开单卡列表(回 `BrainToFace.binance_offers`)
+    google.protobuf.Empty get_binance_offers    = 7;
   }
+}
+
+// ── 跟单:开单卡 ──────────────────────────────────────────────
+//
+// 群里的信号源机器人开了仓(`hi.binance.BinanceSignal`),本机**不自动跟**:brain 把每一笔算成一张卡
+// —— 信号源开了什么 + 我们打算开什么(由币安插件按简单策略算)—— 推到屏幕上,人点「确认」才下单。
+// 卡在 brain 本地落库,**从收到那一刻起只留 15 分钟**,过了就当放弃(不执行、从列表里拿掉)。
+message BinanceOffers {
+  repeated BinanceOffer list = 1;
+}
+
+message BinanceOffer {
+  enum State {
+    STATE_UNSPECIFIED = 0;
+    STATE_PENDING     = 1; // 等人点
+    STATE_EXECUTING   = 2; // 点了确认,正在下单
+    STATE_DONE        = 3; // 下完了,结果在 result(成败看 result.http_status / error);留在列表里给人看,到期一起拿掉
+  }
+  optional string            id          = 1; // brain 给的卡号;回复时原样带回
+  optional hi.Entity         source      = 2; // 信号源机器人(did + 名字)
+  optional hi.binance.BinanceOpen open   = 3; // 信号源开了什么
+  optional BinanceOfferPlan  plan        = 4; // 我们打算开什么
+  optional int64             received_at = 5; // 本机收到的时刻,绝对微秒
+  optional int64             expires_at  = 6; // = received_at + 15 分钟,绝对微秒;face 按它倒计时
+  optional State             state       = 7;
+  optional hi.binance.BinanceResult result = 8; // STATE_DONE 时带:下单的原样结果
+}
+
+// 我们打算开的那一单。**数量与保证金是收到时的估算**,点确认时 brain 按当时的价格与余额重算再下。
+message BinanceOfferPlan {
+  optional string op       = 1; // 操作名,如 `usds_futures.new_order`
+  optional string symbol   = 2; // 实际下单的交易对(现货 = 币 + USDT)
+  optional hi.binance.BinanceOrderSide    side          = 3;
+  optional hi.binance.BinancePositionSide position_side = 4; // 合约:LONG / SHORT
+  optional uint32 leverage = 5; // 合约
+  optional string ratio    = 6; // 占本机总资金的比例(十进制小数)
+  optional string margin   = 7; // 估算保证金(合约)/ 金额(现货),计价币,十进制字符串
+  optional string quantity = 8; // 估算数量
+  optional string price    = 9; // 估算用的参考价
+}
+
+message BinanceOfferReply {
+  optional string id      = 1; // BinanceOffer.id
+  optional bool   confirm = 2; // true = 确认开单,false = 取消。**必传**
 }
 // 插件下载/安装进度。
 //
