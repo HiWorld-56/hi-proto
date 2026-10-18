@@ -229,7 +229,9 @@ message BinanceOffer {
     STATE_UNSPECIFIED = 0;
     STATE_PENDING     = 1; // 等人点
     STATE_EXECUTING   = 2; // 点了确认,正在下单
-    STATE_DONE        = 3; // 下完了,结果在 result(成败看 result.http_status / error);留在列表里给人看,到期一起拿掉
+    STATE_DONE        = 3; // 下完了,结果在 result(成败看 result.http_status / error);留在列表里给人看,
+                           // 人点「关闭」(face 发 BinanceOfferReply confirm=false)就从列表里拿掉(brain 落库,重启后也不再推),
+                           // 没点就到期一起拿掉
   }
   optional string            id          = 1; // brain 给的卡号;回复时原样带回
   optional hi.Entity         source      = 2; // 信号源机器人(did + 名字)
@@ -258,7 +260,10 @@ message BinanceOfferPlan {
 
 message BinanceOfferReply {
   optional string id      = 1; // BinanceOffer.id
-  optional bool   confirm = 2; // true = 确认开单,false = 取消。**必传**
+  // **必传**。true = 确认开单(只认 STATE_PENDING)。
+  // false = 这张卡我不要了:STATE_PENDING → 取消(不下单);STATE_DONE → 从列表里拿掉(落库,重启后也不再推);
+  // STATE_EXECUTING → 不理(正在下的单收不回来,下完照常变 STATE_DONE 给人看)
+  optional bool   confirm = 2;
 }
 // 插件下载/安装进度。
 //
