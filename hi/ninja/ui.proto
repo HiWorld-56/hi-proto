@@ -241,7 +241,8 @@ message BinanceOffer {
   optional hi.binance.BinanceResult result = 8; // STATE_DONE 时带:下单的原样结果
 }
 
-// 我们打算开的那一单。**数量与保证金是收到时的估算**,点确认时 brain 按当时的价格与余额重算再下。
+// 我们打算开的那一单。保证金 / 数量 / 参考价由 brain 在收到时按**与下单同一条换算**算出(按交易对的
+// 步长、价格精度取整,下单时也就是这个数);点确认时 brain 按当时的价格与余额重算再下,行情不动就是同一个数。
 message BinanceOfferPlan {
   optional string op       = 1; // 操作名,如 `usds_futures.new_order`
   optional string symbol   = 2; // 实际下单的交易对(现货 = 币 + USDT)
@@ -249,9 +250,10 @@ message BinanceOfferPlan {
   optional hi.binance.BinancePositionSide position_side = 4; // 合约:LONG / SHORT
   optional uint32 leverage = 5; // 合约
   optional string ratio    = 6; // 占本机总资金的比例(十进制小数)
-  optional string margin   = 7; // 估算保证金(合约)/ 金额(现货),计价币,十进制字符串
-  optional string quantity = 8; // 估算数量
-  optional string price    = 9; // 估算用的参考价
+  optional string margin   = 7; // 保证金(合约 = 数量 × 参考价 ÷ 杠杆)/ 金额(现货),计价币,两位小数
+  optional string quantity = 8; // 数量,按步长向下取整、写到步长那一位;现货市价买按金额下,这是按参考价折的
+  optional string price    = 9; // 参考价(合约标记价、现货最新价),写到价格精度那一位
+  optional string shortfall = 10; // 按本机资金下不了这一单的原因(一句话);带了 face 就不给确认按钮,只能取消
 }
 
 message BinanceOfferReply {

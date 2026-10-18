@@ -56,5 +56,5 @@ message BinanceOpen {
   optional BinancePositionSide side     = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 合约:LONG / SHORT;现货不带
   optional string              ratio    = 4 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT];
   optional uint32              leverage = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 合约:信号源这个交易对的杠杆
-  optional string              price    = 6 [(hi.visibility) = VIS_PARTICIPANT]; // 发现时的参考价(合约标记价、现货最新价)
+  optional string              price    = 6 [(hi.visibility) = VIS_PARTICIPANT]; // 发现时的参考价(合约标记价、现货最新价),写到这个交易对的价格精度那一位
 }
