@@ -209,6 +209,7 @@ message FunctionSummary {
   // video.continuation（引导生成）、video.reference（参考生成）、
   // video.advanced_replace（高级替换）；登记入口不代表已实现生成接口。
   optional string function_id = 1 [(hi.visibility) = VIS_PUBLIC];
+  // 当前用户可见名称，系统提供初始值，管理员可修改；客户端不按名称识别功能。
   optional string display_name = 2 [(hi.visibility) = VIS_PUBLIC];
   // 管理员控制的开放开关；false 仍展示入口，但普通用户不能创建新任务。
   // 与工作流 ENABLED 状态独立，不影响已受理任务或管理员试跑。
@@ -299,8 +300,28 @@ message SetFunctionSortOrderReq {
   optional int32 sort_order = 2 [(buf.validate.field).required = true];
 }
 
-// 管理员调整功能开放开关与分类内顺序；功能 ID 和显示名称随开发初始化。
+// 修改用户可见功能名称，不改变功能 ID、分类、开放开关或排序。
+message SetFunctionDisplayNameReq {
+  // 来自 Function.List；不存在时返回 NotFound。
+  optional string function_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+  // 服务端去除首尾空白后保存，长度为 1～255 个 Unicode 字符。
+  // 查询统一返回当前名称，包括历史任务；重复设置同名成功。
+  optional string display_name = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 255,
+    (buf.validate.field).required = true
+  ];
+}
+
+// 管理员调整功能名称、开放开关与分类内顺序；功能 ID 随开发初始化且不可修改。
 service FunctionManage {
+  // 修改名称后刷新 Function.List；成功返回空业务数据，不影响工作流和任务执行。
+  rpc SetDisplayName(SetFunctionDisplayNameReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_SUPERADMIN;
+  }
   // 关闭只阻止新建普通任务，不取消已有任务，也不限制管理员配置、校验和试跑。
   // 目标功能不存在返回 NotFound；重复设置同一值仍成功。
   rpc SetEnabled(SetFunctionEnabledReq) returns (google.protobuf.Empty) {

@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package hi.binance;
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/binance";
+
+import "buf/validate/validate.proto";
+import "hi/binance/binance.proto";
+import "hi/options.proto";
+
+// **开单信号**:一台机器人(信号源)账户上新开 / 加了仓,广播给群里别的机器人。
+// 装在消息里:`Content.type = "binance_signal"`、`Content.kind = binance_signal`。
+//
+// ## 谁发、发到哪(判据只在信号源的 brain)
+//
+// 信号源 = 在某个群里**能发言**、且那个群的发言等级(`GroupBase.speak`)不是 `all` 的机器人。
+// 它每轮把这一轮新开的仓发到**自己当前能发言的所有这种群**,一律 @所有人(机器人只处理 @ 到自己或 @所有人的)。
+// 群的发言等级就是白名单 —— 收信号的一方**不校验**发信号的是谁。
+// 同一份信号发往几个群,`seq` 相同;收的一方按「信封 from + seq」去重。
+//
+// ## 只有开单(2026-10-18 用户定)
+//
+// 只报**持仓变大**(新开仓、加仓;限价单成交让持仓变大也算 —— 挂单本身不算开单)。
+// 平仓、减仓、挂单、撤单一概不报:跟出来的仓位之后完全由跟单方的用户自己管。
+//
+// ## 收到之后
+//
+// 跟单方**不自动下单**:在机器人屏幕上弹一张卡(信号源开了什么 + 我们打算开什么),
+// 人点「确认」才开。卡在本地只留 15 分钟(从收到那一刻算),过了就当放弃。见 hi/ninja/ui.proto 的 `BinanceOffer`。
+message BinanceSignal {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional uint64 seq        = 1 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT]; // 信号源自己的递增序号
+  optional int64  at         = 2 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT]; // 发现这些变化的时刻,绝对微秒
+  // 过期时刻,绝对微秒(= at + 15 分钟)。消息在路上耽搁过了这个点,跟单方就不弹卡。
+  optional int64  expiration = 3 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT];
+  repeated BinanceOpen opens = 4 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+// 市场。
+enum BinanceMarket {
+  BINANCE_MARKET_UNSPECIFIED  = 0;
+  BINANCE_MARKET_SPOT         = 1;
+  BINANCE_MARKET_USDS_FUTURES = 2; // U 本位合约
+}
+
+// 信号源新开 / 加的一笔仓。
+//   · 合约:按交易对 + 方向(单向持仓按 positionAmt 正负算 LONG / SHORT);方向翻转时,翻过去那一侧算新开。
+//   · 现货:按**币**(稳定币是现金,不算持仓);数量 = free + locked。跟单方用「币 + USDT」交易对买。
+//
+// `ratio`:新增这部分的**保证金**(现货:价值)÷ 信号源的**总资金**(合约 = `totalMarginBalance`;
+// 现货 = 全部资产折成 USDT 的总价值),十进制小数字符串(`"0.05"` = 5%)。各人本金不同,一律按比例。
+message BinanceOpen {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional BinanceMarket       market   = 1 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT];
+  optional string              symbol   = 2 [(buf.validate.field).string.pattern = "^[A-Z0-9]+$", (buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT]; // 合约 = 交易对;现货 = 币(如 BTC)
+  optional BinancePositionSide side     = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 合约:LONG / SHORT;现货不带
+  optional string              ratio    = 4 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT];
+  optional uint32              leverage = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 合约:信号源这个交易对的杠杆
+  optional string              price    = 6 [(hi.visibility) = VIS_PARTICIPANT]; // 发现时的参考价(合约标记价、现货最新价),写到这个交易对的价格精度那一位
+}
