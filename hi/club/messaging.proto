@@ -8,6 +8,7 @@ import "hi/common.proto";
 import "hi/did/transfer.proto";
 import "hi/binance/binance.proto";
 import "hi/binance/command.proto";
+import "hi/binance/offer.proto";
 import "hi/binance/signal.proto";
 import "hi/options.proto";
 
@@ -329,6 +330,8 @@ message Member {
      binance     币安操作结果卡      kind=binance(hi.binance.BinanceResult)
      binance_cmd 币安指令            kind=binance_cmd(hi.binance.BinanceCommand)—— 群里要 @ 执行的机器人,见 hi/binance/command.proto
      binance_signal 币安跟单信号     kind=binance_signal(hi.binance.BinanceSignal)—— 信号源机器人发、@所有人,见 hi/binance/signal.proto
+     binance_offer 币安开单卡       kind=binance_offer(hi.binance.BinanceOffer)—— 跟单方机器人发给主人,同一 id 叠成一张,见 hi/binance/offer.proto
+     binance_offer_reply 开单卡回复  kind=binance_offer_reply(hi.binance.BinanceOfferReply)—— 主人发给机器人,只认主人
      chat_record 聊天记录(合并转发)  kind=record(hi.club.ChatRecord)—— 原样内嵌被转发的那几条完整消息
 
    ⚠️ **注意是 `image_url` 不是 `image`、`audio_url` 不是 `audio`。**
@@ -373,6 +376,10 @@ message Content {
     ChatRecord record = 7 [(hi.visibility) = VIS_PARTICIPANT];
     // 币安跟单信号:信号源机器人账户上的变化,广播给群里别的机器人跟。见 hi/binance/signal.proto。
     hi.binance.BinanceSignal binance_signal = 9 [(hi.visibility) = VIS_PARTICIPANT];
+    // 币安开单卡:跟单方机器人发给主人,主人在 app 上点确认 / 取消。见 hi/binance/offer.proto。
+    hi.binance.BinanceOffer binance_offer = 10 [(hi.visibility) = VIS_PARTICIPANT];
+    // 主人对开单卡的回复(确认 / 取消),发给那台机器人。只认主人。见 hi/binance/offer.proto。
+    hi.binance.BinanceOfferReply binance_offer_reply = 11 [(hi.visibility) = VIS_PARTICIPANT];
   }
   // 这一段在**本条消息里**的编号:从 1 起按先后编(第一段 1、第二段 2……),同一条消息内天然不重。
   // **由 hiclub-core-mqtt 在发出前统一填**(UI / brain 照旧只管组内容,填不填、填什么都会被 core 覆盖);
