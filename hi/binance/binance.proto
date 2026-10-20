@@ -800,10 +800,10 @@ message BinanceFuturesCancelAllSymbols {
 //   position_side  持仓方向:单向持仓 = BOTH 时这里写 LONG / SHORT(按持仓数量的正负)
 //   position_amt   持仓数量(币,空仓为负,币安原文)
 //   entry_price    开仓均价(币安原文)
-//   leverage       算 ROE 用的杠杆;basis = PRICE 且没给百分比时不查,为 null
+//   leverage       这个交易对现在设的杠杆(一律查,每条腿的 roe_pct 按它算)
 //   legs           给了的腿各一项,止盈在前
 //     move_pct     触发价相对开仓价的涨跌幅(%,两位小数,对齐步长之后的;跌为负)
-//     roe_pct      对应的收益率(%,两位小数)= move_pct × 杠杆,方向按持仓(空仓价跌为正);杠杆为 null 时为 null
+//     roe_pct      对应的收益率(%,两位小数)= 按持仓方向的涨跌幅 × 杠杆(空仓价跌为正)
 //     est_pnl      在触发价全部平掉的预估盈亏(计价币,两位小数;不含手续费与滑点)
 //     algo_id      新挂上的那张单;没挂上就没有这一项
 //     replaced     撤掉的旧单(没有就没有这一项)
