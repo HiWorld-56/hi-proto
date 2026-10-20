@@ -775,13 +775,15 @@ message BinanceFuturesCancelAllSymbols {
 //      双向持仓两个方向都有仓、又没给 `position_side`,不做,回一句要给哪个方向。
 //   2. 算触发价,全程十进制,**对齐到这个交易对的价格步长**(tickSize,不对齐币安回 -1111):
 //        给价格   → 就用它;
-//        给百分比 p(正数;写成负数按绝对值)→ 先得涨跌幅 m:
-//                   basis = ROE(默认)m = p ÷ 杠杆(杠杆是这个交易对现在设的,`/fapi/v1/symbolConfig`);
-//                   basis = PRICE      m = p;
+//        给百分比 p(正数;写成负数按绝对值)→ 先得涨跌幅 m,口径**每条腿各自**(`*_basis`):
+//                   ROE(默认)m = p ÷ 杠杆(杠杆是这个交易对现在设的,`/fapi/v1/symbolConfig`);
+//                   PRICE      m = p;
+//        ⚠️ 口径不能两条腿共用:人只说「止盈改成涨 5%」时,模型会把上一轮的「止损 200%(收益率)」一起带上,
+//           共用一个口径就把它也按价格算成负价、整次被拒(10-20 实测)。
 //                   多仓止盈 = 开仓价 × (1 + m%),止损 = 开仓价 × (1 − m%);空仓反过来。算出来 ≤ 0 就不做。
 //   3. **先验后动**:触发价要在现价的对侧(现价按 `working_type`:不传 = 最新成交价,MARK_PRICE = 标记价格)——
 //      多仓止盈高于现价、止损低于现价,空仓相反。有一条不满足就**一张都不撤、一张都不挂**,回一句(否则挂上就立刻触发)。
-//   4. 每一条腿(止盈、止损各自,各自成败):这个方向上已有的**整仓**同类单先撤 —— 币安同一个方向只收一张整仓同类单
+//   4. **只动给了的腿**,没给的那条原样不动。每一条腿(止盈、止损各自,各自成败):这个方向上已有的**整仓**同类单先撤 —— 币安同一个方向只收一张整仓同类单
 //      (止盈 = TAKE_PROFIT_MARKET / TAKE_PROFIT,止损 = STOP_MARKET / STOP,带 closePosition 的;再挂回 -4130);
 //      撤不掉就不挂新的。再挂新的:止盈 TAKE_PROFIT_MARKET、止损 STOP_MARKET,`closePosition`,方向与持仓相反。
 //      按数量挂的(不是整仓的)止盈止损单不动。
@@ -790,10 +792,10 @@ message BinanceFuturesCancelAllSymbols {
 // 结果在 `BinanceResult.body`(`http_status` = 200),是**机器人写的 JSON**(不是币安原文):
 //
 //   { "symbol": "BTCUSDT", "position_side": "LONG", "position_amt": "0.010", "entry_price": "65000.1",
-//     "leverage": 10, "basis": "ROE",
-//     "legs": [ { "kind": "take_profit", "trigger_price": "66300.1", "move_pct": "2.00", "roe_pct": "20.00",
+//     "leverage": 10,
+//     "legs": [ { "kind": "take_profit", "basis": "ROE", "trigger_price": "66300.1", "move_pct": "2.00", "roe_pct": "20.00",
 //                 "est_pnl": "13.00", "algo_id": 1000002632964185, "replaced": [1000002632960001] },
-//               { "kind": "stop_loss", "trigger_price": "64350.1", "move_pct": "-1.00", "roe_pct": "-10.00",
+//               { "kind": "stop_loss", "basis": "PRICE", "trigger_price": "64350.1", "move_pct": "-1.00", "roe_pct": "-10.00",
 //                 "est_pnl": "-6.50", "replaced": [1000002632960002],
 //                 "failed": { "http_status": 400, "code": -2021, "msg": "Order would immediately trigger." } } ] }
 //
@@ -802,6 +804,7 @@ message BinanceFuturesCancelAllSymbols {
 //   entry_price    开仓均价(币安原文)
 //   leverage       这个交易对现在设的杠杆(一律查,每条腿的 roe_pct 按它算)
 //   legs           给了的腿各一项,止盈在前
+//     basis        这条腿百分比的口径(给的是价格时为 null)
 //     move_pct     触发价相对开仓价的涨跌幅(%,两位小数,对齐步长之后的;跌为负)
 //     roe_pct      对应的收益率(%,两位小数)= 按持仓方向的涨跌幅 × 杠杆(空仓价跌为正)
 //     est_pnl      在触发价全部平掉的预估盈亏(计价币,两位小数;不含手续费与滑点)
@@ -823,8 +826,9 @@ message BinanceFuturesPositionTpsl {
   optional string              take_profit_pct   = 4 [(hi.visibility) = VIS_PARTICIPANT];
   optional string              stop_loss_price   = 5 [(hi.visibility) = VIS_PARTICIPANT];
   optional string              stop_loss_pct     = 6 [(hi.visibility) = VIS_PARTICIPANT];
-  // 百分比的口径,不传 = ROE。
-  optional BinanceTpslBasis    basis             = 7 [(hi.visibility) = VIS_PARTICIPANT];
+  // 各自百分比的口径,不传 = ROE。
+  optional BinanceTpslBasis    take_profit_basis = 7 [(hi.visibility) = VIS_PARTICIPANT];
+  optional BinanceTpslBasis    stop_loss_basis   = 9 [(hi.visibility) = VIS_PARTICIPANT];
   // 触发看哪个价,不传 = 最新成交价(币安的默认)。
   optional BinanceWorkingType  working_type      = 8 [(hi.visibility) = VIS_PARTICIPANT];
 }
