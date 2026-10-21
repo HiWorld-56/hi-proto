@@ -4,6 +4,7 @@ package hi.ai;
 
 import "google/protobuf/empty.proto";
 import "google/protobuf/struct.proto";
+import "hi/ai/reply_image.proto";
 import "hi/options.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
@@ -255,6 +256,9 @@ message ChatResp {
   // 两处识别结果可能不一致。Converse 与 Resume 的回包都带(final 与否都带,续跑带的是开轮那一句)。
   // 用途:club 把机器人的语音对话记进聊天记录时,用户那句存成文字而不是一段录音 url。
   repeated Content  question = 4 [(hi.visibility) = VIS_SELF];
+  // 非流式最终回复的待发送图片，按工具取得顺序排列，不依赖 result 中出现 URL。
+  // 普通文字或含 URL 的 JSON 不会自动变成图片；中途等待客户端工具时不交付图片。
+  repeated ReplyImage reply_images = 5 [(hi.visibility) = VIS_SELF];
 }
 
 // 流式帧(ConverseStream / ResumeStream)。

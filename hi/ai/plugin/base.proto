@@ -33,6 +33,7 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/struct.proto";
 import "hi/ai/chat.proto";
 import "hi/ai/plugin.proto";
+import "hi/ai/reply_image.proto";
 import "hi/options.proto";
 
 // ── py-docker 执行契约(独立 py-docker 服务实现,hiai 只作调用方)──────────────
@@ -82,6 +83,9 @@ message RunReq {
 message RunResp {
   option (hi.audience) = VIS_SELF;
   repeated hi.ai.Content conts = 1 [(hi.visibility) = VIS_SELF];
+  // 仅显式 image_result 返回的图片；stdout 日志、普通字符串和字典仍属于 conts。
+  // 执行失败或超时不返回本次调用的图片；不包含收信人或生成任务状态。
+  repeated hi.ai.ReplyImage reply_images = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message CleanupReq {
