@@ -127,6 +127,10 @@ service Account {
   rpc ResetPassword(EmailResetPasswordReq) returns (google.protobuf.Empty) {
     option (hi.auth) = AUTH_NONE;
   }
+}
+
+// 已登录的邮箱账号管理自己的账号(与公开的 Account 分开:鉴权档位不同)。
+service AccountSelf {
   rpc ChangePassword(ChangePasswordReq) returns (google.protobuf.Empty) {
     option (hi.auth) = AUTH_USER;
   }

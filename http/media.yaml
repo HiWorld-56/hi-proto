@@ -30,8 +30,8 @@ http:
   - selector: hi.media.Account.ResetPassword
     post: /api/v1/account/reset_password
     body: "*"
-  - selector: hi.media.Account.ChangePassword
-    post: /api/v1/account/change_password
+  - selector: hi.media.AccountSelf.ChangePassword
+    post: /api/v1/account_self/change_password
     body: "*"
   - selector: hi.media.Base.ServerVersion
     get: /api/v1/base/server_version
