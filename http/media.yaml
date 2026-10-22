@@ -3,17 +3,6 @@ config_version: 3
 
 http:
   rules:
-  - selector: hi.media.ApiKey.Create
-    post: /api/v1/api_key/create
-    body: "*"
-  - selector: hi.media.ApiKey.Edit
-    post: /api/v1/api_key/edit
-    body: "*"
-  - selector: hi.media.ApiKey.List
-    get: /api/v1/api_key/list
-  - selector: hi.media.ApiKey.Delete
-    post: /api/v1/api_key/delete
-    body: "*"
   - selector: hi.media.Auth.GenerateReqId
     post: /api/v1/auth/generate_req_id
     body: "*"
