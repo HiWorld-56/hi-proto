@@ -1,0 +1,137 @@
+syntax = "proto3";
+
+package hi.media;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+import "hi/options.proto";
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/media";
+
+// HiMedia 邮箱账号:与 HiDID 扫码登录并存的第二种登录方式。
+//
+// 账号只存在 HiMedia 本地,**不进 HiDID**:用户身份列(各表的 did / *_did)直接存邮箱,
+// 不会与 HiDID 的 DID 撞上(DID 不含 `@`)。邮箱账号只能用本服务的账号密码登录,
+// 不能当 HiDID 用,也做不了 HiMedia 超管(超管名单仍以 HiDID 为权威)。
+//
+// 邮箱一律小写:前端提交前转小写,后端按 pattern 拒掉含大写的写法,不替前端改写。
+
+enum EmailCodePurpose {
+  EMAIL_CODE_PURPOSE_UNSPECIFIED = 0;
+  EMAIL_CODE_PURPOSE_REGISTER = 1;       // 注册:该邮箱必须还没注册
+  EMAIL_CODE_PURPOSE_RESET_PASSWORD = 2; // 忘记密码:该邮箱必须已注册
+}
+
+message EmailCodeSendReq {
+  optional string email = 1 [
+    (buf.validate.field).string.email = true,
+    (buf.validate.field).string.pattern = "^[^A-Z]+$",
+    (buf.validate.field).string.max_len = 254,
+    (buf.validate.field).required = true
+  ];
+  optional EmailCodePurpose purpose = 2 [
+    (buf.validate.field).enum.defined_only = true,
+    (buf.validate.field).enum.not_in = 0,
+    (buf.validate.field).required = true
+  ];
+}
+
+// 注册:邮箱验证码证明邮箱是本人的,邀请码证明有资格进入 HiMedia。
+// **邀请码字符串就是初始密码**,用户不另设密码;注册后密码与邀请码再无关系(可改)。
+message EmailRegisterReq {
+  optional string email = 1 [
+    (buf.validate.field).string.email = true,
+    (buf.validate.field).string.pattern = "^[^A-Z]+$",
+    (buf.validate.field).string.max_len = 254,
+    (buf.validate.field).required = true
+  ];
+  optional string email_code = 2 [
+    (buf.validate.field).string.pattern = "^[0-9]{6}$",
+    (buf.validate.field).required = true
+  ];
+  optional string invite_code = 3 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 32,
+    (buf.validate.field).required = true
+  ];
+  hi.ClientInfo node = 4 [(buf.validate.field).required = true]; // 被登录的这一端;HiMedia 只收 HiMedia/web
+}
+
+message EmailLoginReq {
+  optional string email = 1 [
+    (buf.validate.field).string.email = true,
+    (buf.validate.field).string.pattern = "^[^A-Z]+$",
+    (buf.validate.field).string.max_len = 254,
+    (buf.validate.field).required = true
+  ];
+  optional string password = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 64,
+    (buf.validate.field).required = true
+  ];
+  hi.ClientInfo node = 3 [(buf.validate.field).required = true];
+}
+
+// 注册 / 登录成功:did 就是这个邮箱(后续 RefreshToken / Logout 的 did 填它)。
+message EmailLoginResp {
+  option (hi.audience) = VIS_SELF;
+  optional string did = 1 [(hi.visibility) = VIS_SELF];
+  hi.AuthToken token = 2 [(hi.visibility) = VIS_SELF];
+}
+
+// 忘记密码:凭邮箱验证码设新密码。成功后该账号所有已登录的会话作废。
+message EmailResetPasswordReq {
+  optional string email = 1 [
+    (buf.validate.field).string.email = true,
+    (buf.validate.field).string.pattern = "^[^A-Z]+$",
+    (buf.validate.field).string.max_len = 254,
+    (buf.validate.field).required = true
+  ];
+  optional string email_code = 2 [
+    (buf.validate.field).string.pattern = "^[0-9]{6}$",
+    (buf.validate.field).required = true
+  ];
+  optional string new_password = 3 [
+    (buf.validate.field).string.min_len = 8,
+    (buf.validate.field).string.max_len = 64,
+    (buf.validate.field).required = true
+  ];
+}
+
+// 已登录的邮箱账号改密码。HiDID 扫码账号没有密码,调用回 FailedPrecondition。
+message ChangePasswordReq {
+  optional string old_password = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 64,
+    (buf.validate.field).required = true
+  ];
+  optional string new_password = 2 [
+    (buf.validate.field).string.min_len = 8,
+    (buf.validate.field).string.max_len = 64,
+    (buf.validate.field).required = true
+  ];
+}
+
+service Account {
+  // 发邮箱验证码(6 位,10 分钟有效;同一邮箱 60 秒内只发一次)。
+  rpc SendEmailCode(EmailCodeSendReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_NONE;
+  }
+  rpc Register(EmailRegisterReq) returns (EmailLoginResp) {
+    option (hi.auth) = AUTH_NONE;
+  }
+  rpc Login(EmailLoginReq) returns (EmailLoginResp) {
+    option (hi.auth) = AUTH_NONE;
+  }
+  rpc ResetPassword(EmailResetPasswordReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_NONE;
+  }
+}
+
+// 已登录的邮箱账号管理自己的账号(与公开的 Account 分开:鉴权档位不同)。
+service AccountSelf {
+  rpc ChangePassword(ChangePasswordReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_USER;
+  }
+}

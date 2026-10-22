@@ -3,17 +3,6 @@ config_version: 3
 
 http:
   rules:
-  - selector: hi.media.ApiKey.Create
-    post: /api/v1/api_key/create
-    body: "*"
-  - selector: hi.media.ApiKey.Edit
-    post: /api/v1/api_key/edit
-    body: "*"
-  - selector: hi.media.ApiKey.List
-    get: /api/v1/api_key/list
-  - selector: hi.media.ApiKey.Delete
-    post: /api/v1/api_key/delete
-    body: "*"
   - selector: hi.media.Auth.GenerateReqId
     post: /api/v1/auth/generate_req_id
     body: "*"
@@ -29,6 +18,21 @@ http:
   - selector: hi.media.Register.Verify
     post: /api/v1/register/verify
     body: "*"
+  - selector: hi.media.Account.SendEmailCode
+    post: /api/v1/account/send_email_code
+    body: "*"
+  - selector: hi.media.Account.Register
+    post: /api/v1/account/register
+    body: "*"
+  - selector: hi.media.Account.Login
+    post: /api/v1/account/login
+    body: "*"
+  - selector: hi.media.Account.ResetPassword
+    post: /api/v1/account/reset_password
+    body: "*"
+  - selector: hi.media.AccountSelf.ChangePassword
+    post: /api/v1/account_self/change_password
+    body: "*"
   - selector: hi.media.Base.ServerVersion
     get: /api/v1/base/server_version
   - selector: hi.media.SuperAdmin.List
@@ -41,6 +45,9 @@ http:
     body: "*"
   - selector: hi.media.UserManage.Delete
     post: /api/v1/user_manage/delete
+    body: "*"
+  - selector: hi.media.UserManage.ResetPassword
+    post: /api/v1/user_manage/reset_password
     body: "*"
   - selector: hi.media.Function.List
     get: /api/v1/function/list
