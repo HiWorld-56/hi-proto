@@ -255,12 +255,15 @@ message ChatResp {
   // 两处识别结果可能不一致。Converse 与 Resume 的回包都带(final 与否都带,续跑带的是开轮那一句)。
   // 用途:club 把机器人的语音对话记进聊天记录时,用户那句存成文字而不是一段录音 url。
   repeated Content  question = 4 [(hi.visibility) = VIS_SELF];
+  // 回答中的图片由模型以 Markdown 写入 result，不另设媒体返回通道。
+  reserved 5;
+  reserved "reply_images";
 }
 
 // 流式帧(ConverseStream / ResumeStream)。
 //
 // `type` 取值 —— **一条指令帧,其余是内容/进度/回显**:
-//   msg           —— 答复。⚠️ **是整段,不是分片**(见下)
+//   msg           —— 完整回答文字，不是分片；图片使用 message 中的 Markdown
 //   end           —— 本条流正常收尾
 //   info          —— 出错了。⚠️ 流式下错误**走帧不走 grpc status** ——
 //                    否则客户端收了半截流再拿到 error,两套错误通道并存反而更难排查
@@ -297,6 +300,9 @@ message ConverseStreamResp {
   repeated ToolCall tools   = 5 [(hi.visibility) = VIS_SELF]; // 待客户端执行的工具
   // 同 ChatResp.question。挂在每条流的收尾帧(`msg` 或 `toolCalls`)上,ConverseStream 与 ResumeStream 都带。
   repeated Content  question = 6 [(hi.visibility) = VIS_SELF];
+  // 图片沿用最终 message 的 Markdown，客户端使用原有文字渲染。
+  reserved 7;
+  reserved "reply_images";
 }
 
 // 对话(主体=会话)。商户档:hiai web(token)与商户后台服务(apikey)都会调。
