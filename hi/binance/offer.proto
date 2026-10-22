@@ -40,6 +40,8 @@ message BinanceOffer {
   optional int64             expires_at  = 6 [(hi.visibility) = VIS_PARTICIPANT]; // = received_at + 15 分钟,绝对微秒;face / app 按它倒计时,过了自己显示已过期
   optional State             state       = 7 [(hi.visibility) = VIS_PARTICIPANT];
   optional BinanceResult result = 8 [(hi.visibility) = VIS_PARTICIPANT]; // STATE_DONE 时带:下单的原样结果
+  // STATE_DONE 且开仓成功时带:自动止盈止损做了什么。不带 = 这张卡没走到这一步(开仓失败,或机器人版本还没有这个功能)。
+  optional BinanceOfferTpsl tpsl = 9 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 // 我们打算开的那一单。保证金 / 数量 / 参考价由 brain 在收到时按**与下单同一条换算**算出(按交易对的
@@ -56,6 +58,40 @@ message BinanceOfferPlan {
   optional string quantity = 8 [(hi.visibility) = VIS_PARTICIPANT]; // 数量,按步长向下取整、写到步长那一位;现货市价买按金额下,这是按参考价折的
   optional string price    = 9 [(hi.visibility) = VIS_PARTICIPANT]; // 参考价(合约标记价、现货最新价),写到价格精度那一位
   optional string shortfall = 10 [(hi.visibility) = VIS_PARTICIPANT]; // 按本机资金下不了这一单的原因(一句话);带了 face 就不给确认按钮,只能取消
+
+  // ── 自动止盈止损(2026-10-23 用户定;开单卡上一个**默认勾选**的「自动设置止盈止损」)──
+  //
+  // 口径(只在币安插件出计划单那一处):R = 主人设的风险承受率(`BinanceRoi.risk_tolerance`)。
+  //   · 止损 = 这一笔亏到它保证金的 R%:合约按收益率 −R%(价格反向 R% ÷ 杠杆);现货按价格下跌 R%。
+  //   · 止盈 = 盈亏比 2:1:合约收益率 +2R%;现货价格上涨 2R%。
+  // 合约挂的是**整仓**止盈止损(同币安 App 持仓上的「止盈止损」),触发价按**成交后的开仓均价**现算;
+  // 开单前这个方向已有仓位就不挂(整仓单会盖到原有仓位)。现货在市价买入成交后,按实际买到的数量挂一对 OCO 卖单
+  // (涨到止盈价限价卖、跌到止损价止损卖),只管这次买到的,不碰原有的币。
+  //
+  // 两个百分比要么都带、要么都不带;不带时 `tpsl_unavailable` 说为什么(face / app 把勾选框置灰、写这句话)。
+  optional string stop_loss_pct     = 11 [(hi.visibility) = VIS_PARTICIPANT]; // 十进制,不带 %(如 "30")
+  optional string take_profit_pct   = 12 [(hi.visibility) = VIS_PARTICIPANT];
+  // 估算的触发价:按 `price`(参考价)算、对齐价格精度。真正挂的按成交后的开仓均价(现货:成交均价)重算,行情动了会差一点。
+  optional string stop_loss_price   = 13 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string take_profit_price = 14 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string tpsl_unavailable  = 15 [(hi.visibility) = VIS_PARTICIPANT]; // 不能自动设的原因(一句话):没设风险承受率 / 这个方向已有仓位
+}
+
+// 自动止盈止损的结果(`BinanceOffer.tpsl`)。
+message BinanceOfferTpsl {
+  option (hi.audience) = VIS_PARTICIPANT;
+  enum State {
+    STATE_UNSPECIFIED = 0;
+    STATE_SET         = 1; // 止盈、止损都挂上了(价格在下面两个字段)
+    STATE_OFF         = 2; // 人没勾「自动设置止盈止损」
+    STATE_SKIPPED     = 3; // 没挂:没设风险承受率 / 这个方向开单前已有仓位(原因在 reason)
+    STATE_FAILED      = 4; // 仓开成了,止盈止损没挂上或只挂上一条(原因在 reason)—— **这个仓位可能没有止损**,界面要显眼
+  }
+  optional State  state             = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string stop_loss_price   = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 实际挂上的止损触发价
+  optional string take_profit_price = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 实际挂上的止盈价(合约:触发价;现货:限价)
+  optional string reason            = 4 [(hi.visibility) = VIS_PARTICIPANT]; // SKIPPED / FAILED 时的原因,一句话
+  optional string warning           = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 挂上了但要提醒的(如止损价在爆仓价之外,可能先爆仓)
 }
 
 message BinanceOfferReply {
@@ -65,4 +101,7 @@ message BinanceOfferReply {
   // false = 这张卡我不要了:STATE_PENDING → 取消(不下单);STATE_DONE → 从列表里拿掉(落库,重启后也不再推);
   // STATE_EXECUTING → 不理(正在下的单收不回来,下完照常变 STATE_DONE 给人看)
   optional bool   confirm = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  // 只在 confirm = true 时看:开仓后要不要自动设置止盈止损。**不带 = 要**(卡上默认勾选;老版本 app 回复里没有这一项)。
+  // 计划单带了 `tpsl_unavailable` 时,带 true 也不设(结果 STATE_SKIPPED)。
+  optional bool   auto_tpsl = 3 [(hi.visibility) = VIS_PARTICIPANT];
 }
