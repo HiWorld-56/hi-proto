@@ -18,6 +18,21 @@ http:
   - selector: hi.media.Register.Verify
     post: /api/v1/register/verify
     body: "*"
+  - selector: hi.media.Account.SendEmailCode
+    post: /api/v1/account/send_email_code
+    body: "*"
+  - selector: hi.media.Account.Register
+    post: /api/v1/account/register
+    body: "*"
+  - selector: hi.media.Account.Login
+    post: /api/v1/account/login
+    body: "*"
+  - selector: hi.media.Account.ResetPassword
+    post: /api/v1/account/reset_password
+    body: "*"
+  - selector: hi.media.Account.ChangePassword
+    post: /api/v1/account/change_password
+    body: "*"
   - selector: hi.media.Base.ServerVersion
     get: /api/v1/base/server_version
   - selector: hi.media.SuperAdmin.List
@@ -30,6 +45,9 @@ http:
     body: "*"
   - selector: hi.media.UserManage.Delete
     post: /api/v1/user_manage/delete
+    body: "*"
+  - selector: hi.media.UserManage.ResetPassword
+    post: /api/v1/user_manage/reset_password
     body: "*"
   - selector: hi.media.Function.List
     get: /api/v1/function/list
