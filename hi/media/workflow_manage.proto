@@ -158,6 +158,11 @@ message ImageToVideoWorkflowConfig {
     (buf.validate.field).required = true,
     (hi.visibility) = VIS_SELF
   ];
+  // 算力预算，单位「百万像素 × 帧数」（像素量 × 时长秒 × 帧率），规范十进制字符串，如 "576"。
+  // 用户提交时像素量、时长、帧率三者乘积超过它即被拒（InvalidArgument）；
+  // 用来挡住单项都合法、组合起来必然超时或显存溢出的参数。proto 不标必填以便读出存量配置，
+  // 保存与校验工作流时缺失、非正数或最小组合即超预算都报错。
+  optional string max_megapixel_frames = 9 [(hi.visibility) = VIS_SELF];
 }
 
 // 文生视频执行配置，对应功能 video.txt2vid。
@@ -191,6 +196,11 @@ message TextToVideoWorkflowConfig {
     (buf.validate.field).required = true,
     (hi.visibility) = VIS_SELF
   ];
+  // 算力预算，单位「百万像素 × 帧数」（像素量 × 时长秒 × 帧率），规范十进制字符串，如 "576"。
+  // 用户提交时像素量、时长、帧率三者乘积超过它即被拒（InvalidArgument）；
+  // 用来挡住单项都合法、组合起来必然超时或显存溢出的参数。proto 不标必填以便读出存量配置，
+  // 保存与校验工作流时缺失、非正数或最小组合即超预算都报错。
+  optional string max_megapixel_frames = 8 [(hi.visibility) = VIS_SELF];
 }
 
 // 文生图像素宽高绑定；两者的范围与默认值均为 16 的倍数，校验阶段核对。
@@ -418,6 +428,11 @@ message FirstLastFrameWorkflowConfig {
     (buf.validate.field).repeated.min_items = 1,
     (hi.visibility) = VIS_SELF
   ];
+  // 算力预算，单位「百万像素 × 帧数」（像素量 × 时长秒 × 帧率），规范十进制字符串，如 "576"。
+  // 用户提交时像素量、时长、帧率三者乘积超过它即被拒（InvalidArgument）；
+  // 用来挡住单项都合法、组合起来必然超时或显存溢出的参数。proto 不标必填以便读出存量配置，
+  // 保存与校验工作流时缺失、非正数或最小组合即超预算都报错。
+  optional string max_megapixel_frames = 13 [(hi.visibility) = VIS_SELF];
 }
 
 // 模仿生成配置；当前为深度控制，不提供用户输出尺寸、时长或帧率参数。
@@ -518,6 +533,12 @@ message MiniMaxVideoWorkflowConfig {
   ];
   // 仅高级替换必填，其他两类不得配置；用户原文传 SAM，固定最多 200 个码点。
   WorkflowInputBinding region_description = 9 [(hi.visibility) = VIS_SELF];
+  // 算力预算，单位「百万像素 × 帧数」（像素量 × 时长秒 × 帧率），规范十进制字符串，如 "576"。
+  // 用户提交时像素量、时长、帧率三者乘积超过它即被拒（InvalidArgument）；
+  // 用来挡住单项都合法、组合起来必然超时或显存溢出的参数。proto 不标必填以便读出存量配置，
+  // 保存与校验工作流时缺失、非正数或最小组合即超预算都报错。
+  // MiniMax 固定 24 FPS，按 24 计算。
+  optional string max_megapixel_frames = 10 [(hi.visibility) = VIS_SELF];
 }
 
 // 完整执行配置；功能配置必须与工作流归属一致，保存时不建立产物预占。
