@@ -19,6 +19,13 @@ import "hi/options.proto";
 //
 // app 按 `id` 把同一张卡的几条消息叠成一张,**状态只升不降**:
 // PENDING < EXECUTING < (DONE | CANCELED | EXPIRED);已过 `expires_at` 还是 PENDING 的,自己显示已过期。
+//
+// ## 两种卡(2026-10-23)
+//
+// · **开单卡**(`open` 有值):信号源市价开了一笔仓(压过 5 分钟、还赚),我们按比例市价开。DONE = 下完了。
+// · **跟挂卡**(`pending` 有值):信号源挂了一张开仓挂单(限价 / 条件单),我们按比例挂同价、同条件的单。
+//   DONE = **挂上了**(不是成交了);之后成交、被信号源撤单自动撤掉,都不改这张卡(卡 15 分钟就过期了),另给主人发一句话。
+//   信号源在我们确认之前撤了单 → 这张卡 CANCELED(屏幕上拿掉,主人的聊天卡片显示已取消)。
 
 message BinanceOffer {
   option (hi.audience) = VIS_PARTICIPANT;
@@ -34,7 +41,7 @@ message BinanceOffer {
   }
   optional string            id          = 1 [(hi.visibility) = VIS_PARTICIPANT]; // brain 给的卡号;回复时原样带回
   optional hi.Entity         source      = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 信号源机器人(did + 名字)
-  optional BinanceOpen open   = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 信号源开了什么
+  optional BinanceOpen open   = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 开单卡:信号源开了什么(与 `pending` 二选一)
   optional BinanceOfferPlan  plan        = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 我们打算开什么
   optional int64             received_at = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 本机收到的时刻,绝对微秒
   optional int64             expires_at  = 6 [(hi.visibility) = VIS_PARTICIPANT]; // = received_at + 15 分钟,绝对微秒;face / app 按它倒计时,过了自己显示已过期
@@ -42,6 +49,7 @@ message BinanceOffer {
   optional BinanceResult result = 8 [(hi.visibility) = VIS_PARTICIPANT]; // STATE_DONE 时带:下单的原样结果
   // STATE_DONE 且开仓成功时带:自动止盈止损做了什么。不带 = 这张卡没走到这一步(开仓失败,或机器人版本还没有这个功能)。
   optional BinanceOfferTpsl tpsl = 9 [(hi.visibility) = VIS_PARTICIPANT];
+  optional BinancePending pending = 10 [(hi.visibility) = VIS_PARTICIPANT]; // 跟挂卡:信号源挂了什么(与 `open` 二选一)
 }
 
 // 我们打算开的那一单。保证金 / 数量 / 参考价由 brain 在收到时按**与下单同一条换算**算出(按交易对的
@@ -76,6 +84,13 @@ message BinanceOfferPlan {
   optional string stop_loss_price   = 13 [(hi.visibility) = VIS_PARTICIPANT];
   optional string take_profit_price = 14 [(hi.visibility) = VIS_PARTICIPANT];
   optional string tpsl_unavailable  = 15 [(hi.visibility) = VIS_PARTICIPANT]; // 不能自动设的原因(一句话):没设风险承受率 / 这个方向已有仓位
+
+  // ── 跟挂卡(2026-10-23)── 我们打算挂的那一单;开单卡(市价)不带这几个。
+  // 跟挂卡上的自动止盈止损:**成交后**才挂(跟单方轮询自己挂的那张单),估算价按挂单价(没有就按触发价)算。
+  optional string order_type    = 16 [(hi.visibility) = VIS_PARTICIPANT]; // 币安的单型原名,如 LIMIT、STOP_MARKET、TAKE_PROFIT_LIMIT、TRAILING_STOP_MARKET
+  optional string limit_price   = 17 [(hi.visibility) = VIS_PARTICIPANT]; // 限价(限价单、*_LIMIT、STOP / TAKE_PROFIT);市价触发的不带
+  optional string trigger_price = 18 [(hi.visibility) = VIS_PARTICIPANT]; // 触发价(条件单);限价单不带
+  optional string callback_rate = 19 [(hi.visibility) = VIS_PARTICIPANT]; // 跟踪止损的回调幅度(%);只有 TRAILING_STOP_MARKET 带
 }
 
 // 自动止盈止损的结果(`BinanceOffer.tpsl`)。
