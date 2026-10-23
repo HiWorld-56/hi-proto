@@ -8,38 +8,44 @@ import "buf/validate/validate.proto";
 import "hi/binance/binance.proto";
 import "hi/options.proto";
 
-// **开单信号**:一台机器人(信号源)账户上新开 / 加了仓,广播给群里别的机器人。
+// **开单信号**:一台机器人(信号源)经 hi 开了仓 / 挂了开仓单,广播给群里别的机器人。
 // 装在消息里:`Content.type = "binance_signal"`、`Content.kind = binance_signal`。
 //
 // ## 谁发、发到哪(判据只在信号源的 brain)
 //
 // 信号源 = 在某个群里**能发言**、且那个群的发言等级(`GroupBase.speak`)不是 `all` 的机器人。
-// 它每轮把这一轮新开的仓发到**自己当前能发言的所有这种群**,一律 @所有人(机器人只处理 @ 到自己或 @所有人的)。
+// 它把信号发到**自己当前能发言的所有这种群**(发来这笔指令的那个群除外),一律 @所有人(机器人只处理 @ 到自己或 @所有人的)。
 // 群的发言等级就是白名单 —— 收信号的一方**不校验**发信号的是谁。
 // 同一份信号发往几个群,`seq` 相同;收的一方按「信封 from + seq」去重。
 //
-// ## 只有开单(2026-10-18 用户定)
+// ## 信号从哪来(2026-10-23 用户定,取代 10-18 的「按持仓轮询」)
 //
-// 只报**持仓变大**(新开仓、加仓;限价单成交让持仓变大也算 —— 挂单本身不算开单)。
-// 平仓、减仓、挂单、撤单一概不报:跟出来的仓位之后完全由跟单方的用户自己管。
+// **只认经 hi 下的单**:代理(指令消息)或主人(聊天里让机器人下、机器人屏幕上点)经这台机器人下的开仓单。
+// 币安 App 上的操作一律不跟、不检测(那边抓不到事件,只能拿持仓反推);hi 之外的撤单、改单一律无视。
+// 跟单方自己执行开单卡、自动止盈止损挂的单不算(否则成环)。平仓 / 减仓 / 只减仓 / 整仓平 / 止盈止损都不发。
+// 按**单型**分两路(不看下单回包的状态 —— 合约市价单回包是 `NEW`、成交量 0):
 //
-// ## 先等 5 分钟,赚了才发(2026-10-21 用户定)
+// | 单型 | 怎么发 |
+// |---|---|
+// | 市价单 → `opens` | **先压 5 分钟**:到点按方向算涨跌幅、扣掉开平各一次的标准吃单费(合约 0.05% × 2、现货 0.1% × 2)还赚才发;跌的、期间平了 / 减到不足这一单的量的、宕机错过(到点后又过 5 分钟)的都不发(2026-10-21 用户定)。`BinanceOpen` 的比例、杠杆、参考价是**下单时**的 |
+// | 挂单(限价、条件单)→ `pendings` | **当场发,不看盈亏**;跟单方挂同价、同条件的单 |
+// | 信号源经 hi 撤掉一张发过的挂单 → `cancels` | 当场发;跟单方卡没确认就取消、已跟挂就自动撤掉自己那张 |
 //
-// 信号源发现一笔开单后**先压 5 分钟**:到点按方向算涨跌幅、扣掉开平各一次的标准吃单费
-// (合约 0.05% × 2、现货 0.1% × 2)之后还赚才发;跌的、这期间平了 / 减了仓的、宕机错过(到点后又过 5 分钟)的都不发。
-// 所以跟单方收到的开单都是信号源那边 5 分钟后还赚着的;`BinanceOpen` 的比例、杠杆、参考价仍是**发现时**的。
+// ⚠️ 旧 brain(≤ v0.6.28)当信号源时仍按持仓轮询发 `opens`(含币安 App 上开的仓、挂单成交后的仓位),新旧共存到 OTA 铺开。
 //
 // ## 收到之后
 //
-// 跟单方**不自动下单**:在机器人屏幕上弹一张卡(信号源开了什么 + 我们打算开什么),
-// 人点「确认」才开。卡在本地只留 15 分钟(从收到那一刻算),过了就当放弃。见 hi/ninja/ui.proto 的 `BinanceOffer`。
+// 跟单方**不自动下单**:在机器人屏幕上弹一张卡(信号源开了 / 挂了什么 + 我们打算开 / 挂什么),
+// 人点「确认」才下。卡在本地只留 15 分钟(从收到那一刻算),过了就当放弃。见 hi/binance/offer.proto 的 `BinanceOffer`。
 message BinanceSignal {
   option (hi.audience) = VIS_PARTICIPANT;
   optional uint64 seq        = 1 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT]; // 信号源自己的递增序号
   optional int64  at         = 2 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT]; // 发出的时刻(发现后约 5 分钟),绝对微秒
   // 过期时刻,绝对微秒(= at + 15 分钟)。消息在路上耽搁过了这个点,跟单方就不弹卡。
   optional int64  expiration = 3 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT];
-  repeated BinanceOpen opens = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  repeated BinanceOpen opens = 4 [(hi.visibility) = VIS_PARTICIPANT];   // 市价单开的仓(压过 5 分钟、还赚)
+  repeated BinancePending pendings = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 挂单(当场发)
+  repeated BinancePendingCancel cancels = 6 [(hi.visibility) = VIS_PARTICIPANT]; // 撤掉的挂单(当场发)
 }
 
 // 市场。
@@ -49,12 +55,13 @@ enum BinanceMarket {
   BINANCE_MARKET_USDS_FUTURES = 2; // U 本位合约
 }
 
-// 信号源新开 / 加的一笔仓。
-//   · 合约:按交易对 + 方向(单向持仓按 positionAmt 正负算 LONG / SHORT);方向翻转时,翻过去那一侧算新开。
-//   · 现货:按**币**(稳定币是现金,不算持仓);数量 = free + locked。跟单方用「币 + USDT」交易对买。
+// 信号源市价开 / 加的一笔仓。
+//   · 合约:交易对 + 方向(LONG / SHORT)。
+//   · 现货:**币**(稳定币是现金,不跟)。跟单方用「币 + USDT」交易对买。
 //
-// `ratio`:新增这部分的**保证金**(现货:价值)÷ 信号源的**总资金**(合约 = `totalMarginBalance`;
+// `ratio`:这一单的**保证金**(合约 = 数量 × 参考价 ÷ 杠杆;现货:金额)÷ 信号源的**总资金**(合约 = `totalMarginBalance`;
 // 现货 = 全部资产折成 USDT 的总价值),十进制小数字符串(`"0.05"` = 5%)。各人本金不同,一律按比例。
+// (旧 brain 按持仓轮询发的:新增那部分持仓的保证金 / 价值。)
 message BinanceOpen {
   option (hi.audience) = VIS_PARTICIPANT;
   optional BinanceMarket       market   = 1 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT];
@@ -63,4 +70,31 @@ message BinanceOpen {
   optional string              ratio    = 4 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT];
   optional uint32              leverage = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 合约:信号源这个交易对的杠杆
   optional string              price    = 6 [(hi.visibility) = VIS_PARTICIPANT]; // 发现时的参考价(合约标记价、现货最新价),写到这个交易对的价格精度那一位
+}
+
+// 信号源经 hi 挂的一张**开仓**挂单(限价、条件单),当场转发。跟单方挂同价、同条件的单,数量按自己总资金的同比例。
+//
+// `order` 是信号源下的那一单的原样参数(**`quantity` / `quote_order_qty` / `percent` 清空**,杠杆照带):
+//   · 现货买:`LIMIT` / `LIMIT_MAKER` / `STOP_LOSS` / `STOP_LOSS_LIMIT` / `TAKE_PROFIT` / `TAKE_PROFIT_LIMIT`;
+//   · 合约限价开仓:`BinanceFuturesNewOrder`(`LIMIT`,不带 `reduce_only`);
+//   · 合约条件开仓:`BinanceFuturesNewAlgoOrder`(`STOP` / `STOP_MARKET` / `TAKE_PROFIT` / `TAKE_PROFIT_MARKET` / `TRAILING_STOP_MARKET`,
+//     不带 `reduce_only` / `close_position`)。
+// 组合单(OCO / OTO / OTOCO / OPOCO)不发(跟单方按比例换算数量不支持组合单)。
+message BinancePending {
+  option (hi.audience) = VIS_PARTICIPANT;
+  // 信号源给这张挂单的号(= 它下单时的 newClientOrderId / clientAlgoId)。撤单信号(`BinancePendingCancel.id`)按它认。
+  optional string id    = 1 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT];
+  // 按挂单价算的**保证金**(合约 = 数量 × 挂单价(没有就触发价)÷ 杠杆;现货:数量 × 价)÷ 信号源的**总资金**,十进制小数字符串。
+  optional string ratio = 2 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT];
+  oneof order {
+    BinanceSpotNewOrder        spot_new_order             = 10 [(hi.visibility) = VIS_PARTICIPANT];
+    BinanceFuturesNewOrder     usds_futures_new_order     = 11 [(hi.visibility) = VIS_PARTICIPANT];
+    BinanceFuturesNewAlgoOrder usds_futures_new_algo_order = 12 [(hi.visibility) = VIS_PARTICIPANT];
+  }
+}
+
+// 信号源经 hi 撤掉了一张**发过**的挂单。跟单方:那张跟挂卡还没确认 → 取消;已经跟挂、还挂着 → 自动撤掉自己那张(不再确认)。
+message BinancePendingCancel {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string id = 1 [(buf.validate.field).required = true, (hi.visibility) = VIS_PARTICIPANT]; // `BinancePending.id`
 }
