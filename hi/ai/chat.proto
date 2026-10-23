@@ -248,6 +248,7 @@ message ToolCall {
 message ChatResp {
   option (hi.audience) = VIS_SELF;
   optional bool     final  = 1 [(hi.visibility) = VIS_SELF];
+  // 最终回答中的图片由模型以 Markdown 写入 result，不另设媒体返回通道。
   optional string   result = 2 [(hi.visibility) = VIS_SELF];
   repeated ToolCall tools  = 3 [(hi.visibility) = VIS_SELF];
   // 这一轮的**问题**:请求里的 `conts` 原样、同序,只把每段语音(audio_url)换成 hi-ai 识别出的那段 text。
@@ -260,7 +261,7 @@ message ChatResp {
 // 流式帧(ConverseStream / ResumeStream)。
 //
 // `type` 取值 —— **一条指令帧,其余是内容/进度/回显**:
-//   msg           —— 答复。⚠️ **是整段,不是分片**(见下)
+//   msg           —— 完整回答文字，不是分片；图片使用 message 中的 Markdown
 //   end           —— 本条流正常收尾
 //   info          —— 出错了。⚠️ 流式下错误**走帧不走 grpc status** ——
 //                    否则客户端收了半截流再拿到 error,两套错误通道并存反而更难排查
@@ -291,6 +292,7 @@ message ConverseStreamResp {
   option (hi.audience) = VIS_SELF;
   optional int32    code    = 1 [(hi.visibility) = VIS_SELF];
   optional string   type    = 2 [(hi.visibility) = VIS_SELF];
+  // type="msg" 时为完整回答；图片使用其中的 Markdown，客户端沿用原有文字渲染。
   optional string   message = 3 [(hi.visibility) = VIS_SELF];
   // 仅 type="toolCalls" 时有值 —— 与 ChatResp 的 result/tools 同义。
   optional string   id      = 4 [(hi.visibility) = VIS_SELF]; // 续跑 id(Resume 时带回)
