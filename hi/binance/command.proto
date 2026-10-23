@@ -106,5 +106,7 @@ message BinanceCommand {
     // 持仓止盈止损(机器人从持仓算方向、触发价,整仓)
     BinanceFuturesPositionTpsl     usds_futures_position_tpsl         = 61 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.position_tpsl
     BinanceFuturesGetOrder         usds_futures_query_order           = 62 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.query_order
+    BinanceFuturesClosePosition    usds_futures_close_position        = 63 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.close_position(机器人算的平仓)
+    BinanceStockHoldings           stocks_holdings                    = 64 [(hi.visibility) = VIS_PARTICIPANT]; // stocks.holdings(机器人按成交记录算的持仓)
   }
 }

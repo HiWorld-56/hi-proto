@@ -246,3 +246,18 @@ message BinanceStockTokenizedAssets {
 message BinanceStockSignDisclaimer {
   option (hi.audience) = VIS_PARTICIPANT;
 }
+
+// **美股持仓**(机器人算的操作,`stocks.holdings`)。**没有参数**。币安没有查持仓的接口,钱包里也看不到股票 ——
+// 机器人按近 365 天、最多 100 笔成交记录算(买入股数 − 卖出股数)。
+//
+// 结果在 `BinanceResult.body`(`http_status` = 200),是**机器人写的 JSON**:
+//
+//   { "holdings":  [ { "symbol": "AAPL", "shares": "0.3" } ],
+//     "by_symbol": [ { "symbol": "AAPL", "bought_shares": "0.5", "bought_usdc": "110.25", "sold_shares": "0.2", "sold_usdc": "45.10" } ],
+//     "trades_counted": 4, "complete": true, "note": "…" }
+//
+//   holdings   现在还持有的(卖光的不在里面);by_symbol:每只股票买卖各多少股、花了 / 回了多少 USDC
+//   complete   false = 成交记录超过 100 笔,只算了最近的这些
+message BinanceStockHoldings {
+  option (hi.audience) = VIS_PARTICIPANT;
+}
