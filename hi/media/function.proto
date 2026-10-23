@@ -190,6 +190,10 @@ message VideoParameterConfig {
     ImageDimensionsConfig image_dimensions = 7 [(hi.visibility) = VIS_PUBLIC];
     ImageResolutionConfig image_resolution = 8 [(hi.visibility) = VIS_PUBLIC];
   }
+  // 算力预算，单位「百万像素 × 帧数」（像素量 × 时长秒 × 帧率），规范十进制字符串。
+  // 只有带像素量与时长的视频功能返回；三者乘积超过它的组合提交会被拒（InvalidArgument），
+  // 客户端可据此禁用会超的选项。未返回表示不限制组合。
+  optional string max_megapixel_frames = 9 [(hi.visibility) = VIS_PUBLIC];
 }
 
 // 固定功能分类，由 image.* / video.* 功能 ID 派生，不另建分类表。
