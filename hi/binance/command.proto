@@ -105,5 +105,6 @@ message BinanceCommand {
     BinanceFuturesCancelAllSymbols usds_futures_cancel_all_symbols    = 60 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.cancel_all_symbols
     // 持仓止盈止损(机器人从持仓算方向、触发价,整仓)
     BinanceFuturesPositionTpsl     usds_futures_position_tpsl         = 61 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.position_tpsl
+    BinanceFuturesGetOrder         usds_futures_query_order           = 62 [(hi.visibility) = VIS_PARTICIPANT]; // usds_futures.query_order
   }
 }

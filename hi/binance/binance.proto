@@ -525,6 +525,19 @@ message BinanceFuturesCancelOrder {
   optional string orig_client_order_id = 3 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
+// 查一张合约订单。`GET /fapi/v1/order`
+// `order_id` 与 `orig_client_order_id` 给一个即可(都不给由币安报错)。跟单方查自己跟挂的限价单成交没有(10-23)。
+message BinanceFuturesGetOrder {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string symbol               = 1 [
+    (buf.validate.field).string.pattern = "^[A-Z0-9]+$",
+    (buf.validate.field).required       = true,
+    (hi.visibility)                     = VIS_PARTICIPANT
+  ];
+  optional int64  order_id             = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string orig_client_order_id = 3 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
 // 合约撤掉某个交易对的全部挂单。`DELETE /fapi/v1/allOpenOrders`
 message BinanceFuturesCancelAllOrders {
   option (hi.audience) = VIS_PARTICIPANT;
