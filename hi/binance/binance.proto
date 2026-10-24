@@ -715,18 +715,21 @@ message BinanceFuturesIncome {
 // 初始资金是主人自己设的数(USDT,存在机器人本地;入口:hiclub app 的 USB 密钥页、对机器人说)。
 // **没设或设的是 0:不算**,结果里没有收益与收益率 —— 界面写「未设初始资金」,不写 0% 也不留空。
 //
-// **风险承受率**(2026-10-09 起)与初始资金**一起设、一起存、一起清**:主人能接受亏掉初始资金的百分之几,
-// 十进制字符串,0 < 值 ≤ 100(100 = 本金亏完也接受)。设初始资金必须同时给它;清初始资金就一并清掉。
-// 这之前已经设了初始资金的机器人没有它 —— 读方写「未设风险承受率」,不替它编一个默认值。
-// **现在只设、只显示**:机器人不按它做任何事(不止损、不停交易、不拦单)。
 // 期间的划转会算进收益(初始资金是一个固定数,机器人不追流水)。
+//
+// **风险承受率** R(2026-10-09 起;10-24 用户定口径):**每一笔亏到这笔保证金的 R% 就止损**,
+// 十进制字符串,0 < R ≤ 100。用在开单卡的自动止盈止损(见 offer.proto `BinanceOfferPlan`):
+// 合约止损 = 收益率 −R%(价格反向 R% ÷ 杠杆)、现货止损 = 价格下跌 R%;止盈按盈亏比 2:1。
+// **基数是这一笔仓位本身,与初始资金、账户余额都无关**(「最多亏掉初始资金的百分之几」不成立:
+// 只要还能开仓,R 再小,连开 100 单全亏一样归零)。
+// 与初始资金**各设各的、各清各的**(10-24 起;此前两个绑在一起设)。没设就是没设 —— 读方写「未设」,不编默认值。
 //
 // 当前余额取自机器人的账户快照(后台每 60 秒取一次;快照过期就当场取),全程十进制计算。
 //
 // 结果在 `BinanceResult.body` 里,是**机器人写的 JSON**(不是币安原文),键与 `BinanceRoi` 的字段同名:
 //   balance          当前余额(十进制字符串)
 //   initial_capital  初始资金;未设为 null
-//   risk_tolerance   风险承受率(百分数,如 "30");未设为 null(没设初始资金时一定是 null)
+//   risk_tolerance   风险承受率(百分数,如 "30");未设为 null(与初始资金无关,各自有没有)
 //   pnl              收益;未设为 null
 //   pct              收益率(百分数,两位小数,如 "12.34" / "-3.10");未设为 null
 //   age              当前余额是多少秒前从币安取到的
@@ -938,8 +941,7 @@ message BinanceResult {
 //   · 带了但没有 `initial_capital`              = 主人没设初始资金(或设的是 0)(界面「未设初始资金」)
 //   · 带了且有 `initial_capital`                = `balance` / `pnl` / `pct` 都有
 //
-// `risk_tolerance` 跟着 `initial_capital` 走:没有 `initial_capital` 时一定不带;有 `initial_capital` 却不带它
-// = 主人设初始资金时还没有这个概念(界面「未设风险承受率」)。
+// `risk_tolerance` 与 `initial_capital` 无关:带了 `roi` 就照实带(不带 = 主人没设,界面「未设风险承受率」)。
 message BinanceRoi {
   option (hi.audience) = VIS_PARTICIPANT;
   // 当前余额从币安取到之后,到机器人回这条结果,过了多少**秒**(机器人自己的单调计时)。未设初始资金时可能不带。
@@ -948,8 +950,8 @@ message BinanceRoi {
   optional string initial_capital = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 初始资金;不带 = 未设
   optional string pnl             = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 收益 = balance − initial_capital
   optional string pct             = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 收益率,百分数,两位小数(如 "12.34")
-  // 风险承受率:主人能接受亏掉初始资金的百分之几(0 < 值 ≤ 100,100 = 本金亏完也接受),主人设的原样。
-  // 口径见 `BinanceFuturesPnl`。只显示,机器人不按它做任何事。
+  // 风险承受率 R:每一笔亏到这笔保证金的 R% 就止损(0 < R ≤ 100),主人设的原样。
+  // 口径见 `BinanceFuturesPnl`;开单卡的自动止盈止损按它算。
   optional string risk_tolerance  = 6 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
