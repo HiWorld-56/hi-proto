@@ -104,6 +104,9 @@ message BinanceRequest {
   optional string id          = 1; // face 给的流水号，brain 原样带回 `BinanceResult.request`
   optional string op          = 2; // 操作名，如 `usds_futures.account_information_v3`
   optional string params_json = 3; // 参数，一个 JSON 对象；不传 = 没有参数
+  // 开仓单下完后要不要按风险承受率自动设置止盈止损(下单面板上默认勾选的那个框);结果在 `BinanceResult.tpsl`。
+  // 口径同 `hi.binance.BinanceCommand.auto_tpsl`:**不带 = 不设**,不是开仓单带了也不看。
+  optional bool   auto_tpsl   = 4;
 }
 
 // brain -> face：所有指令通过 oneof 路由

@@ -45,6 +45,11 @@ message BinanceCommand {
     (hi.visibility)               = VIS_PARTICIPANT
   ];
 
+  // 开仓单(合约开多 / 开空、合约开仓条件单、现货买入)下完后要不要按风险承受率**自动设置止盈止损**,
+  // 结果在 `BinanceResult.tpsl`。处理与开单卡同一套(见 `BinanceAutoTpsl`)。
+  // **不带 = 不设**(老版本端上发的指令没有这一项,照旧只下单)。不是开仓单的指令带了也不看。
+  optional bool auto_tpsl = 2 [(hi.visibility) = VIS_PARTICIPANT];
+
   oneof op {
     option (buf.validate.oneof).required = true;
 
