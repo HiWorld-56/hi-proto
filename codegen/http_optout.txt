@@ -85,6 +85,8 @@ hi.club.Source.UploadTempStream
 hi.club.Source.UploadScriptStream  # 服务端不需，客户端流式 grpc-only
 hi.club.Source.Download
 hi.club.Source.DownloadStream  # 服务端流式,grpc-only(同 UploadTempStream);app 走 core grpc 边下边播
+hi.club.Source.ProbeVideo         # 发视频前取封面/宽高/时长:app 与机器人经 core / brain 的 grpc 调,web 不发视频
+hi.club.Source.TranscodeForRobot  # 只有机器人(brain)调
 hi.ai.Source.UploadScriptStream  # 客户端流式 grpc-only
 # Source —— 二进制搬运,走 grpc 不走 http 网关(json 里塞 bytes 只会 base64 膨胀 33%)。
 # 训练文件那两个是例外,web 后台在用,已在 http/*.yaml 配了路由。

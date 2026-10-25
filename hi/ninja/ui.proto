@@ -73,6 +73,9 @@ message MasterEvent {
 message TextReply {
   optional string uuid  = 1;
   optional string value = 2;
+  // 这一轮随回答一起发出去的**媒体段**(现在只有视频:插件回了 `video_url`)。
+  // 与发进聊天的那条消息里的段一字不差,face 画在文字下面;没有 = 空列表。
+  repeated hi.club.Content media = 3;
 }
 
 // TTS 音频播放
@@ -167,8 +170,26 @@ message BrainToFace {
     // 待确认的开单卡**全量列表**(每次变化推一整份:来了新的、确认 / 取消 / 过期 / 执行完)。空列表 = 一张都没有。
     // face 重启后用 `get_binance_offers` 要一次。
     BinanceOffers         binance_offers         = 26;
+    // 回 `FaceToBrain.video_request`
+    VideoReady            video_ready            = 27;
 
   }
+}
+
+// face -> brain:要一份屏幕放得了的视频。
+//
+// face(LÖVE)只能放 Ogg Theora,聊天里的视频是 mp4 —— brain 去 club 要转好的那份
+// (`hi.club.Source/TranscodeForRobot`);face 自己不连 club。
+message VideoRequest {
+  optional string id  = 1; // face 给的流水号,brain 原样带回 `VideoReady.id`
+  optional string url = 2; // 聊天里那个视频的 url(`video_url` 段的 chat.content)
+}
+
+// brain -> face:回 VideoRequest。成了给 url(face 自己下载来放),没成给一句话。
+message VideoReady {
+  optional string id    = 1;
+  optional string url   = 2; // Ogg Theora;没成 = 不传
+  optional string error = 3; // 给人看的一句;原因只进 brain 日志。成了 = 不传
 }
 
 // 内容由调用方给的二维码。`content` 原样编进码里,face 不解析、不改写;
@@ -215,6 +236,8 @@ message FaceToBrain {
     hi.binance.BinanceOfferReply binance_offer_reply = 6;
     // face 重启后要一次当前的开单卡列表(回 `BrainToFace.binance_offers`)
     google.protobuf.Empty get_binance_offers    = 7;
+    // 人在屏上点了一个视频:替我要一份屏幕放得了的(见 VideoRequest)
+    VideoRequest          video_request         = 8;
   }
 }
 
