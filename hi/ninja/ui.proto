@@ -73,9 +73,6 @@ message MasterEvent {
 message TextReply {
   optional string uuid  = 1;
   optional string value = 2;
-  // 这一轮随回答一起发出去的**媒体段**(现在只有视频:插件回了 `video_url`)。
-  // 与发进聊天的那条消息里的段一字不差,face 画在文字下面;没有 = 空列表。
-  repeated hi.club.Content media = 3;
 }
 
 // TTS 音频播放

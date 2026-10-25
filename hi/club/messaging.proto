@@ -345,7 +345,19 @@ message Member {
    `video_url` 就是这么来的:OpenAI 兼容接口里收视频的那一类(vLLM、通义)叫 `video_url`。
 
    `video_url` 的封面 / 宽高 / 时长 / 大小**由发送方调 `hi.club.Source/ProbeVideo` 取**,端上不自己截帧
-   (发视频的不只有 app,机器人转发插件生成的视频时手上没有解码能力;各端各截一份就是四套口径)。
+   (各端各截一份就是四套口径)。
+
+   ## 机器人回复里的视频:markdown 写法(不是 video_url 段)
+
+   机器人的回答是**模型写的 markdown**(一段 `text`),模型不拼内容结构体 —— 图片写 `![](url)`,
+   视频没有标准写法,定成这一种(插件把现成的这一行交给模型照抄):
+
+       [![视频](<封面 url>)](<视频 url>)       有封面:一张链到视频的图
+       [视频](<视频 url>)                      没有封面:一个链到视频的链接
+
+   渲染端(两个 app、face、hiclub-web / hiai-web 的测试页)**链接目标是视频**就画成视频预览(封面 + 播放键),
+   点开全屏放;判据是链接地址的扩展名(去掉 ?# 之后以 .mp4 / .mov / .m4v / .webm 结尾,不分大小写)——
+   markdown 里没有别的类型信息。选这种写法是因为它**在不认识它的渲染器里也不坏**:显示成一张能点的封面。
 
    这张表原先**只存在于各端的代码里**(Android 的 MQTTConfig、brain 的 pb_ext),proto 这边
    只写了 `string type = 1`。代价:hiclub-simple-app 自己发明了 `image`,于是
