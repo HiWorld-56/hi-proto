@@ -6,7 +6,6 @@ import "google/protobuf/empty.proto";
 import "hi/ai/chat.proto";
 import "hi/club/messaging.proto";
 import "hi/options.proto";
-import "hi/common.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 

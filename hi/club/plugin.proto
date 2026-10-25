@@ -7,7 +7,6 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 import "google/protobuf/empty.proto";
 import "hi/ai/plugin.proto";
 import "hi/options.proto";
-import "hi/common.proto";
 
 // 插件管理(主体=插件)。**hi.ai.Plugin 的门面**,纯透传 → 类型直接复用 hi.ai(有意为之)。
 //
