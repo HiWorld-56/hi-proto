@@ -122,7 +122,10 @@ message TranscodeForRobotReq {
 }
 message TranscodeForRobotResp {
   option (hi.audience) = VIS_PUBLIC; // 只服务公开桶
-  optional string url = 1 [(hi.visibility) = VIS_PUBLIC]; // Ogg Theora(画面 + Vorbis 声音)
+  optional string url         = 1 [(hi.visibility) = VIS_PUBLIC]; // Ogg Theora(画面 + Vorbis 声音)
+  // 时长(毫秒)。LÖVE 的 Video 没有取时长的接口(没声轨的连音频那条路都没有),
+  // 机器人屏幕上的进度条只能靠这一个数;读不出 = 不传(屏上只显示已放的时间)。
+  optional uint32 duration_ms = 2 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message DownloadResourceReq {

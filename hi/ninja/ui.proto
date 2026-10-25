@@ -185,8 +185,9 @@ message VideoRequest {
 // brain -> face:回 VideoRequest。成了给 url(face 自己下载来放),没成给一句话。
 message VideoReady {
   optional string id    = 1;
-  optional string url   = 2; // Ogg Theora;没成 = 不传
-  optional string error = 3; // 给人看的一句;原因只进 brain 日志。成了 = 不传
+  optional string url         = 2; // Ogg Theora;没成 = 不传
+  optional string error       = 3; // 给人看的一句;原因只进 brain 日志。成了 = 不传
+  optional uint32 duration_ms = 4; // 时长(毫秒),原样转 club 的 TranscodeForRobotResp.duration_ms;不知道 = 不传
 }
 
 // 内容由调用方给的二维码。`content` 原样编进码里,face 不解析、不改写;
