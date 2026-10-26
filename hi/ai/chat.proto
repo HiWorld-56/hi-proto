@@ -46,7 +46,7 @@ message Attachment {
   optional string type = 1 [(hi.visibility) = VIS_SELF]; // 类型词:图片 / 语音 / 视频 / 文件 / 聊天记录(调用方给,hi.ai 原样写)
   // 名字:文件是原文件名;聊天记录是「《标题》共 N 条」;图片 / 语音没有名字就是「图片1」「语音2」(数字 = 这一行的序号)
   optional string name = 2 [(hi.visibility) = VIS_SELF];
-  optional string ref  = 3 [(hi.visibility) = VIS_SELF]; // 引用:url,或 `<消息 uuid>#<段 id>`(见 hi/club/messaging.proto「引用」)
+  optional string ref  = 3 [(hi.visibility) = VIS_SELF]; // 引用:url,或 `<消息 uuid 末 8 位>#<段 id>`(见 hi/club/messaging.proto「引用」)
 }
 
 message NewSessionResp {

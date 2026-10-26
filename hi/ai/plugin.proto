@@ -6,7 +6,6 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
 
 import "google/protobuf/empty.proto";
 import "google/protobuf/struct.proto";
-import "hi/ai/chat.proto";
 import "hi/common.proto";
 import "buf/validate/validate.proto";
 import "hi/options.proto";

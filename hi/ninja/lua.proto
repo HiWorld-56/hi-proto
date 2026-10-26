@@ -47,7 +47,7 @@ message LuaCtx {
   //    见 hi/ai/chat.proto `Attachment`),模型从列表里抄「引用 + 名字」填进插件参数。只有一套机制,不留两条路。
   // 引起这次调用的那条消息所在的**会话号**(群号 / 单聊会话号);语音路、币安指令那类没有会话的不给。
   // **只给宿主用,不给 lua 脚本看**(同 `dark`):插件带附件发消息时(sdk `send_with_attachments`),
-  // `<消息 uuid>#<段 id>` 这种引用只在这个会话里找(hi/club/messaging.proto「引用」:解析只在本层)。
+  // `<消息 uuid>#<段 id>` 这种引用只在这个会话里找(hi/club/messaging.proto「引用」)。
   // 号用 6 不用 5:5 是 dev.1 ~ dev.2 那几天的 `attachments`(消息型),复用会让还没换的执行器把它解坏。
   optional string conv   = 6;
 }

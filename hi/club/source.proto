@@ -59,6 +59,17 @@ service Source {
   // 透传 hi-source 的 File.DownloadStream。
   rpc DownloadStream (hi.source.DownloadStreamReq) returns (stream hi.source.DownloadStreamResp) { option (hi.auth) = AUTH_USER; }
 
+  // ── 视频。两个方法都只认**公开桶**的 url(桶边界同 Download),产物落 temp 桶(14 天过期,与视频本身一样)──
+  //
+  // ProbeVideo:发视频消息之前调一次,拿 `video_url` 内容段要填的封面、宽高、时长、大小
+  // (messaging.proto `Content.Chat`)。放在服务端是因为发视频的不只有 app —— 机器人转发插件生成的视频时
+  // 设备上没有任何解码能力;各端各自截帧也会是四套口径。
+  rpc ProbeVideo (ProbeVideoReq) returns (ProbeVideoResp) { option (hi.auth) = AUTH_USER; }
+  // TranscodeForRobot:机器人的屏幕(hinj-face,LÖVE)只能放 Ogg Theora,设备上也没有别的解码器 ——
+  // 聊天里的 mp4 要转一份 Ogg Theora(长边不超过 1280)才放得了。回转好的那份的 url;
+  // 同一个视频转过就直接回上次那份。要整段重新编码,**慢**:调用方给足超时。
+  rpc TranscodeForRobot (TranscodeForRobotReq) returns (TranscodeForRobotResp) { option (hi.auth) = AUTH_USER; }
+
   // ── 临时:temp 桶,**14 天自动过期**。聊天/AI 媒体,按年月分目录便于人工排查 ──
   rpc UploadTemp (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }                    // 小文件
   rpc UploadTempStream (stream hi.UploadStreamReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; } // 大文件分片
@@ -91,6 +102,30 @@ service Source {
   // ⚠️ 不做归属校验,和上传对称 —— url 是 32 位随机名,知道 url 本身就是凭据。
   //    这也意味着**它删得掉任何你知道 url 的对象**,别把 url 泄漏出去。
   rpc Delete (hi.DeleteResourceReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
+}
+
+message ProbeVideoReq {
+  optional string url = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+}
+// 各字段原样填进 `video_url` 段的 `Content.Chat`;**读不出来的就不传**(端上照样能发、能放,只是没有封面 / 时长)。
+message ProbeVideoResp {
+  option (hi.audience) = VIS_PUBLIC; // 只服务公开桶
+  optional string cover    = 1 [(hi.visibility) = VIS_PUBLIC]; // 封面图 url(开头附近截的一帧,JPEG)
+  optional uint32 width    = 2 [(hi.visibility) = VIS_PUBLIC]; // 画面像素,已按旋转信息转正(见 Content.Chat.width)
+  optional uint32 height   = 3 [(hi.visibility) = VIS_PUBLIC];
+  optional uint32 duration = 4 [(hi.visibility) = VIS_PUBLIC]; // 秒,四舍五入;不到 1 秒的写 1
+  optional uint32 size     = 5 [(hi.visibility) = VIS_PUBLIC]; // 字节数(同 Content.Chat.size,超 4GB 不传)
+}
+
+message TranscodeForRobotReq {
+  optional string url = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+}
+message TranscodeForRobotResp {
+  option (hi.audience) = VIS_PUBLIC; // 只服务公开桶
+  optional string url         = 1 [(hi.visibility) = VIS_PUBLIC]; // Ogg Theora(画面 + Vorbis 声音)
+  // 时长(毫秒)。LÖVE 的 Video 没有取时长的接口(没声轨的连音频那条路都没有),
+  // 机器人屏幕上的进度条只能靠这一个数;读不出 = 不传(屏上只显示已放的时间)。
+  optional uint32 duration_ms = 2 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message DownloadResourceReq {
