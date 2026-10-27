@@ -1,0 +1,204 @@
+syntax = "proto3";
+
+package hi.club;
+
+import "buf/validate/validate.proto";
+import "hi/media/file.proto";
+import "hi/media/task.proto";
+import "hi/options.proto";
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
+
+// 插件单次执行内部使用；request_id 由 Python 生成，不由模型填写。
+message PrepareMediaImageReq {
+  optional string request_id = 1 [
+    (buf.validate.field).string.uuid = true,
+    (buf.validate.field).required = true
+  ];
+  // 有序素材槽位，仅 1 或 2；同一次执行重试同一槽位复用原上传结果。
+  optional uint32 image_index = 2 [
+    (buf.validate.field).uint32 = {
+      gte: 1
+      lte: 2
+    },
+    (buf.validate.field).required = true
+  ];
+  // 聊天附件原图地址，不能填写模型预览图、Base64 或 HiMedia 资产 ID。
+  optional string image_url = 3 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+}
+
+message PrepareMediaImageResp {
+  option (hi.audience) = VIS_SELF;
+  // 复用 HiMedia 文件状态：SUCCESS 表示可以创建，PENDING/PROCESSING 时稍后重查，FAILED 结束本次执行。
+  optional hi.media.UploadFileStatus status = 1 [(hi.visibility) = VIS_SELF];
+  optional string error_message = 2 [(hi.visibility) = VIS_SELF];
+}
+
+// 不允许传机器人 DID、工作流、尺寸或资产 ID；身份取自凭据，工作流取自 HiClub 配置。
+message CreateMediaImageReq {
+  optional string request_id = 1 [
+    (buf.validate.field).string.uuid = true,
+    (buf.validate.field).required = true
+  ];
+  // 画面描述或修改要求，保留原文；长度上限继续由 HiMedia 对应工作流校验。
+  optional string prompt = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+}
+
+message CreateMediaImageResp {
+  option (hi.audience) = VIS_SELF;
+  optional string task_id = 1 [(hi.visibility) = VIS_SELF]; // HiMedia 任务 ID，同次创建重试返回同一任务。
+}
+
+message MediaImageTaskReq {
+  optional string task_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+}
+
+message MediaImageTaskResp {
+  option (hi.audience) = VIS_SELF;
+  optional string task_id = 1 [(hi.visibility) = VIS_SELF];
+  optional hi.media.TaskStatus status = 2 [(hi.visibility) = VIS_SELF]; // HiMedia 实时状态，不另存一套状态机。
+  optional string status_message = 3 [(hi.visibility) = VIS_SELF];
+  optional string error_code = 4 [(hi.visibility) = VIS_SELF];
+}
+
+// 成功转存到聊天 temp 桶后才返回；不是 HiMedia 签名地址，也不代表已发送聊天消息。
+message MediaImageResult {
+  option (hi.audience) = VIS_SELF;
+  optional string url = 1 [(hi.visibility) = VIS_SELF];
+  optional string name = 2 [(hi.visibility) = VIS_SELF];
+  optional uint64 size_bytes = 3 [(hi.visibility) = VIS_SELF]; // 实际转存字节数。
+}
+
+// Python 宿主经机器人 ApiKey 调用的内部 gRPC 转发面，不注册前端 HTTP 路由。
+// 不接收收信人，不发送聊天，不重复检查插件安装、启用或市场授权。
+service MediaImage {
+  rpc PrepareInputImage(PrepareMediaImageReq) returns (PrepareMediaImageResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  // 固定文生图工作流，显式提交 1024×1024；不回退其他尺寸或工作流。
+  rpc CreateTextToImage(CreateMediaImageReq) returns (CreateMediaImageResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  // 使用本次 request_id 的第 1 张已准备素材。
+  rpc CreateSingleImageEdit(CreateMediaImageReq) returns (CreateMediaImageResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  // 固定两张，按槽位 1、2 传给工作流，缺少任何一张都不创建任务。
+  rpc CreateMultipleImageEdit(CreateMediaImageReq) returns (CreateMediaImageResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  // 检查任务属于当前机器人；仅取状态，不下载、转存产物。
+  rpc GetTask(MediaImageTaskReq) returns (MediaImageTaskResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  // 成功后独立转存原图；失败不触发重新生成，原任务和原图保留。
+  rpc GetResult(MediaImageTaskReq) returns (MediaImageResult) {
+    option (hi.auth) = AUTH_USER;
+  }
+}
+
+// 图生视频先独立准备一张聊天原图；图片字节不经过 Python 或模型。
+message PrepareMediaVideoImageReq {
+  // 由 Python 生成，同次准备和创建重试复用；不是模型填写的业务参数。
+  optional string request_id = 1 [
+    (buf.validate.field).string.uuid = true,
+    (buf.validate.field).required = true
+  ];
+  // JPEG/PNG 聊天原图地址，不是缩略图、Base64 或 HiMedia 资产 ID；单张上限 50 MiB。
+  optional string image_url = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+}
+
+message PrepareMediaVideoImageResp {
+  option (hi.audience) = VIS_SELF;
+  // SUCCESS 才能创建；PENDING/PROCESSING 可稍后重查，FAILED 不创建任务。
+  optional hi.media.UploadFileStatus status = 1 [(hi.visibility) = VIS_SELF];
+  optional string error_message = 2 [(hi.visibility) = VIS_SELF];
+}
+
+// 身份取自机器人凭据；不接收 DID、模型、工作流、尺寸、种子或 HiMedia 资产 ID。
+message CreateMediaVideoReq {
+  optional string request_id = 1 [
+    (buf.validate.field).string.uuid = true,
+    (buf.validate.field).required = true
+  ];
+  // 用户生成描述，首尾去空白后不能为空，最多 4000 个 Unicode 码点；不自动截断或翻译。
+  optional string prompt = 2 [
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 4000
+    },
+    (buf.validate.field).required = true
+  ];
+}
+
+message CreateMediaVideoResp {
+  option (hi.audience) = VIS_SELF;
+  // HiMedia 任务号；重发同一 request_id 返回同一任务及种子。等待超时后仍用于取回结果。
+  optional string task_id = 1 [(hi.visibility) = VIS_SELF];
+}
+
+message MediaVideoTaskReq {
+  // 只允许访问当前机器人关联的任务；不接受任意商户任务或 ComfyUI prompt_id。
+  optional string task_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true
+  ];
+}
+
+message MediaVideoTaskResp {
+  option (hi.audience) = VIS_SELF;
+  optional string task_id = 1 [(hi.visibility) = VIS_SELF];
+  // 复用 HiMedia 实时状态，包含保存中、取消中及已取消；不另存状态机。
+  optional hi.media.TaskStatus status = 2 [(hi.visibility) = VIS_SELF];
+  optional string status_message = 3 [(hi.visibility) = VIS_SELF];
+  optional string error_code = 4 [(hi.visibility) = VIS_SELF];
+}
+
+// 成功转存原始 MP4 到聊天 temp 桶后返回；保留字节及音轨，不代表已发送聊天消息。
+// Python 将真实地址作为普通文字交给模型生成 Markdown；不新增专用聊天返回通道。
+message MediaVideoResult {
+  option (hi.audience) = VIS_SELF;
+  // 聊天桶的视频地址，保留 .mp4 后缀；不是 HiMedia 临时签名地址。
+  optional string url = 1 [(hi.visibility) = VIS_SELF];
+  optional string name = 2 [(hi.visibility) = VIS_SELF];
+  optional uint64 size_bytes = 3 [(hi.visibility) = VIS_SELF];
+  // 可选封面地址；未取得封面仍可用视频链接播放。
+  optional string cover_url = 4 [(hi.visibility) = VIS_SELF];
+}
+
+// Python 宿主经机器人 ApiKey 调用的内部 gRPC 转发面，不注册前端 HTTP 路由。
+// 插件入口使用宿主注入的 asker/master 做主人校验；本服务认证机器人并检查任务归属。
+// 不接收收信人，不发送聊天，不重复检查插件安装、启用或市场授权。
+service MediaVideo {
+  rpc PrepareInputImage(PrepareMediaVideoImageReq) returns (PrepareMediaVideoImageResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  // 固定后台 LTX 文生视频工作流，明确提交 5 秒、24 FPS、16:9 (Widescreen)、0.9 MP。
+  rpc CreateTextToVideo(CreateMediaVideoReq) returns (CreateMediaVideoResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  // 使用同一 request_id 已准备的一张图片；固定输出参数与文生视频相同。
+  rpc CreateImageToVideo(CreateMediaVideoReq) returns (CreateMediaVideoResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  // 只查询实时状态，不下载或转存；等待超时不取消任务，不重新生成。
+  rpc GetTask(MediaVideoTaskReq) returns (MediaVideoTaskResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  // 仅成功任务独立转存，旧任务取回不依赖当前配置的工作流；失败可重试转存，不重新生成。
+  rpc GetResult(MediaVideoTaskReq) returns (MediaVideoResult) {
+    option (hi.auth) = AUTH_USER;
+  }
+}

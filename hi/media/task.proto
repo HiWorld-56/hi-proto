@@ -404,6 +404,7 @@ message TaskSummary {
   // prompt、aspect_ratio、megapixels（字符串）、duration_seconds、frame_rate（整数），
   // 图生视频另含 input_asset_id；不包含工作流图、节点绑定或管理员负向提示词。
   // 图片任务另含后端生成的 seed；单图/角色含 input_asset_id，多图含有序 input_asset_ids。
+  // 文生视频、图生视频仅在配置了种子绑定时另含 seed；未绑定的存量配置保留原行为。
   // 文生图按尺寸模式包含 width/height 或 aspect_ratio/megapixels；角色 prompt 为用户原文。
   // 新增视频含 seed 及适用的 input_video_asset_id/first_frame_asset_id/last_frame_asset_id/
   // input_asset_ids/region_description；模仿不返回输出尺寸、时长或帧率选择值。
