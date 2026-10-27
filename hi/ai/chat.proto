@@ -193,6 +193,14 @@ message ChatReq {
   // 用户这句话里的附件(问题侧),hi.ai 拼成「【附件】」附在 Q 后面、随问答存进上下文(见 `Attachment`)。
   // 由调用方整理:club 从那条消息的内容段整理好填这里(hiclub 的前端不直接填)。不给 = 没有附件。
   repeated Attachment attachments     = 15;
+  // ── 这一轮能用哪些能力(**调用方定**;hi.ai 没有权限概念,照做不判)──────────────
+  //
+  // 权限是商户自己的规则(多个商户各管各的),hi.ai 只是机器人容器。club 按它自己存的机器人权限,
+  // **每一条 ChatReq 都显式填**这两个字段(见 hi/club/permission.proto)。
+  // **不传 = 允许**:商户直接调 hi.ai 时,机器人就是它自己的,用不用由它自己决定。
+  // 只管这一轮;续跑(Resume)沿用发起那一轮的结论。
+  optional bool       allow_plugins   = 16; // false:插件不挂进 tools(撤了插件权限)
+  optional bool       allow_mem       = 17; // false:记忆片段不拼进上下文(撤了记忆权限)
 }
 
 message ToolCallResult {

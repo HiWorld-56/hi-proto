@@ -110,7 +110,7 @@ judgement 不是"这个字段缺席合不合法",而是 protobuf 官方口径 �
 
 - **entity 里的身份 did**(`did` / `*_did`,32 处)。did 是常驻字段,没有 did 其他字段没有意义。
   ⚠️ **当过滤器/可选参数用的 did 要加**(`ListOnlineReq.owner_did`、
-  `hi.ai.PermissionListReq.did`、`hi.ai.MerchantListReq.did` 已加)。
+  `hi.club.PermissionListReq.did`、`hi.ai.MerchantListReq.did` 已加)。
 - **`oneof` 成员**(2 处 `bytes chunk`)。proto3 语法不允许,而且 oneof 本来就有 presence。
 - **`repeated`**(110 处)。空列表天然就是"没有",不存在"设成空列表 vs 不动"的歧义。
 
