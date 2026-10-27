@@ -66,7 +66,7 @@ P=$(cs plugin/create_shell "{\"agent\":\"$SB\",\"name\":\"ord\"}" | g data uuid)
 [ -n "$P" ] && { made "$P"; undo_club "$STOK" plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P\"}"; }
 cs plugin/create_version "{\"agent\":\"$SB\",\"version\":{\"uuid\":\"$P\",\"version\":\"1.0.0\",\"url\":\"$PKG\"}}" >/dev/null
 # duration>0:这样续期分支才活着(永久授权没有续期一说)
-L=$(cs market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P\",\"settle_mode\":3,\"price\":\"$PRICE\",\"coin\":\"$COIN\",\"duration\":2592000,\"title\":\"订单制真付\"}" | g data uuid)
+L=$(cs market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P\",\"settle_mode\":3,\"price\":\"$PRICE\",\"coin\":\"$COIN\",\"duration\":2592000,\"paid_service_declared\":true,\"title\":\"订单制真付\"}" | g data uuid)
 [ -n "$L" ] && { made "$L"; undo_club "$STOK" market/set_listing_status "{\"uuid\":\"$L\",\"status\":4}"; }
 cs market/set_listing_status "{\"uuid\":\"$L\",\"status\":2}" >/dev/null
 RB="${ROBOT_DID:?需要 ROBOT_DID}"

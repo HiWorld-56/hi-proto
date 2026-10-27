@@ -48,7 +48,7 @@ echo "seller=$SB buyer=$BB(软件机器人) plugin=$P"
 
 echo
 echo "── 一、自动续费开关 ──"
-L=$(cj market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P\",\"settle_mode\":3,\"price\":\"1.5\",\"coin\":\"USDT-TRC20\",\"duration\":2592000,\"title\":\"续费测试\"}" "$ST")
+L=$(cj market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P\",\"settle_mode\":3,\"price\":\"1.5\",\"coin\":\"USDT-TRC20\",\"duration\":2592000,\"paid_service_declared\":true,\"title\":\"续费测试\"}" "$ST")
 LID=$(echo "$L"|g data uuid)
 [ -n "$LID" ] && { made "$LID"; undo_club "$ST" market/set_listing_status "{\"uuid\":\"$LID\",\"status\":4}"; }
 cj market/set_listing_status "{\"uuid\":\"$LID\",\"status\":2}" "$ST" >/dev/null

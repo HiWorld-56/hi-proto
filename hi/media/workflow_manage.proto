@@ -163,6 +163,9 @@ message ImageToVideoWorkflowConfig {
   // 用来挡住单项都合法、组合起来必然超时或显存溢出的参数。proto 不标必填以便读出存量配置，
   // 保存与校验工作流时缺失、非正数或最小组合即超预算都报错。
   optional string max_megapixel_frames = 9 [(hi.visibility) = VIS_SELF];
+  // 可选的采样种子绑定，必须是有效执行路径上的 INT 直接输入；多个输入使用同一个任务种子。
+  // 配置后新任务由后端随机生成并保存 seed，重发、重启及结果取回不改变它；未配置时保留工作流原值。
+  repeated WorkflowInputBinding seeds = 10 [(hi.visibility) = VIS_SELF];
 }
 
 // 文生视频执行配置，对应功能 video.txt2vid。
@@ -201,6 +204,9 @@ message TextToVideoWorkflowConfig {
   // 用来挡住单项都合法、组合起来必然超时或显存溢出的参数。proto 不标必填以便读出存量配置，
   // 保存与校验工作流时缺失、非正数或最小组合即超预算都报错。
   optional string max_megapixel_frames = 8 [(hi.visibility) = VIS_SELF];
+  // 可选的采样种子绑定，必须是有效执行路径上的 INT 直接输入；多个输入使用同一个任务种子。
+  // 配置后新任务由后端随机生成并保存 seed，重发、重启及结果取回不改变它；未配置时保留工作流原值。
+  repeated WorkflowInputBinding seeds = 9 [(hi.visibility) = VIS_SELF];
 }
 
 // 文生图像素宽高绑定；两者的范围与默认值均为 16 的倍数，校验阶段核对。
