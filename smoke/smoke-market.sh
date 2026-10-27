@@ -201,8 +201,12 @@ echo "── 四、付费购买:hidid 直付(阶段 4)──"
 P2=$(cj plugin/create_shell "{\"agent\":\"$SB\",\"name\":\"smk-paid\"}" "$SELLER_TOK" | g data uuid)
 [ -n "$P2" ] && { made "$P2"; undo_club "$SELLER_TOK" plugin/delete_shell "{\"agent\":\"$SB\",\"uuid\":\"$P2\"}"; }
 cj plugin/create_version "{\"agent\":\"$SB\",\"version\":{\"uuid\":\"$P2\",\"version\":\"1.0.0\",\"url\":\"$PKG\"}}" "$SELLER_TOK" >/dev/null
-L2=$(cj market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P2\",\"settle_mode\":3,\"price\":\"9.9\",\"coin\":\"USDT-TRC20\",\"duration\":2592000}" "$SELLER_TOK")
+# 付费挂牌须卖家声明「是 app 外执行的服务」(paid_service_declared);不声明 → 拒,且一行都不落
+has "负面:付费挂牌不声明被拒" "$(cj market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P2\",\"settle_mode\":3,\"price\":\"9.9\",\"coin\":\"USDT-TRC20\",\"duration\":2592000}" "$SELLER_TOK")" "app 外执行的服务"
+has "不声明的付费挂牌没落行" "$(q hi_club "SELECT COUNT(*) FROM hi_club_market_listing WHERE agent='$SB' AND plugin_uuid='$P2';")" "0"
+L2=$(cj market/create_listing "{\"agent\":\"$SB\",\"plugin_uuid\":\"$P2\",\"settle_mode\":3,\"price\":\"9.9\",\"coin\":\"USDT-TRC20\",\"duration\":2592000,\"paid_service_declared\":true}" "$SELLER_TOK")
 LID2=$(echo "$L2"|g data uuid)
+has "声明后付费挂牌记下确认时刻" "$(q hi_club "SELECT IF(paid_declared_at > UNIX_TIMESTAMP()-600, 'declared', 'missing') FROM hi_club_market_listing WHERE uuid='$LID2';")" "declared"
 [ -n "$LID2" ] && { made "$LID2"; undo_club "$SELLER_TOK" market/set_listing_status "{\"uuid\":\"$LID2\",\"status\":4}"; }
 cj market/set_listing_status "{\"uuid\":\"$LID2\",\"status\":2}" "$SELLER_TOK" >/dev/null
 A2=$(cj market/apply "{\"listing_uuid\":\"$LID2\",\"to_agent\":\"$BB\"}" "$BUYER_TOK")
