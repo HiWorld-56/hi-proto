@@ -491,8 +491,21 @@ message CreateReferenceReq {
 // 为什么带 agent:插件的**展示信息跟着出让方当前激活的那一版**走
 // (与"引用跟版"同一口径),而 active 是每个使用方各自的(d 表),所以必须给主体。
 message PluginRef {
-  optional string agent = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
-  optional string uuid  = 2 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true];
+  option (hi.audience) = VIS_SELF;
+  optional string agent = 1 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true, (hi.visibility) = VIS_SELF];
+  optional string uuid  = 2 [(buf.validate.field).string.pattern="^\\S+$", (buf.validate.field).required = true, (hi.visibility) = VIS_SELF];
+}
+
+// 创建者按插件对象分页枚举实际引用,不依赖市场授权记录。
+// 这是服务间的引用键列表;展示侧由 club 批量补全 Entity。
+message ListPluginReferencesReq {
+  PluginRef plugin = 1 [(buf.validate.field).required = true]; // 创建者的插件
+  hi.Pagination pagination = 2;
+}
+message ListPluginReferencesResp {
+  option (hi.audience) = VIS_SELF;
+  repeated PluginRef refs = 1 [(hi.visibility) = VIS_SELF];
+  optional int32 total = 2 [(hi.visibility) = VIS_SELF];
 }
 
 message PublicBriefsReq {
@@ -673,6 +686,7 @@ service Plugin {
   rpc SetFollowLatest (SetFollowLatestReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; } // 自动跟最新版开关(c.follow_latest)
   rpc ListOnDevice (ListOnDeviceReq) returns (ListOnDeviceResp) { option (hi.auth) = AUTH_MERCHANT; }       // 下发清单:某机器人该装哪些设备端插件(RUST/LUA;club 经此穿透)
   rpc RetryBuild (RetryBuildReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_MERCHANT; }       // 重编一版(仅创建者;版本本体不动,重来的是产物)
+  rpc ListReferences (ListPluginReferencesReq) returns (ListPluginReferencesResp) { option (hi.auth) = AUTH_MERCHANT; }
   rpc PublicBriefs (PublicBriefsReq) returns (PublicBriefsResp) { option (hi.auth) = AUTH_MERCHANT; }        // 批量取展示信息(市场列表页用;一次一页,别 N 次 Get)
 }
 

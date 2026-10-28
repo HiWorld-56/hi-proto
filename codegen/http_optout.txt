@@ -155,3 +155,6 @@ service:hi.did.Notify
 #    可以替别人的机器人编造它"说过"的内容。
 hi.ai.Chat.AppendContext
 hi.club.Chat.AppendContext
+
+# 市场清退按实际引用枚举,仅 club 服务间调用。
+hi.ai.Plugin.ListReferences

@@ -63,7 +63,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 // club 完全不关心对方是在审资质还是走别的渠道。
 enum SettleMode {
   SETTLE_MODE_UNSPECIFIED = 0;
-  SETTLE_MODE_FREE        = 1; // 免费:申请即成立
+  SETTLE_MODE_FREE        = 1; // 免费:申请即成立,永久使用(卖家仍可撤权)
   SETTLE_MODE_APPROVAL    = 2; // 人工审批,不收钱 —— 出让方 master 点头即成立
   // 付费:**用户手里的 hidid app 直接付**,club 只负责验交易。
   //
@@ -94,6 +94,7 @@ enum ListingStatus {
   LISTING_STATUS_LISTED      = 2; // 挂牌中:可搜到、可申请
   LISTING_STATUS_HIDDEN      = 3; // 隐藏:搜不到,但直链可见(出让方自己收着)
   LISTING_STATUS_DELISTED    = 4; // 已下架:不再接新申请
+  LISTING_STATUS_DELISTING   = 5; // 强制下架清退中:禁止新增使用,清退完成后落 DELISTED
 }
 
 // MarketListingKind 挂牌类型 —— 这一摊是谁的货。
@@ -102,19 +103,9 @@ enum ListingStatus {
 // backend-hi-club 的 `Market.OFFICIAL_DID`）。别人传了直接拒 ——
 // 否则任何商户都能给自己的插件贴个"官方"，而"官方"这两个字的全部价值就是没人能自封。
 //
-// ## BUILTIN 是「每台硬件机器人都该有」的那一档
-//
-// 它不是一个更醒目的 OFFICIAL，而是多了两条**机制**：
-//
-//   · 新硬件机器人在 club 注册时**自动引用**它（不走申请，不需要主人点头）；
-//   · 发新版时**全网一起切**（`hi.ai.Plugin.SetActiveAll`），不看 follow_latest ——
-//     内置能力跟 brain 的 ABI 绑在一起，一台机器人停在老版就是设备能力与固件对不上。
-//
-// 所以 BUILTIN 强制：免费、永久、免审。收费的"内置"是自相矛盾的 ——
-// 出厂就该有的能力，不能等用户付款。
-//
-// ⚠️ **它照样挂在市场里**，而不是藏在系统里：主人把内置插件关了/删了之后，
-// 得有个地方让他自己拿回来（0 元购）。藏起来的东西找不回来。
+// BUILTIN 只是自动安装标记,不是售卖方式。新硬件机器人注册时自动引用,
+// 此后与普通插件一样可停用、删除、撤权;删除后不自动补装,不强制跟版。
+// 自动安装必须免费永久,与普通免费插件遵守同一期限规则。
 enum MarketListingKind {
   MARKET_LISTING_KIND_UNSPECIFIED = 0; // = NORMAL,三方商户的货
   MARKET_LISTING_KIND_OFFICIAL    = 1; // 官方出品(可以收费、走正常申请流程)
@@ -484,7 +475,7 @@ message CreateListingReq {
   optional SettleMode settle_mode = 3; // **建后不可改**
   optional string     price       = 4;
   optional string     coin        = 5;
-  optional int64      duration    = 6; // 秒;**不传 = 永久**(0 秒 = 买了立刻过期,是合法但没人要的值)
+  optional int64      duration    = 6; // 秒;不传 = 永久,传入必须 > 0;FREE 统一永久
   // ⚠️ **没有 title / summary / logo,不要再加回来。** 7/8/9 是它们原来的位置。
   //
   // 那三个是插件**自己就有**的东西(`hi.ai.PluginShell.name`、激活版的 `logo`/`summary`),
@@ -531,8 +522,8 @@ message EditListingReq {
   ];
   optional string price    = 2;
   optional string coin     = 3;
-  optional int64  duration = 4; // 秒;不传=不改。要改成永久没有办法用这个字段表达,
-  // 那是"换商品规格",走下架重挂
+  optional int64  duration = 4; // 秒;不传=不改,传入必须 > 0
+  optional bool perpetual = 12; // true=清除期限,改为永久;与 duration 互斥。FREE 始终永久
   // 同 CreateListingReq:展示信息以插件自身为准,改名字改简介去改插件。
   repeated string tags            = 8;
   optional bool   payee_to_master = 11; // 见 CreateListingReq:软件机器人没得选
@@ -550,6 +541,7 @@ message SetListingStatusReq {
 message ListMyListingsReq {
   optional string agent      = 1; // 可选:只看这台机器人的
   hi.Pagination   pagination = 2;
+  optional bool include_delisted = 3; // 卖家继续管理已下架插件的实际使用者
 }
 
 message ListMyListingsResp {
@@ -998,6 +990,23 @@ message DecideOfferReq {
   optional string reason = 2; // 拒绝理由(可不传);接受时忽略
 }
 
+// 实际使用者来自 hi.ai 引用关系,包括没有市场 grant 的自动安装用户。
+// 机器人始终返回 Entity,不拆成 did/name/avatar 等散字段。
+message ListListingUsersReq {
+  GetListingReq listing = 1 [(buf.validate.field).required = true];
+  hi.Pagination pagination = 2;
+}
+message ListListingUsersResp {
+  option (hi.audience) = VIS_SELF;
+  repeated hi.Entity users = 1 [(hi.visibility) = VIS_SELF];
+  optional int32 total = 2 [(hi.visibility) = VIS_SELF];
+}
+message RevokeListingUserReq {
+  GetListingReq listing = 1 [(buf.validate.field).required = true];
+  hi.Entity agent = 2 [(buf.validate.field).required = true]; // 只以 did 点名,身份门面不作为权限依据
+  optional string reason = 3;
+}
+
 // ── 超管面 ───────────────────────────────────────────────────────────────────
 
 message MarketManageListListingsReq {
@@ -1071,6 +1080,16 @@ service Market {
   rpc SetListingStatus(SetListingStatusReq) returns (google.protobuf.Empty) {
     option (hi.auth) = AUTH_USER;
   } // 上架/隐藏/下架
+  // 卖家强制下架:先禁止新增使用,移除全部实际引用并处理授权/未完成订单,最后落已下架。
+  rpc ForceDelist(ForceDelistReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_USER;
+  }
+  rpc ListListingUsers(ListListingUsersReq) returns (ListListingUsersResp) {
+    option (hi.auth) = AUTH_USER;
+  }
+  rpc RevokeListingUser(RevokeListingUserReq) returns (google.protobuf.Empty) {
+    option (hi.auth) = AUTH_USER;
+  }
   rpc ListMyListings(ListMyListingsReq) returns (ListMyListingsResp) {
     option (hi.auth) = AUTH_USER;
   } // 我**当前**名下机器人的摊位
@@ -1203,7 +1222,7 @@ message MarketNotifyData {
   optional string        outer_id       = 2; // 商户侧单号
   optional string        result         = 3; // approved / rejected
   optional string        reason         = 4;
-  google.protobuf.Struct terms_override = 5; // 可选:商户回填实际生效条款(实付金额 / 有效期)
+  google.protobuf.Struct terms_override = 5; // 可选:商户回填条款;duration 为正整数秒或 null(永久),不带键沿用挂牌期限
   optional string        nonce          = 6;
   optional int64         timestamp      = 7;
 }

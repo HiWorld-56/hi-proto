@@ -177,6 +177,15 @@ http:
   - selector: hi.club.Market.SetListingStatus
     post: /api/v1/market/set_listing_status
     body: "*"
+  - selector: hi.club.Market.RevokeListingUser
+    post: /api/v1/market/revoke_listing_user
+    body: "*"
+  - selector: hi.club.Market.ListListingUsers
+    post: /api/v1/market/list_listing_users
+    body: "*"
+  - selector: hi.club.Market.ForceDelist
+    post: /api/v1/market/force_delist
+    body: "*"
   - selector: hi.club.Market.ListMyListings
     post: /api/v1/market/list_my_listings
     body: "*"
