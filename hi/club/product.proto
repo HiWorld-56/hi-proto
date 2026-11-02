@@ -1,0 +1,68 @@
+syntax = "proto3";
+package hi.club;
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
+
+import "buf/validate/validate.proto";
+import "google/protobuf/empty.proto";
+import "hi/common.proto";
+import "hi/options.proto";
+
+// 商品市场独立于插件授权/订单。商品归商家，摊位是硬件机器人；没有支付状态。
+// 用户可向硬件机器人上架自己的商品，不要求是机器人的主人。
+// 上架先持久化，再用 product-listed 单聊通知摊主。摊主调用 Broadcast，
+// 服务端以当前成员关系校验开放群 + owner/admin，发送 product-broadcast 群通知。
+// 两种 Notice.extra 均为 hi.club.ProductAnnouncement；收到广播的机器人只展示，不再转播。
+service ProductMarket {
+  rpc Create (CreateProductReq) returns (ProductListing) { option (hi.auth) = AUTH_USER; }
+  rpc Get (GetProductReq) returns (ProductListing) { option (hi.auth) = AUTH_USER; }
+  rpc List (ListProductsReq) returns (ListProductsResp) { option (hi.auth) = AUTH_USER; }
+  // 只能由商品所属的硬件机器人本人调用。对每个商品/群幂等；不满足条件的群不广播。
+  rpc Broadcast (GetProductReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
+}
+
+message ProductImage {
+  option (hi.audience) = VIS_PUBLIC;
+  optional string url = 1 [(hi.visibility) = VIS_PUBLIC, (buf.validate.field).required = true, (buf.validate.field).string.uri = true];
+  optional string thumb_url = 2 [(hi.visibility) = VIS_PUBLIC, (buf.validate.field).string.uri = true];
+}
+// 创建与回读复用同一份商品资料，不从名称/图片反推身份。
+message ProductInfo {
+  option (hi.audience) = VIS_PUBLIC;
+  optional string name = 1 [(hi.visibility) = VIS_PUBLIC, (buf.validate.field).required = true, (buf.validate.field).string = {min_len: 1, max_len: 120}];
+  repeated ProductImage images = 2 [(hi.visibility) = VIS_PUBLIC, (buf.validate.field).repeated = {min_items: 1, max_items: 9}];
+}
+message Product {
+  option (hi.audience) = VIS_PUBLIC;
+  optional string id = 1 [(hi.visibility) = VIS_PUBLIC]; // 系统分配，客户端不能指定
+  ProductInfo info = 2 [(hi.visibility) = VIS_PUBLIC];
+}
+message ProductListing {
+  option (hi.audience) = VIS_PUBLIC;
+  Product product = 1 [(hi.visibility) = VIS_PUBLIC];
+  hi.Entity merchant = 2 [(hi.visibility) = VIS_PUBLIC]; // 上传者，取自认证主体
+  hi.Entity stall = 3 [(hi.visibility) = VIS_PUBLIC]; // 硬件机器人，完整身份门面
+  optional int64 listed_at = 4 [(hi.visibility) = VIS_PUBLIC]; // 微秒
+}
+message ProductAnnouncement {
+  option (hi.audience) = VIS_PUBLIC;
+  ProductListing listing = 1 [(hi.visibility) = VIS_PUBLIC];
+  hi.Entity group = 2 [(hi.visibility) = VIS_PUBLIC]; // 单聊上架通知不传；广播必须携带
+}
+message CreateProductReq {
+  // 请求幂等键，不是商品 id。相同主体/请求键重试返回原商品，内容不同则拒绝。
+  optional string request_uuid = 1 [(buf.validate.field).required = true, (buf.validate.field).string.uuid = true];
+  optional string stall = 2 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1]; // 定位键
+  ProductInfo info = 3 [(buf.validate.field).required = true];
+}
+message GetProductReq {
+  optional string id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+}
+message ListProductsReq {
+  optional string stall = 1 [(buf.validate.field).string.min_len = 1]; // 不传=我上传的；传=该摊位
+  hi.Pagination pagination = 2;
+}
+message ListProductsResp {
+  option (hi.audience) = VIS_PUBLIC;
+  repeated ProductListing list = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional int64 total = 2 [(hi.visibility) = VIS_PUBLIC];
+}

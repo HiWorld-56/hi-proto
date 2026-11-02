@@ -5,6 +5,7 @@ package hi.club;
 import "google/protobuf/empty.proto";
 import "hi/ai/chat.proto";
 import "hi/club/messaging.proto";
+import "hi/club/group.proto";
 import "hi/options.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
@@ -131,6 +132,10 @@ service Chat {
   rpc NewSession (google.protobuf.Empty) returns (hi.ai.NewSessionResp) { option (hi.auth) = AUTH_USER; }      // 原 GenerateCid
   rpc GetContext (GetContextReq) returns (GetContextResp) { option (hi.auth) = AUTH_USER; }                 // 取上下文(一度叫 GetHistory)
   rpc ClearContext (ClearContextReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }      // 清上下文(一度叫 ClearHistory)
+  // 清空当前消息对话中机器人的模型上下文，保留聊天消息。code 使用 Group.Get 的会话号。
+  // 单聊双方可调用；群聊仅群主/管理员可调用。非成员返回 NotFound。
+  // 后台按会话成员和类型解析各机器人的 cid，不接受客户端自填 caller/master 或全局机器人范围。
+  rpc ClearConversationContext (GetGroupReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
   // 补一对问答进上下文。机器人到点自己做完一件事之后用它 —— 不这么做的话,
   // 模型下次对话时对自己刚做过的事一无所知(见 hi/ai/chat.proto 的 AppendContextReq)。
   rpc AppendContext (AppendContextReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }

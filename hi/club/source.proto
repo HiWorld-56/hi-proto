@@ -32,6 +32,9 @@ import "hi/options.proto";
 //    命名:`UploadAvatar` = **用户头像**(与 `hi.did.Source.UploadAvatar` 同名同义);
 //    群资源一律带 Group 前缀,`UploadGroupAvatar` / `UploadGroupBackground`。
 service Source {
+  // 商品宣传图，永久公开保存到 hiclub/product/，不走14天临时媒体。
+  rpc UploadProductImage (hi.UploadReq) returns (hi.UploadResp) { option (hi.auth) = AUTH_USER; }
+
   // 用户头像 → **hidid/avatar/**(不是 club 自己的桶)。
   //
   // 落别家的桶是有意的:`hi/did/source.proto` 定下"所有身份实体的头像都落 hidid/avatar/"。
