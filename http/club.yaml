@@ -377,3 +377,20 @@ http:
   - selector: hi.club.Source.Delete
     post: /api/v1/source/delete
     body: "*"
+
+# Product market
+  - selector: hi.club.ProductMarket.Create
+    post: /api/v1/product_market/create
+    body: "*"
+  - selector: hi.club.ProductMarket.Get
+    post: /api/v1/product_market/get
+    body: "*"
+  - selector: hi.club.ProductMarket.List
+    post: /api/v1/product_market/list
+    body: "*"
+  - selector: hi.club.ProductMarket.Broadcast
+    post: /api/v1/product_market/broadcast
+    body: "*"
+  - selector: hi.club.Source.UploadProductImage
+    post: /api/v1/source/upload_product_image
+    body: "*"
