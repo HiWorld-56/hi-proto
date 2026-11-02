@@ -50,7 +50,7 @@ message Packet {
                             (转让时机器人只收新主人那条 robot-bind,不收 robot-unbind)
       robot-update          robot(硬件机器人)资料更新              / hi.Entity
       master-update         **主人**资料更新(发给仆从)              / hi.Entity(主人的 base)
-      product-listed        商品已上架，发给摊主机器人(待处理)       / hi.club.ProductAnnouncement
+      product-uploaded      商品已上传入库，发给摊主机器人(待处理)   / hi.club.ProductInventoryItem
       product-broadcast     开放群商品广播(纯告知，不转播)            / hi.club.ProductAnnouncement
       plugin-load           插件/脚本加载完成                      / hi.ai.PluginLoaded
       plugin-grant-request  收到插件授权申请(需我处理;审批档的申请、别人分享给我。**付费档不发**) / hi.club.MarketGrantBrief

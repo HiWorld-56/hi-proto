@@ -1,31 +1,37 @@
 syntax = "proto3";
 package hi.club;
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
-
 import "buf/validate/validate.proto";
-import "google/protobuf/empty.proto";
 import "hi/common.proto";
 import "hi/options.proto";
 
-// 商品市场独立于插件授权/订单。商品归商家，摊位是硬件机器人；没有支付状态。
-// 用户可向硬件机器人上架自己的商品，不要求是机器人的主人。
-// 上架先持久化，再用 product-listed 单聊通知摊主。摊主调用 Broadcast，
-// 服务端以当前成员关系校验开放群 + owner/admin，发送 product-broadcast 群通知。
-// 两种 Notice.extra 均为 hi.club.ProductAnnouncement；收到广播的机器人只展示，不再转播。
-service ProductMarket {
-  rpc Create (CreateProductReq) returns (ProductListing) { option (hi.auth) = AUTH_USER; }
-  rpc Get (GetProductReq) returns (ProductListing) { option (hi.auth) = AUTH_USER; }
-  rpc List (ListProductsReq) returns (ListProductsResp) { option (hi.auth) = AUTH_USER; }
-  // 只能由商品所属的硬件机器人本人调用。对每个商品/群幂等；不满足条件的群不广播。
-  rpc Broadcast (GetProductReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
+// 商品库与挂牌分离，沿用插件市场的“当前主人 -> 机器人摊位 -> 货”。
+// 上传仅入本人硬件机器人的库，不能向任意机器人上传，也不能自动上架/广播。
+// 公开目录与管理面分开；本阶段没有订单、价格、支付或履约。
+service ProductInventory {
+  rpc Create(CreateProductReq) returns (ProductInventoryItem) { option (hi.auth) = AUTH_USER; }
+  rpc Get(GetProductReq) returns (ProductInventoryItem) { option (hi.auth) = AUTH_USER; }
+  rpc List(ListProductsReq) returns (ListProductInventoryResp) { option (hi.auth) = AUTH_USER; }
 }
-
+service ProductMarket {
+  // 允许摊主本人或当前主人操作。插件以机器人身份调用，只能经营自己的库存。
+  rpc Publish(GetProductReq) returns (ProductListing) { option (hi.auth) = AUTH_USER; }
+  rpc SetListingStatus(SetProductListingStatusReq) returns (ProductListing) { option (hi.auth) = AUTH_USER; }
+  rpc ListMyListings(ListProductsReq) returns (ListProductListingsResp) { option (hi.auth) = AUTH_USER; }
+}
+service ProductMarketDirectory {
+  rpc ListSellers(hi.Pagination) returns (ListProductSellersResp) { option (hi.auth) = AUTH_NONE; }
+  rpc GetSeller(GetProductSellerReq) returns (ProductSeller) { option (hi.auth) = AUTH_NONE; }
+  rpc ListSellerStalls(ListProductStallsReq) returns (ListProductStallsResp) { option (hi.auth) = AUTH_NONE; }
+  rpc ListStallListings(ListProductsReq) returns (ListProductListingsResp) { option (hi.auth) = AUTH_NONE; }
+  rpc SearchListings(SearchProductListingsReq) returns (ListProductListingsResp) { option (hi.auth) = AUTH_NONE; }
+  rpc GetListing(GetProductListingReq) returns (ProductListing) { option (hi.auth) = AUTH_NONE; }
+}
 message ProductImage {
   option (hi.audience) = VIS_PUBLIC;
   optional string url = 1 [(hi.visibility) = VIS_PUBLIC, (buf.validate.field).required = true, (buf.validate.field).string.uri = true];
   optional string thumb_url = 2 [(hi.visibility) = VIS_PUBLIC, (buf.validate.field).string.uri = true];
 }
-// 创建与回读复用同一份商品资料，不从名称/图片反推身份。
 message ProductInfo {
   option (hi.audience) = VIS_PUBLIC;
   optional string name = 1 [(hi.visibility) = VIS_PUBLIC, (buf.validate.field).required = true, (buf.validate.field).string = {min_len: 1, max_len: 120}];
@@ -33,36 +39,96 @@ message ProductInfo {
 }
 message Product {
   option (hi.audience) = VIS_PUBLIC;
-  optional string id = 1 [(hi.visibility) = VIS_PUBLIC]; // 系统分配，客户端不能指定
-  ProductInfo info = 2 [(hi.visibility) = VIS_PUBLIC];
+  optional string id = 1 [(hi.visibility) = VIS_PUBLIC]; // 系统分配
+  ProductInfo info = 2 [(hi.visibility) = VIS_PUBLIC]; // 展示资料唯一来源
+}
+// 仅参与上传的主人与机器人可读。uploaded_by是审计快照，不是永久管理权。
+message ProductInventoryItem {
+  option (hi.audience) = VIS_PARTICIPANT;
+  Product product = 1 [(hi.visibility) = VIS_PUBLIC];
+  hi.Entity stall = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity uploaded_by = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 uploaded_at = 4 [(hi.visibility) = VIS_PARTICIPANT]; // 微秒
+}
+enum ProductListingStatus {
+  PRODUCT_LISTING_STATUS_UNSPECIFIED = 0;
+  PRODUCT_LISTING_STATUS_LISTED = 1;
+  PRODUCT_LISTING_STATUS_HIDDEN = 2;
+  PRODUCT_LISTING_STATUS_DELISTED = 3;
 }
 message ProductListing {
   option (hi.audience) = VIS_PUBLIC;
-  Product product = 1 [(hi.visibility) = VIS_PUBLIC];
-  hi.Entity merchant = 2 [(hi.visibility) = VIS_PUBLIC]; // 上传者，取自认证主体
-  hi.Entity stall = 3 [(hi.visibility) = VIS_PUBLIC]; // 硬件机器人，完整身份门面
+  Product product = 1 [(hi.visibility) = VIS_PUBLIC]; // 从库存现取，不复制名称/图片
+  hi.Entity merchant = 2 [(hi.visibility) = VIS_PUBLIC]; // 摊主当前主人；无主则不传
+  hi.Entity stall = 3 [(hi.visibility) = VIS_PUBLIC];
   optional int64 listed_at = 4 [(hi.visibility) = VIS_PUBLIC]; // 微秒
+  optional string uuid = 5 [(hi.visibility) = VIS_PUBLIC]; // 挂牌id，与商品id分开
+  optional ProductListingStatus status = 6 [(hi.visibility) = VIS_PUBLIC];
+  optional string publication_uuid = 7 [(hi.visibility) = VIS_PUBLIC]; // 本次上架事件，重试不变，再上架产生新事件
 }
 message ProductAnnouncement {
   option (hi.audience) = VIS_PUBLIC;
   ProductListing listing = 1 [(hi.visibility) = VIS_PUBLIC];
-  hi.Entity group = 2 [(hi.visibility) = VIS_PUBLIC]; // 单聊上架通知不传；广播必须携带
+  hi.Entity group = 2 [(hi.visibility) = VIS_PUBLIC];
+}
+message ProductSeller {
+  option (hi.audience) = VIS_PUBLIC;
+  hi.Entity seller = 1 [(hi.visibility) = VIS_PUBLIC]; // 不传=聚合的无主摊位入口
+  optional int64 stalls_count = 2 [(hi.visibility) = VIS_PUBLIC];
+  optional int64 listing_count = 3 [(hi.visibility) = VIS_PUBLIC];
+}
+message ProductStall {
+  option (hi.audience) = VIS_PUBLIC;
+  hi.Entity stall = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional int64 listing_count = 2 [(hi.visibility) = VIS_PUBLIC];
 }
 message CreateProductReq {
-  // 请求幂等键，不是商品 id。相同主体/请求键重试返回原商品，内容不同则拒绝。
   optional string request_uuid = 1 [(buf.validate.field).required = true, (buf.validate.field).string.uuid = true];
-  optional string stall = 2 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1]; // 定位键
+  optional string stall = 2 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1]; // 必须为本人当前名下硬件机器人
   ProductInfo info = 3 [(buf.validate.field).required = true];
 }
 message GetProductReq {
   optional string id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
 }
 message ListProductsReq {
-  optional string stall = 1 [(buf.validate.field).string.min_len = 1]; // 不传=我上传的；传=该摊位
+  optional string stall = 1 [(buf.validate.field).string.min_len = 1]; // 管理面不传=当前本人名下全部机器人；摊主本人只读自己
   hi.Pagination pagination = 2;
 }
-message ListProductsResp {
+message SetProductListingStatusReq {
+  optional string uuid = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  optional ProductListingStatus status = 2 [(buf.validate.field).required = true, (buf.validate.field).enum.defined_only = true];
+}
+message GetProductListingReq {
+  optional string uuid = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+}
+message SearchProductListingsReq {
+  optional string keyword = 1 [(buf.validate.field).string.min_len = 1];
+  hi.Pagination pagination = 2;
+}
+message GetProductSellerReq {
+  optional string did = 1 [(buf.validate.field).string.min_len = 1]; // 不传=无主摊位入口
+}
+message ListProductStallsReq {
+  optional string seller = 1 [(buf.validate.field).string.min_len = 1]; // 不传=无主摊位入口
+  hi.Pagination pagination = 2;
+}
+message ListProductInventoryResp {
+  option (hi.audience) = VIS_SELF;
+  repeated ProductInventoryItem list = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 total = 2 [(hi.visibility) = VIS_SELF];
+}
+message ListProductListingsResp {
   option (hi.audience) = VIS_PUBLIC;
   repeated ProductListing list = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional int64 total = 2 [(hi.visibility) = VIS_PUBLIC];
+}
+message ListProductSellersResp {
+  option (hi.audience) = VIS_PUBLIC;
+  repeated ProductSeller list = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional int64 total = 2 [(hi.visibility) = VIS_PUBLIC];
+}
+message ListProductStallsResp {
+  option (hi.audience) = VIS_PUBLIC;
+  repeated ProductStall list = 1 [(hi.visibility) = VIS_PUBLIC];
   optional int64 total = 2 [(hi.visibility) = VIS_PUBLIC];
 }
