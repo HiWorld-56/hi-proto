@@ -301,8 +301,11 @@ message UpdateAction {
 
 // brain 本地持久化的商品提示；face 重连 request_init 后重新推送。
 message ProductNotice {
-  optional string id = 1; // 商品 id，也是本机展示去重键
-  hi.club.ProductAnnouncement announcement = 2;
+  optional string id = 1; // 上传/上架事件去重键；重新上架是新事件
+  oneof event {
+    hi.club.ProductAnnouncement announcement = 2; // 商品已上架，显示三个占位按钮
+    hi.club.ProductInventoryItem uploaded = 3; // 商品已上传，仅入库，不广播
+  }
 }
 message ProductNotices { repeated ProductNotice list = 1; }
 message ProductNoticeAck { optional string id = 1; }

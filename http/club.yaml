@@ -378,18 +378,42 @@ http:
     post: /api/v1/source/delete
     body: "*"
 
-# Product market
-  - selector: hi.club.ProductMarket.Create
-    post: /api/v1/product_market/create
+# Product inventory / listings / public directory
+  - selector: hi.club.ProductInventory.Create
+    post: /api/v1/product_inventory/create
     body: "*"
-  - selector: hi.club.ProductMarket.Get
-    post: /api/v1/product_market/get
+  - selector: hi.club.ProductInventory.Get
+    post: /api/v1/product_inventory/get
     body: "*"
-  - selector: hi.club.ProductMarket.List
-    post: /api/v1/product_market/list
+  - selector: hi.club.ProductInventory.List
+    post: /api/v1/product_inventory/list
     body: "*"
-  - selector: hi.club.ProductMarket.Broadcast
-    post: /api/v1/product_market/broadcast
+  - selector: hi.club.ProductMarket.Publish
+    post: /api/v1/product_market/publish
+    body: "*"
+  - selector: hi.club.ProductMarket.SetListingStatus
+    post: /api/v1/product_market/set_listing_status
+    body: "*"
+  - selector: hi.club.ProductMarket.ListMyListings
+    post: /api/v1/product_market/list_my_listings
+    body: "*"
+  - selector: hi.club.ProductMarketDirectory.ListSellers
+    post: /api/v1/product_market_directory/list_sellers
+    body: "*"
+  - selector: hi.club.ProductMarketDirectory.GetSeller
+    post: /api/v1/product_market_directory/get_seller
+    body: "*"
+  - selector: hi.club.ProductMarketDirectory.ListSellerStalls
+    post: /api/v1/product_market_directory/list_seller_stalls
+    body: "*"
+  - selector: hi.club.ProductMarketDirectory.ListStallListings
+    post: /api/v1/product_market_directory/list_stall_listings
+    body: "*"
+  - selector: hi.club.ProductMarketDirectory.SearchListings
+    post: /api/v1/product_market_directory/search_listings
+    body: "*"
+  - selector: hi.club.ProductMarketDirectory.GetListing
+    post: /api/v1/product_market_directory/get_listing
     body: "*"
   - selector: hi.club.Source.UploadProductImage
     post: /api/v1/source/upload_product_image
