@@ -169,7 +169,8 @@ message BrainToFace {
     // face 重启后用 `get_binance_offers` 要一次。
     BinanceOffers         binance_offers         = 26;
     // 回 `FaceToBrain.video_request`
-    ProductNotices        product_notices        = 28; // 待确认商品通知全量；确认仅关闭展示
+    hi.club.ProductInventoryItem event_product_uploaded = 29; // 商品入库事件，沿用普通通知展示
+    hi.club.ProductAnnouncement event_product_listed = 30; // 商品挂牌事件，沿用普通通知展示
     VideoReady            video_ready            = 27;
 
   }
@@ -237,7 +238,6 @@ message FaceToBrain {
     // face 重启后要一次当前的开单卡列表(回 `BrainToFace.binance_offers`)
     google.protobuf.Empty get_binance_offers    = 7;
     // 人在屏上点了一个视频:替我要一份屏幕放得了的(见 VideoRequest)
-    ProductNoticeAck      product_notice_ack    = 9; // 确认一个商品通知，无购买/支付副作用
     VideoRequest          video_request         = 8;
   }
 }
@@ -297,15 +297,3 @@ message UpdateAction {
 
   optional Action action = 1;
 }
-
-
-// brain 本地持久化的商品提示；face 重连 request_init 后重新推送。
-message ProductNotice {
-  optional string id = 1; // 上传/上架事件去重键；重新上架是新事件
-  oneof event {
-    hi.club.ProductAnnouncement announcement = 2; // 商品已上架，显示三个占位按钮
-    hi.club.ProductInventoryItem uploaded = 3; // 商品已上传，仅入库，不广播
-  }
-}
-message ProductNotices { repeated ProductNotice list = 1; }
-message ProductNoticeAck { optional string id = 1; }
