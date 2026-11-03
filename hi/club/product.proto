@@ -3,11 +3,12 @@ package hi.club;
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 import "buf/validate/validate.proto";
 import "hi/common.proto";
+import "hi/did/base.proto";
 import "hi/options.proto";
 
 // 商品库与挂牌分离，沿用插件市场的“当前主人 -> 机器人摊位 -> 货”。
 // 上传仅入本人硬件机器人的库，不能向任意机器人上传，也不能自动上架/广播。
-// 公开目录与管理面分开；本阶段没有订单、价格、支付或履约。
+// 公开目录与管理面分开；本阶段仅展示报价，没有订单、支付或履约。
 service ProductInventory {
   rpc Create(CreateProductReq) returns (ProductInventoryItem) { option (hi.auth) = AUTH_USER; }
   rpc Get(GetProductReq) returns (ProductInventoryItem) { option (hi.auth) = AUTH_USER; }
@@ -32,10 +33,22 @@ message ProductImage {
   optional string url = 1 [(hi.visibility) = VIS_PUBLIC, (buf.validate.field).required = true, (buf.validate.field).string.uri = true];
   optional string thumb_url = 2 [(hi.visibility) = VIS_PUBLIC, (buf.validate.field).string.uri = true];
 }
+// 商品展示报价；不传表示未标价，显式0表示零价，两种报价可独立填写。
+message ProductPricing {
+  option (hi.audience) = VIS_PUBLIC;
+  option (buf.validate.message).cel = {
+    id: "product.pricing.nonempty"
+    message: "请填写人民币价格或数字货币价格"
+    expression: "has(this.cny_amount) || has(this.digital)"
+  };
+  optional string cny_amount = 1 [(hi.visibility) = VIS_PUBLIC, (buf.validate.field).string = {max_len: 80, pattern: "^(0|[1-9][0-9]*)(\\.[0-9]{1,2})?$"}]; // 人民币元
+  hi.did.CoinAmount digital = 2 [(hi.visibility) = VIS_PUBLIC]; // 目录支持的一个币种及其金额
+}
 message ProductInfo {
   option (hi.audience) = VIS_PUBLIC;
   optional string name = 1 [(hi.visibility) = VIS_PUBLIC, (buf.validate.field).required = true, (buf.validate.field).string = {min_len: 1, max_len: 120}];
   repeated ProductImage images = 2 [(hi.visibility) = VIS_PUBLIC, (buf.validate.field).repeated = {min_items: 1, max_items: 9}];
+  ProductPricing pricing = 3 [(hi.visibility) = VIS_PUBLIC];
 }
 message Product {
   option (hi.audience) = VIS_PUBLIC;
