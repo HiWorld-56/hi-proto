@@ -6,6 +6,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "buf/validate/validate.proto";
 import "hi/options.proto";
 
 // 一个币种。**`name` 就是它的标识**(全生态用它指代币种:挂牌定价、付款、余额查询),
@@ -38,6 +39,14 @@ message Coin {
   //      {"function":"0x1::fungible_asset::decimals",
   //       "type_arguments":["0x1::fungible_asset::Metadata"],"arguments":["<合约地址>"]}
   optional uint32 decimals = 6 [(hi.visibility) = VIS_PUBLIC];
+}
+
+// 数字货币金额；币种门面复用Coin，金额为非负十进制文本，不经过浮点。
+// 金额的小数位由使用方按权威币种目录中的decimals校验。
+message CoinAmount {
+  option (hi.audience) = VIS_PUBLIC;
+  optional string amount = 1 [(hi.visibility) = VIS_PUBLIC, (buf.validate.field).required = true, (buf.validate.field).string = {max_len: 80, pattern: "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"}];
+  Coin coin = 2 [(hi.visibility) = VIS_PUBLIC, (buf.validate.field).required = true];
 }
 
 message ListCoinsResp {
