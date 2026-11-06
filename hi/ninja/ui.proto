@@ -117,6 +117,8 @@ message BrainToFace {
   ModuleSession session = 99; // Hello前不传；业务消息必须匹配当前接管会话
 
   oneof cmd {
+    ManualMute manual_mute = 32; // brain持久设定，恢复初始化时重推
+
     PlaybackPermit playback_permit = 31;
     BrainToModuleControl control = 100;
     // 初始化
