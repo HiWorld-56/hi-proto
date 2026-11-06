@@ -1,0 +1,89 @@
+syntax = "proto3";
+package hi.ninja;
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ninja";
+
+import "buf/validate/validate.proto";
+import "google/protobuf/empty.proto";
+import "hi/ninja/common.proto";
+
+// brain是唯一调度者。IO本机采样/VAD/切句，brain调用STT，face播放。
+message BrainToIo {
+  ModuleSession session = 1;
+  optional uint64 request_id = 2; // 控制握手可不传；业务请求必须给非零值
+  oneof cmd {
+    BrainToModuleControl control = 3;
+    IoHearing set_hearing = 4;
+    google.protobuf.Empty get_status = 5;
+    IoCameraOpen camera_open = 6;
+    IoCameraRef camera_close = 7;
+    IoCameraRef next_frame = 8;
+    IoCameraOpen capture = 9;
+    IoCancel cancel = 10;
+  }
+}
+message IoToBrain {
+  ModuleSession session = 1;
+  optional uint64 request_id = 2;
+  oneof cmd {
+    ModuleToBrainControl control = 3;
+    IoResponse response = 4;
+    IoStatus event_status = 5;
+    IoRecording event_recording = 6;
+  }
+}
+message IoHearing {
+  optional bool enabled = 1 [(buf.validate.field).required = true];
+  optional uint64 revision = 2 [(buf.validate.field).required = true, (buf.validate.field).uint64.gt = 0];
+  optional uint32 resume_delay_ms = 3; // 不传=立即；只在恢复时使用，新revision使旧延时命令失效
+}
+message IoStatus {
+  optional bool microphone_ready = 1;
+  optional bool camera_ready = 2;
+  optional bool hearing_enabled = 3;
+  optional uint64 hearing_revision = 4;
+  optional string microphone_error = 5;
+  optional string camera_error = 6;
+}
+message IoRecording {
+  enum State {
+    STATE_UNKNOWN = 0;
+    STATE_STARTED = 1;
+    STATE_COMPLETED = 2;
+    STATE_CANCELLED = 3;
+    STATE_FAILED = 4;
+  }
+  optional string recording_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  optional State state = 2 [(buf.validate.field).required = true, (buf.validate.field).enum.defined_only = true];
+  optional bytes wav = 3; // 仅COMPLETED给完整文件；VAD在IO对原始采样执行
+  optional uint32 sample_rate = 4;
+  optional uint32 channels = 5;
+  optional uint64 sample_count = 6; // 每声道样本数；时长不得由网络到达节奏计算
+  ModuleFailure failure = 7;
+}
+message IoCameraOpen {
+  optional uint32 width = 1; // 不传=IO配置默认值，返回相机实际接受的尺寸
+  optional uint32 height = 2;
+}
+message IoCameraRef {
+  optional uint64 lease_id = 1 [(buf.validate.field).required = true, (buf.validate.field).uint64.gt = 0];
+}
+message IoCameraLease {
+  optional uint64 lease_id = 1;
+  optional uint32 width = 2;
+  optional uint32 height = 3;
+}
+message IoImage {
+  optional bytes jpeg = 1 [(buf.validate.field).required = true, (buf.validate.field).bytes.min_len = 1];
+}
+message IoCancel {
+  optional uint64 request_id = 1 [(buf.validate.field).required = true, (buf.validate.field).uint64.gt = 0];
+}
+message IoResponse {
+  oneof result {
+    google.protobuf.Empty ok = 1;
+    IoStatus status = 2;
+    IoCameraLease camera = 3;
+    IoImage image = 4;
+    ModuleFailure failure = 5;
+  }
+}

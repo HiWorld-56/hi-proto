@@ -4,6 +4,9 @@ package hi.ninja;
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ninja";
 
+import "buf/validate/validate.proto";
+import "google/protobuf/empty.proto";
+
 // hinj_brain 与它的各个子模块之间的**共用约定**。
 //
 // ## 传输
@@ -11,8 +14,8 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ninja";
 // ZMQ ROUTER（brain 侧）/ DEALER（模块侧），payload 是各模块自己那个 `.proto`
 // 定义的 protobuf 二进制单帧。
 //
-// 传输地址：产品上所有模块都在同一台机器，走 `ipc:///tmp/hinj.sock`；
-// 调试时（`--cfg hirpi`）走 `tcp://0.0.0.0:1568`，因为开发服务器上跑不了 face。
+// 默认监听 `ipc:///tmp/hinj.sock`；运行配置可在同一 ROUTER 额外开启 TCP。
+// 各模块独立配置 IPC/TCP 连接地址，与 release/debug 无关。模块只与 brain 协作。
 //
 // ## 注册
 //
@@ -37,5 +40,78 @@ enum ModuleId {
   MODULE_UNKNOWN = 0;
   MODULE_UI      = 1; // hinj_ui（face）
   MODULE_LUA     = 2; // lua 执行器
+  MODULE_IO      = 4; // hinj_io（本机采集、VAD、摄像头；不负责播放）
   MODULE_UPDATER = 3; // hinj_updater（OTA 更新，systemd 直接拉起的独立进程）
+}
+
+
+// 当前一次接管的上下文。每条业务消息都组合它，不能从路由 identity 推断。
+// brain/module_session_id 是进程启动标识；generation 是 brain 对该模块的初始化代次。
+message ModuleSession {
+  optional string brain_session_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  optional string module_session_id = 2 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  optional uint64 generation = 3 [(buf.validate.field).required = true, (buf.validate.field).uint64.gt = 0];
+}
+
+// PING/PONG 仅证明连接。模块本机准备完成后发 Hello，brain 才开始一次初始化。
+message ModuleHello {
+  optional ModuleId module = 1 [(buf.validate.field).required = true, (buf.validate.field).enum.defined_only = true];
+  optional string module_session_id = 2 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  optional string version = 3; // 不传=未提供制品版本
+}
+
+message ModuleState {
+  enum Phase {
+    PHASE_UNKNOWN = 0;
+    PHASE_CONNECTED = 1;
+    PHASE_INITIALIZING = 2;
+    PHASE_READY = 3;
+  }
+  optional Phase phase = 1 [(buf.validate.field).required = true, (buf.validate.field).enum.defined_only = true];
+  optional string error = 2; // 不传=当前生命周期阶段没有错误；设备错误属于各模块状态
+}
+
+message ModuleInitialize {
+  enum Reason {
+    REASON_UNKNOWN = 0;
+    REASON_STARTUP = 1;
+    REASON_RECONNECT = 2;
+    REASON_RECOVERY = 3;
+  }
+  optional Reason reason = 1 [(buf.validate.field).required = true, (buf.validate.field).enum.defined_only = true];
+}
+
+// 公共层按模块职责调用恢复钩子，不能把 updater 的安装事务清成 idle。
+// reset -> INITIALIZING确认 -> 模块业务快照 -> initialize -> READY确认。
+// 重复同代次命令幂等，旧会话/代次命令拒绝；失败不自动重放业务。
+message BrainToModuleControl {
+  oneof cmd {
+    ModuleInitialize reset = 1;
+    google.protobuf.Empty initialize = 2;
+    google.protobuf.Empty get_state = 3;
+  }
+}
+
+message ModuleToBrainControl {
+  oneof cmd {
+    ModuleHello hello = 1;
+    ModuleState state = 2;
+  }
+}
+
+message ModuleFailure {
+  enum Code {
+    CODE_UNKNOWN = 0;
+    CODE_UNAVAILABLE = 1;
+    CODE_NOT_READY = 2;
+    CODE_DEVICE = 3;
+    CODE_BUSY = 4;
+    CODE_TIMEOUT = 5;
+    CODE_CANCELLED = 6;
+    CODE_STALE_SESSION = 7;
+    CODE_INVALID_ARGUMENT = 8;
+    CODE_OUTCOME_UNKNOWN = 9;
+  }
+  optional Code code = 1 [(buf.validate.field).required = true, (buf.validate.field).enum.defined_only = true];
+  optional string message = 2 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
 }

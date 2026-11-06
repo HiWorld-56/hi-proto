@@ -4,6 +4,8 @@ package hi.ninja;
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ninja";
 
+import "hi/ninja/common.proto";
+
 import "google/protobuf/empty.proto";
 
 // **hinj_brain ←→ hinj_updater** 这一条线（机器人固件的 OTA 自动更新）。
@@ -99,11 +101,14 @@ message UpdateStatus {
 
 // brain -> updater
 message BrainToUpdater {
+  ModuleSession session = 99; // Hello前不传；业务消息必须匹配当前接管会话
+
   // 回包按它配对。**每条请求都要带**，updater 原样放回 `CmdResp.request_id`；
   // 对不上的回包 brain 直接丢（超时之后迟到的那种）。
   optional string request_id = 1;
 
   oneof cmd {
+    BrainToModuleControl control = 100;
     // 取一次当前状态，不触发任何动作。（本文件里空请求一律用 Empty，同 ui.proto）
     google.protobuf.Empty get_status = 2;
     Check                 check      = 3;
@@ -122,7 +127,10 @@ message Check {
 
 // updater -> brain
 message UpdaterToBrain {
+  ModuleSession session = 99; // Hello前不传；业务消息必须匹配当前接管会话
+
   oneof cmd {
+    ModuleToBrainControl control = 100;
     CmdResp      resp          = 1;
     // updater 主动推的状态变化（不对应任何请求）。装的过程全靠它，一路推到 face。
     UpdateStatus event_status  = 2;

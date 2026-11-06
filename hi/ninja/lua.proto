@@ -4,6 +4,8 @@ package hi.ninja;
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ninja";
 
+import "hi/ninja/common.proto";
+
 // **hinj_brain ←→ lua 执行器** 这一条线。
 //
 // 传输与注册那套约定在 `hi/ninja/common.proto`，这里不重复。
@@ -151,10 +153,13 @@ message HostCallResp {
 
 // BrainToLua brain 发给执行器的。
 message BrainToLua {
+  ModuleSession session = 99; // Hello前不传；业务消息必须匹配当前接管会话
+
   // req_id 与回复配对。**两个方向各有一套编号**，互不相干 ——
   // 回复的类型就说明了该去哪张表里找。
   optional uint64 req_id = 1;
   oneof cmd {
+    BrainToModuleControl control = 100;
     OpenReq      open      = 2;
     InvokeReq    invoke    = 3;
     CloseReq     close     = 4;
@@ -164,8 +169,11 @@ message BrainToLua {
 
 // LuaToBrain 执行器发给 brain 的。
 message LuaToBrain {
+  ModuleSession session = 99; // Hello前不传；业务消息必须匹配当前接管会话
+
   optional uint64 req_id = 1;
   oneof cmd {
+    ModuleToBrainControl control = 100;
     OpenResp    open      = 2;
     InvokeResp  invoke    = 3;
     HostCallReq host_call = 4; // 反向：插件调 host 能力
