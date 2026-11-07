@@ -141,6 +141,7 @@ message HostCallReq {
   //    把"别人让我做的"说成"主人让我做的"。执行器不是三方代码，它手里那份来自
   //    brain 发过去的 InvokeReq，脚本碰不到。
   optional LuaCtx ctx       = 4;
+  optional string plugin_id = 5; // Runner-owned InvokeReq.uuid; scripts cannot choose subscription ownership.
 }
 
 message HostCallResp {

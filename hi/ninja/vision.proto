@@ -84,3 +84,60 @@ message VisionEvent {
   optional uint32 count = 6; // APPEARED actual count; DISAPPEARED zero. Not an identity count.
   optional string reason = 7; // INTERRUPTED only.
 }
+
+// Face attributes are appearance estimates, never identity, permission or verified age.
+// Every snapshot explicitly replaces the previous one; UNKNOWN must clear old values.
+message VisionFaceAttributes {
+  enum State {
+    STATE_UNKNOWN = 0;
+    STATE_DISABLED = 1;
+    STATE_UNCERTAIN = 2;
+    STATE_AVAILABLE = 3;
+    STATE_ERROR = 4;
+  }
+  enum Gender {
+    GENDER_UNKNOWN = 0;
+    GENDER_FEMALE = 1;
+    GENDER_MALE = 2;
+  }
+  optional State state = 1 [(buf.validate.field).required = true, (buf.validate.field).enum.defined_only = true];
+  optional Gender gender = 2; // Stable multi-frame label; absent until confirmed.
+  optional float female_probability = 3 [(buf.validate.field).float.gte = 0, (buf.validate.field).float.lte = 1];
+  optional float male_probability = 4 [(buf.validate.field).float.gte = 0, (buf.validate.field).float.lte = 1];
+  optional float age_years = 5; // Optional estimate; this model supplies NO age confidence.
+  optional string model = 6;
+  optional string reason = 7; // Disabled, small/ambiguous face, uncertainty or failure.
+}
+message VisionFace {
+  optional string target_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  VisionBox bounds = 2 [(buf.validate.field).required = true];
+  optional float confidence = 3 [(buf.validate.field).required = true, (buf.validate.field).float.gte = 0, (buf.validate.field).float.lte = 1];
+  VisionObject person = 4; // Same-frame body association, when unambiguous. Not a DID.
+  VisionFaceAttributes attributes = 5 [(buf.validate.field).required = true];
+  optional bool confirmed = 6 [(buf.validate.field).required = true]; // Visibility hysteresis has completed.
+}
+message VisionFaceObservation {
+  ModuleSession source_session = 1 [(buf.validate.field).required = true];
+  IoFrameInfo frame = 2 [(buf.validate.field).required = true];
+  optional string model = 3 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  repeated VisionFace faces = 4; // Successful empty result differs from an interrupted/disabled branch.
+}
+// Targets are anonymous short-lived tracks scoped by session_id, NOT identities.
+// Losing a face does not prove that its body left. Interruptions invalidate all tracks.
+message VisionFaceEvent {
+  enum Kind {
+    KIND_UNKNOWN = 0;
+    KIND_OBSERVED = 1;
+    KIND_APPEARED = 2;
+    KIND_DISAPPEARED = 3;
+    KIND_ATTRIBUTES_UPDATED = 4;
+    KIND_INTERRUPTED = 5;
+    KIND_RESUMED = 6;
+  }
+  optional string session_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  optional uint64 sequence = 2 [(buf.validate.field).required = true, (buf.validate.field).uint64.gt = 0];
+  optional Kind kind = 3 [(buf.validate.field).required = true, (buf.validate.field).enum.defined_only = true];
+  VisionFaceObservation observation = 4; // Successful deciding frame; absent only on interruption.
+  optional string target_id = 5; // APPEARED, DISAPPEARED, ATTRIBUTES_UPDATED.
+  optional string reason = 6;
+}
