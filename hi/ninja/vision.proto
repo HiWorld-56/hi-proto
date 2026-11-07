@@ -1,0 +1,84 @@
+syntax = "proto3";
+package hi.ninja;
+
+import "buf/validate/validate.proto";
+import "hi/ninja/io.proto";
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ninja";
+
+// Class names use the COCO80 canonical English labels (person, cat, dog, ...).
+// A category is an observation, never a business identity or authorization.
+message VisionObject {
+  optional string category = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+  optional float confidence = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).float.gte = 0,
+    (buf.validate.field).float.lte = 1
+  ];
+  VisionBox bounds = 3 [(buf.validate.field).required = true];
+}
+
+// Coordinates in the original frame, normalized to [0,1]. No resized-input pixels.
+message VisionBox {
+  optional float x = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).float.gte = 0,
+    (buf.validate.field).float.lte = 1
+  ];
+  optional float y = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).float.gte = 0,
+    (buf.validate.field).float.lte = 1
+  ];
+  optional float width = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).float.gt = 0,
+    (buf.validate.field).float.lte = 1
+  ];
+  optional float height = 4 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).float.gt = 0,
+    (buf.validate.field).float.lte = 1
+  ];
+}
+message VisionObservation {
+  IoFrameInfo frame = 1 [(buf.validate.field).required = true];
+  optional string model = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+  repeated VisionObject objects = 3; // Empty means this successfully processed frame has no detections.
+}
+
+// Brain produces these events; IO never runs classification or decides visibility.
+// APPEARED/DISAPPEARED refer to category presence, not individual object tracking.
+// Interrupted input/inference invalidates presence; it must not manufacture DISAPPEARED.
+message VisionEvent {
+  enum Kind {
+    KIND_UNKNOWN = 0;
+    KIND_OBSERVED = 1;
+    KIND_APPEARED = 2;
+    KIND_DISAPPEARED = 3;
+    KIND_INTERRUPTED = 4;
+    KIND_RESUMED = 5;
+  }
+  optional string session_id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+  optional uint64 sequence = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).uint64.gt = 0
+  ];
+  optional Kind kind = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  VisionObservation observation = 4; // OBSERVED/APPEARED/DISAPPEARED carry the deciding successful frame.
+  optional string category = 5; // APPEARED/DISAPPEARED only; canonical category.
+  optional uint32 count = 6; // APPEARED actual count; DISAPPEARED zero. Not an identity count.
+  optional string reason = 7; // INTERRUPTED only.
+}

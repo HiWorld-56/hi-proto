@@ -1,10 +1,11 @@
 syntax = "proto3";
 package hi.ninja;
-option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ninja";
 
 import "buf/validate/validate.proto";
 import "google/protobuf/empty.proto";
 import "hi/ninja/common.proto";
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ninja";
 
 // brain是唯一调度者。IO本机采样/VAD/切句，brain调用STT，face播放。
 message BrainToIo {
@@ -33,7 +34,10 @@ message IoToBrain {
 }
 message IoHearing {
   optional bool enabled = 1 [(buf.validate.field).required = true];
-  optional uint64 revision = 2 [(buf.validate.field).required = true, (buf.validate.field).uint64.gt = 0];
+  optional uint64 revision = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).uint64.gt = 0
+  ];
   optional uint32 resume_delay_ms = 3; // 不传=立即；只在恢复时使用，新revision使旧延时命令失效
 }
 message IoStatus {
@@ -52,8 +56,14 @@ message IoRecording {
     STATE_CANCELLED = 3;
     STATE_FAILED = 4;
   }
-  optional string recording_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
-  optional State state = 2 [(buf.validate.field).required = true, (buf.validate.field).enum.defined_only = true];
+  optional string recording_id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+  optional State state = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).enum.defined_only = true
+  ];
   optional bytes wav = 3; // 仅COMPLETED给完整文件；VAD在IO对原始采样执行
   optional uint32 sample_rate = 4;
   optional uint32 channels = 5;
@@ -65,7 +75,10 @@ message IoCameraOpen {
   optional uint32 height = 2;
 }
 message IoCameraRef {
-  optional uint64 lease_id = 1 [(buf.validate.field).required = true, (buf.validate.field).uint64.gt = 0];
+  optional uint64 lease_id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).uint64.gt = 0
+  ];
 }
 message IoCameraLease {
   optional uint64 lease_id = 1;
@@ -73,10 +86,17 @@ message IoCameraLease {
   optional uint32 height = 3;
 }
 message IoImage {
-  optional bytes jpeg = 1 [(buf.validate.field).required = true, (buf.validate.field).bytes.min_len = 1];
+  IoFrameInfo frame = 2; // Shared-video clients require source-frame identity and capture time.
+  optional bytes jpeg = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).bytes.min_len = 1
+  ];
 }
 message IoCancel {
-  optional uint64 request_id = 1 [(buf.validate.field).required = true, (buf.validate.field).uint64.gt = 0];
+  optional uint64 request_id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).uint64.gt = 0
+  ];
 }
 message IoResponse {
   oneof result {
@@ -86,4 +106,30 @@ message IoResponse {
     IoImage image = 4;
     ModuleFailure failure = 5;
   }
+}
+
+// Identity and capture clock of one immutable source frame. The module session
+// scopes stream_id; sequence and captured_monotonic_ns increase within a stream.
+// Capture timestamp is libcamera metadata, not network-arrival/wall-clock time.
+message IoFrameInfo {
+  optional uint64 stream_id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).uint64.gt = 0
+  ];
+  optional uint64 sequence = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).uint64.gt = 0
+  ];
+  optional uint64 captured_monotonic_ns = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).uint64.gt = 0
+  ];
+  optional uint32 width = 4 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).uint32.gt = 0
+  ];
+  optional uint32 height = 5 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).uint32.gt = 0
+  ];
 }
