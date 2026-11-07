@@ -145,7 +145,8 @@ message ModuleFileChunk {
 }
 
 // 每条控制均有request_id；重传同update_id/offset必须幂等。
-// prepare -> chunk* -> seal -> commit；commit只表示独立安装任务已持久受理。
+// prepare -> chunk* -> seal -> commit -> activate。
+// commit只持久受理；brain收齐受理确认后再activate，避免模块先退出导致确认丢失。
 message ModuleUpdateCommand {
   optional string request_id = 1;
   optional string update_id = 2;
@@ -156,6 +157,7 @@ message ModuleUpdateCommand {
     google.protobuf.Empty commit = 6;
     google.protobuf.Empty abort = 7;
     google.protobuf.Empty get_status = 8;
+    google.protobuf.Empty activate = 9;
   }
 }
 
