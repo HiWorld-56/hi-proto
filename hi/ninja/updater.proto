@@ -13,14 +13,12 @@ import "google/protobuf/empty.proto";
 // 传输与注册那套约定是**所有模块共用的**，写在 `hi/ninja/common.proto` 里，
 // 不要在各模块的文件里各抄一份。
 //
-// ## 为什么更新要单独一个进程
-//
-// 它要**停掉 face 和 brain、换掉 `/opt/hinj/current`、再把它们拉起来** ——
-// 自己被自己换掉是做不到的。所以 updater 是 systemd 直接拉起的独立进程，
-// brain 只是它的一个客户端：发"去查一下"、发"装吧"、以及把状态转给 face 显示。
-//
-// ⚠️ **brain 不是这条链的权威**。要不要更新、能不能装、装到哪一步，全部由 updater 决定；
-// brain 连"现在是什么状态"都不自己记，一律以 updater 回的 `UpdateStatus` 为准。
+// ## 职责
+// updater准备并校验发布文件，只安装本机brain/runner与brain的service。
+// brain持有部署关系，分发face/IO等模块制品；模块公共层安装自身文件/unit并恢复。
+// files_ready之后必须等待同update_id的restart_ready，不能擅自停face或远端模块。
+// 模块升级的全局进度归brain，各模块实际安装结果归公共安装任务。
+// updater仍是本机下载、brain切换和回滚状态的唯一写方。
 //
 // ## 这个文件是 2026-09-18 补的
 //
@@ -65,6 +63,7 @@ message UpdateStatus {
     STATE_FAILED           = 16; // 装/查失败（原因在 error）
     STATE_ROLLBACK_DONE    = 17; // 回滚成功，跑的是旧版本
     STATE_ROLLBACK_FAILED  = 18; // 回滚也失败了 —— **人要到现场**
+    STATE_WAITING_BRAIN = 19; // 文件就绪，等待brain分发/提交许可
   }
 
   // 这一次状态变化是**谁引起的**。
@@ -114,6 +113,9 @@ message BrainToUpdater {
     Check                 check      = 3;
     // 把 `target_version` 那一版装上。**这是不可逆的**：会停 face/brain、换 current。
     google.protobuf.Empty apply      = 4;
+    UpdateFileRequest read_file = 5;
+    UpdateDecision restart_ready = 6;
+    UpdateDecision brain_ready = 7;
   }
 }
 
@@ -134,6 +136,8 @@ message UpdaterToBrain {
     CmdResp      resp          = 1;
     // updater 主动推的状态变化（不对应任何请求）。装的过程全靠它，一路推到 face。
     UpdateStatus event_status  = 2;
+    PreparedRelease files_ready = 3;
+    UpdateFileResponse file = 4;
   }
 }
 
