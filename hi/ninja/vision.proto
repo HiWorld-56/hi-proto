@@ -2,6 +2,7 @@ syntax = "proto3";
 package hi.ninja;
 
 import "buf/validate/validate.proto";
+import "hi/ninja/common.proto";
 import "hi/ninja/io.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ninja";
@@ -45,6 +46,7 @@ message VisionBox {
   ];
 }
 message VisionObservation {
+  ModuleSession source_session = 4 [(buf.validate.field).required = true]; // IO node boot and brain generation scope the source stream.
   IoFrameInfo frame = 1 [(buf.validate.field).required = true];
   optional string model = 2 [
     (buf.validate.field).required = true,
