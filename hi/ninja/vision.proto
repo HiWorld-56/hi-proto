@@ -115,12 +115,14 @@ message VisionFace {
   VisionObject person = 4; // Same-frame body association, when unambiguous. Not a DID.
   VisionFaceAttributes attributes = 5 [(buf.validate.field).required = true];
   optional bool confirmed = 6 [(buf.validate.field).required = true]; // Visibility hysteresis has completed.
+  IoFrameInfo last_observed_frame = 7 [(buf.validate.field).required = true]; // Bounds/confidence provenance when temporarily hidden.
+  optional bool visible = 8 [(buf.validate.field).required = true]; // Actually detected in this observation, not just retained by hysteresis.
 }
 message VisionFaceObservation {
   ModuleSession source_session = 1 [(buf.validate.field).required = true];
   IoFrameInfo frame = 2 [(buf.validate.field).required = true];
   optional string model = 3 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
-  repeated VisionFace faces = 4; // Successful empty result differs from an interrupted/disabled branch.
+  repeated VisionFace faces = 4; // Current and briefly retained targets; visible=false clears attributes. Empty differs from interruption.
 }
 // Targets are anonymous short-lived tracks scoped by session_id, NOT identities.
 // Losing a face does not prove that its body left. Interruptions invalidate all tracks.
