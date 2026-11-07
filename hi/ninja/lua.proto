@@ -5,6 +5,7 @@ package hi.ninja;
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ninja";
 
 import "hi/ninja/common.proto";
+import "buf/validate/validate.proto";
 
 // **hinj_brain ←→ lua 执行器** 这一条线。
 //
@@ -142,8 +143,8 @@ message HostCallReq {
   // ⚠️ 不能让**插件**把环境当参数传进来:lua 脚本是三方代码，它可以填一个假的 asker，
   //    把"别人让我做的"说成"主人让我做的"。执行器不是三方代码，它手里那份来自
   //    brain 发过去的 InvokeReq，脚本碰不到。
-  optional LuaCtx ctx       = 4;
-  optional string plugin_id = 5; // Runner-owned InvokeReq.uuid; scripts cannot choose subscription ownership.
+  optional LuaCtx ctx       = 4 [(buf.validate.field).required = true];
+  optional string plugin_id = 5 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1]; // Runner-owned InvokeReq.uuid; scripts cannot choose subscription ownership.
 }
 
 message HostCallResp {
