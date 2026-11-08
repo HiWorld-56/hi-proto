@@ -64,8 +64,9 @@ message TxStatusResp {
 //
 // 返回的都是链上公开数据,故与同 service 的其它方法同档(AUTH_NONE)。
 message TxDetailReq {
-  optional string coin = 1; // 用来定位链/合约/精度
-  optional string hash = 2;
+  option (hi.audience) = VIS_PUBLIC; // 纯公开链查询定位键，亦用于付款报告记录
+  optional string coin = 1 [(hi.visibility) = VIS_PUBLIC]; // 用来定位链/合约/精度
+  optional string hash = 2 [(hi.visibility) = VIS_PUBLIC];
 }
 
 message TxDetailResp {
