@@ -1,0 +1,35 @@
+syntax = "proto3";
+package hi.club;
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
+import "hi/common.proto";
+import "hi/did/base.proto";
+import "hi/options.proto";
+
+enum SettlementPaymentStatus {
+  SETTLEMENT_PAYMENT_STATUS_UNSPECIFIED = 0;
+  SETTLEMENT_PAYMENT_STATUS_PENDING = 1;
+  SETTLEMENT_PAYMENT_STATUS_EXECUTING = 2;
+  SETTLEMENT_PAYMENT_STATUS_CONFIRMING = 3;
+  SETTLEMENT_PAYMENT_STATUS_PAID = 4;
+  SETTLEMENT_PAYMENT_STATUS_FAILED = 5;
+  SETTLEMENT_PAYMENT_STATUS_CLOSED = 6;
+  SETTLEMENT_PAYMENT_STATUS_REVIEW = 7;
+}
+message SettlementPayment {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string id = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string business_id = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.did.CoinAmount total = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity payer = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity payee = 5 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string from_account = 6 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string to_account = 7 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string from_address = 8 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string to_address = 9 [(hi.visibility) = VIS_PARTICIPANT];
+  optional SettlementPaymentStatus status = 10 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 created_at = 11 [(hi.visibility) = VIS_PARTICIPANT]; // 秒
+  optional int64 expire_at = 12 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string pay_req_id = 13 [(hi.visibility) = VIS_PARTICIPANT]; // HiDID M号
+  optional string tx_hash = 14 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string reason = 15 [(hi.visibility) = VIS_PARTICIPANT];
+}
