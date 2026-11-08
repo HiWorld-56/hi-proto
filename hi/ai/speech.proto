@@ -5,6 +5,7 @@ package hi.ai;
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
 
 import "hi/options.proto";
+import "hi/audio.proto";
 
 message SynthesizeReq {
   optional string text  = 1;
@@ -36,6 +37,8 @@ message TranscribeResp {
 //
 // 商户档:hiai web 与商户后台服务都会调。
 service Speech {
+  rpc SynthesizeStream (SynthesizeReq) returns (stream hi.AudioStreamEvent) { option (hi.auth) = AUTH_MERCHANT; } // 完整最终文本输入，PCM增量输出；取消须透传至推理任务
+
   rpc Transcribe (TranscribeReq) returns (TranscribeResp) { option (hi.auth) = AUTH_MERCHANT; } // 语音转文字(原 Chat.SimpleSpeechToText)
   rpc Synthesize (SynthesizeReq) returns (SynthesizeResp) { option (hi.auth) = AUTH_MERCHANT; } // 文字转语音(原 Chat.SimpleTextToSpeech)
 }

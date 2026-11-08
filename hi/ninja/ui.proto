@@ -8,6 +8,8 @@ import "hi/ninja/common.proto";
 
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "hi/audio.proto";
+import "buf/validate/validate.proto";
 import "hi/club/group.proto";
 import "hi/club/product.proto";
 import "hi/club/messaging.proto";
@@ -85,6 +87,24 @@ message AudioPlay {
   optional bytes  audio = 2;
 }
 
+// 同一stream_id也是playback_id；连续音频只申请一次播放许可。
+message AudioStreamPlay {
+  optional string uuid = 1; // 关联TextReply；空串为当前现场语音对话
+  hi.AudioStreamEvent event = 2 [(buf.validate.field).required = true];
+}
+message AudioStreamCancel {
+  optional string stream_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  optional string reason = 2;
+}
+// face受理开流后发一次ready，再按已消费整块的样本位置回传；容量是可容纳的每声道样本数。
+// 进度只用于背压，实际开始/结束/取消仍沿用PlaybackEvent。
+message AudioStreamProgress {
+  optional string stream_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  optional bool ready = 2;
+  optional uint64 consumed_samples = 3 [(buf.validate.field).required = true];
+  optional uint32 capacity_samples = 4 [(buf.validate.field).required = true, (buf.validate.field).uint32.gt = 0];
+}
+
 // 币安接入设置。**密钥不在这里** —— 2026-09-20 起密钥一个字都不出 brain：
 // face 不再自己连币安，要数据就发 `BinanceRequest`（见下），brain 替它去。
 //
@@ -117,6 +137,8 @@ message BrainToFace {
   ModuleSession session = 99; // Hello前不传；业务消息必须匹配当前接管会话
 
   oneof cmd {
+    AudioStreamPlay audio_stream = 33;
+    AudioStreamCancel audio_stream_cancel = 34;
     ManualMute manual_mute = 32; // brain持久设定，恢复初始化时重推
 
     PlaybackPermit playback_permit = 31;
@@ -226,6 +248,8 @@ message FaceToBrain {
   ModuleSession session = 99; // Hello前不传；业务消息必须匹配当前接管会话
 
   oneof cmd {
+    AudioStreamProgress audio_stream_progress = 33;
+
     PlaybackEvent playback_event = 9;
     ManualMute manual_mute = 10;
     ModuleToBrainControl control = 100;
@@ -319,6 +343,7 @@ message PlaybackEvent {
     STATE_STARTED = 2;
     STATE_ENDED = 3;
     STATE_FAILED = 4;
+    STATE_CANCELLED = 5; // 主动停止，不冒充自然播完
   }
   optional string playback_id = 1;
   optional State state = 2;
