@@ -123,7 +123,9 @@ message SetProductListingStatusReq {
   optional ProductListingStatus status = 2 [(buf.validate.field).required = true, (buf.validate.field).enum.defined_only = true];
 }
 message GetProductListingReq {
-  optional string uuid = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  option (buf.validate.message).cel = {id: "product.listing.reference", message: "请提供挂牌ID或平台商品ID之一", expression: "has(this.uuid) != has(this.product_id)"};
+  optional string uuid = 1 [(buf.validate.field).string.min_len = 1]; // 定位挂牌
+  optional string product_id = 2 [(buf.validate.field).string.min_len = 1]; // 定位已上架平台商品，供承销后取当前供货信息
 }
 message SearchProductListingsReq {
   optional string keyword = 1 [(buf.validate.field).string.min_len = 1];
