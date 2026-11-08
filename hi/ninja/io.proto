@@ -4,6 +4,7 @@ package hi.ninja;
 import "buf/validate/validate.proto";
 import "google/protobuf/empty.proto";
 import "hi/ninja/common.proto";
+import "hi/audio.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ninja";
 
@@ -30,6 +31,8 @@ message IoToBrain {
     IoResponse response = 4;
     IoStatus event_status = 5;
     IoRecording event_recording = 6;
+    hi.AudioStreamEvent event_audio = 7; // stream_id=recording_id；仅brain启用时发送，补齐起声前缀
+
   }
 }
 message IoHearing {
@@ -38,6 +41,7 @@ message IoHearing {
     (buf.validate.field).required = true,
     (buf.validate.field).uint64.gt = 0
   ];
+  optional bool stream_audio = 4; // 不传/false保留整句WAV；true同时推送有序PCM供提前转写
   optional uint32 resume_delay_ms = 3; // 不传=立即；只在恢复时使用，新revision使旧延时命令失效
 }
 message IoStatus {
@@ -47,6 +51,8 @@ message IoStatus {
   optional uint64 hearing_revision = 4;
   optional string microphone_error = 5;
   optional string camera_error = 6;
+  optional bool stream_audio = 7; // 实际采集模式，启停确认包含此值
+
 }
 message IoRecording {
   enum State {

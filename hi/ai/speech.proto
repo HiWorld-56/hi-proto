@@ -6,6 +6,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ai";
 
 import "hi/options.proto";
 import "hi/audio.proto";
+import "buf/validate/validate.proto";
 
 message SynthesizeReq {
   optional string text  = 1;
@@ -29,6 +30,15 @@ message TranscribeResp {
   optional string text = 1 [(hi.visibility) = VIS_SELF];
 }
 
+// 输入start -> chunk* -> end；model/lang只允许在start设置。
+// 仅完整end并最终flush后返回TranscribeResp，部分转写不触发任何业务。
+message TranscribeStreamReq {
+  option (hi.audience) = VIS_SELF;
+  optional string model = 1 [(hi.visibility) = VIS_SELF]; // paraformer-streaming
+  optional string lang = 2 [(hi.visibility) = VIS_SELF]; // 当前auto/zh；服务端验证支持范围
+  hi.AudioStreamEvent audio = 3 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true];
+}
+
 // 语音转换(主体=语音)。**纯格式转换,不涉及 agent / 会话 / 工具**。
 //
 // 从 Chat 拆出,并借机解掉命名撞车:原 `Chat.SimpleSpeechToText`(真 STT)与
@@ -37,6 +47,8 @@ message TranscribeResp {
 //
 // 商户档:hiai web 与商户后台服务都会调。
 service Speech {
+  rpc TranscribeStream (stream TranscribeStreamReq) returns (TranscribeResp) { option (hi.auth) = AUTH_MERCHANT; } // 边采集边计算，只有最终转写结果；取消透传
+
   rpc SynthesizeStream (SynthesizeReq) returns (stream hi.AudioStreamEvent) { option (hi.auth) = AUTH_MERCHANT; } // 完整最终文本输入，PCM增量输出；取消须透传至推理任务
 
   rpc Transcribe (TranscribeReq) returns (TranscribeResp) { option (hi.auth) = AUTH_MERCHANT; } // 语音转文字(原 Chat.SimpleSpeechToText)

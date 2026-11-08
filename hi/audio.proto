@@ -29,8 +29,8 @@ message AudioStreamEnd {
   option (hi.audience) = VIS_SELF;
   optional uint64 total_samples = 1 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).uint64.gt = 0];
 }
-// start -> chunk* -> end；end仅表示生成完成，不表示声卡播完。
-// 服务端异常通过gRPC status终止，无end/异常终止均不能视为完整合成。
+// start -> chunk* -> end；end仅表示采集/生成完成，不表示声卡播完。
+// 服务端异常通过gRPC status终止，无end/异常终止均不能视为完整音频。
 message AudioStreamEvent {
   option (hi.audience) = VIS_SELF;
   optional string stream_id = 1 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).string.min_len = 1, (buf.validate.field).string.max_len = 128];

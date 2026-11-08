@@ -14,6 +14,8 @@ import "hi/audio.proto";
 // 顺带解掉命名撞车 —— 原 `Chat.SimpleSpeechToText`(真 STT)与 `Chat.SpeechToText`
 // (其实是多模态对话)只靠 "Simple" 前缀区分,读的人分不清。
 service Speech {
+  rpc TranscribeStream (stream hi.ai.TranscribeStreamReq) returns (hi.ai.TranscribeResp) { option (hi.auth) = AUTH_USER; } // 复用HiAI对象与输入流语义
+
   rpc SynthesizeStream (hi.ai.SynthesizeReq) returns (stream hi.AudioStreamEvent) { option (hi.auth) = AUTH_USER; } // 完整最终文本输入，PCM增量输出；取消须透传至推理任务
 
   rpc Transcribe (hi.ai.TranscribeReq) returns (hi.ai.TranscribeResp) { option (hi.auth) = AUTH_USER; } // 语音转文字(原 Chat.SimpleSpeechToText)
