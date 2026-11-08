@@ -81,6 +81,7 @@ message TxDetailResp {
   // ⚠️ 别拿它当硬闸:响应丢了导致的重试、崩在中途导致的重试,都会让它变大 ——
   //    早期设计里 >1 是直接报错的,正因为会误杀真实付款才改成返回次数。
   optional uint32 query_count      = 8 [(hi.visibility) = VIS_PUBLIC];
+  optional string canonical_hash = 9 [(hi.visibility) = VIS_PUBLIC]; // hidid-core按链规范的交易定位键，业务唯一认领使用它，不自行折叠大小写
 }
 
 message VerifyTransactionReq {

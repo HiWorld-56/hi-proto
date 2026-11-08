@@ -12,6 +12,7 @@ import "hi/audio.proto";
 import "buf/validate/validate.proto";
 import "hi/club/group.proto";
 import "hi/club/product.proto";
+import "hi/club/product_trade.proto";
 import "hi/club/messaging.proto";
 import "hi/ai/plugin.proto";
 import "hi/binance/binance.proto";
@@ -201,6 +202,8 @@ message BrainToFace {
     // 回 `FaceToBrain.video_request`
     hi.club.ProductInventoryItem event_product_uploaded = 29; // 商品入库事件，沿用普通通知展示
     hi.club.ProductAnnouncement event_product_listed = 30; // 商品挂牌事件，沿用普通通知展示
+    hi.club.ProductPurchaseOrder event_product_order = 40; // 经订单权限查询后的本机器人采购/供货通知
+    ProductActionResult product_action_result = 41;
     VideoReady            video_ready            = 27;
 
   }
@@ -249,6 +252,7 @@ message FaceToBrain {
 
   oneof cmd {
     AudioStreamProgress audio_stream_progress = 33;
+    ProductAction product_action = 40; // 当前face会话的商品业务操作，身份由brain决定
 
     PlaybackEvent playback_event = 9;
     ManualMute manual_mute = 10;
@@ -356,4 +360,24 @@ message PlaybackPermit {
 }
 message ManualMute {
   optional bool muted = 1;
+}
+
+// 操作结果只关联当前请求；UI关闭、倒计时和替换继续归公共通知基类。
+message ProductAction {
+  optional string request_id = 1;
+  oneof operation {
+    hi.club.GetProductReq join_product = 2;
+    hi.club.GetProductReq get_detail = 3;
+    hi.club.ProductPurchaseQuery confirm_purchase = 4;
+    hi.club.ProductPurchaseQuery get_order = 5;
+  }
+}
+message ProductActionResult {
+  optional string request_id = 1;
+  oneof result {
+    hi.club.ProductDistributionAgreement joined = 2;
+    hi.club.ProductDetail detail = 3;
+    hi.club.ProductPurchaseOrder order = 4;
+    string error = 5;
+  }
 }

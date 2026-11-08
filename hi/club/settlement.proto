@@ -33,6 +33,7 @@ message SettlementPayment {
   optional string pay_req_id = 13 [(hi.visibility) = VIS_PARTICIPANT]; // HiDID M号
   optional string tx_hash = 14 [(hi.visibility) = VIS_PARTICIPANT];
   optional string reason = 15 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string canonical_tx_hash = 16 [(hi.visibility) = VIS_PARTICIPANT]; // 经HiDID链事实层规范后的认领键
 }
 
 // 持私钥端只领取实际付款主体的付款任务；业务模块负责建立和授权付款意图。
