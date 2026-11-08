@@ -498,3 +498,7 @@ http:
   - selector: hi.club.SettlementExecution.Begin
     post: /api/v1/settlement_execution/begin
     body: "*"
+
+  - selector: hi.club.ProductTrade.ListTransactions
+    post: /api/v1/product_trade/list_transactions
+    body: "*"

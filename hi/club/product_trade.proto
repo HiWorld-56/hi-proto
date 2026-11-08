@@ -30,6 +30,7 @@ service ProductTrade {
   rpc ReportFulfillment(ProductFulfillmentReport) returns (ProductPurchaseOrder) { option (hi.auth) = AUTH_USER; }
   rpc RequestRefund(ProductRefundRequest) returns (ProductPurchaseOrder) { option (hi.auth) = AUTH_USER; }
   rpc ApproveRefund(ProductPurchaseQuery) returns (ProductPurchaseOrder) { option (hi.auth) = AUTH_USER; }
+  rpc ListTransactions(ProductOrderRecordsReq) returns (ListSettlementReceiptsResp) { option (hi.auth) = AUTH_USER; }
   rpc ListEvents(ProductPurchaseQuery) returns (ListProductOrderEventsResp) { option (hi.auth) = AUTH_USER; }
 }
 message ProductStallQuery {
@@ -271,4 +272,9 @@ message SupplierResponse {
     ProductFulfillmentReport fulfillment = 3;
     google.protobuf.Empty acknowledged = 4;
   }
+}
+
+message ProductOrderRecordsReq {
+  optional string order_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  hi.Pagination pagination = 2;
 }
