@@ -42,12 +42,12 @@ message ProductRecordQuery {
   hi.Pagination pagination = 2;
 }
 message SupplierIntegration {
-  option (hi.audience) = VIS_PARTICIPANT;
-  hi.Entity stall = 1 [(hi.visibility) = VIS_PARTICIPANT];
-  optional string endpoint = 2 [(hi.visibility) = VIS_PARTICIPANT]; // HTTPS服务地址，不用于库存同步
+  option (hi.audience) = VIS_SELF;
+  hi.Entity stall = 1 [(hi.visibility) = VIS_SELF];
+  optional string endpoint = 2 [(hi.visibility) = VIS_SELF]; // HTTPS服务地址，不用于库存同步
   optional string authorization = 3 [(hi.visibility) = VIS_SELF]; // 供应链发给Club的回调凭据，仅配置写入/不回显
-  optional bool enabled = 4 [(hi.visibility) = VIS_PARTICIPANT];
-  optional int64 revision = 5 [(hi.visibility) = VIS_PARTICIPANT];
+  optional bool enabled = 4 [(hi.visibility) = VIS_SELF];
+  optional int64 revision = 5 [(hi.visibility) = VIS_SELF];
 }
 message ProductDetail {
   option (hi.audience) = VIS_PUBLIC;
