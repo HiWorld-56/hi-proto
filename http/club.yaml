@@ -475,9 +475,6 @@ http:
     post: /api/v1/product_trade/cancel
     body: "*"
 
-  - selector: hi.club.ProductTrade.BeginPayment
-    post: /api/v1/product_trade/begin_payment
-    body: "*"
 
   - selector: hi.club.ProductTrade.ReportFulfillment
     post: /api/v1/product_trade/report_fulfillment
@@ -493,4 +490,11 @@ http:
 
   - selector: hi.club.ProductTrade.ListEvents
     post: /api/v1/product_trade/list_events
+    body: "*"
+
+  - selector: hi.club.SettlementExecution.List
+    post: /api/v1/settlement_execution/list
+    body: "*"
+  - selector: hi.club.SettlementExecution.Begin
+    post: /api/v1/settlement_execution/begin
     body: "*"

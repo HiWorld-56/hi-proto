@@ -27,7 +27,6 @@ service ProductTrade {
   rpc Get(ProductPurchaseQuery) returns (ProductPurchaseOrder) { option (hi.auth) = AUTH_USER; }
   rpc List(ListProductPurchasesReq) returns (ListProductPurchasesResp) { option (hi.auth) = AUTH_USER; }
   rpc Cancel(ProductPurchaseQuery) returns (ProductPurchaseOrder) { option (hi.auth) = AUTH_USER; }
-  rpc BeginPayment(BeginProductPaymentReq) returns (ProductPurchaseOrder) { option (hi.auth) = AUTH_USER; }
   rpc ReportFulfillment(ProductFulfillmentReport) returns (ProductPurchaseOrder) { option (hi.auth) = AUTH_USER; }
   rpc RequestRefund(ProductRefundRequest) returns (ProductPurchaseOrder) { option (hi.auth) = AUTH_USER; }
   rpc ApproveRefund(ProductPurchaseQuery) returns (ProductPurchaseOrder) { option (hi.auth) = AUTH_USER; }
@@ -193,11 +192,6 @@ message ListProductPurchasesResp {
   option (hi.audience) = VIS_PARTICIPANT;
   repeated ProductPurchaseOrder list = 1 [(hi.visibility) = VIS_PARTICIPANT];
   optional int64 total = 2 [(hi.visibility) = VIS_PARTICIPANT];
-}
-message BeginProductPaymentReq {
-  optional string id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
-  optional string execution_uuid = 2 [(buf.validate.field).required = true, (buf.validate.field).string.uuid = true]; // 持久执行资格，未知结果不重新领
-  optional bool refund = 3; // 不传/false=采购付款，true=供应方退款
 }
 message ProductShipment {
   option (hi.audience) = VIS_PARTICIPANT;

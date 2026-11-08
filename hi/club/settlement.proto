@@ -4,6 +4,7 @@ option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 import "hi/common.proto";
 import "hi/did/base.proto";
 import "hi/options.proto";
+import "buf/validate/validate.proto";
 
 enum SettlementPaymentStatus {
   SETTLEMENT_PAYMENT_STATUS_UNSPECIFIED = 0;
@@ -32,4 +33,20 @@ message SettlementPayment {
   optional string pay_req_id = 13 [(hi.visibility) = VIS_PARTICIPANT]; // HiDID M号
   optional string tx_hash = 14 [(hi.visibility) = VIS_PARTICIPANT];
   optional string reason = 15 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+// 持私钥端只领取实际付款主体的付款任务；业务模块负责建立和授权付款意图。
+// 该服务不持私钥、不发送链上交易，也不返回商品收件地址等业务隐私。
+service SettlementExecution {
+  rpc List(hi.Pagination) returns (ListSettlementPaymentsResp) { option (hi.auth) = AUTH_USER; }
+  rpc Begin(BeginSettlementPaymentReq) returns (SettlementPayment) { option (hi.auth) = AUTH_USER; }
+}
+message ListSettlementPaymentsResp {
+  option (hi.audience) = VIS_PARTICIPANT;
+  repeated SettlementPayment list = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 total = 2 [(hi.visibility) = VIS_PARTICIPANT];
+}
+message BeginSettlementPaymentReq {
+  optional string payment_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  optional string execution_uuid = 2 [(buf.validate.field).required = true, (buf.validate.field).string.uuid = true];
 }
