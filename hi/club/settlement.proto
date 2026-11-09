@@ -1,0 +1,73 @@
+syntax = "proto3";
+package hi.club;
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
+import "hi/common.proto";
+import "hi/did/base.proto";
+import "hi/did/transfer.proto";
+import "hi/options.proto";
+import "buf/validate/validate.proto";
+
+enum SettlementPaymentStatus {
+  SETTLEMENT_PAYMENT_STATUS_UNSPECIFIED = 0;
+  SETTLEMENT_PAYMENT_STATUS_PENDING = 1;
+  SETTLEMENT_PAYMENT_STATUS_EXECUTING = 2;
+  SETTLEMENT_PAYMENT_STATUS_CONFIRMING = 3;
+  SETTLEMENT_PAYMENT_STATUS_PAID = 4;
+  SETTLEMENT_PAYMENT_STATUS_FAILED = 5;
+  SETTLEMENT_PAYMENT_STATUS_CLOSED = 6;
+  SETTLEMENT_PAYMENT_STATUS_REVIEW = 7;
+}
+message SettlementPayment {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string id = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string business_id = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.did.CoinAmount total = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity payer = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity payee = 5 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string from_account = 6 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string to_account = 7 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string from_address = 8 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string to_address = 9 [(hi.visibility) = VIS_PARTICIPANT];
+  optional SettlementPaymentStatus status = 10 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 created_at = 11 [(hi.visibility) = VIS_PARTICIPANT]; // 秒
+  optional int64 expire_at = 12 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string pay_req_id = 13 [(hi.visibility) = VIS_PARTICIPANT]; // HiDID M号
+  optional string tx_hash = 14 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string reason = 15 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string canonical_tx_hash = 16 [(hi.visibility) = VIS_PARTICIPANT]; // 经HiDID链事实层规范后的认领键
+}
+
+// 持私钥端只领取实际付款主体的付款任务；业务模块负责建立和授权付款意图。
+// 该服务不持私钥、不发送链上交易，也不返回商品收件地址等业务隐私。
+service SettlementExecution {
+  rpc List(hi.Pagination) returns (ListSettlementPaymentsResp) { option (hi.auth) = AUTH_USER; }
+  rpc Begin(BeginSettlementPaymentReq) returns (SettlementPayment) { option (hi.auth) = AUTH_USER; }
+}
+message ListSettlementPaymentsResp {
+  option (hi.audience) = VIS_PARTICIPANT;
+  repeated SettlementPayment list = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 total = 2 [(hi.visibility) = VIS_PARTICIPANT];
+}
+message BeginSettlementPaymentReq {
+  optional string payment_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  optional string execution_uuid = 2 [(buf.validate.field).required = true, (buf.validate.field).string.uuid = true];
+}
+
+// 付款报告与业务认款分别记录：额外来款/错误付款方也保留报告及链事实，不覆盖原付款。
+// reference是公开链查询定位键，reporter为验签确认的记账主体引用，不能自报。
+message SettlementReceipt {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string id = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string payment_id = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.did.TxDetailReq reference = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string reporter = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.did.TxDetailResp fact = 5 [(hi.visibility) = VIS_PARTICIPANT];
+  optional SettlementPaymentStatus status = 6 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 created_at = 7 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string reason = 8 [(hi.visibility) = VIS_PARTICIPANT];
+}
+message ListSettlementReceiptsResp {
+  option (hi.audience) = VIS_PARTICIPANT;
+  repeated SettlementReceipt list = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 total = 2 [(hi.visibility) = VIS_PARTICIPANT];
+}

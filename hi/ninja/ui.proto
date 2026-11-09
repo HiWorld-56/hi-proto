@@ -4,10 +4,15 @@ package hi.ninja;
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/ninja";
 
+import "hi/ninja/common.proto";
+
 import "google/protobuf/empty.proto";
 import "hi/common.proto";
+import "hi/audio.proto";
+import "buf/validate/validate.proto";
 import "hi/club/group.proto";
 import "hi/club/product.proto";
+import "hi/club/product_trade.proto";
 import "hi/club/messaging.proto";
 import "hi/ai/plugin.proto";
 import "hi/binance/binance.proto";
@@ -83,6 +88,24 @@ message AudioPlay {
   optional bytes  audio = 2;
 }
 
+// 同一stream_id也是playback_id；连续音频只申请一次播放许可。
+message AudioStreamPlay {
+  optional string uuid = 1; // 关联TextReply；空串为当前现场语音对话
+  hi.AudioStreamEvent event = 2 [(buf.validate.field).required = true];
+}
+message AudioStreamCancel {
+  optional string stream_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  optional string reason = 2;
+}
+// face受理开流后发一次ready，再按已消费整块的样本位置回传；容量是可容纳的每声道样本数。
+// 进度只用于背压，实际开始/结束/取消仍沿用PlaybackEvent。
+message AudioStreamProgress {
+  optional string stream_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  optional bool ready = 2;
+  optional uint64 consumed_samples = 3 [(buf.validate.field).required = true];
+  optional uint32 capacity_samples = 4 [(buf.validate.field).required = true, (buf.validate.field).uint32.gt = 0];
+}
+
 // 币安接入设置。**密钥不在这里** —— 2026-09-20 起密钥一个字都不出 brain：
 // face 不再自己连币安，要数据就发 `BinanceRequest`（见下），brain 替它去。
 //
@@ -112,7 +135,15 @@ message BinanceRequest {
 
 // brain -> face：所有指令通过 oneof 路由
 message BrainToFace {
+  ModuleSession session = 99; // Hello前不传；业务消息必须匹配当前接管会话
+
   oneof cmd {
+    AudioStreamPlay audio_stream = 33;
+    AudioStreamCancel audio_stream_cancel = 34;
+    ManualMute manual_mute = 32; // brain持久设定，恢复初始化时重推
+
+    PlaybackPermit playback_permit = 31;
+    BrainToModuleControl control = 100;
     // 初始化
     RobotInit             init_robot             = 1;  // face 上线时推送，携带机器人和所有者身份
 
@@ -171,6 +202,8 @@ message BrainToFace {
     // 回 `FaceToBrain.video_request`
     hi.club.ProductInventoryItem event_product_uploaded = 29; // 商品入库事件，沿用普通通知展示
     hi.club.ProductAnnouncement event_product_listed = 30; // 商品挂牌事件，沿用普通通知展示
+    hi.club.ProductPurchaseOrder event_product_order = 40; // 经订单权限查询后的本机器人采购/供货通知
+    ProductActionResult product_action_result = 41;
     VideoReady            video_ready            = 27;
 
   }
@@ -215,7 +248,15 @@ message StatusEvent {
 }
 // face -> brain
 message FaceToBrain {
+  ModuleSession session = 99; // Hello前不传；业务消息必须匹配当前接管会话
+
   oneof cmd {
+    AudioStreamProgress audio_stream_progress = 33;
+    ProductAction product_action = 40; // 当前face会话的商品业务操作，身份由brain决定
+
+    PlaybackEvent playback_event = 9;
+    ManualMute manual_mute = 10;
+    ModuleToBrainControl control = 100;
     StateToggle           voice_state          = 1; // 音频播放开始/结束，brain 据此控制麦克风静音
     // 固件更新：人在 face 上点的那一下（查/装/不看了）。
     UpdateAction          update_action        = 2;
@@ -296,4 +337,47 @@ message UpdateAction {
   }
 
   optional Action action = 1;
+}
+
+
+message PlaybackEvent {
+  enum State {
+    STATE_UNKNOWN = 0;
+    STATE_REQUESTED = 1;
+    STATE_STARTED = 2;
+    STATE_ENDED = 3;
+    STATE_FAILED = 4;
+    STATE_CANCELLED = 5; // 主动停止，不冒充自然播完
+  }
+  optional string playback_id = 1;
+  optional State state = 2;
+  optional string error = 3;
+}
+message PlaybackPermit {
+  optional string playback_id = 1;
+  optional bool allowed = 2;
+  optional string error = 3;
+}
+message ManualMute {
+  optional bool muted = 1;
+}
+
+// 操作结果只关联当前请求；UI关闭、倒计时和替换继续归公共通知基类。
+message ProductAction {
+  optional string request_id = 1;
+  oneof operation {
+    hi.club.GetProductReq join_product = 2;
+    hi.club.GetProductReq get_detail = 3;
+    hi.club.ProductPurchaseQuery confirm_purchase = 4;
+    hi.club.ProductPurchaseQuery get_order = 5;
+  }
+}
+message ProductActionResult {
+  optional string request_id = 1;
+  oneof result {
+    hi.club.ProductDistributionAgreement joined = 2;
+    hi.club.ProductDetail detail = 3;
+    hi.club.ProductPurchaseOrder order = 4;
+    string error = 5;
+  }
 }

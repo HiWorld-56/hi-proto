@@ -1,0 +1,282 @@
+syntax = "proto3";
+package hi.club;
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
+import "hi/common.proto";
+import "hi/did/base.proto";
+import "hi/options.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/empty.proto";
+import "hi/club/product.proto";
+import "hi/club/settlement.proto";
+
+// 标准API和Web共用；用户身份来自认证，摊位权限每次按当前关系复验。
+service ProductSupply {
+  rpc GetDetail(GetProductReq) returns (ProductDetail) { option (hi.auth) = AUTH_USER; }
+  rpc ListStockMovements(ProductRecordQuery) returns (ListProductStockMovementsResp) { option (hi.auth) = AUTH_USER; }
+}
+service ProductDistribution {
+  rpc Join(JoinProductDistributionReq) returns (ProductDistributionAgreement) { option (hi.auth) = AUTH_USER; }
+  rpc List(ProductStallQuery) returns (ListProductDistributionResp) { option (hi.auth) = AUTH_USER; }
+  rpc Leave(ProductDistributionQuery) returns (ProductDistributionAgreement) { option (hi.auth) = AUTH_USER; }
+}
+service ProductTrade {
+  // 直接消费者购买：调用用户就是买方，不要求机器人或承销关系。
+  rpc Buy(DirectProductPurchaseReq) returns (ProductPurchaseOrder) { option (hi.auth) = AUTH_USER; }
+  rpc Submit(TerminalOrderSubmission) returns (ProductPurchaseGroup) { option (hi.auth) = AUTH_USER; }
+  rpc Confirm(ProductPurchaseQuery) returns (ProductPurchaseOrder) { option (hi.auth) = AUTH_USER; }
+  rpc Get(ProductPurchaseQuery) returns (ProductPurchaseOrder) { option (hi.auth) = AUTH_USER; }
+  rpc List(ListProductPurchasesReq) returns (ListProductPurchasesResp) { option (hi.auth) = AUTH_USER; }
+  rpc Cancel(ProductPurchaseQuery) returns (ProductPurchaseOrder) { option (hi.auth) = AUTH_USER; }
+  rpc ReportFulfillment(ProductFulfillmentReport) returns (ProductPurchaseOrder) { option (hi.auth) = AUTH_USER; }
+  rpc RequestRefund(ProductRefundRequest) returns (ProductPurchaseOrder) { option (hi.auth) = AUTH_USER; }
+  rpc ApproveRefund(ProductPurchaseQuery) returns (ProductPurchaseOrder) { option (hi.auth) = AUTH_USER; }
+  rpc ListTransactions(ProductOrderRecordsReq) returns (ListSettlementReceiptsResp) { option (hi.auth) = AUTH_USER; }
+  rpc ListEvents(ProductPurchaseQuery) returns (ListProductOrderEventsResp) { option (hi.auth) = AUTH_USER; }
+}
+message ProductStallQuery {
+  optional string stall = 1; // 不传=当前用户名下全部；仅按指定机器人过滤
+  hi.Pagination pagination = 2;
+}
+message ProductRecordQuery {
+  optional string product_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  hi.Pagination pagination = 2;
+}
+message ProductDetail {
+  option (hi.audience) = VIS_PUBLIC;
+  optional string product_id = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional string version = 2 [(hi.visibility) = VIS_PUBLIC];
+  repeated ProductDetailSection sections = 3 [(hi.visibility) = VIS_PUBLIC];
+  optional int64 updated_at = 4 [(hi.visibility) = VIS_PUBLIC];
+}
+message ProductDetailSection {
+  option (hi.audience) = VIS_PUBLIC;
+  optional string title = 1 [(hi.visibility) = VIS_PUBLIC];
+  oneof content {
+    string text = 2 [(hi.visibility) = VIS_PUBLIC];
+    ProductImage image = 3 [(hi.visibility) = VIS_PUBLIC];
+    ProductSpecification specification = 4 [(hi.visibility) = VIS_PUBLIC];
+  }
+}
+message ProductSpecification {
+  option (hi.audience) = VIS_PUBLIC;
+  optional string label = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional string value = 2 [(hi.visibility) = VIS_PUBLIC];
+}
+message ProductDistributionAgreement {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string id = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity reseller = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity supplier = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  Product product = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  optional bool active = 5 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 created_at = 6 [(hi.visibility) = VIS_PARTICIPANT];
+}
+message JoinProductDistributionReq {
+  optional string reseller = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  optional string product_id = 2 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+}
+message ProductDistributionQuery {
+  optional string id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+}
+message ListProductDistributionResp {
+  option (hi.audience) = VIS_PARTICIPANT;
+  repeated ProductDistributionAgreement list = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 total = 2 [(hi.visibility) = VIS_PARTICIPANT];
+}
+message PhysicalRecipient {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string name = 1 [(hi.visibility) = VIS_PARTICIPANT, (buf.validate.field).required = true, (buf.validate.field).string = {min_len: 1, max_len: 120}];
+  optional string phone = 2 [(hi.visibility) = VIS_PARTICIPANT, (buf.validate.field).required = true, (buf.validate.field).string = {min_len: 1, max_len: 80}];
+  optional string country = 3 [(hi.visibility) = VIS_PARTICIPANT, (buf.validate.field).required = true, (buf.validate.field).string = {min_len: 1, max_len: 80}];
+  optional string region = 4 [(hi.visibility) = VIS_PARTICIPANT, (buf.validate.field).required = true, (buf.validate.field).string = {min_len: 1, max_len: 300}];
+  optional string address = 5 [(hi.visibility) = VIS_PARTICIPANT, (buf.validate.field).required = true, (buf.validate.field).string = {min_len: 1, max_len: 1000}];
+  optional string postal_code = 6 [(hi.visibility) = VIS_PARTICIPANT, (buf.validate.field).string.max_len = 40];
+}
+message DigitalRecipient {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string email = 1 [(hi.visibility) = VIS_PARTICIPANT, (buf.validate.field).required = true, (buf.validate.field).string.email = true];
+}
+message ProductDeliveryTarget {
+  option (hi.audience) = VIS_PARTICIPANT;
+  oneof recipient {
+    option (buf.validate.oneof).required = true;
+    PhysicalRecipient physical = 1 [(hi.visibility) = VIS_PARTICIPANT];
+    DigitalRecipient digital = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  }
+}
+message TerminalOrderRef {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string source_system = 1 [(hi.visibility) = VIS_PARTICIPANT, (buf.validate.field).required = true, (buf.validate.field).string = {min_len: 1, max_len: 120}];
+  optional string order_id = 2 [(hi.visibility) = VIS_PARTICIPANT, (buf.validate.field).required = true, (buf.validate.field).string = {min_len: 1, max_len: 120}];
+}
+message ProductPurchaseInput {
+  optional string line_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string = {min_len: 1, max_len: 120}];
+  optional string product_id = 2 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  optional int64 quantity = 3 [(buf.validate.field).required = true, (buf.validate.field).int64 = {gt: 0, lte: 1000000000}];
+  hi.did.CoinAmount maximum_total = 4 [(buf.validate.field).required = true]; // 防超支，不覆盖供应报价
+}
+message TerminalOrderSubmission {
+  optional string request_uuid = 1 [(buf.validate.field).required = true, (buf.validate.field).string.uuid = true];
+  optional string reseller = 2 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  TerminalOrderRef source = 3 [(buf.validate.field).required = true];
+  repeated ProductPurchaseInput lines = 4 [(buf.validate.field).repeated = {min_items: 1, max_items: 20}];
+  ProductDeliveryTarget target = 5 [(buf.validate.field).required = true];
+}
+// 直接购买与承销采购共用库存、支付及履约，资格各自明确。
+enum ProductPurchaseChannel {
+  PRODUCT_PURCHASE_CHANNEL_UNSPECIFIED = 0;
+  PRODUCT_PURCHASE_CHANNEL_DISTRIBUTION = 1;
+  PRODUCT_PURCHASE_CHANNEL_DIRECT = 2;
+}
+message DirectProductPurchaseReq {
+  optional string request_uuid = 1 [(buf.validate.field).required = true, (buf.validate.field).string.uuid = true];
+  ProductPurchaseInput item = 2 [(buf.validate.field).required = true];
+  ProductDeliveryTarget target = 3 [(buf.validate.field).required = true];
+}
+enum ProductPurchaseStatus {
+  PRODUCT_PURCHASE_STATUS_UNSPECIFIED = 0;
+  PRODUCT_PURCHASE_STATUS_APPROVAL = 1;
+  PRODUCT_PURCHASE_STATUS_PAYMENT = 2;
+  PRODUCT_PURCHASE_STATUS_FULFILLMENT = 3;
+  PRODUCT_PURCHASE_STATUS_COMPLETE = 4;
+  PRODUCT_PURCHASE_STATUS_CANCELLED = 5;
+  PRODUCT_PURCHASE_STATUS_REVIEW = 6;
+  PRODUCT_PURCHASE_STATUS_REFUND_REQUESTED = 7;
+  PRODUCT_PURCHASE_STATUS_REFUND_PAYMENT = 8;
+  PRODUCT_PURCHASE_STATUS_REFUNDED = 9;
+}
+enum ProductFulfillmentStatus {
+  PRODUCT_FULFILLMENT_STATUS_UNSPECIFIED = 0;
+  PRODUCT_FULFILLMENT_STATUS_PENDING = 1;
+  PRODUCT_FULFILLMENT_STATUS_ACCEPTED = 2;
+  PRODUCT_FULFILLMENT_STATUS_SHIPPED = 3;
+  PRODUCT_FULFILLMENT_STATUS_COMPLETE = 4;
+  PRODUCT_FULFILLMENT_STATUS_FAILED = 5;
+}
+message ProductPurchaseLine {
+  option (hi.audience) = VIS_PARTICIPANT;
+  Product product = 1 [(hi.visibility) = VIS_PARTICIPANT]; // 不可变成交快照
+  optional int64 quantity = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.did.CoinAmount total = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  ProductFulfillmentSpec fulfillment = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  ProductDetail detail = 5 [(hi.visibility) = VIS_PARTICIPANT]; // 冻结的条款/详情
+  optional int64 supply_revision = 6 [(hi.visibility) = VIS_PARTICIPANT];
+}
+message ProductPurchaseOrder {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string id = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity buyer = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity supplier = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  TerminalOrderRef source = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string source_line_id = 5 [(hi.visibility) = VIS_PARTICIPANT];
+  ProductPurchaseLine line = 6 [(hi.visibility) = VIS_PARTICIPANT];
+  ProductDeliveryTarget target = 7 [(hi.visibility) = VIS_PARTICIPANT];
+  optional ProductPurchaseStatus status = 8 [(hi.visibility) = VIS_PARTICIPANT];
+  SettlementPayment payment = 9 [(hi.visibility) = VIS_PARTICIPANT];
+  ProductFulfillment fulfillment = 10 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 created_at = 11 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 expire_at = 12 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 revision = 13 [(hi.visibility) = VIS_PARTICIPANT];
+  SettlementPayment refund = 14 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string refund_reason = 15 [(hi.visibility) = VIS_PARTICIPANT];
+  optional ProductPurchaseChannel channel = 16 [(hi.visibility) = VIS_PARTICIPANT]; // 既有无此字段的订单均为承销采购
+}
+message ProductPurchaseGroup {
+  option (hi.audience) = VIS_PARTICIPANT;
+  TerminalOrderRef source = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  repeated ProductPurchaseOrder orders = 2 [(hi.visibility) = VIS_PARTICIPANT];
+}
+message ProductPurchaseQuery {
+  optional string id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+}
+message ListProductPurchasesReq {
+  optional string stall = 1;
+  hi.Pagination pagination = 2;
+}
+message ListProductPurchasesResp {
+  option (hi.audience) = VIS_PARTICIPANT;
+  repeated ProductPurchaseOrder list = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 total = 2 [(hi.visibility) = VIS_PARTICIPANT];
+}
+message ProductShipment {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string carrier = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string tracking_number = 2 [(hi.visibility) = VIS_PARTICIPANT];
+}
+message ProductDigitalDelivery {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string delivery_id = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string state = 2 [(hi.visibility) = VIS_PARTICIPANT]; // accepted/delivered/failed，不能以accepted冒充投递
+}
+message ProductFulfillment {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional ProductFulfillmentStatus status = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string event_id = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 revision = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  oneof result {
+    ProductShipment shipment = 4 [(hi.visibility) = VIS_PARTICIPANT];
+    ProductDigitalDelivery digital = 5 [(hi.visibility) = VIS_PARTICIPANT];
+  }
+  optional string reason = 6 [(hi.visibility) = VIS_PARTICIPANT];
+}
+message ProductFulfillmentReport {
+  optional string order_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  ProductFulfillment fulfillment = 2 [(buf.validate.field).required = true];
+}
+message ProductRefundRequest {
+  optional string order_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  optional string reason = 2 [(buf.validate.field).required = true, (buf.validate.field).string = {min_len: 1, max_len: 1000}];
+}
+message ProductOrderEvent {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string id = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string order_id = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity actor = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string kind = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 created_at = 5 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string reason = 6 [(hi.visibility) = VIS_PARTICIPANT];
+}
+message ListProductOrderEventsResp {
+  option (hi.audience) = VIS_PARTICIPANT;
+  repeated ProductOrderEvent list = 1 [(hi.visibility) = VIS_PARTICIPANT];
+}
+message ProductStockMovement {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string id = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string product_id = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string business_id = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string kind = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 delta = 5 [(hi.visibility) = VIS_PARTICIPANT];
+  ProductStockBalance balance = 6 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 created_at = 7 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string reason = 8 [(hi.visibility) = VIS_PARTICIPANT];
+}
+message ListProductStockMovementsResp {
+  option (hi.audience) = VIS_PARTICIPANT;
+  repeated ProductStockMovement list = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 total = 2 [(hi.visibility) = VIS_PARTICIPANT];
+}
+// HTTPS POST供应链endpoint，Authorization使用该供应链专门提供的回调凭据。
+// 绝不转发HiClub用户API Key。供应链以request_id幂等；GET操作也用结构化POST。
+// 超时重试使用同一ID；订单状态由SupplierResponse/既有ReportFulfillment共同归并。
+message SupplierRequest {
+  optional string request_id = 1;
+  optional int64 created_at = 2;
+  oneof operation {
+    Product product_registered = 3;
+    ProductPurchaseOrder fulfill_order = 5;
+    ProductPurchaseQuery get_fulfillment = 6;
+  }
+}
+message SupplierResponse {
+  optional string request_id = 1;
+  oneof result {
+    ProductFulfillmentReport fulfillment = 3;
+    google.protobuf.Empty acknowledged = 4;
+  }
+}
+
+message ProductOrderRecordsReq {
+  optional string order_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  hi.Pagination pagination = 2;
+}
