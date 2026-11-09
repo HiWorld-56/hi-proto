@@ -10,6 +10,7 @@ import "hi/options.proto";
 // 上传仅入本人硬件机器人的库，不能向任意机器人上传，也不能自动上架/广播。
 // 公开目录与管理面分开；采购、库存和履约契约见product_trade.proto。
 service ProductInventory {
+  rpc CreateBatch(BatchCreateProductsReq) returns (ListProductInventoryResp) { option (hi.auth) = AUTH_USER; }
   rpc Create(CreateProductReq) returns (ProductInventoryItem) { option (hi.auth) = AUTH_USER; }
   rpc Get(GetProductReq) returns (ProductInventoryItem) { option (hi.auth) = AUTH_USER; }
   rpc Configure(ConfigureProductReq) returns (ProductInventoryItem) { option (hi.auth) = AUTH_USER; }
@@ -68,6 +69,7 @@ message ProductInventoryItem {
   ProductStockBalance stock = 5 [(hi.visibility) = VIS_PARTICIPANT];
   ProductFulfillmentSpec fulfillment = 6 [(hi.visibility) = VIS_PARTICIPANT];
   optional int64 revision = 7 [(hi.visibility) = VIS_PARTICIPANT];
+  SupplierIntegration integration = 8 [(hi.visibility) = VIS_PARTICIPANT]; // 逐商品配置，凭据写入不回显
 }
 enum ProductListingStatus {
   PRODUCT_LISTING_STATUS_UNSPECIFIED = 0;
@@ -110,6 +112,7 @@ message CreateProductReq {
   ProductInfo info = 3 [(buf.validate.field).required = true];
   optional int64 quantity = 4 [(buf.validate.field).int64 = {gte: 0, lte: 1000000000}]; // 未配置不可采购，0为已配置但无货
   ProductFulfillmentSpec fulfillment = 5;
+  SupplierIntegration integration = 6;
 }
 message GetProductReq {
   optional string id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
@@ -183,10 +186,32 @@ message ConfigureProductReq {
   optional int64 revision = 2 [(buf.validate.field).required = true, (buf.validate.field).int64.gte = 0];
   ProductInfo info = 3;
   ProductFulfillmentSpec fulfillment = 4;
+  SupplierIntegration integration = 5; // presence更新；未提供不改原商品回调
 }
 message AdjustProductStockReq {
   optional string id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
   optional string request_uuid = 2 [(buf.validate.field).required = true, (buf.validate.field).string.uuid = true];
   optional int64 delta = 3 [(buf.validate.field).required = true, (buf.validate.field).int64 = {gte: -1000000000, lte: 1000000000}];
   optional string reason = 4 [(buf.validate.field).required = true, (buf.validate.field).string = {min_len: 1, max_len: 200}];
+}
+
+
+// 逐商品绑定。批量上传的同一配置仅在批请求传一次，创建时分别绑定，后续独立修改。
+message SupplierIntegration {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string endpoint = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 可选履约服务，SupplierRequest/SupplierResponse
+  optional string authorization = 3 [(hi.visibility) = VIS_PARTICIPANT]; // 专用Bearer凭据，仅写入，不回显
+  optional bool enabled = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string detail_endpoint = 6 [(hi.visibility) = VIS_PARTICIPANT]; // HTTPS详情方法：输入GetProductReq，仅平台id；返回ProductDetail
+}
+message ProductUpload {
+  ProductInfo info = 1 [(buf.validate.field).required = true];
+  optional int64 quantity = 2 [(buf.validate.field).int64 = {gte: 0, lte: 1000000000}];
+  ProductFulfillmentSpec fulfillment = 3;
+}
+message BatchCreateProductsReq {
+  optional string request_uuid = 1 [(buf.validate.field).required = true, (buf.validate.field).string.uuid = true];
+  optional string stall = 2 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  SupplierIntegration integration = 3; // 一批同供应链的回调只提供一次
+  repeated ProductUpload products = 4 [(buf.validate.field).repeated = {min_items: 1, max_items: 100}];
 }

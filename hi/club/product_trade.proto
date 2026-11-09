@@ -11,8 +11,6 @@ import "hi/club/settlement.proto";
 
 // 标准API和Web共用；用户身份来自认证，摊位权限每次按当前关系复验。
 service ProductSupply {
-  rpc SetIntegration(SupplierIntegration) returns (SupplierIntegration) { option (hi.auth) = AUTH_USER; }
-  rpc GetIntegration(ProductStallQuery) returns (SupplierIntegration) { option (hi.auth) = AUTH_USER; }
   rpc GetDetail(GetProductReq) returns (ProductDetail) { option (hi.auth) = AUTH_USER; }
   rpc ListStockMovements(ProductRecordQuery) returns (ListProductStockMovementsResp) { option (hi.auth) = AUTH_USER; }
 }
@@ -22,6 +20,8 @@ service ProductDistribution {
   rpc Leave(ProductDistributionQuery) returns (ProductDistributionAgreement) { option (hi.auth) = AUTH_USER; }
 }
 service ProductTrade {
+  // 直接消费者购买：调用用户就是买方，不要求机器人或承销关系。
+  rpc Buy(DirectProductPurchaseReq) returns (ProductPurchaseOrder) { option (hi.auth) = AUTH_USER; }
   rpc Submit(TerminalOrderSubmission) returns (ProductPurchaseGroup) { option (hi.auth) = AUTH_USER; }
   rpc Confirm(ProductPurchaseQuery) returns (ProductPurchaseOrder) { option (hi.auth) = AUTH_USER; }
   rpc Get(ProductPurchaseQuery) returns (ProductPurchaseOrder) { option (hi.auth) = AUTH_USER; }
@@ -34,20 +34,12 @@ service ProductTrade {
   rpc ListEvents(ProductPurchaseQuery) returns (ListProductOrderEventsResp) { option (hi.auth) = AUTH_USER; }
 }
 message ProductStallQuery {
-  optional string stall = 1; // 不传=当前用户名下全部；设置/取单个配置必须传
+  optional string stall = 1; // 不传=当前用户名下全部；仅按指定机器人过滤
   hi.Pagination pagination = 2;
 }
 message ProductRecordQuery {
   optional string product_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
   hi.Pagination pagination = 2;
-}
-message SupplierIntegration {
-  option (hi.audience) = VIS_SELF;
-  hi.Entity stall = 1 [(hi.visibility) = VIS_SELF];
-  optional string endpoint = 2 [(hi.visibility) = VIS_SELF]; // HTTPS服务地址，不用于库存同步
-  optional string authorization = 3 [(hi.visibility) = VIS_SELF]; // 供应链发给Club的回调凭据，仅配置写入/不回显
-  optional bool enabled = 4 [(hi.visibility) = VIS_SELF];
-  optional int64 revision = 5 [(hi.visibility) = VIS_SELF];
 }
 message ProductDetail {
   option (hi.audience) = VIS_PUBLIC;
@@ -130,6 +122,17 @@ message TerminalOrderSubmission {
   repeated ProductPurchaseInput lines = 4 [(buf.validate.field).repeated = {min_items: 1, max_items: 20}];
   ProductDeliveryTarget target = 5 [(buf.validate.field).required = true];
 }
+// 直接购买与承销采购共用库存、支付及履约，资格各自明确。
+enum ProductPurchaseChannel {
+  PRODUCT_PURCHASE_CHANNEL_UNSPECIFIED = 0;
+  PRODUCT_PURCHASE_CHANNEL_DISTRIBUTION = 1;
+  PRODUCT_PURCHASE_CHANNEL_DIRECT = 2;
+}
+message DirectProductPurchaseReq {
+  optional string request_uuid = 1 [(buf.validate.field).required = true, (buf.validate.field).string.uuid = true];
+  ProductPurchaseInput item = 2 [(buf.validate.field).required = true];
+  ProductDeliveryTarget target = 3 [(buf.validate.field).required = true];
+}
 enum ProductPurchaseStatus {
   PRODUCT_PURCHASE_STATUS_UNSPECIFIED = 0;
   PRODUCT_PURCHASE_STATUS_APPROVAL = 1;
@@ -162,7 +165,7 @@ message ProductPurchaseLine {
 message ProductPurchaseOrder {
   option (hi.audience) = VIS_PARTICIPANT;
   optional string id = 1 [(hi.visibility) = VIS_PARTICIPANT];
-  hi.Entity reseller = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity buyer = 2 [(hi.visibility) = VIS_PARTICIPANT];
   hi.Entity supplier = 3 [(hi.visibility) = VIS_PARTICIPANT];
   TerminalOrderRef source = 4 [(hi.visibility) = VIS_PARTICIPANT];
   optional string source_line_id = 5 [(hi.visibility) = VIS_PARTICIPANT];
@@ -176,6 +179,7 @@ message ProductPurchaseOrder {
   optional int64 revision = 13 [(hi.visibility) = VIS_PARTICIPANT];
   SettlementPayment refund = 14 [(hi.visibility) = VIS_PARTICIPANT];
   optional string refund_reason = 15 [(hi.visibility) = VIS_PARTICIPANT];
+  optional ProductPurchaseChannel channel = 16 [(hi.visibility) = VIS_PARTICIPANT]; // 既有无此字段的订单均为承销采购
 }
 message ProductPurchaseGroup {
   option (hi.audience) = VIS_PARTICIPANT;
@@ -260,7 +264,6 @@ message SupplierRequest {
   optional int64 created_at = 2;
   oneof operation {
     Product product_registered = 3;
-    GetProductReq get_detail = 4;
     ProductPurchaseOrder fulfill_order = 5;
     ProductPurchaseQuery get_fulfillment = 6;
   }
@@ -268,7 +271,6 @@ message SupplierRequest {
 message SupplierResponse {
   optional string request_id = 1;
   oneof result {
-    ProductDetail detail = 2;
     ProductFulfillmentReport fulfillment = 3;
     google.protobuf.Empty acknowledged = 4;
   }
