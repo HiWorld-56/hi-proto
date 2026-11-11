@@ -140,6 +140,7 @@ message BrainToFace {
   oneof cmd {
     AudioStreamPlay audio_stream = 33;
     AudioStreamCancel audio_stream_cancel = 34;
+    ReceiptNotifications receipt_notifications = 42; // 设置/权威快照，brain持久保存
     ManualMute manual_mute = 32; // brain持久设定，恢复初始化时重推
 
     PlaybackPermit playback_permit = 31;
@@ -255,6 +256,7 @@ message FaceToBrain {
     ProductAction product_action = 40; // 当前face会话的商品业务操作，身份由brain决定
 
     PlaybackEvent playback_event = 9;
+    ReceiptNotifications receipt_notifications = 42; // 设置/权威快照，brain持久保存
     ManualMute manual_mute = 10;
     ModuleToBrainControl control = 100;
     StateToggle           voice_state          = 1; // 音频播放开始/结束，brain 据此控制麦克风静音
@@ -380,4 +382,10 @@ message ProductActionResult {
     hi.club.ProductPurchaseOrder order = 4;
     string error = 5;
   }
+}
+
+// 本机收款通知偏好，未配置默认开启；关闭后丢弃通知及其驱动的到账处理，不补放。
+// 不影响付款、订单认款与其他通知。UI只显示brain保存后的权威状态，重连时重新同步。
+message ReceiptNotifications {
+  optional bool enabled = 1 [(buf.validate.field).required = true];
 }
