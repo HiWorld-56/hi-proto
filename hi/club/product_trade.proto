@@ -16,6 +16,7 @@ service ProductSupply {
 }
 service ProductDistribution {
   rpc Join(JoinProductDistributionReq) returns (ProductDistributionAgreement) { option (hi.auth) = AUTH_USER; }
+  // 仅查询指定/本人机器人主动承销的关系，不混入他人承销本机商品的供货关系。
   rpc List(ProductStallQuery) returns (ListProductDistributionResp) { option (hi.auth) = AUTH_USER; }
   rpc Leave(ProductDistributionQuery) returns (ProductDistributionAgreement) { option (hi.auth) = AUTH_USER; }
 }
@@ -266,6 +267,8 @@ message SupplierRequest {
     Product product_registered = 3;
     ProductPurchaseOrder fulfill_order = 5;
     ProductPurchaseQuery get_fulfillment = 6;
+    ProductDeliveryOrder fulfill_delivery = 7;
+    ProductDeliveryQuery get_delivery = 8;
   }
 }
 message SupplierResponse {
@@ -279,4 +282,62 @@ message SupplierResponse {
 message ProductOrderRecordsReq {
   optional string order_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
   hi.Pagination pagination = 2;
+}
+
+// 本摊位自有商品的终端销售履约。外部收款归终端系统，不产生机器人间采购或链上自付款。
+// 订单、库存和记录归seller机器人；当前主人仅负责授权操作。
+service ProductDelivery {
+  rpc Submit(SubmitProductDeliveryReq) returns (ProductDeliveryOrder) { option (hi.auth) = AUTH_USER; }
+  rpc Get(ProductDeliveryQuery) returns (ProductDeliveryOrder) { option (hi.auth) = AUTH_USER; }
+  rpc List(ProductStallQuery) returns (ListProductDeliveriesResp) { option (hi.auth) = AUTH_USER; }
+  // 供应链报告停止履约(FAILED)且尚未出库后才允许取消并释放库存。
+  rpc Cancel(ProductDeliveryQuery) returns (ProductDeliveryOrder) { option (hi.auth) = AUTH_USER; }
+  rpc ReportFulfillment(ProductFulfillmentReport) returns (ProductDeliveryOrder) { option (hi.auth) = AUTH_USER; }
+  rpc ListEvents(ProductDeliveryQuery) returns (ListProductOrderEventsResp) { option (hi.auth) = AUTH_USER; }
+}
+message ProductDeliveryInput {
+  optional string product_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  optional int64 quantity = 2 [(buf.validate.field).required = true, (buf.validate.field).int64 = {gt: 0, lte: 1000000000}];
+}
+message SubmitProductDeliveryReq {
+  optional string request_uuid = 1 [(buf.validate.field).required = true, (buf.validate.field).string.uuid = true];
+  optional string seller = 2 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  TerminalOrderRef source = 3 [(buf.validate.field).required = true];
+  ProductDeliveryInput item = 4 [(buf.validate.field).required = true];
+  ProductDeliveryTarget target = 5 [(buf.validate.field).required = true];
+}
+message ProductDeliveryLine {
+  option (hi.audience) = VIS_PARTICIPANT;
+  Product product = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 quantity = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  ProductFulfillmentSpec fulfillment = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  ProductDetail detail = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 supply_revision = 5 [(hi.visibility) = VIS_PARTICIPANT];
+}
+enum ProductDeliveryStatus {
+  PRODUCT_DELIVERY_STATUS_UNSPECIFIED = 0;
+  PRODUCT_DELIVERY_STATUS_FULFILLMENT = 1;
+  PRODUCT_DELIVERY_STATUS_COMPLETE = 2;
+  PRODUCT_DELIVERY_STATUS_CANCELLED = 3;
+  PRODUCT_DELIVERY_STATUS_REVIEW = 4;
+}
+message ProductDeliveryOrder {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string id = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity seller = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  TerminalOrderRef source = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  ProductDeliveryLine line = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  ProductDeliveryTarget target = 5 [(hi.visibility) = VIS_PARTICIPANT];
+  optional ProductDeliveryStatus status = 6 [(hi.visibility) = VIS_PARTICIPANT];
+  ProductFulfillment fulfillment = 7 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 created_at = 8 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 revision = 9 [(hi.visibility) = VIS_PARTICIPANT];
+}
+message ProductDeliveryQuery {
+  optional string id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+}
+message ListProductDeliveriesResp {
+  option (hi.audience) = VIS_PARTICIPANT;
+  repeated ProductDeliveryOrder list = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 total = 2 [(hi.visibility) = VIS_PARTICIPANT];
 }

@@ -27,8 +27,9 @@ service ProductMarketDirectory {
   rpc ListSellers(hi.Pagination) returns (ListProductSellersResp) { option (hi.auth) = AUTH_NONE; }
   rpc GetSeller(GetProductSellerReq) returns (ProductSeller) { option (hi.auth) = AUTH_NONE; }
   rpc ListSellerStalls(ListProductStallsReq) returns (ListProductStallsResp) { option (hi.auth) = AUTH_NONE; }
+  // 消费者看到的统一待售目录：自有已挂牌与有效承销且仍挂牌商品，统一去重分页。
   rpc ListStallListings(ListProductsReq) returns (ListProductListingsResp) { option (hi.auth) = AUTH_NONE; }
-  // 机器人的可销售目录：自有已挂牌商品 ∪ 有效承销且仍挂牌的商品。
+  // 与ListStallListings共用同一待售目录；管理自有挂牌使用ProductMarket.ListMyListings。
   // 按平台商品ID去重后统一分页；不含未挂牌库存、隐藏/下架商品或已退出承销。
   // Listing.stall仍是原供货机器人，不将承销关系伪造成自有库存或自加盟。
   rpc ListSellableListings(ListProductsReq) returns (ListProductListingsResp) { option (hi.auth) = AUTH_NONE; }
@@ -133,6 +134,7 @@ message GetProductListingReq {
   option (buf.validate.message).cel = {id: "product.listing.reference", message: "请提供挂牌ID或平台商品ID之一", expression: "has(this.uuid) != has(this.product_id)"};
   optional string uuid = 1 [(buf.validate.field).string.min_len = 1]; // 定位挂牌
   optional string product_id = 2 [(buf.validate.field).string.min_len = 1]; // 定位已上架平台商品，供承销后取当前供货信息
+  optional string selling_stall = 3 [(buf.validate.field).string.min_len = 1]; // 可选销售摊位；传入时必须是其自有挂牌或有效承销商品
 }
 message SearchProductListingsReq {
   optional string keyword = 1 [(buf.validate.field).string.min_len = 1];

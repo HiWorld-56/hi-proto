@@ -527,3 +527,21 @@ http:
   - selector: hi.club.TerminalApplicationDirectory.List
     post: /api/v1/terminal_application_directory/list
     body: "*"
+  - selector: hi.club.ProductDelivery.Submit
+    post: /api/v1/product_delivery/submit
+    body: "*"
+  - selector: hi.club.ProductDelivery.Get
+    post: /api/v1/product_delivery/get
+    body: "*"
+  - selector: hi.club.ProductDelivery.List
+    post: /api/v1/product_delivery/list
+    body: "*"
+  - selector: hi.club.ProductDelivery.Cancel
+    post: /api/v1/product_delivery/cancel
+    body: "*"
+  - selector: hi.club.ProductDelivery.ReportFulfillment
+    post: /api/v1/product_delivery/report_fulfillment
+    body: "*"
+  - selector: hi.club.ProductDelivery.ListEvents
+    post: /api/v1/product_delivery/list_events
+    body: "*"
