@@ -130,6 +130,8 @@ enum ProductPurchaseChannel {
   PRODUCT_PURCHASE_CHANNEL_DIRECT = 2;
 }
 message DirectProductPurchaseReq {
+  // 销售摊位必须随入口显式提交；后台校验自有挂牌或有效承销，不从收款方猜销售归属。
+  optional string selling_stall = 4 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
   optional string request_uuid = 1 [(buf.validate.field).required = true, (buf.validate.field).string.uuid = true];
   ProductPurchaseInput item = 2 [(buf.validate.field).required = true];
   ProductDeliveryTarget target = 3 [(buf.validate.field).required = true];
@@ -181,6 +183,8 @@ message ProductPurchaseOrder {
   SettlementPayment refund = 14 [(hi.visibility) = VIS_PARTICIPANT];
   optional string refund_reason = 15 [(hi.visibility) = VIS_PARTICIPANT];
   optional ProductPurchaseChannel channel = 16 [(hi.visibility) = VIS_PARTICIPANT]; // 既有无此字段的订单均为承销采购
+  hi.Entity reseller = 17 [(hi.visibility) = VIS_PARTICIPANT]; // 实际销售摊位；与supplier同DID表示自销，不影响payment.payer/payee
+  optional ProductAttributionStatus attribution_status = 18 [(hi.visibility) = VIS_PARTICIPANT];
 }
 message ProductPurchaseGroup {
   option (hi.audience) = VIS_PARTICIPANT;
@@ -332,6 +336,8 @@ message ProductDeliveryOrder {
   ProductFulfillment fulfillment = 7 [(hi.visibility) = VIS_PARTICIPANT];
   optional int64 created_at = 8 [(hi.visibility) = VIS_PARTICIPANT];
   optional int64 revision = 9 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity supplier = 10 [(hi.visibility) = VIS_PARTICIPANT]; // 原供货摊位；本摊位自有履约必须与seller同DID
+  optional ProductAttributionStatus attribution_status = 11 [(hi.visibility) = VIS_PARTICIPANT];
 }
 message ProductDeliveryQuery {
   optional string id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
@@ -340,4 +346,66 @@ message ListProductDeliveriesResp {
   option (hi.audience) = VIS_PARTICIPANT;
   repeated ProductDeliveryOrder list = 1 [(hi.visibility) = VIS_PARTICIPANT];
   optional int64 total = 2 [(hi.visibility) = VIS_PARTICIPANT];
+}
+
+// 缺失的历史直购销售来源无法还原，必须保留unknown，不把供货摊位猜填为销售摊位。
+enum ProductAttributionStatus {
+  PRODUCT_ATTRIBUTION_STATUS_UNSPECIFIED = 0;
+  PRODUCT_ATTRIBUTION_STATUS_RECORDED = 1;
+  PRODUCT_ATTRIBUTION_STATUS_RECOVERED = 2;
+  PRODUCT_ATTRIBUTION_STATUS_UNKNOWN_LEGACY = 3;
+}
+// 外部法币账不冒充HiDID的代币付款。身份门面沿用Entity，非HiClub账户使用明确外部引用。
+message ProductExternalAccount {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string system = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string account_id = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string name = 3 [(hi.visibility) = VIS_PARTICIPANT];
+}
+message ProductSettlementParty {
+  option (hi.audience) = VIS_PARTICIPANT;
+  oneof subject {
+    hi.Entity entity = 1 [(hi.visibility) = VIS_PARTICIPANT];
+    ProductExternalAccount external = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  }
+}
+message ProductFiatAmount {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string currency = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string amount = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 精确十进制字符串，不使用浮点
+}
+message ProductMarketOrderRef {
+  option (hi.audience) = VIS_PARTICIPANT;
+  oneof order {
+    string purchase_id = 1 [(hi.visibility) = VIS_PARTICIPANT];
+    string delivery_id = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  }
+}
+enum ProductFiatSettlementKind {
+  PRODUCT_FIAT_SETTLEMENT_KIND_UNSPECIFIED = 0;
+  PRODUCT_FIAT_SETTLEMENT_KIND_RETAIL_RECEIPT = 1;
+  PRODUCT_FIAT_SETTLEMENT_KIND_RETAIL_REFUND = 2;
+  PRODUCT_FIAT_SETTLEMENT_KIND_SUPPLY_SETTLEMENT = 3;
+  PRODUCT_FIAT_SETTLEMENT_KIND_SUPPLY_REVERSAL = 4;
+}
+// 终端/供应外部系统的只增审计流水。模拟与真实标识显式保留；冲销关联原流水且反转资金双方。
+// reseller/supplier是销售归属，payer/payee才是该笔钱的真实方向，两类事实不得相互替代。
+// 跨机器人代币付款仍使用SettlementPayment与SettlementReceipt，通过market_order关联。
+message ProductFiatSettlement {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string id = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string reference = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  TerminalOrderRef source = 3 [(hi.visibility) = VIS_PARTICIPANT];
+  ProductMarketOrderRef market_order = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity reseller = 5 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity supplier = 6 [(hi.visibility) = VIS_PARTICIPANT];
+  ProductSettlementParty payer = 7 [(hi.visibility) = VIS_PARTICIPANT];
+  ProductSettlementParty payee = 8 [(hi.visibility) = VIS_PARTICIPANT];
+  ProductFiatAmount total = 9 [(hi.visibility) = VIS_PARTICIPANT];
+  optional ProductFiatSettlementKind kind = 10 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string original_id = 11 [(hi.visibility) = VIS_PARTICIPANT];
+  optional bool simulated = 12 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 created_at = 13 [(hi.visibility) = VIS_PARTICIPANT];
+  optional ProductAttributionStatus attribution_status = 14 [(hi.visibility) = VIS_PARTICIPANT];
+  optional string product_id = 15 [(hi.visibility) = VIS_PARTICIPANT]; // 纯定位，业务流转仍以平台商品ID为键
 }
