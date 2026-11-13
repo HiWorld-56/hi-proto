@@ -504,3 +504,23 @@ http:
   - selector: hi.club.ProductTrade.Buy
     post: /api/v1/product_trade/buy
     body: "*"
+
+  - selector: hi.club.TerminalApplicationManage.List
+    post: /api/v1/terminal_application_manage/list
+    body: "*"
+
+  - selector: hi.club.TerminalApplicationManage.Create
+    post: /api/v1/terminal_application_manage/create
+    body: "*"
+
+  - selector: hi.club.TerminalApplicationManage.Update
+    post: /api/v1/terminal_application_manage/update
+    body: "*"
+
+  - selector: hi.club.TerminalApplicationManage.Delete
+    post: /api/v1/terminal_application_manage/delete
+    body: "*"
+
+  - selector: hi.club.TerminalApplicationDirectory.List
+    post: /api/v1/terminal_application_directory/list
+    body: "*"

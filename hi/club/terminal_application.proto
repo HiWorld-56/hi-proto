@@ -1,0 +1,52 @@
+syntax = "proto3";
+package hi.club;
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
+import "hi/common.proto";
+import "hi/options.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/empty.proto";
+
+// 外部终端应用入口；不是 HiClub 插件，也不承载第三方账户或结算。
+message TerminalApplicationSpec {
+  optional string name = 1 [(buf.validate.field).required = true, (buf.validate.field).string = {min_len: 1, max_len: 80}];
+  optional string logo = 2 [(buf.validate.field).required = true, (buf.validate.field).string = {uri: true, max_len: 2048}, (buf.validate.field).cel = {id: "logo.https", message: "logo必须是HTTPS地址", expression: "this.startsWith('https://')"}];
+  optional string entry_url = 3 [(buf.validate.field).required = true, (buf.validate.field).string = {uri: true, max_len: 1024}, (buf.validate.field).cel = {id: "entry.https", message: "入口必须是HTTPS地址", expression: "this.startsWith('https://')"}];
+}
+message TerminalApplication {
+  option (hi.audience) = VIS_PUBLIC;
+  optional string id = 1 [(hi.visibility) = VIS_PUBLIC];
+  hi.Entity robot = 2 [(hi.visibility) = VIS_PUBLIC];
+  TerminalApplicationSpec application = 3 [(hi.visibility) = VIS_PUBLIC];
+  optional int64 updated_at = 4 [(hi.visibility) = VIS_PUBLIC];
+}
+message TerminalApplicationRobotQuery {
+  optional string robot = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  hi.Pagination pagination = 2;
+}
+message TerminalApplicationQuery {
+  optional string id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.uuid = true];
+}
+message CreateTerminalApplicationReq {
+  optional string robot = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  TerminalApplicationSpec application = 2 [(buf.validate.field).required = true];
+}
+message UpdateTerminalApplicationReq {
+  optional string id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.uuid = true];
+  TerminalApplicationSpec application = 2 [(buf.validate.field).required = true]; // 完整替换入口配置
+}
+message ListTerminalApplicationsResp {
+  option (hi.audience) = VIS_PUBLIC;
+  optional int64 total = 1 [(hi.visibility) = VIS_PUBLIC];
+  repeated TerminalApplication list = 2 [(hi.visibility) = VIS_PUBLIC];
+}
+// 管理权限：机器人自己或当前主人。随摊位归属变化，不绑定创建者。
+service TerminalApplicationManage {
+  rpc List(TerminalApplicationRobotQuery) returns (ListTerminalApplicationsResp) { option (hi.auth) = AUTH_USER; }
+  rpc Create(CreateTerminalApplicationReq) returns (TerminalApplication) { option (hi.auth) = AUTH_USER; }
+  rpc Update(UpdateTerminalApplicationReq) returns (TerminalApplication) { option (hi.auth) = AUTH_USER; }
+  rpc Delete(TerminalApplicationQuery) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
+}
+// 公开入口目录只展示经营者主动配置的logo/name/url，不含私有接入凭据。
+service TerminalApplicationDirectory {
+  rpc List(TerminalApplicationRobotQuery) returns (ListTerminalApplicationsResp) { option (hi.auth) = AUTH_NONE; }
+}
