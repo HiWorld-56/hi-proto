@@ -16,6 +16,7 @@ service ProductSupply {
 }
 service ProductDistribution {
   rpc Join(JoinProductDistributionReq) returns (ProductDistributionAgreement) { option (hi.auth) = AUTH_USER; }
+  // 仅查询指定/本人机器人主动承销的关系，不混入他人承销本机商品的供货关系。
   rpc List(ProductStallQuery) returns (ListProductDistributionResp) { option (hi.auth) = AUTH_USER; }
   rpc Leave(ProductDistributionQuery) returns (ProductDistributionAgreement) { option (hi.auth) = AUTH_USER; }
 }
