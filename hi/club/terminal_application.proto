@@ -8,9 +8,10 @@ import "google/protobuf/empty.proto";
 
 // 外部终端应用入口；不是 HiClub 插件，也不承载第三方账户或结算。
 message TerminalApplicationSpec {
-  optional string name = 1 [(buf.validate.field).required = true, (buf.validate.field).string = {min_len: 1, max_len: 80}];
-  optional string logo = 2 [(buf.validate.field).required = true, (buf.validate.field).string = {uri: true, max_len: 2048}, (buf.validate.field).cel = {id: "logo.https", message: "logo必须是HTTPS地址", expression: "this.startsWith('https://')"}];
-  optional string entry_url = 3 [(buf.validate.field).required = true, (buf.validate.field).string = {uri: true, max_len: 1024}, (buf.validate.field).cel = {id: "entry.https", message: "入口必须是HTTPS地址", expression: "this.startsWith('https://')"}];
+  option (hi.audience) = VIS_PUBLIC;
+  optional string name = 1 [(hi.visibility) = VIS_PUBLIC, (buf.validate.field).required = true, (buf.validate.field).string = {min_len: 1, max_len: 80}];
+  optional string logo = 2 [(hi.visibility) = VIS_PUBLIC, (buf.validate.field).required = true, (buf.validate.field).string = {uri: true, max_len: 2048}, (buf.validate.field).cel = {id: "logo.https", message: "logo必须是HTTPS地址", expression: "this.startsWith('https://')"}];
+  optional string entry_url = 3 [(hi.visibility) = VIS_PUBLIC, (buf.validate.field).required = true, (buf.validate.field).string = {uri: true, max_len: 1024}, (buf.validate.field).cel = {id: "entry.https", message: "入口必须是HTTPS地址", expression: "this.startsWith('https://')"}];
 }
 message TerminalApplication {
   option (hi.audience) = VIS_PUBLIC;
