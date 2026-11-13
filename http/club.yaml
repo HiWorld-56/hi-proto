@@ -409,6 +409,9 @@ http:
   - selector: hi.club.ProductMarketDirectory.ListStallListings
     post: /api/v1/product_market_directory/list_stall_listings
     body: "*"
+  - selector: hi.club.ProductMarketDirectory.ListSellableListings
+    post: /api/v1/product_market_directory/list_sellable_listings
+    body: "*"
   - selector: hi.club.ProductMarketDirectory.SearchListings
     post: /api/v1/product_market_directory/search_listings
     body: "*"
