@@ -28,6 +28,10 @@ service ProductMarketDirectory {
   rpc GetSeller(GetProductSellerReq) returns (ProductSeller) { option (hi.auth) = AUTH_NONE; }
   rpc ListSellerStalls(ListProductStallsReq) returns (ListProductStallsResp) { option (hi.auth) = AUTH_NONE; }
   rpc ListStallListings(ListProductsReq) returns (ListProductListingsResp) { option (hi.auth) = AUTH_NONE; }
+  // 机器人的可销售目录：自有已挂牌商品 ∪ 有效承销且仍挂牌的商品。
+  // 按平台商品ID去重后统一分页；不含未挂牌库存、隐藏/下架商品或已退出承销。
+  // Listing.stall仍是原供货机器人，不将承销关系伪造成自有库存或自加盟。
+  rpc ListSellableListings(ListProductsReq) returns (ListProductListingsResp) { option (hi.auth) = AUTH_NONE; }
   rpc SearchListings(SearchProductListingsReq) returns (ListProductListingsResp) { option (hi.auth) = AUTH_NONE; }
   rpc GetListing(GetProductListingReq) returns (ProductListing) { option (hi.auth) = AUTH_NONE; }
 }
