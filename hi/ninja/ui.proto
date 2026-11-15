@@ -148,11 +148,19 @@ message VoiceCue {
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).string.max_len = 128
   ];
-  oneof action {
-    string asset_id = 3 [
-      (buf.validate.field).string.min_len = 1,
-      (buf.validate.field).string.max_len = 128
+  // One ordered utterance, one playback permission and one terminal event.
+  // The caller chooses all parts; face must not infer titles or add business content.
+  message Play {
+    repeated string asset_ids = 1 [
+      (buf.validate.field).repeated.min_items = 1,
+      (buf.validate.field).repeated.max_items = 3,
+      (buf.validate.field).repeated.items.string.pattern = "^[A-Za-z0-9_-]{1,128}$"
     ];
+  }
+  oneof action {
+    option (buf.validate.oneof).required = true;
+    // No single asset_id: a one-part utterance is also a Play list.
+    Play play = 5;
     google.protobuf.Empty cancel = 4;
   }
 }
