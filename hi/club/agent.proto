@@ -133,7 +133,28 @@ message GetAgentMomentResp {
   optional string moment = 1 [(hi.visibility) = VIS_PUBLIC]; // 动态;空 = 没有设置
 }
 
+// 硬件机器人的设备交互设置；由 club 保存，设备负责执行，不属于 hi.ai 的模型配置。
+// 未保存过的机器人默认关闭语音回复、revision=0；读取总是返回明确的布尔值及版本。
+// 设置从下一轮面对面提问生效；HiClub文字聊天与屏幕文字不受影响。
+message AgentDeviceSettings {
+  option (hi.audience) = VIS_SELF;
+  hi.Entity agent = 1 [(hi.visibility) = VIS_PUBLIC];
+  optional bool voice_reply_enabled = 2 [(hi.visibility) = VIS_SELF];
+  optional uint64 revision = 3 [(hi.visibility) = VIS_SELF];
+}
+message AgentDeviceSettingsQuery {
+  optional string agent = 1 [(buf.validate.field).required = true, (buf.validate.field).string.pattern = "^\\S+$"];
+}
+message SetAgentDeviceSettingsReq {
+  optional string agent = 1 [(buf.validate.field).required = true, (buf.validate.field).string.pattern = "^\\S+$"];
+  optional bool voice_reply_enabled = 2; // 不传=不改，false=明确关闭
+}
+
 service Agent {
+  // 当前主人可读写；硬件机器人本人只读。权限归 club 现有主从关系，不按 hi.ai creator 判断。
+  rpc GetDeviceSettings (AgentDeviceSettingsQuery) returns (AgentDeviceSettings) { option (hi.auth) = AUTH_USER; }
+  rpc SetDeviceSettings (SetAgentDeviceSettingsReq) returns (AgentDeviceSettings) { option (hi.auth) = AUTH_USER; }
+
   // 列我的机器人。归属**只看 club 自己的 relation(master 关系)** —— club 的机器人关系
   // 由 club 自己管理,与 hiai 无关(hiai 那边所有 club 机器人的 creator 都是 club 商户,
   // 根本表达不了"谁的机器人")。did 取自 token,不接受入参指定;

@@ -59,6 +59,11 @@ http:
   - selector: hi.club.Agent.Delete
     post: /api/v1/agent/delete
     body: "*"
+  - selector: hi.club.Agent.GetDeviceSettings
+    get: /api/v1/agent/get_device_settings
+  - selector: hi.club.Agent.SetDeviceSettings
+    post: /api/v1/agent/set_device_settings
+    body: "*"
   - selector: hi.club.Agent.Get
     get: /api/v1/agent/get
   - selector: hi.club.Agent.GetUsage

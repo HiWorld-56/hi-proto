@@ -173,6 +173,7 @@ message Packet {
    那么这条通知就是我唯一能知道"好友回来了"的信号。离线期间发生的,上线增量同步拿到它
    (状态 `not_processed`),处理完(清掉会话的 severed)回执一下。
 */
+// agent-device-settings-changed: extra=hi.Entity（机器人完整名片），仅通知该机器人本人重新认证拉取设备设置；不在Notice中附带私有配置。
 message Notice {
   option (hi.audience) = VIS_PARTICIPANT; // 群/单聊通知,收信域内可见
   optional string     uuid       = 1 [(hi.visibility) = VIS_PARTICIPANT];
