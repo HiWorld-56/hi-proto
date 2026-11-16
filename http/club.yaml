@@ -64,6 +64,11 @@ http:
   - selector: hi.club.Agent.SetDeviceSettings
     post: /api/v1/agent/set_device_settings
     body: "*"
+  - selector: hi.club.Agent.GetOwnerFacePhoto
+    get: /api/v1/agent/get_owner_face_photo
+  - selector: hi.club.Agent.ReportDeviceRuntime
+    post: /api/v1/agent/report_device_runtime
+    body: "*"
   - selector: hi.club.Agent.Get
     get: /api/v1/agent/get
   - selector: hi.club.Agent.GetUsage

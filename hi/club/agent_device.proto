@@ -1,0 +1,59 @@
+syntax = "proto3";
+package hi.club;
+
+import "buf/validate/validate.proto";
+import "hi/common.proto";
+import "hi/options.proto";
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
+
+// 设备端执行；默认 enabled=false，phrases=[]，续聊30秒。不是 hi.ai 的推理配置。
+// enabled=true 时必须有1～3个中文短语；有效问答刷新续聊窗口，噪声和空转写不刷新。
+message AgentWakeSettings {
+  option (hi.audience) = VIS_SELF;
+  optional bool enabled = 1 [(hi.visibility) = VIS_SELF];
+  repeated string phrases = 2 [(hi.visibility) = VIS_SELF];
+  optional uint32 conversation_window_seconds = 3 [(hi.visibility) = VIS_SELF];
+}
+message AgentOwnerFacePhoto {
+  option (hi.audience) = VIS_SELF;
+  optional string id = 1 [(hi.visibility) = VIS_SELF];
+  optional string sha256 = 2 [(hi.visibility) = VIS_SELF];
+}
+message AgentOwnerFaceProfile {
+  option (hi.audience) = VIS_SELF;
+  hi.Entity owner = 1 [(hi.visibility) = VIS_PUBLIC];
+  repeated AgentOwnerFacePhoto photos = 2 [(hi.visibility) = VIS_SELF];
+}
+
+// 整体替换1～3张JPEG；空列表清除。服务端限制大小、解码尺寸并校验归属。
+// 原片通过鉴权RPC读取，禁止把主人照片转成公开头像/公开URL。
+message AgentOwnerFaceUpload {
+  repeated bytes jpeg = 1;
+}
+message AgentOwnerFacePhotoQuery {
+  optional string agent = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.pattern = "^\\S+$"
+  ];
+  optional string id = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+message AgentOwnerFacePhotoData {
+  option (hi.audience) = VIS_SELF;
+  AgentOwnerFacePhoto photo = 1 [(hi.visibility) = VIS_SELF];
+  optional bytes jpeg = 2 [(hi.visibility) = VIS_SELF];
+}
+message AgentDeviceRuntime {
+  option (hi.audience) = VIS_SELF;
+  optional uint64 settings_revision = 1 [(hi.visibility) = VIS_SELF];
+  optional bool wake_ready = 2 [(hi.visibility) = VIS_SELF];
+  optional bool owner_face_ready = 3 [(hi.visibility) = VIS_SELF];
+  optional string error = 4 [(hi.visibility) = VIS_SELF]; // 仅配置/加载错误，不含原片或特征向量
+  optional int64 updated_at = 5 [(hi.visibility) = VIS_SELF]; // 服务端UTC秒
+}
+message AgentDeviceRuntimeReport {
+  AgentDeviceRuntime runtime = 1 [(buf.validate.field).required = true];
+}

@@ -9,6 +9,7 @@ import "buf/validate/validate.proto";
 import "hi/common.proto";
 import "hi/ai/agent.proto";
 import "hi/options.proto";
+import "hi/club/agent_device.proto";
 
 // ── 说明:本文件里的智能体方法多数是 hi.ai 的门面 ──────────────────────────
 // club **自己没有 AI 功能**,这些方法就是击穿到 hi.ai 拿结果;club 是 hi.ai 的一个商户,
@@ -141,6 +142,10 @@ message AgentDeviceSettings {
   hi.Entity agent = 1 [(hi.visibility) = VIS_PUBLIC];
   optional bool voice_reply_enabled = 2 [(hi.visibility) = VIS_SELF];
   optional uint64 revision = 3 [(hi.visibility) = VIS_SELF];
+  AgentWakeSettings wake = 4 [(hi.visibility) = VIS_SELF];
+  optional bool owner_recognition_enabled = 5 [(hi.visibility) = VIS_SELF]; // 默认关闭；只是一对一主人在场校验，不赋予语音身份
+  AgentOwnerFaceProfile owner_face = 6 [(hi.visibility) = VIS_SELF];
+  AgentDeviceRuntime runtime = 7 [(hi.visibility) = VIS_SELF];
 }
 message AgentDeviceSettingsQuery {
   optional string agent = 1 [(buf.validate.field).required = true, (buf.validate.field).string.pattern = "^\\S+$"];
@@ -148,12 +153,18 @@ message AgentDeviceSettingsQuery {
 message SetAgentDeviceSettingsReq {
   optional string agent = 1 [(buf.validate.field).required = true, (buf.validate.field).string.pattern = "^\\S+$"];
   optional bool voice_reply_enabled = 2; // 不传=不改，false=明确关闭
+  AgentWakeSettings wake = 3; // 不传=不改；传入时整体替换，含开关、词表、续聊时间
+  optional bool owner_recognition_enabled = 4; // 不传=不改，false=明确关闭
+  AgentOwnerFaceUpload owner_face = 5; // 不传=不改；空列表=清除；照片仅供本机一对一校验，不进入公开资源库
 }
 
 service Agent {
   // 当前主人可读写；硬件机器人本人只读。权限归 club 现有主从关系，不按 hi.ai creator 判断。
   rpc GetDeviceSettings (AgentDeviceSettingsQuery) returns (AgentDeviceSettings) { option (hi.auth) = AUTH_USER; }
   rpc SetDeviceSettings (SetAgentDeviceSettingsReq) returns (AgentDeviceSettings) { option (hi.auth) = AUTH_USER; }
+  rpc GetOwnerFacePhoto (AgentOwnerFacePhotoQuery) returns (AgentOwnerFacePhotoData) { option (hi.auth) = AUTH_USER; }
+  // 只有机器人本人能报告；配置已保存与设备已成功加载分开表达。
+  rpc ReportDeviceRuntime (AgentDeviceRuntimeReport) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
 
   // 列我的机器人。归属**只看 club 自己的 relation(master 关系)** —— club 的机器人关系
   // 由 club 自己管理,与 hiai 无关(hiai 那边所有 club 机器人的 creator 都是 club 商户,
