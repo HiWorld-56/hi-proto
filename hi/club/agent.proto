@@ -152,8 +152,8 @@ message AgentDeviceSettingsQuery {
 }
 message SetAgentDeviceSettingsReq {
   optional string agent = 1 [(buf.validate.field).required = true, (buf.validate.field).string.pattern = "^\\S+$"];
-  optional bool voice_reply_enabled = 2; // 不传=不改，false=明确关闭
-  AgentWakeSettings wake = 3; // 不传=不改；传入时整体替换，含开关、词表、续聊时间
+  optional bool voice_reply_enabled = 2; // 不传=不改；false=关闭语音并原子关闭wake.enabled，保留词表/时间
+  AgentWakeSettings wake = 3; // 不传=不改；传入时整体替换；enabled=true要求最终voice_reply_enabled=true
   optional bool owner_recognition_enabled = 4; // 不传=不改，false=明确关闭
   AgentOwnerFaceUpload owner_face = 5; // 不传=不改；空列表=清除；照片仅供本机一对一校验，不进入公开资源库
 }
