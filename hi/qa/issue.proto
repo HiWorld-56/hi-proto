@@ -90,7 +90,7 @@ message WorkerResult {
   optional IssueStatus status = 1 [(buf.validate.field).required = true, (buf.validate.field).enum = { in: [3, 4] }];
   optional string summary = 2 [(buf.validate.field).required = true, (buf.validate.field).string = { min_len: 1, max_len: 8000 }];
   optional string question = 3 [(buf.validate.field).string.max_len = 4000];
-  repeated string evidence = 4;
+  repeated string evidence = 4 [(buf.validate.field).repeated = { max_items: 64, items: { string: { max_len: 8000 } } }];
   optional string architecture_review = 5 [(buf.validate.field).string.max_len = 8000];
   optional Environment verified_environment = 6 [(buf.validate.field).enum = { in: [1, 2] }];
 }
