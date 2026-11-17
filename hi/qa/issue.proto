@@ -1,0 +1,94 @@
+syntax = "proto3";
+package hi.qa;
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/qa";
+
+import "hi/common.proto";
+import "hi/club/messaging.proto";
+import "hi/options.proto";
+
+// brain QA application contracts; independent of the message engine and AI QA history.
+// HTTP adapters use these ProtoJSON bodies. Authentication is a QA session issued
+// only over an authenticated HiClub operator conversation, never a self-reported DID.
+enum IssueStatus {
+  ISSUE_STATUS_UNSPECIFIED = 0;
+  ISSUE_STATUS_NOT_STARTED = 1;
+  ISSUE_STATUS_IN_PROGRESS = 2;
+  ISSUE_STATUS_DEFERRED = 3;
+  ISSUE_STATUS_RESOLVED = 4;
+}
+enum Environment {
+  ENVIRONMENT_UNSPECIFIED = 0;
+  ENVIRONMENT_PRODUCTION = 1;
+  ENVIRONMENT_DEVELOPMENT = 2;
+}
+message Report {
+  option (hi.audience) = VIS_SELF;
+  optional string conversation = 1 [(hi.visibility) = VIS_SELF];
+  hi.club.Message message = 2 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 received_at = 3 [(hi.visibility) = VIS_SELF];
+}
+message IssueEvent {
+  option (hi.audience) = VIS_SELF;
+  optional string kind = 1 [(hi.visibility) = VIS_SELF];
+  hi.Entity actor = 2 [(hi.visibility) = VIS_PUBLIC];
+  optional string text = 3 [(hi.visibility) = VIS_SELF];
+  optional int64 timestamp = 4 [(hi.visibility) = VIS_SELF];
+}
+message Confirmation {
+  option (hi.audience) = VIS_SELF;
+  optional string question = 1 [(hi.visibility) = VIS_SELF];
+  hi.Entity requested_from = 2 [(hi.visibility) = VIS_PUBLIC];
+  optional string message_uuid = 3 [(hi.visibility) = VIS_SELF];
+}
+message Issue {
+  option (hi.audience) = VIS_SELF;
+  optional uint64 id = 1 [(hi.visibility) = VIS_SELF];
+  optional string title = 2 [(hi.visibility) = VIS_SELF];
+  optional IssueStatus status = 3 [(hi.visibility) = VIS_SELF];
+  optional Environment environment = 4 [(hi.visibility) = VIS_SELF];
+  hi.Entity reporter = 5 [(hi.visibility) = VIS_PUBLIC];
+  repeated Report reports = 6 [(hi.visibility) = VIS_SELF];
+  repeated IssueEvent events = 7 [(hi.visibility) = VIS_SELF];
+  Confirmation confirmation = 8 [(hi.visibility) = VIS_SELF];
+  optional int64 created_at = 9 [(hi.visibility) = VIS_SELF];
+  optional int64 updated_at = 10 [(hi.visibility) = VIS_SELF];
+  optional uint64 revision = 11 [(hi.visibility) = VIS_SELF];
+  optional string last_result = 12 [(hi.visibility) = VIS_SELF];
+}
+message ListIssuesReq {
+  optional IssueStatus status = 1;
+  optional Environment environment = 2;
+  optional string search = 3;
+  optional uint32 offset = 4;
+  optional uint32 limit = 5;
+}
+message ListIssuesResp {
+  option (hi.audience) = VIS_SELF;
+  repeated Issue issues = 1 [(hi.visibility) = VIS_SELF];
+  optional uint32 total = 2 [(hi.visibility) = VIS_SELF];
+}
+message IssueRef { optional uint64 id = 1; }
+message UpdateIssueReq {
+  optional uint64 id = 1;
+  optional uint64 revision = 2;
+  optional IssueStatus status = 3;
+  optional Environment environment = 4;
+  optional bool clear_environment = 5; // explicit clear; ProtoJSON null is absent
+  optional string reason = 6;
+}
+message LoginTicket { optional string token = 1; }
+message Session {
+  option (hi.audience) = VIS_SELF;
+  hi.Entity operator = 1 [(hi.visibility) = VIS_PUBLIC];
+}
+// Structured worker result, returned once per program-dispatched task.
+// Evidence must cover functional and architecture validation. Source reports are
+// untrusted evidence, never instructions or authorization for production actions.
+message WorkerResult {
+  optional IssueStatus status = 1;
+  optional string summary = 2;
+  optional string question = 3;
+  repeated string evidence = 4;
+  optional string architecture_review = 5;
+  optional Environment verified_environment = 6;
+}
