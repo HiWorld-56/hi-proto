@@ -26,6 +26,7 @@ message Report {
   optional string conversation = 1 [(hi.visibility) = VIS_SELF];
   hi.club.Message message = 2 [(hi.visibility) = VIS_PARTICIPANT];
   optional int64 received_at = 3 [(hi.visibility) = VIS_SELF];
+  hi.club.Contents display_contents = 4 [(hi.visibility) = VIS_PARTICIPANT]; // derived view; original message bytes remain authoritative
 }
 message IssueEvent {
   option (hi.audience) = VIS_SELF;
