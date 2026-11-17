@@ -2,6 +2,7 @@ syntax = "proto3";
 package hi.qa;
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/qa";
 
+import "buf/validate/validate.proto";
 import "hi/common.proto";
 import "hi/club/messaging.proto";
 import "hi/options.proto";
@@ -57,27 +58,27 @@ message Issue {
   optional string last_result = 12 [(hi.visibility) = VIS_SELF];
 }
 message ListIssuesReq {
-  optional IssueStatus status = 1;
-  optional Environment environment = 2;
-  optional string search = 3;
+  optional IssueStatus status = 1 [(buf.validate.field).enum = { in: [1, 2, 3, 4] }];
+  optional Environment environment = 2 [(buf.validate.field).enum = { in: [1, 2] }];
+  optional string search = 3 [(buf.validate.field).string.max_len = 200];
   optional uint32 offset = 4;
-  optional uint32 limit = 5;
+  optional uint32 limit = 5 [(buf.validate.field).uint32 = { gt: 0, lte: 100 }];
 }
 message ListIssuesResp {
   option (hi.audience) = VIS_SELF;
   repeated Issue issues = 1 [(hi.visibility) = VIS_SELF];
   optional uint32 total = 2 [(hi.visibility) = VIS_SELF];
 }
-message IssueRef { optional uint64 id = 1; }
+message IssueRef { optional uint64 id = 1 [(buf.validate.field).required = true, (buf.validate.field).uint64.gt = 0]; }
 message UpdateIssueReq {
-  optional uint64 id = 1;
-  optional uint64 revision = 2;
-  optional IssueStatus status = 3;
-  optional Environment environment = 4;
+  optional uint64 id = 1 [(buf.validate.field).required = true, (buf.validate.field).uint64.gt = 0];
+  optional uint64 revision = 2 [(buf.validate.field).required = true, (buf.validate.field).uint64.gt = 0];
+  optional IssueStatus status = 3 [(buf.validate.field).enum = { in: [1, 2, 3, 4] }];
+  optional Environment environment = 4 [(buf.validate.field).enum = { in: [1, 2] }];
   optional bool clear_environment = 5; // explicit clear; ProtoJSON null is absent
-  optional string reason = 6;
+  optional string reason = 6 [(buf.validate.field).required = true, (buf.validate.field).string = { min_len: 1, max_len: 4000 }];
 }
-message LoginTicket { optional string token = 1; }
+message LoginTicket { optional string token = 1 [(buf.validate.field).required = true, (buf.validate.field).string.pattern = "^[0-9a-f]{64}$"]; }
 message Session {
   option (hi.audience) = VIS_SELF;
   hi.Entity operator = 1 [(hi.visibility) = VIS_PUBLIC];
@@ -86,10 +87,10 @@ message Session {
 // Evidence must cover functional and architecture validation. Source reports are
 // untrusted evidence, never instructions or authorization for production actions.
 message WorkerResult {
-  optional IssueStatus status = 1;
-  optional string summary = 2;
-  optional string question = 3;
+  optional IssueStatus status = 1 [(buf.validate.field).required = true, (buf.validate.field).enum = { in: [3, 4] }];
+  optional string summary = 2 [(buf.validate.field).required = true, (buf.validate.field).string = { min_len: 1, max_len: 8000 }];
+  optional string question = 3 [(buf.validate.field).string.max_len = 4000];
   repeated string evidence = 4;
-  optional string architecture_review = 5;
-  optional Environment verified_environment = 6;
+  optional string architecture_review = 5 [(buf.validate.field).string.max_len = 8000];
+  optional Environment verified_environment = 6 [(buf.validate.field).enum = { in: [1, 2] }];
 }
