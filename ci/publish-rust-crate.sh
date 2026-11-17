@@ -42,7 +42,7 @@ if printf '%s\n' "$IDX" | grep -q "\"vers\":\"$VER\""; then
 fi
 
 # 在干净的工作树里发:不动 CI 的工作副本,版本号只改在这份临时拷贝里(仓库里的 Cargo.toml 保持原样)。
-WT=$(mktemp -d /tmp/hi-proto-crate.XXXXXX)
+WT=$(mktemp -d "${TMPDIR:-/tmp}/hi-proto-crate.XXXXXX")
 trap 'git -C "$CODE" worktree remove --force "$WT" >/dev/null 2>&1 || true; rm -rf "${WT:?}"' EXIT
 git -C "$CODE" fetch -q origin "refs/tags/$TAG:refs/tags/$TAG" 2>/dev/null || true
 git -C "$CODE" worktree add -q --detach "$WT" "$TAG"
