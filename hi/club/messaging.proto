@@ -10,6 +10,7 @@ import "hi/binance/command.proto";
 import "hi/binance/offer.proto";
 import "hi/binance/signal.proto";
 import "hi/options.proto";
+import "hi/club/owner_action.proto";
 
 option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
 
@@ -173,6 +174,7 @@ message Packet {
    那么这条通知就是我唯一能知道"好友回来了"的信号。离线期间发生的,上线增量同步拿到它
    (状态 `not_processed`),处理完(清掉会话的 severed)回执一下。
 */
+// agent-device-settings-changed: extra=hi.Entity（机器人完整名片），仅通知该机器人本人重新认证拉取设备设置；不在Notice中附带私有配置。
 message Notice {
   option (hi.audience) = VIS_PARTICIPANT; // 群/单聊通知,收信域内可见
   optional string     uuid       = 1 [(hi.visibility) = VIS_PARTICIPANT];
@@ -297,6 +299,10 @@ message Message {
   optional uint32     dark      = 10 [(hi.visibility) = VIS_PARTICIPANT]; // 暗语等级,不带 = 0 = 普通;见上面「暗语」那段
   // 可变部分:序列化后的 `Contents`。中间层原样存、原样转,只有 UI / brain 解(见上方说明)
   optional bytes      contents  = 11 [(hi.visibility) = VIS_PARTICIPANT];
+  // 业务请求与回复的关联号。不传 = 无关联，普通消息不作特殊处理；保留presence，不用零值代替未传。
+  // 由业务层生成、解释；接收触发的回复流程原样传递并在回复消息中回带（人工确认仅暂停该流程）。
+  // 不改变既有回复条件或权限。消息引擎只随信封保存、传输，不据此触发行为或路由。
+  optional string request_respond_id = 12 [(hi.visibility) = VIS_PARTICIPANT];
 }
 
 // 消息的可变部分(`Message.contents` 里装的就是它序列化后的字节)。
@@ -334,6 +340,8 @@ message Member {
      binance_signal 币安跟单信号     kind=binance_signal(hi.binance.BinanceSignal)—— 信号源机器人发、@所有人,见 hi/binance/signal.proto
      binance_offer 币安开单卡       kind=binance_offer(hi.binance.BinanceOffer)—— 跟单方机器人发给主人,同一 id 叠成一张,见 hi/binance/offer.proto
      binance_offer_reply 开单卡回复  kind=binance_offer_reply(hi.binance.BinanceOfferReply)—— 主人发给机器人,只认主人
+     owner_action 主人逐项确认卡 kind=owner_action(hi.club.OwnerAction)
+     owner_action_reply 主人确认回执 kind=owner_action_reply(hi.club.OwnerActionReply)
      chat_record 聊天记录(合并转发)  kind=record(hi.club.ChatRecord)—— 原样内嵌被转发的那几条完整消息
 
    ⚠️ **注意是 `image_url` 不是 `image`、`audio_url` 不是 `audio`。**
@@ -388,6 +396,8 @@ message Content {
 
   optional string type = 1 [(hi.visibility) = VIS_PARTICIPANT];
   oneof kind {
+    OwnerAction owner_action = 12 [(hi.visibility) = VIS_PARTICIPANT];
+    OwnerActionReply owner_action_reply = 13 [(hi.visibility) = VIS_PARTICIPANT];
     Chat               chat  = 2 [(hi.visibility) = VIS_PARTICIPANT];
     hi.did.Transaction trans = 3 [(hi.visibility) = VIS_PUBLIC]; // Transaction=公开
     // ⚠️ 没有「交易卡」(原 `TradeBase trade = 4`),不要加回来:中间人交易(club-trade)

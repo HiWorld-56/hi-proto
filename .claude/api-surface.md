@@ -1,18 +1,18 @@
 # hi-proto 接口全量核对表
 
-**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.27-dev.2` @ `bdae298`)。
+**由 codegen/gen_api_surface.py 生成,勿手工编辑**(基于 `v1.5.56-dev.2` @ `764c0ed`)。
 上一版是手写的,内容停在重构前 —— 档位名、rpc 数量、方法名全部过时,当成当前清单会被误导,故改为随发布自动重生成。
 
-共 **391** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
+共 **483** 个 rpc。档位定义见 `hi/options.proto`;`hi.auth` 是 repeated,多档位 = 任一通过。
 
 ## 档位分布
 
 | 档位 | 数量 |
 |---|---|
-| `AUTH_USER` | 161 |
-| `AUTH_MERCHANT` | 98 |
-| `AUTH_NONE` | 63 |
-| `AUTH_SUPERADMIN` | 51 |
+| `AUTH_USER` | 235 |
+| `AUTH_MERCHANT` | 96 |
+| `AUTH_NONE` | 75 |
+| `AUTH_SUPERADMIN` | 59 |
 | `AUTH_WEB3` | 14 |
 | `AUTH_INTERNAL` | 6 |
 
@@ -104,19 +104,9 @@
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | ListEmbeddings | `AUTH_MERCHANT` | google.protobuf.Empty | ModelListResp | GET /api/v1/model/list_embeddings |
-| ListLlms | `AUTH_MERCHANT` | google.protobuf.Empty | ModelListResp | GET /api/v1/model/list_llms |
+| ListLlms | `AUTH_MERCHANT` | google.protobuf.Empty | LlmModelListResp | GET /api/v1/model/list_llms |
 | ListStts | `AUTH_MERCHANT` | google.protobuf.Empty | ListSTTResp | GET /api/v1/model/list_stts |
 | ListTts | `AUTH_MERCHANT` | google.protobuf.Empty | ModelListResp | GET /api/v1/model/list_tts |
-
-### hi.ai.Permission
-
-| 方法 | 档位 | 入参 | 返回 | HTTP |
-|---|---|---|---|---|
-| Add | `AUTH_MERCHANT` | PermissionAddReq | google.protobuf.Empty | POST /api/v1/permission/add |
-| Delete | `AUTH_MERCHANT` | PermissionDeleteReq | google.protobuf.Empty | POST /api/v1/permission/delete |
-| Edit | `AUTH_MERCHANT` | PermissionEditReq | google.protobuf.Empty | POST /api/v1/permission/edit |
-| List | `AUTH_MERCHANT` | ListAgentPermissionsReq | ListAgentPermissionsResp | POST /api/v1/permission/list |
-| ListByType | `AUTH_MERCHANT` | PermissionListReq | PermissionListResp | POST /api/v1/permission/list_by_type |
 
 ### hi.ai.Plugin
 
@@ -135,6 +125,7 @@
 | Get | `AUTH_MERCHANT` | GetPluginReq | GetPluginResp | GET /api/v1/plugin/get |
 | List | `AUTH_MERCHANT` | ListPluginsReq | ListPluginsResp | POST /api/v1/plugin/list |
 | ListOnDevice | `AUTH_MERCHANT` | ListOnDeviceReq | ListOnDeviceResp | — |
+| ListReferences | `AUTH_MERCHANT` | ListPluginReferencesReq | ListPluginReferencesResp | — |
 | ListVersions | `AUTH_MERCHANT` | ListVersionsReq | ListVersionsResp | POST /api/v1/plugin/list_versions |
 | PublicBriefs | `AUTH_MERCHANT` | PublicBriefsReq | PublicBriefsResp | — |
 | RetryBuild | `AUTH_MERCHANT` | RetryBuildReq | google.protobuf.Empty | POST /api/v1/plugin/retry_build |
@@ -176,7 +167,9 @@
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | Synthesize | `AUTH_MERCHANT` | SynthesizeReq | SynthesizeResp | POST /api/v1/speech/synthesize |
+| SynthesizeStream ⇄ | `AUTH_MERCHANT` | SynthesizeReq | hi.AudioStreamEvent | — |
 | Transcribe | `AUTH_MERCHANT` | TranscribeReq | TranscribeResp | POST /api/v1/speech/transcribe |
+| TranscribeStream ⇄ | `AUTH_MERCHANT` | TranscribeStreamReq | TranscribeResp | — |
 
 ### hi.ai.SuperAdmin
 
@@ -226,8 +219,10 @@
 | Edit | `AUTH_USER` | hi.ai.EditAgentReq | hi.Entity | POST /api/v1/agent/edit |
 | Get | `AUTH_USER` | hi.ai.GetAgentReq | hi.ai.GetAgentResp | GET /api/v1/agent/get |
 | GetDefaultConfig | `AUTH_USER` | google.protobuf.Empty | hi.ai.DefaultConfigResp | GET /api/v1/agent/get_default_config |
+| GetDeviceSettings | `AUTH_USER` | AgentDeviceSettingsQuery | AgentDeviceSettings | GET /api/v1/agent/get_device_settings |
 | GetUsage | `AUTH_USER` | hi.ai.AgentUsageReq | hi.ai.AgentUsageResp | POST /api/v1/agent/get_usage |
 | List | `AUTH_USER` | hi.ai.ListAgentsReq | ListAgentsResp | POST /api/v1/agent/list |
+| SetDeviceSettings | `AUTH_USER` | SetAgentDeviceSettingsReq | AgentDeviceSettings | POST /api/v1/agent/set_device_settings |
 | SetMoment | `AUTH_USER` | SetAgentMomentReq | google.protobuf.Empty | POST /api/v1/agent/set_moment |
 | Transfer | `AUTH_USER` | TransferReq | google.protobuf.Empty | POST /api/v1/agent/transfer |
 | UnbindMaster | `AUTH_USER` | MasterBindReq | google.protobuf.Empty | POST /api/v1/agent/unbind_master |
@@ -289,6 +284,7 @@
 |---|---|---|---|---|
 | AppendContext | `AUTH_USER` | AppendContextReq | google.protobuf.Empty | — |
 | ClearContext | `AUTH_USER` | ClearContextReq | google.protobuf.Empty | POST /api/v1/chat/clear_context |
+| ClearConversationContext | `AUTH_USER` | GetGroupReq | google.protobuf.Empty | POST /api/v1/chat/clear_conversation_context |
 | Converse | `AUTH_USER` | ChatReq | hi.ai.ChatResp | POST /api/v1/chat/converse |
 | ConverseStream ⇄ | `AUTH_USER` | ChatReq | hi.ai.ConverseStreamResp | POST /api/v1/chat/converse_stream |
 | GetContext | `AUTH_USER` | GetContextReq | GetContextResp | POST /api/v1/chat/get_context |
@@ -304,7 +300,6 @@
 | CreateSingle | `AUTH_USER` | CreateSingleReq | GroupBase | — |
 | Get | `AUTH_USER` | GetGroupReq | GroupMemberView | — |
 | GetMemberTotal | `AUTH_USER` | GetGroupMemberTotalReq | GetGroupMemberTotalResp | — |
-| GetMessage | `AUTH_USER` | GetMessageReq | Packet | — |
 | GetRole | `AUTH_USER` | GetRoleReq | GetRoleResp | — |
 | Invite | `AUTH_USER` | InviteGroupReq | google.protobuf.Empty | — |
 | Join | `AUTH_USER` | JoinGroupReq | google.protobuf.Empty | — |
@@ -337,8 +332,10 @@
 | CreateRenewOrder | `AUTH_USER` | CreateRenewOrderReq | MarketOrder | POST /api/v1/market/create_renew_order |
 | DeclineOffer | `AUTH_USER` | DecideOfferReq | google.protobuf.Empty | POST /api/v1/market/decline_offer |
 | EditListing | `AUTH_USER` | EditListingReq | google.protobuf.Empty | POST /api/v1/market/edit_listing |
+| ForceDelist | `AUTH_USER` | ForceDelistReq | google.protobuf.Empty | POST /api/v1/market/force_delist |
 | GetTransaction | `AUTH_USER` | GetTransactionReq | MarketPayment | POST /api/v1/market/get_transaction |
 | IssuePayment | `AUTH_USER` | IssuePaymentReq | MarketOrder | POST /api/v1/market/issue_payment |
+| ListListingUsers | `AUTH_USER` | ListListingUsersReq | ListListingUsersResp | POST /api/v1/market/list_listing_users |
 | ListMyGrants | `AUTH_USER` | ListGrantsReq | ListGrantsResp | POST /api/v1/market/list_my_grants |
 | ListMyListings | `AUTH_USER` | ListMyListingsReq | ListMyListingsResp | POST /api/v1/market/list_my_listings |
 | ListPayments | `AUTH_USER` | ListPaymentsReq | ListPaymentsResp | POST /api/v1/market/list_payments |
@@ -347,6 +344,7 @@
 | Offer | `AUTH_USER` | OfferReq | OfferResp | POST /api/v1/market/offer |
 | Reject | `AUTH_USER` | DecideGrantReq | google.protobuf.Empty | POST /api/v1/market/reject |
 | Revoke | `AUTH_USER` | DecideGrantReq | google.protobuf.Empty | POST /api/v1/market/revoke |
+| RevokeListingUser | `AUTH_USER` | RevokeListingUserReq | google.protobuf.Empty | POST /api/v1/market/revoke_listing_user |
 | SetAutoRenew | `AUTH_USER` | SetAutoRenewReq | google.protobuf.Empty | POST /api/v1/market/set_auto_renew |
 | SetListingStatus | `AUTH_USER` | SetListingStatusReq | google.protobuf.Empty | POST /api/v1/market/set_listing_status |
 
@@ -377,6 +375,27 @@
 | ListGrants | `AUTH_SUPERADMIN` | MarketManageListGrantsReq | ListGrantsResp | POST /api/v1/market_manage/list_grants |
 | ListListings | `AUTH_SUPERADMIN` | MarketManageListListingsReq | SearchListingsResp | POST /api/v1/market_manage/list_listings |
 
+### hi.club.MediaImage
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| CreateMultipleImageEdit | `AUTH_USER` | CreateMediaImageReq | CreateMediaImageResp | — |
+| CreateSingleImageEdit | `AUTH_USER` | CreateMediaImageReq | CreateMediaImageResp | — |
+| CreateTextToImage | `AUTH_USER` | CreateMediaImageReq | CreateMediaImageResp | — |
+| GetResult | `AUTH_USER` | MediaImageTaskReq | MediaImageResult | — |
+| GetTask | `AUTH_USER` | MediaImageTaskReq | MediaImageTaskResp | — |
+| PrepareInputImage | `AUTH_USER` | PrepareMediaImageReq | PrepareMediaImageResp | — |
+
+### hi.club.MediaVideo
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| CreateImageToVideo | `AUTH_USER` | CreateMediaVideoReq | CreateMediaVideoResp | — |
+| CreateTextToVideo | `AUTH_USER` | CreateMediaVideoReq | CreateMediaVideoResp | — |
+| GetResult | `AUTH_USER` | MediaVideoTaskReq | MediaVideoResult | — |
+| GetTask | `AUTH_USER` | MediaVideoTaskReq | MediaVideoTaskResp | — |
+| PrepareInputImage | `AUTH_USER` | PrepareMediaVideoImageReq | PrepareMediaVideoImageResp | — |
+
 ### hi.club.Merchant
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
@@ -397,7 +416,7 @@
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | ListEmbeddings | `AUTH_USER` | google.protobuf.Empty | hi.ai.ModelListResp | GET /api/v1/model/list_embeddings |
-| ListLlms | `AUTH_USER` | google.protobuf.Empty | hi.ai.ModelListResp | GET /api/v1/model/list_llms |
+| ListLlms | `AUTH_USER` | google.protobuf.Empty | hi.ai.LlmModelListResp | GET /api/v1/model/list_llms |
 | ListStts | `AUTH_USER` | google.protobuf.Empty | hi.ai.ListSTTResp | GET /api/v1/model/list_stts |
 | ListTts | `AUTH_USER` | google.protobuf.Empty | hi.ai.ModelListResp | GET /api/v1/model/list_tts |
 
@@ -405,17 +424,17 @@
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
-| Get | `AUTH_USER` | google.protobuf.Empty | hi.ai.PermissionInfo | POST /api/v1/permission/get |
-| List | `AUTH_USER` | hi.ai.ListAgentPermissionsReq | hi.ai.ListAgentPermissionsResp | POST /api/v1/permission/list |
+| Get | `AUTH_USER` | google.protobuf.Empty | PermissionInfo | POST /api/v1/permission/get |
+| List | `AUTH_USER` | ListAgentPermissionsReq | ListAgentPermissionsResp | POST /api/v1/permission/list |
 
 ### hi.club.PermissionManage
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
-| Add | `AUTH_SUPERADMIN` | hi.ai.PermissionAddReq | google.protobuf.Empty | POST /api/v1/permission_manage/add |
-| Delete | `AUTH_SUPERADMIN` | hi.ai.PermissionDeleteReq | google.protobuf.Empty | POST /api/v1/permission_manage/delete |
-| Edit | `AUTH_SUPERADMIN` | hi.ai.PermissionEditReq | google.protobuf.Empty | POST /api/v1/permission_manage/edit |
-| List | `AUTH_SUPERADMIN` | hi.ai.PermissionListReq | hi.ai.PermissionListResp | POST /api/v1/permission_manage/list |
+| Add | `AUTH_SUPERADMIN` | PermissionAddReq | google.protobuf.Empty | POST /api/v1/permission_manage/add |
+| Delete | `AUTH_SUPERADMIN` | PermissionDeleteReq | google.protobuf.Empty | POST /api/v1/permission_manage/delete |
+| Edit | `AUTH_SUPERADMIN` | PermissionEditReq | google.protobuf.Empty | POST /api/v1/permission_manage/edit |
+| List | `AUTH_SUPERADMIN` | PermissionListReq | PermissionListResp | POST /api/v1/permission_manage/list |
 
 ### hi.club.Plugin
 
@@ -444,12 +463,92 @@
 |---|---|---|---|---|
 | Get | `AUTH_NONE` | hi.did.GetPriceReq | hi.did.GetPriceResp | — |
 
+### hi.club.ProductDelivery
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| Cancel | `AUTH_USER` | ProductDeliveryQuery | ProductDeliveryOrder | POST /api/v1/product_delivery/cancel |
+| Get | `AUTH_USER` | ProductDeliveryQuery | ProductDeliveryOrder | POST /api/v1/product_delivery/get |
+| List | `AUTH_USER` | ProductStallQuery | ListProductDeliveriesResp | POST /api/v1/product_delivery/list |
+| ListEvents | `AUTH_USER` | ProductDeliveryQuery | ListProductOrderEventsResp | POST /api/v1/product_delivery/list_events |
+| ReportFulfillment | `AUTH_USER` | ProductFulfillmentReport | ProductDeliveryOrder | POST /api/v1/product_delivery/report_fulfillment |
+| Submit | `AUTH_USER` | SubmitProductDeliveryReq | ProductDeliveryOrder | POST /api/v1/product_delivery/submit |
+
+### hi.club.ProductDistribution
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| Join | `AUTH_USER` | JoinProductDistributionReq | ProductDistributionAgreement | POST /api/v1/product_distribution/join |
+| Leave | `AUTH_USER` | ProductDistributionQuery | ProductDistributionAgreement | POST /api/v1/product_distribution/leave |
+| List | `AUTH_USER` | ProductStallQuery | ListProductDistributionResp | POST /api/v1/product_distribution/list |
+
+### hi.club.ProductInventory
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| AdjustStock | `AUTH_USER` | AdjustProductStockReq | ProductInventoryItem | POST /api/v1/product_inventory/adjust_stock |
+| Configure | `AUTH_USER` | ConfigureProductReq | ProductInventoryItem | POST /api/v1/product_inventory/configure |
+| Create | `AUTH_USER` | CreateProductReq | ProductInventoryItem | POST /api/v1/product_inventory/create |
+| CreateBatch | `AUTH_USER` | BatchCreateProductsReq | ListProductInventoryResp | POST /api/v1/product_inventory/create_batch |
+| Get | `AUTH_USER` | GetProductReq | ProductInventoryItem | POST /api/v1/product_inventory/get |
+| List | `AUTH_USER` | ListProductsReq | ListProductInventoryResp | POST /api/v1/product_inventory/list |
+
+### hi.club.ProductMarket
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| ListMyListings | `AUTH_USER` | ListProductsReq | ListProductListingsResp | POST /api/v1/product_market/list_my_listings |
+| Publish | `AUTH_USER` | GetProductReq | ProductListing | POST /api/v1/product_market/publish |
+| SetListingStatus | `AUTH_USER` | SetProductListingStatusReq | ProductListing | POST /api/v1/product_market/set_listing_status |
+
+### hi.club.ProductMarketDirectory
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| GetListing | `AUTH_NONE` | GetProductListingReq | ProductListing | POST /api/v1/product_market_directory/get_listing |
+| GetSeller | `AUTH_NONE` | GetProductSellerReq | ProductSeller | POST /api/v1/product_market_directory/get_seller |
+| ListSellableListings | `AUTH_NONE` | ListProductsReq | ListProductListingsResp | POST /api/v1/product_market_directory/list_sellable_listings |
+| ListSellerStalls | `AUTH_NONE` | ListProductStallsReq | ListProductStallsResp | POST /api/v1/product_market_directory/list_seller_stalls |
+| ListSellers | `AUTH_NONE` | hi.Pagination | ListProductSellersResp | POST /api/v1/product_market_directory/list_sellers |
+| ListStallListings | `AUTH_NONE` | ListProductsReq | ListProductListingsResp | POST /api/v1/product_market_directory/list_stall_listings |
+| SearchListings | `AUTH_NONE` | SearchProductListingsReq | ListProductListingsResp | POST /api/v1/product_market_directory/search_listings |
+
+### hi.club.ProductSupply
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| GetDetail | `AUTH_USER` | GetProductReq | ProductDetail | POST /api/v1/product_supply/get_detail |
+| ListStockMovements | `AUTH_USER` | ProductRecordQuery | ListProductStockMovementsResp | POST /api/v1/product_supply/list_stock_movements |
+
+### hi.club.ProductTrade
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| ApproveRefund | `AUTH_USER` | ProductPurchaseQuery | ProductPurchaseOrder | POST /api/v1/product_trade/approve_refund |
+| Buy | `AUTH_USER` | DirectProductPurchaseReq | ProductPurchaseOrder | POST /api/v1/product_trade/buy |
+| Cancel | `AUTH_USER` | ProductPurchaseQuery | ProductPurchaseOrder | POST /api/v1/product_trade/cancel |
+| Confirm | `AUTH_USER` | ProductPurchaseQuery | ProductPurchaseOrder | POST /api/v1/product_trade/confirm |
+| Get | `AUTH_USER` | ProductPurchaseQuery | ProductPurchaseOrder | POST /api/v1/product_trade/get |
+| List | `AUTH_USER` | ListProductPurchasesReq | ListProductPurchasesResp | POST /api/v1/product_trade/list |
+| ListEvents | `AUTH_USER` | ProductPurchaseQuery | ListProductOrderEventsResp | POST /api/v1/product_trade/list_events |
+| ListTransactions | `AUTH_USER` | ProductOrderRecordsReq | ListSettlementReceiptsResp | POST /api/v1/product_trade/list_transactions |
+| ReportFulfillment | `AUTH_USER` | ProductFulfillmentReport | ProductPurchaseOrder | POST /api/v1/product_trade/report_fulfillment |
+| RequestRefund | `AUTH_USER` | ProductRefundRequest | ProductPurchaseOrder | POST /api/v1/product_trade/request_refund |
+| Submit | `AUTH_USER` | TerminalOrderSubmission | ProductPurchaseGroup | POST /api/v1/product_trade/submit |
+
 ### hi.club.PushManager
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | Register | `AUTH_USER` | PushRegisterReq | google.protobuf.Empty | — |
 | Unregister | `AUTH_USER` | PushUnregisterReq | google.protobuf.Empty | — |
+
+### hi.club.SettlementExecution
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| Begin | `AUTH_USER` | BeginSettlementPaymentReq | SettlementPayment | POST /api/v1/settlement_execution/begin |
+| List | `AUTH_USER` | hi.Pagination | ListSettlementPaymentsResp | POST /api/v1/settlement_execution/list |
 
 ### hi.club.Source
 
@@ -460,11 +559,14 @@
 | DownloadScript | `AUTH_USER` | hi.ai.DownloadScriptReq | hi.ai.DownloadScriptResp | POST /api/v1/source/download_script |
 | DownloadStream ⇄ | `AUTH_USER` | hi.source.DownloadStreamReq | hi.source.DownloadStreamResp | — |
 | DownloadTrainingFile | `AUTH_USER` | hi.ai.DownloadFileReq | hi.ai.DownloadFileResp | POST /api/v1/source/download_training_file |
+| ProbeVideo | `AUTH_USER` | ProbeVideoReq | ProbeVideoResp | — |
+| TranscodeForRobot | `AUTH_USER` | TranscodeForRobotReq | TranscodeForRobotResp | — |
 | UploadAvatar | `AUTH_USER` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_avatar |
 | UploadGroupAvatar | `AUTH_USER` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_group_avatar |
 | UploadGroupBackground | `AUTH_USER` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_group_background |
 | UploadLog | `AUTH_USER` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_log |
 | UploadLogo | `AUTH_USER` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_logo |
+| UploadProductImage | `AUTH_USER` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_product_image |
 | UploadScript | `AUTH_USER` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_script |
 | UploadScriptStream ⇄ | `AUTH_USER` | hi.UploadStreamReq | hi.UploadResp | — |
 | UploadSummary | `AUTH_USER` | hi.UploadReq | hi.UploadResp | POST /api/v1/source/upload_summary |
@@ -477,13 +579,30 @@
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | Synthesize | `AUTH_USER` | hi.ai.SynthesizeReq | hi.ai.SynthesizeResp | POST /api/v1/speech/synthesize |
+| SynthesizeStream ⇄ | `AUTH_USER` | hi.ai.SynthesizeReq | hi.AudioStreamEvent | — |
 | Transcribe | `AUTH_USER` | hi.ai.TranscribeReq | hi.ai.TranscribeResp | POST /api/v1/speech/transcribe |
+| TranscribeStream ⇄ | `AUTH_USER` | hi.ai.TranscribeStreamReq | hi.ai.TranscribeResp | — |
 
 ### hi.club.SuperAdmin
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | List | `AUTH_USER` | google.protobuf.Empty | hi.did.ListSuperAdminUsersResp | GET /api/v1/super_admin/list |
+
+### hi.club.TerminalApplicationDirectory
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| List | `AUTH_NONE` | TerminalApplicationRobotQuery | ListTerminalApplicationsResp | POST /api/v1/terminal_application_directory/list |
+
+### hi.club.TerminalApplicationManage
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| Create | `AUTH_USER` | CreateTerminalApplicationReq | TerminalApplication | POST /api/v1/terminal_application_manage/create |
+| Delete | `AUTH_USER` | TerminalApplicationQuery | google.protobuf.Empty | POST /api/v1/terminal_application_manage/delete |
+| List | `AUTH_USER` | TerminalApplicationRobotQuery | ListTerminalApplicationsResp | POST /api/v1/terminal_application_manage/list |
+| Update | `AUTH_USER` | UpdateTerminalApplicationReq | TerminalApplication | POST /api/v1/terminal_application_manage/update |
 
 ### hi.club.Training
 
@@ -504,17 +623,22 @@
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | AddFriend | `AUTH_USER` | AddFriendReq | AddFriendResp | — |
+| Block | `AUTH_USER` | BlockReq | google.protobuf.Empty | — |
+| DeleteAccount | `AUTH_USER` | google.protobuf.Empty | google.protobuf.Empty | — |
 | DeleteFriend | `AUTH_USER` | DeleteFriendReq | google.protobuf.Empty | — |
 | GetCurrent | `AUTH_USER` | google.protobuf.Empty | UserInfo | — |
 | GetOther | `AUTH_USER` | GetUserReq | hi.Entity | — |
 | HandleNotice | `AUTH_USER` | HandleNoticeReq | google.protobuf.Empty | — |
+| ListBlocked | `AUTH_USER` | google.protobuf.Empty | ListBlockedResp | — |
 | ListGroups | `AUTH_USER` | google.protobuf.Empty | ListGroupsResp | — |
 | ListNoticeStatuses | `AUTH_USER` | ListNoticeStatusesReq | ListNoticeStatusesResp | — |
 | ListNotices | `AUTH_USER` | ListNoticesReq | ListNoticesResp | — |
 | ListPendingNotices | `AUTH_USER` | google.protobuf.Empty | ListPendingNoticesResp | — |
 | ListRelations | `AUTH_USER` | google.protobuf.Empty | ListRelationsResp | — |
 | MarkNoticeProcessed | `AUTH_USER` | MarkNoticeProcessedReq | google.protobuf.Empty | — |
+| Report | `AUTH_USER` | ReportReq | google.protobuf.Empty | — |
 | SetRemark | `AUTH_USER` | SetRemarkReq | google.protobuf.Empty | — |
+| Unblock | `AUTH_USER` | BlockReq | google.protobuf.Empty | — |
 | Update | `AUTH_USER` | UpdateUserReq | UserInfo | — |
 
 ### hi.club.UserDirectory
@@ -743,6 +867,7 @@
 
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
+| DeleteAccount | `AUTH_USER` | google.protobuf.Empty | google.protobuf.Empty | — |
 | Edit | `AUTH_USER` | EditProfileReq | hi.Entity | — |
 | Query | `AUTH_USER` | google.protobuf.Empty | hi.Entity | — |
 
@@ -752,6 +877,30 @@
 |---|---|---|---|---|
 | Get | `AUTH_USER` | GetWalletReq | GetWalletResp | — |
 | UpdateAssets | `AUTH_USER` | UpdateAssetsReq | google.protobuf.Empty | — |
+
+### hi.media.Account
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| Login | `AUTH_NONE` | EmailLoginReq | EmailLoginResp | POST /api/v1/account/login |
+| Register | `AUTH_NONE` | EmailRegisterReq | EmailLoginResp | POST /api/v1/account/register |
+| ResetPassword | `AUTH_NONE` | EmailResetPasswordReq | google.protobuf.Empty | POST /api/v1/account/reset_password |
+| SendEmailCode | `AUTH_NONE` | EmailCodeSendReq | google.protobuf.Empty | POST /api/v1/account/send_email_code |
+
+### hi.media.AccountSelf
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| ChangePassword | `AUTH_USER` | ChangePasswordReq | google.protobuf.Empty | POST /api/v1/account_self/change_password |
+
+### hi.media.ApiKey
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| Create | `AUTH_SUPERADMIN` | google.protobuf.Empty | CreateApiKeyResp | POST /api/v1/api_key/create |
+| Delete | `AUTH_SUPERADMIN` | DeleteApiKeyReq | google.protobuf.Empty | POST /api/v1/api_key/delete |
+| Edit | `AUTH_SUPERADMIN` | EditApiKeyReq | google.protobuf.Empty | POST /api/v1/api_key/edit |
+| List | `AUTH_SUPERADMIN` | hi.Pagination | ListApiKeysResp | GET /api/v1/api_key/list |
 
 ### hi.media.Auth
 
@@ -783,6 +932,14 @@
 |---|---|---|---|---|
 | Get | `AUTH_USER` | GetFunctionReq | GetFunctionResp | GET /api/v1/function/get |
 | List | `AUTH_USER` | google.protobuf.Empty | ListFunctionsResp | GET /api/v1/function/list |
+
+### hi.media.FunctionManage
+
+| 方法 | 档位 | 入参 | 返回 | HTTP |
+|---|---|---|---|---|
+| SetDisplayName | `AUTH_SUPERADMIN` | SetFunctionDisplayNameReq | google.protobuf.Empty | POST /api/v1/function_manage/set_display_name |
+| SetEnabled | `AUTH_SUPERADMIN` | SetFunctionEnabledReq | google.protobuf.Empty | POST /api/v1/function_manage/set_enabled |
+| SetSortOrder | `AUTH_SUPERADMIN` | SetFunctionSortOrderReq | google.protobuf.Empty | POST /api/v1/function_manage/set_sort_order |
 
 ### hi.media.InviteCode
 
@@ -826,7 +983,16 @@
 | 方法 | 档位 | 入参 | 返回 | HTTP |
 |---|---|---|---|---|
 | Cancel | `AUTH_USER` | CancelTaskReq | CancelTaskResp | POST /api/v1/task/cancel |
+| CreateAdvancedReplace | `AUTH_USER` | CreateAdvancedReplaceTaskReq | CreateTaskResp | POST /api/v1/task/create_advanced_replace |
+| CreateCharacter | `AUTH_USER` | CreateCharacterTaskReq | CreateTaskResp | POST /api/v1/task/create_character |
+| CreateContinuation | `AUTH_USER` | CreateContinuationTaskReq | CreateTaskResp | POST /api/v1/task/create_continuation |
+| CreateFirstLastFrame | `AUTH_USER` | CreateFirstLastFrameTaskReq | CreateTaskResp | POST /api/v1/task/create_first_last_frame |
 | CreateImageToVideo | `AUTH_USER` | CreateImageToVideoTaskReq | CreateTaskResp | POST /api/v1/task/create_image_to_video |
+| CreateMotionTransfer | `AUTH_USER` | CreateMotionTransferTaskReq | CreateTaskResp | POST /api/v1/task/create_motion_transfer |
+| CreateMultipleImageEdit | `AUTH_USER` | CreateMultipleImageEditTaskReq | CreateTaskResp | POST /api/v1/task/create_multiple_image_edit |
+| CreateReference | `AUTH_USER` | CreateReferenceTaskReq | CreateTaskResp | POST /api/v1/task/create_reference |
+| CreateSingleImageEdit | `AUTH_USER` | CreateSingleImageEditTaskReq | CreateTaskResp | POST /api/v1/task/create_single_image_edit |
+| CreateTextToImage | `AUTH_USER` | CreateTextToImageTaskReq | CreateTaskResp | POST /api/v1/task/create_text_to_image |
 | CreateTextToVideo | `AUTH_USER` | CreateTextToVideoTaskReq | CreateTaskResp | POST /api/v1/task/create_text_to_video |
 | Delete | `AUTH_USER` | DeleteTaskReq | google.protobuf.Empty | POST /api/v1/task/delete |
 | Get | `AUTH_USER` | GetTaskReq | GetTaskResp | GET /api/v1/task/get |
@@ -840,6 +1006,7 @@
 | Delete | `AUTH_SUPERADMIN` | UserManageDeleteReq | google.protobuf.Empty | POST /api/v1/user_manage/delete |
 | Edit | `AUTH_SUPERADMIN` | UserManageEditReq | google.protobuf.Empty | POST /api/v1/user_manage/edit |
 | List | `AUTH_SUPERADMIN` | UserManageListReq | UserManageListResp | POST /api/v1/user_manage/list |
+| ResetPassword | `AUTH_SUPERADMIN` | UserManageResetPasswordReq | UserManageResetPasswordResp | POST /api/v1/user_manage/reset_password |
 
 ### hi.media.WorkflowManage
 

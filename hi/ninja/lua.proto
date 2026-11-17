@@ -55,6 +55,10 @@ message LuaCtx {
   optional string conv   = 6;
   optional string subscription_id = 7; // Host-owned cancellation guard, not exposed to scripts.
   optional string subscription_revision = 8; // Reject host effects from cancelled/replaced deliveries.
+  // 原始麦克风问答与工具调用的关联；brain生成、runner原样带回，不暴露给Lua脚本。
+  // 唤醒/人脸不构成asker身份；仅供主人逐项确认请求验证来源、幂等去重。
+  optional string voice_turn_id = 9;
+  optional string tool_call_id = 10;
 }
 
 // OpenReq 装一个插件：跑一遍顶层，读出 manifest。

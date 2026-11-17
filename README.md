@@ -65,3 +65,21 @@ make merge
 ```shell
 buf dep update
 ```
+
+## Explicit tool selection and boolean outcomes
+
+The tool_choice fields in hi.ai.ChatReq and the Club forwarding request accept
+auto, none, required, or a JSON string in the shape
+{"type":"function","function":{"name":"installed_tool_name"}}.
+The choice is consumed when the first actual tool request is produced; Resume
+continues the normal tool loop without forcing the same call again.
+
+For a named function whose schema permits only an empty object (type: object,
+no properties or required fields, additionalProperties: false), the coordinator
+may produce the real tool request directly, without an additional model request.
+The regular dispatch, caller provenance, permissions, execution, Resume, and
+tool history still apply. This does not authorize a function or imply success.
+
+Boolean tool values remain false or true, including compact history.
+Transport acceptance, a completed prompt, and a successful business operation
+are distinct facts.

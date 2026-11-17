@@ -266,9 +266,36 @@ message WorkflowQwenDynamicImageInputs {
   ];
 }
 
-// 多图数量与接入方式；FLUX 为固定 2/2，Qwen 为动态 2/4。
+// MiniMax H3 多图接入。API JSON 预接 images.image_1 至 images.image_8。
+message WorkflowMiniMaxDynamicImageInputs {
+  option (hi.audience) = VIS_SELF;
+  // 图1的 LoadImage.image；原有缩放链连接到条件节点的 images.image_1。
+  WorkflowInputBinding target_image = 1 [
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+  // MiniMaxH3ImageConditioning 节点 ID。图2～8的独立加载节点从现有连线读取。
+  // 执行时移除超出实际图片数量的连线和加载节点，原始工作流保持不变。
+  optional string conditioning_node_id = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).required = true,
+    (hi.visibility) = VIS_SELF
+  ];
+}
+
+// 多图数量与接入方式；FLUX 为固定 2/2，Qwen 为动态 2/4，MiniMax H3 为动态 2/8。
 message WorkflowMultipleImageInputs {
   option (hi.audience) = VIS_SELF;
+  option (buf.validate.message).cel = {
+    id: "multiple_image_inputs.existing_max"
+    message: "fixed and Qwen image inputs allow at most 4 images"
+    expression: "has(this.minimax_dynamic) || this.count.max <= 4u"
+  };
+  option (buf.validate.message).cel = {
+    id: "multiple_image_inputs.minimax_count"
+    message: "MiniMax H3 dynamic image inputs require a range of 2 to 8 images"
+    expression: "!has(this.minimax_dynamic) || (this.count.min == 2u && this.count.max == 8u)"
+  };
   InputImagesConfig count = 1 [
     (buf.validate.field).required = true,
     (hi.visibility) = VIS_SELF
@@ -277,6 +304,7 @@ message WorkflowMultipleImageInputs {
     option (buf.validate.oneof).required = true;
     WorkflowFixedImageInputs fixed = 2 [(hi.visibility) = VIS_SELF];
     WorkflowQwenDynamicImageInputs qwen_dynamic = 3 [(hi.visibility) = VIS_SELF];
+    WorkflowMiniMaxDynamicImageInputs minimax_dynamic = 4 [(hi.visibility) = VIS_SELF];
   }
 }
 
@@ -840,10 +868,11 @@ message TestWorkflowReq {
   // 图生视频、单图修改、角色生成使用管理员本人的可用 JPEG/PNG 资产；其他功能省略。
   // 视频分辨率、时长和帧率以及文生图尺寸使用工作流默认值或固定值。
   optional string input_asset_id = 4 [(buf.validate.field).string.min_len = 1];
-  // 多图修改及三个新增 MiniMax 功能使用，提交顺序即图1至图N；最多四张。
-  // FLUX 为2张，Qwen 为2～4张，MiniMax 为0～4张，由目标功能校验。
+  // 多图修改和 MiniMax 引导生成、参考生成、高级替换使用，提交顺序即图1至图N。
+  // FLUX 为2张，Qwen 为2～4张，MiniMax H3 图片修改为2～8张，MiniMax 视频参考图为0～4张。
+  // 共享请求允许最多8张，服务端按目标功能和工作流配置校验实际数量。
   repeated string input_asset_ids = 5 [(buf.validate.field).repeated = {
-    max_items: 4
+    max_items: 8
     items: {
       string: {min_len: 1}
     }

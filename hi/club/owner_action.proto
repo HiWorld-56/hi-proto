@@ -1,0 +1,48 @@
+syntax = "proto3";
+package hi.club;
+
+import "hi/common.proto";
+import "hi/did/base.proto";
+import "hi/did/transfer.proto";
+import "hi/options.proto";
+
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
+
+// 主人在场只允许创建请求；真正授权来自当前主人认证发送的单聊回复。
+// 请求在 brain 落盘，UUID 与消息信封UUID不同；冻结参数，不重新调用LLM解释“确认”。
+// 同一id按revision合并；终态不可恢复到待确认。执行结果未知不得自动重付。
+enum OwnerActionState {
+  OWNER_ACTION_STATE_UNSPECIFIED = 0;
+  OWNER_ACTION_STATE_PENDING = 1;
+  OWNER_ACTION_STATE_EXECUTING = 2;
+  OWNER_ACTION_STATE_DONE = 3;
+  OWNER_ACTION_STATE_CANCELLED = 4;
+  OWNER_ACTION_STATE_EXPIRED = 5;
+  OWNER_ACTION_STATE_FAILED = 6;
+  OWNER_ACTION_STATE_UNKNOWN = 7;
+}
+message OwnerWithdrawal {
+  option (hi.audience) = VIS_PARTICIPANT;
+  hi.did.CoinAmount amount = 1 [(hi.visibility) = VIS_PUBLIC]; // 确切金额；第一版不支持语音“全提”
+  hi.Entity payee = 2 [(hi.visibility) = VIS_PUBLIC]; // 恒为创建请求时的主人
+}
+message OwnerAction {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string id = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  hi.Entity agent = 2 [(hi.visibility) = VIS_PUBLIC];
+  hi.Entity owner = 3 [(hi.visibility) = VIS_PUBLIC];
+  optional uint64 revision = 4 [(hi.visibility) = VIS_PARTICIPANT];
+  optional OwnerActionState state = 5 [(hi.visibility) = VIS_PARTICIPANT];
+  optional int64 created_at = 6 [(hi.visibility) = VIS_PARTICIPANT]; // UTC秒
+  optional int64 expires_at = 7 [(hi.visibility) = VIS_PARTICIPANT]; // UTC秒
+  oneof action {
+    OwnerWithdrawal withdrawal = 8 [(hi.visibility) = VIS_PARTICIPANT];
+  }
+  hi.did.Transaction result = 9 [(hi.visibility) = VIS_PUBLIC]; // 只有实际交易产生后才有值
+  optional string error = 10 [(hi.visibility) = VIS_PARTICIPANT];
+}
+message OwnerActionReply {
+  option (hi.audience) = VIS_PARTICIPANT;
+  optional string id = 1 [(hi.visibility) = VIS_PARTICIPANT];
+  optional bool confirm = 2 [(hi.visibility) = VIS_PARTICIPANT]; // 不传非法；false=明确拒绝
+}
