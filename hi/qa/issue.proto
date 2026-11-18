@@ -143,24 +143,24 @@ enum Decision {
 }
 message WorkItem {
   option (hi.audience) = VIS_SELF;
-  optional string title = 1 [(hi.visibility) = VIS_SELF];
-  optional WorkKind kind = 2 [(hi.visibility) = VIS_SELF];
-  optional string reason = 3 [(hi.visibility) = VIS_SELF];
-  optional string plan = 4 [(hi.visibility) = VIS_SELF];
-  optional bool requires_proto = 5 [(hi.visibility) = VIS_SELF];
-  optional bool requires_production = 6 [(hi.visibility) = VIS_SELF];
-  optional bool requires_sensitive = 7 [(hi.visibility) = VIS_SELF];
+  optional string title = 1 [(hi.visibility) = VIS_SELF, (buf.validate.field).string.max_len = 200];
+  optional WorkKind kind = 2 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).enum = { in: [1, 2, 4] }];
+  optional string reason = 3 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).string = { min_len: 1, max_len: 8000 }];
+  optional string plan = 4 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).string = { min_len: 1, max_len: 24000 }];
+  optional bool requires_proto = 5 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true];
+  optional bool requires_production = 6 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true];
+  optional bool requires_sensitive = 7 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true];
   repeated string repositories = 8 [(hi.visibility) = VIS_SELF];
   repeated string evidence = 9 [(hi.visibility) = VIS_SELF];
 }
 message AssessmentResult {
   option (hi.audience) = VIS_SELF;
-  optional WorkKind kind = 1 [(hi.visibility) = VIS_SELF];
-  optional string reason = 2 [(hi.visibility) = VIS_SELF];
+  optional WorkKind kind = 1 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).enum = { in: [1, 2, 3, 4] }];
+  optional string reason = 2 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).string = { min_len: 1, max_len: 24000 }];
   optional string expected_behavior = 3 [(hi.visibility) = VIS_SELF];
   optional string actual_behavior = 4 [(hi.visibility) = VIS_SELF];
   repeated string evidence = 5 [(hi.visibility) = VIS_SELF];
-  repeated WorkItem items = 6 [(hi.visibility) = VIS_SELF];
+  repeated WorkItem items = 6 [(hi.visibility) = VIS_SELF, (buf.validate.field).repeated = { min_items: 1, max_items: 8 }];
 }
 message Assessment {
   option (hi.audience) = VIS_SELF;
@@ -253,9 +253,9 @@ message ApprovalRecord {
 }
 message HistoryReq {
   option (hi.audience) = VIS_SELF;
-  optional uint64 issue_id = 1 [(hi.visibility) = VIS_SELF];
+  optional uint64 issue_id = 1 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).uint64.gt = 0];
   optional uint32 offset = 2 [(hi.visibility) = VIS_SELF];
-  optional uint32 limit = 3 [(hi.visibility) = VIS_SELF];
+  optional uint32 limit = 3 [(hi.visibility) = VIS_SELF, (buf.validate.field).uint32 = { gt: 0, lte: 100 }];
 }
 message ListAssessmentsResp {
   option (hi.audience) = VIS_SELF;
@@ -284,19 +284,19 @@ message ListApprovalsResp {
 }
 message CreateReviewReq {
   option (hi.audience) = VIS_SELF;
-  optional uint64 issue_id = 1 [(hi.visibility) = VIS_SELF];
-  optional uint64 revision = 2 [(hi.visibility) = VIS_SELF];
-  optional string change_id = 3 [(hi.visibility) = VIS_SELF];
-  optional ReviewAction action = 4 [(hi.visibility) = VIS_SELF];
-  optional string opinion = 5 [(hi.visibility) = VIS_SELF];
-  optional string request_id = 6 [(hi.visibility) = VIS_SELF];
+  optional uint64 issue_id = 1 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).uint64.gt = 0];
+  optional uint64 revision = 2 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).uint64.gt = 0];
+  optional string change_id = 3 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).string = { min_len: 1, max_len: 150 }];
+  optional ReviewAction action = 4 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).enum = { in: [1, 2] }];
+  optional string opinion = 5 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).string = { min_len: 1, max_len: 8000 }];
+  optional string request_id = 6 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).string = { min_len: 1, max_len: 150 }];
 }
 message DecideReq {
   option (hi.audience) = VIS_SELF;
-  optional uint64 issue_id = 1 [(hi.visibility) = VIS_SELF];
-  optional uint64 revision = 2 [(hi.visibility) = VIS_SELF];
-  optional string plan_id = 3 [(hi.visibility) = VIS_SELF];
-  optional Decision decision = 4 [(hi.visibility) = VIS_SELF];
-  optional string request_id = 5 [(hi.visibility) = VIS_SELF];
-  optional string note = 6 [(hi.visibility) = VIS_SELF];
+  optional uint64 issue_id = 1 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).uint64.gt = 0];
+  optional uint64 revision = 2 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).uint64.gt = 0];
+  optional string plan_id = 3 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).string = { min_len: 1, max_len: 150 }];
+  optional Decision decision = 4 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).enum = { in: [1, 2] }];
+  optional string request_id = 5 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).string = { min_len: 1, max_len: 150 }];
+  optional string note = 6 [(hi.visibility) = VIS_SELF, (buf.validate.field).string.max_len = 8000];
 }
