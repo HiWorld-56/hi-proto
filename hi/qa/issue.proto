@@ -41,6 +41,8 @@ message Confirmation {
   optional string question = 1 [(hi.visibility) = VIS_SELF];
   hi.Entity requested_from = 2 [(hi.visibility) = VIS_PUBLIC];
   optional string message_uuid = 3 [(hi.visibility) = VIS_SELF];
+  optional string plan_id = 4 [(hi.visibility) = VIS_SELF];
+  optional bool approval_required = 5 [(hi.visibility) = VIS_SELF];
 }
 message Issue {
   option (hi.audience) = VIS_SELF;
@@ -93,4 +95,208 @@ message WorkerResult {
   repeated string evidence = 4 [(buf.validate.field).repeated = { max_items: 64, items: { string: { max_len: 8000 } } }];
   optional string architecture_review = 5 [(buf.validate.field).string.max_len = 8000];
   optional Environment verified_environment = 6 [(buf.validate.field).enum = { in: [1, 2] }];
+  repeated RepositoryChange changes = 7;
+  repeated DeploymentRecord deployments = 8;
+  optional bool user_unblocked = 9;
+  optional bool new_functionality = 10;
+  optional bool requires_proto = 11;
+}
+
+// Explicit AI assessment and immutable per-attempt audit; QA owns these facts.
+enum WorkKind {
+  WORK_KIND_UNSPECIFIED = 0;
+  WORK_KIND_BUG_FIX = 1;
+  WORK_KIND_FEATURE = 2;
+  WORK_KIND_MIXED = 3;
+  WORK_KIND_CLARIFICATION = 4;
+}
+enum ExecutionPhase {
+  EXECUTION_PHASE_UNSPECIFIED = 0;
+  EXECUTION_PHASE_ASSESS = 1;
+  EXECUTION_PHASE_REPAIR = 2;
+  EXECUTION_PHASE_REWORK = 3;
+  EXECUTION_PHASE_REVERT = 4;
+}
+enum ExecutionState {
+  EXECUTION_STATE_UNSPECIFIED = 0;
+  EXECUTION_STATE_RUNNING = 1;
+  EXECUTION_STATE_SUCCEEDED = 2;
+  EXECUTION_STATE_FAILED = 3;
+  EXECUTION_STATE_INTERRUPTED = 4;
+}
+enum ReviewAction {
+  REVIEW_ACTION_UNSPECIFIED = 0;
+  REVIEW_ACTION_REWORK = 1;
+  REVIEW_ACTION_REVERT = 2;
+}
+enum ReviewState {
+  REVIEW_STATE_UNSPECIFIED = 0;
+  REVIEW_STATE_QUEUED = 1;
+  REVIEW_STATE_RUNNING = 2;
+  REVIEW_STATE_SUCCEEDED = 3;
+  REVIEW_STATE_FAILED = 4;
+}
+enum Decision {
+  DECISION_UNSPECIFIED = 0;
+  DECISION_APPROVE = 1;
+  DECISION_REJECT = 2;
+}
+message WorkItem {
+  option (hi.audience) = VIS_SELF;
+  optional string title = 1 [(hi.visibility) = VIS_SELF];
+  optional WorkKind kind = 2 [(hi.visibility) = VIS_SELF];
+  optional string reason = 3 [(hi.visibility) = VIS_SELF];
+  optional string plan = 4 [(hi.visibility) = VIS_SELF];
+  optional bool requires_proto = 5 [(hi.visibility) = VIS_SELF];
+  optional bool requires_production = 6 [(hi.visibility) = VIS_SELF];
+  optional bool requires_sensitive = 7 [(hi.visibility) = VIS_SELF];
+  repeated string repositories = 8 [(hi.visibility) = VIS_SELF];
+  repeated string evidence = 9 [(hi.visibility) = VIS_SELF];
+}
+message AssessmentResult {
+  option (hi.audience) = VIS_SELF;
+  optional WorkKind kind = 1 [(hi.visibility) = VIS_SELF];
+  optional string reason = 2 [(hi.visibility) = VIS_SELF];
+  optional string expected_behavior = 3 [(hi.visibility) = VIS_SELF];
+  optional string actual_behavior = 4 [(hi.visibility) = VIS_SELF];
+  repeated string evidence = 5 [(hi.visibility) = VIS_SELF];
+  repeated WorkItem items = 6 [(hi.visibility) = VIS_SELF];
+}
+message Assessment {
+  option (hi.audience) = VIS_SELF;
+  optional string id = 1 [(hi.visibility) = VIS_SELF];
+  optional uint64 issue_id = 2 [(hi.visibility) = VIS_SELF];
+  optional uint64 issue_revision = 3 [(hi.visibility) = VIS_SELF];
+  optional string docs_commit = 4 [(hi.visibility) = VIS_SELF];
+  AssessmentResult result = 5 [(hi.visibility) = VIS_SELF];
+  optional int64 created_at = 6 [(hi.visibility) = VIS_SELF];
+}
+message RepositoryChange {
+  option (hi.audience) = VIS_SELF;
+  optional string repository = 1 [(hi.visibility) = VIS_SELF];
+  optional string origin = 2 [(hi.visibility) = VIS_SELF];
+  optional string base_commit = 3 [(hi.visibility) = VIS_SELF];
+  optional string result_commit = 4 [(hi.visibility) = VIS_SELF];
+  repeated string commits = 5 [(hi.visibility) = VIS_SELF];
+  repeated string files = 6 [(hi.visibility) = VIS_SELF];
+  optional string diff = 7 [(hi.visibility) = VIS_SELF];
+  optional string worktree = 8 [(hi.visibility) = VIS_SELF];
+  optional bool verified = 9 [(hi.visibility) = VIS_SELF];
+  optional string verification_error = 10 [(hi.visibility) = VIS_SELF];
+}
+message DeploymentRecord {
+  option (hi.audience) = VIS_SELF;
+  optional string repository = 1 [(hi.visibility) = VIS_SELF];
+  optional Environment environment = 2 [(hi.visibility) = VIS_SELF];
+  optional string before_version = 3 [(hi.visibility) = VIS_SELF];
+  optional string after_version = 4 [(hi.visibility) = VIS_SELF];
+  repeated string evidence = 5 [(hi.visibility) = VIS_SELF];
+  optional bool verified = 6 [(hi.visibility) = VIS_SELF];
+}
+message ExecutionRecord {
+  option (hi.audience) = VIS_SELF;
+  optional string id = 1 [(hi.visibility) = VIS_SELF];
+  optional uint64 issue_id = 2 [(hi.visibility) = VIS_SELF];
+  optional ExecutionPhase phase = 3 [(hi.visibility) = VIS_SELF];
+  optional ExecutionState state = 4 [(hi.visibility) = VIS_SELF];
+  optional string plan_id = 5 [(hi.visibility) = VIS_SELF];
+  optional string review_id = 6 [(hi.visibility) = VIS_SELF];
+  optional string docs_commit = 7 [(hi.visibility) = VIS_SELF];
+  optional int64 started_at = 8 [(hi.visibility) = VIS_SELF];
+  optional int64 ended_at = 9 [(hi.visibility) = VIS_SELF];
+  optional int32 exit_code = 10 [(hi.visibility) = VIS_SELF];
+  optional string summary = 11 [(hi.visibility) = VIS_SELF];
+  repeated string change_ids = 12 [(hi.visibility) = VIS_SELF];
+}
+message ChangeRecord {
+  option (hi.audience) = VIS_SELF;
+  optional string id = 1 [(hi.visibility) = VIS_SELF];
+  optional uint64 issue_id = 2 [(hi.visibility) = VIS_SELF];
+  optional string execution_id = 3 [(hi.visibility) = VIS_SELF];
+  optional ExecutionPhase phase = 4 [(hi.visibility) = VIS_SELF];
+  optional string summary = 5 [(hi.visibility) = VIS_SELF];
+  repeated RepositoryChange repositories = 6 [(hi.visibility) = VIS_SELF];
+  repeated DeploymentRecord deployments = 7 [(hi.visibility) = VIS_SELF];
+  repeated string evidence = 8 [(hi.visibility) = VIS_SELF];
+  optional string architecture_review = 9 [(hi.visibility) = VIS_SELF];
+  optional Environment verified_environment = 10 [(hi.visibility) = VIS_SELF];
+  optional bool user_unblocked = 11 [(hi.visibility) = VIS_SELF];
+  optional ExecutionState state = 12 [(hi.visibility) = VIS_SELF];
+  optional string reverses_change = 13 [(hi.visibility) = VIS_SELF];
+  optional string review_id = 14 [(hi.visibility) = VIS_SELF];
+  optional int64 created_at = 15 [(hi.visibility) = VIS_SELF];
+}
+message ReviewRequest {
+  option (hi.audience) = VIS_SELF;
+  optional string id = 1 [(hi.visibility) = VIS_SELF];
+  optional uint64 issue_id = 2 [(hi.visibility) = VIS_SELF];
+  optional string change_id = 3 [(hi.visibility) = VIS_SELF];
+  optional ReviewAction action = 4 [(hi.visibility) = VIS_SELF];
+  optional string opinion = 5 [(hi.visibility) = VIS_SELF];
+  hi.Entity actor = 6 [(hi.visibility) = VIS_SELF];
+  optional ReviewState state = 7 [(hi.visibility) = VIS_SELF];
+  optional string execution_id = 8 [(hi.visibility) = VIS_SELF];
+  optional int64 created_at = 9 [(hi.visibility) = VIS_SELF];
+  optional string result = 10 [(hi.visibility) = VIS_SELF];
+}
+message ApprovalRecord {
+  option (hi.audience) = VIS_SELF;
+  optional string id = 1 [(hi.visibility) = VIS_SELF];
+  optional uint64 issue_id = 2 [(hi.visibility) = VIS_SELF];
+  optional string plan_id = 3 [(hi.visibility) = VIS_SELF];
+  optional Decision decision = 4 [(hi.visibility) = VIS_SELF];
+  WorkItem scope = 5 [(hi.visibility) = VIS_SELF];
+  hi.Entity actor = 6 [(hi.visibility) = VIS_SELF];
+  optional string source_message_uuid = 7 [(hi.visibility) = VIS_SELF];
+  optional int64 created_at = 8 [(hi.visibility) = VIS_SELF];
+  optional string note = 9 [(hi.visibility) = VIS_SELF];
+}
+message HistoryReq {
+  option (hi.audience) = VIS_SELF;
+  optional uint64 issue_id = 1 [(hi.visibility) = VIS_SELF];
+  optional uint32 offset = 2 [(hi.visibility) = VIS_SELF];
+  optional uint32 limit = 3 [(hi.visibility) = VIS_SELF];
+}
+message ListAssessmentsResp {
+  option (hi.audience) = VIS_SELF;
+  repeated Assessment items = 1 [(hi.visibility) = VIS_SELF];
+  optional uint32 total = 2 [(hi.visibility) = VIS_SELF];
+}
+message ListExecutionsResp {
+  option (hi.audience) = VIS_SELF;
+  repeated ExecutionRecord items = 1 [(hi.visibility) = VIS_SELF];
+  optional uint32 total = 2 [(hi.visibility) = VIS_SELF];
+}
+message ListChangesResp {
+  option (hi.audience) = VIS_SELF;
+  repeated ChangeRecord items = 1 [(hi.visibility) = VIS_SELF];
+  optional uint32 total = 2 [(hi.visibility) = VIS_SELF];
+}
+message ListReviewsResp {
+  option (hi.audience) = VIS_SELF;
+  repeated ReviewRequest items = 1 [(hi.visibility) = VIS_SELF];
+  optional uint32 total = 2 [(hi.visibility) = VIS_SELF];
+}
+message ListApprovalsResp {
+  option (hi.audience) = VIS_SELF;
+  repeated ApprovalRecord items = 1 [(hi.visibility) = VIS_SELF];
+  optional uint32 total = 2 [(hi.visibility) = VIS_SELF];
+}
+message CreateReviewReq {
+  option (hi.audience) = VIS_SELF;
+  optional uint64 issue_id = 1 [(hi.visibility) = VIS_SELF];
+  optional uint64 revision = 2 [(hi.visibility) = VIS_SELF];
+  optional string change_id = 3 [(hi.visibility) = VIS_SELF];
+  optional ReviewAction action = 4 [(hi.visibility) = VIS_SELF];
+  optional string opinion = 5 [(hi.visibility) = VIS_SELF];
+  optional string request_id = 6 [(hi.visibility) = VIS_SELF];
+}
+message DecideReq {
+  option (hi.audience) = VIS_SELF;
+  optional uint64 issue_id = 1 [(hi.visibility) = VIS_SELF];
+  optional uint64 revision = 2 [(hi.visibility) = VIS_SELF];
+  optional string plan_id = 3 [(hi.visibility) = VIS_SELF];
+  optional Decision decision = 4 [(hi.visibility) = VIS_SELF];
+  optional string request_id = 5 [(hi.visibility) = VIS_SELF];
+  optional string note = 6 [(hi.visibility) = VIS_SELF];
 }
