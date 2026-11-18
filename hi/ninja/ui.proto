@@ -133,6 +133,10 @@ message VoiceTurn {
     (buf.validate.field).required = true,
     (buf.validate.field).enum.defined_only = true
   ];
+  // BEGIN always identifies the current microphone reply, including text-only replies.
+  // Explicit false keeps ordinary typing audio; absent retains the original spoken BEGIN.
+  // CANCEL does not change the output policy.
+  optional bool speech_output = 3;
 }
 
 // Short, preinstalled acknowledgement. Its actual playback still uses PlaybackEvent/Permit.
