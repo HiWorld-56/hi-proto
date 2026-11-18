@@ -1,0 +1,54 @@
+syntax = "proto3";
+package hi.club;
+import "buf/validate/validate.proto";
+import "google/protobuf/empty.proto";
+import "hi/audio.proto";
+import "hi/common.proto";
+import "hi/options.proto";
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/club";
+
+// Operations-owned hardware policy. No owner-facing preference or permission.
+message DeviceAudioDefaults {
+  option (hi.audience) = VIS_SELF;
+  optional uint64 revision = 1 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).uint64.gt = 0];
+  optional bool enabled = 2 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true];
+}
+message SetDeviceAudioDefaultsReq {
+  optional uint64 expected_revision = 1 [(buf.validate.field).required = true, (buf.validate.field).uint64.gt = 0];
+  optional bool enabled = 2 [(buf.validate.field).required = true];
+}
+message DeviceAudioQuery {
+  optional string agent = 1 [(buf.validate.field).required = true, (buf.validate.field).string.pattern = "^\\S+$"];
+}
+message SetDeviceAudioOverrideReq {
+  optional string agent = 1 [(buf.validate.field).required = true, (buf.validate.field).string.pattern = "^\\S+$"];
+  optional uint64 expected_revision = 2 [(buf.validate.field).required = true];
+  // INHERIT clears the operations override, preserving an explicit node setting.
+  optional hi.AudioKeepAwakeMode mode = 3 [(buf.validate.field).required = true, (buf.validate.field).enum.defined_only = true];
+}
+message DeviceAudioRuntime {
+  option (hi.audience) = VIS_SELF;
+  hi.AudioKeepAwakeState state = 1 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true];
+  optional int64 reported_at = 2 [(hi.visibility) = VIS_SELF]; // Server UTC seconds.
+}
+message DeviceAudioConfig {
+  option (hi.audience) = VIS_SELF;
+  hi.Entity agent = 1 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true];
+  hi.AudioKeepAwakePolicy policy = 2 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true];
+  DeviceAudioRuntime runtime = 3 [(hi.visibility) = VIS_SELF]; // Absent: no device confirmation.
+}
+message ReportDeviceAudioReq {
+  hi.AudioKeepAwakeState state = 1 [(buf.validate.field).required = true];
+}
+service DeviceAudioOps {
+  rpc GetDefaults (google.protobuf.Empty) returns (DeviceAudioDefaults) { option (hi.auth) = AUTH_SUPERADMIN; }
+  rpc SetDefaults (SetDeviceAudioDefaultsReq) returns (DeviceAudioDefaults) { option (hi.auth) = AUTH_SUPERADMIN; }
+  rpc Get (DeviceAudioQuery) returns (DeviceAudioConfig) { option (hi.auth) = AUTH_SUPERADMIN; }
+  rpc SetOverride (SetDeviceAudioOverrideReq) returns (DeviceAudioConfig) { option (hi.auth) = AUTH_SUPERADMIN; }
+}
+// A hardware robot reads/reports only its own configuration, identity from authentication.
+// Global changes converge through the bounded device poll; saving is not applying.
+service DeviceAudio {
+  rpc Get (google.protobuf.Empty) returns (DeviceAudioConfig) { option (hi.auth) = AUTH_USER; }
+  rpc Report (ReportDeviceAudioReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_USER; }
+}
