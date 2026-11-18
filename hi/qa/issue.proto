@@ -16,6 +16,7 @@ enum IssueStatus {
   ISSUE_STATUS_IN_PROGRESS = 2;
   ISSUE_STATUS_DEFERRED = 3;
   ISSUE_STATUS_RESOLVED = 4;
+  ISSUE_STATUS_HANDLED = 5; // non-issue processed; distinct from a verified repair
 }
 enum Environment {
   ENVIRONMENT_UNSPECIFIED = 0;
@@ -58,13 +59,15 @@ message Issue {
   optional int64 updated_at = 10 [(hi.visibility) = VIS_SELF];
   optional uint64 revision = 11 [(hi.visibility) = VIS_SELF];
   optional string last_result = 12 [(hi.visibility) = VIS_SELF];
+  optional bool trashed = 13 [(hi.visibility) = VIS_SELF]; // absent/false: normal list; true: recoverable trash
 }
 message ListIssuesReq {
-  optional IssueStatus status = 1 [(buf.validate.field).enum = { in: [1, 2, 3, 4] }];
+  optional IssueStatus status = 1 [(buf.validate.field).enum = { in: [1, 2, 3, 4, 5] }];
   optional Environment environment = 2 [(buf.validate.field).enum = { in: [1, 2] }];
   optional string search = 3 [(buf.validate.field).string.max_len = 200];
   optional uint32 offset = 4;
   optional uint32 limit = 5 [(buf.validate.field).uint32 = { gt: 0, lte: 100 }];
+  optional bool trashed = 6; // absent/false: normal list only; true: trash only
 }
 message ListIssuesResp {
   option (hi.audience) = VIS_SELF;
@@ -75,10 +78,11 @@ message IssueRef { optional uint64 id = 1 [(buf.validate.field).required = true,
 message UpdateIssueReq {
   optional uint64 id = 1 [(buf.validate.field).required = true, (buf.validate.field).uint64.gt = 0];
   optional uint64 revision = 2 [(buf.validate.field).required = true, (buf.validate.field).uint64.gt = 0];
-  optional IssueStatus status = 3 [(buf.validate.field).enum = { in: [1, 2, 3, 4] }];
+  optional IssueStatus status = 3 [(buf.validate.field).enum = { in: [1, 2, 3, 4, 5] }];
   optional Environment environment = 4 [(buf.validate.field).enum = { in: [1, 2] }];
   optional bool clear_environment = 5; // explicit clear; ProtoJSON null is absent
   optional string reason = 6 [(buf.validate.field).required = true, (buf.validate.field).string = { min_len: 1, max_len: 4000 }];
+  optional bool trashed = 7; // absent: unchanged; true: trash + HANDLED; false: restore without auto-execution
 }
 message LoginTicket { optional string token = 1 [(buf.validate.field).required = true, (buf.validate.field).string.pattern = "^[0-9a-f]{64}$"]; }
 message Session {
@@ -89,7 +93,7 @@ message Session {
 // Evidence must cover functional and architecture validation. Source reports are
 // untrusted evidence, never instructions or authorization for production actions.
 message WorkerResult {
-  optional IssueStatus status = 1 [(buf.validate.field).required = true, (buf.validate.field).enum = { in: [3, 4] }];
+  optional IssueStatus status = 1 [(buf.validate.field).required = true, (buf.validate.field).enum = { in: [3, 4, 5] }];
   optional string summary = 2 [(buf.validate.field).required = true, (buf.validate.field).string = { min_len: 1, max_len: 8000 }];
   optional string question = 3 [(buf.validate.field).string.max_len = 4000];
   repeated string evidence = 4 [(buf.validate.field).repeated = { max_items: 64, items: { string: { max_len: 8000 } } }];
@@ -109,6 +113,7 @@ enum WorkKind {
   WORK_KIND_FEATURE = 2;
   WORK_KIND_MIXED = 3;
   WORK_KIND_CLARIFICATION = 4;
+  WORK_KIND_NON_ISSUE = 5; // no actionable product question or reported defect
 }
 enum ExecutionPhase {
   EXECUTION_PHASE_UNSPECIFIED = 0;
@@ -144,7 +149,7 @@ enum Decision {
 message WorkItem {
   option (hi.audience) = VIS_SELF;
   optional string title = 1 [(hi.visibility) = VIS_SELF, (buf.validate.field).string.max_len = 200];
-  optional WorkKind kind = 2 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).enum = { in: [1, 2, 4] }];
+  optional WorkKind kind = 2 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).enum = { in: [1, 2, 4, 5] }];
   optional string reason = 3 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).string = { min_len: 1, max_len: 8000 }];
   optional string plan = 4 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).string = { min_len: 1, max_len: 24000 }];
   optional bool requires_proto = 5 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true];
@@ -155,7 +160,7 @@ message WorkItem {
 }
 message AssessmentResult {
   option (hi.audience) = VIS_SELF;
-  optional WorkKind kind = 1 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).enum = { in: [1, 2, 3, 4] }];
+  optional WorkKind kind = 1 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).enum = { in: [1, 2, 3, 4, 5] }];
   optional string reason = 2 [(hi.visibility) = VIS_SELF, (buf.validate.field).required = true, (buf.validate.field).string = { min_len: 1, max_len: 24000 }];
   optional string expected_behavior = 3 [(hi.visibility) = VIS_SELF];
   optional string actual_behavior = 4 [(hi.visibility) = VIS_SELF];
