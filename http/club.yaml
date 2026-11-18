@@ -555,3 +555,21 @@ http:
   - selector: hi.club.ProductDelivery.ListEvents
     post: /api/v1/product_delivery/list_events
     body: "*"
+
+# Operations-managed speaker compatibility. No owner setting is exposed.
+  - selector: hi.club.DeviceAudioOps.GetDefaults
+    get: /api/v1/device_audio_ops/get_defaults
+  - selector: hi.club.DeviceAudioOps.SetDefaults
+    post: /api/v1/device_audio_ops/set_defaults
+    body: "*"
+  - selector: hi.club.DeviceAudioOps.Get
+    post: /api/v1/device_audio_ops/get
+    body: "*"
+  - selector: hi.club.DeviceAudioOps.SetOverride
+    post: /api/v1/device_audio_ops/set_override
+    body: "*"
+  - selector: hi.club.DeviceAudio.Get
+    get: /api/v1/device_audio/get
+  - selector: hi.club.DeviceAudio.Report
+    post: /api/v1/device_audio/report
+    body: "*"

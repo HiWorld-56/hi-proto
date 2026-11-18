@@ -133,6 +133,10 @@ message VoiceTurn {
     (buf.validate.field).required = true,
     (buf.validate.field).enum.defined_only = true
   ];
+  // BEGIN always identifies the current microphone reply, including text-only replies.
+  // Explicit false keeps ordinary typing audio; absent retains the original spoken BEGIN.
+  // CANCEL does not change the output policy.
+  optional bool speech_output = 3;
 }
 
 // Short, preinstalled acknowledgement. Its actual playback still uses PlaybackEvent/Permit.
@@ -219,6 +223,7 @@ message BrainToFace {
   ModuleSession session = 99; // Hello前不传；业务消息必须匹配当前接管会话
 
   oneof cmd {
+    AudioKeepAwakeSet audio_keep_awake = 46;
     VoiceTurn voice_turn = 44;
     VoiceCue voice_cue = 45;
     AudioStreamPlay audio_stream = 33;
@@ -336,6 +341,7 @@ message FaceToBrain {
   ModuleSession session = 99; // Hello前不传；业务消息必须匹配当前接管会话
 
   oneof cmd {
+    AudioKeepAwakeAck audio_keep_awake = 46;
     VoiceAssets voice_assets = 44;
     VoiceTurn voice_turn = 45; // face sends CANCEL when the local dialogue is closed
     TerminalApplicationRequest terminal_applications = 43;
@@ -474,4 +480,13 @@ message ProductActionResult {
 // 不影响付款、订单认款与其他通知。UI只显示brain保存后的权威状态，重连时重新同步。
 message ReceiptNotifications {
   optional bool enabled = 1 [(buf.validate.field).required = true];
+}
+
+message AudioKeepAwakeSet {
+  optional string request_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.uuid = true];
+  hi.AudioKeepAwakePolicy policy = 2 [(buf.validate.field).required = true];
+}
+message AudioKeepAwakeAck {
+  optional string request_id = 1 [(buf.validate.field).required = true, (buf.validate.field).string.uuid = true];
+  hi.AudioKeepAwakeState state = 2 [(buf.validate.field).required = true];
 }
