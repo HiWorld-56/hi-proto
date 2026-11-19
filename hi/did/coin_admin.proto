@@ -1,0 +1,29 @@
+syntax = "proto3";
+package hi.did;
+option go_package = "github.com/HiWorld-56/hi-proto/go/hi/did";
+import "google/protobuf/empty.proto";
+import "buf/validate/validate.proto";
+import "hi/options.proto";
+import "hi/did/base.proto";
+
+// 纯定位键。合约按链规则规范化；不传表示原生币，传空串为错误。
+message CoinKey {
+  optional string chain = 1 [(buf.validate.field).required = true, (buf.validate.field).string = {in: ["btc", "eth", "trx", "sol", "aptos"]}];
+  optional string contract = 2 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+}
+message SetCoinReq {
+  // 完整替换该身份的目录资料；name/chain/decimals/category必填，icon不传表示清除。
+  // 现有身份的name保持不变，避免重写付款/行情业务键。
+  Coin coin = 1 [(buf.validate.field).required = true];
+}
+message DeleteCoinReq {
+  CoinKey coin = 1 [(buf.validate.field).required = true];
+}
+
+// 公共读复用Base.ListCoins；完整成功响应为权威快照。
+// 客户端持久化比较：后台删除转本地，重新加入覆盖本地资料，保留本地标记。
+// 本地币种及标记/展开不上传。管理面只允许超管，由统一拦截器鉴权。
+service CoinAdmin {
+  rpc Set(SetCoinReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }
+  rpc Delete(DeleteCoinReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }
+}

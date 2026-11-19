@@ -1,4 +1,5 @@
 syntax = "proto3";
+import "buf/validate/validate.proto";
 
 package hi.club;
 
@@ -342,6 +343,7 @@ message Member {
      binance_offer_reply 开单卡回复  kind=binance_offer_reply(hi.binance.BinanceOfferReply)—— 主人发给机器人,只认主人
      owner_action 主人逐项确认卡 kind=owner_action(hi.club.OwnerAction)
      owner_action_reply 主人确认回执 kind=owner_action_reply(hi.club.OwnerActionReply)
+     quote       通用引用/回复 kind=quote(string，当前会话原消息完整UUID)，可与文字/附件组合，不含QA语义
      chat_record 聊天记录(合并转发)  kind=record(hi.club.ChatRecord)—— 原样内嵌被转发的那几条完整消息
 
    ⚠️ **注意是 `image_url` 不是 `image`、`audio_url` 不是 `audio`。**
@@ -398,6 +400,10 @@ message Content {
   oneof kind {
     OwnerAction owner_action = 12 [(hi.visibility) = VIS_PARTICIPANT];
     OwnerActionReply owner_action_reply = 13 [(hi.visibility) = VIS_PARTICIPANT];
+    // 通用聊天引用/回复：数据仅为当前会话内被引用消息的完整 UUID。
+    // type="quote"；一条正常回复最多一段，展示在正文前。它只定位内容，不授予业务权限。
+    // 原消息不可用时显示“原消息不可用”，不跨会话/转发记录猜测，也不触发历史补收。
+    string quote = 14 [(hi.visibility) = VIS_PARTICIPANT, (buf.validate.field).string.uuid = true];
     Chat               chat  = 2 [(hi.visibility) = VIS_PARTICIPANT];
     hi.did.Transaction trans = 3 [(hi.visibility) = VIS_PUBLIC]; // Transaction=公开
     // ⚠️ 没有「交易卡」(原 `TradeBase trade = 4`),不要加回来:中间人交易(club-trade)

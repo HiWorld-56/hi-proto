@@ -155,3 +155,12 @@ http:
   - selector: hi.did.Broadcast.AppUpdate
     post: /api/v1/broadcast/app_update
     body: "*"
+# 公共币种目录与超管管理
+  - selector: hi.did.Base.ListCoins
+    get: /api/v1/base/list_coins
+  - selector: hi.did.CoinAdmin.Set
+    post: /api/v1/coin_admin/set
+    body: "*"
+  - selector: hi.did.CoinAdmin.Delete
+    post: /api/v1/coin_admin/delete
+    body: "*"
