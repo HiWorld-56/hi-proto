@@ -158,6 +158,8 @@ http:
 # 公共币种目录与超管管理
   - selector: hi.did.Base.ListCoins
     get: /api/v1/base/list_coins
+  - selector: hi.did.CoinAdmin.List
+    get: /api/v1/coin_admin/list
   - selector: hi.did.CoinAdmin.Set
     post: /api/v1/coin_admin/set
     body: "*"

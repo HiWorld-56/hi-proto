@@ -11,10 +11,24 @@ message CoinKey {
   optional string chain = 1 [(buf.validate.field).required = true, (buf.validate.field).string = {in: ["btc", "eth", "trx", "sol", "aptos"]}];
   optional string contract = 2 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
 }
+// 商户位图的后台配置。bit不下发到普通Coin或客户端本地币种。
+// 同一币的不同链使用同一bit；0..7为public，8..62为custom。
+// 已分配位置永久绑定币种，删除目录不将位置让给其他币种。
+message CoinAdminEntry {
+  option (hi.audience) = VIS_SELF;
+  Coin coin = 1 [(hi.visibility) = VIS_SELF];
+  optional uint32 merchant_bit = 2 [(hi.visibility) = VIS_SELF];
+}
+message CoinAdminListResp {
+  option (hi.audience) = VIS_SELF;
+  repeated CoinAdminEntry list = 1 [(hi.visibility) = VIS_SELF];
+}
 message SetCoinReq {
   // 完整替换该身份的目录资料；name/chain/decimals/category必填，icon不传表示清除。
   // 现有身份的name保持不变，避免重写付款/行情业务键。
   Coin coin = 1 [(buf.validate.field).required = true];
+  // 新增必传；已有币种不传保持原bit，不能改写已有分配。
+  optional uint32 merchant_bit = 2 [(buf.validate.field).uint32.lte = 62];
 }
 message DeleteCoinReq {
   CoinKey coin = 1 [(buf.validate.field).required = true];
@@ -24,6 +38,7 @@ message DeleteCoinReq {
 // 客户端持久化比较：后台删除转本地，重新加入覆盖本地资料，保留本地标记。
 // 本地币种及标记/展开不上传。管理面只允许超管，由统一拦截器鉴权。
 service CoinAdmin {
+  rpc List(google.protobuf.Empty) returns (CoinAdminListResp) { option (hi.auth) = AUTH_SUPERADMIN; }
   rpc Set(SetCoinReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }
   rpc Delete(DeleteCoinReq) returns (google.protobuf.Empty) { option (hi.auth) = AUTH_SUPERADMIN; }
 }
