@@ -45,10 +45,16 @@ message MerchantGetResp {
 //     够不着别人;真正的理由是资金字段需要比展示配置更强的保护。)
 //
 // comment 是超管备注(见 MerchantManage.Edit),商户自服务不该能写。
+// 商户明确提交的完整支持币种集合。规范名引用后台目录，不传此对象不改位图。
+// 提交对象且names为空则清空所有链的支持位；public同样允许商户取消。
+message MerchantCoinSelection {
+  repeated string names = 1 [(buf.validate.field).repeated = {unique: true, items: {string: {min_len: 1, max_len: 64}}}];
+}
 message MerchantSetReq {
   optional string name     = 1;
   optional string logo     = 2;
-  repeated string coins    = 3;
+  // 使用新字段号，避免旧的字符串列表被当作嵌套对象解码。
+  MerchantCoinSelection coins = 6;
   optional string endpoint = 4;
   optional string scheme   = 5;
 }
