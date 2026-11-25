@@ -50,6 +50,13 @@ message RobotInit {
   hi.Entity master = 2;
 }
 
+// face 的代理模式显示快照；brain 是当前运行期设置的唯一所有者。
+// agent 不传 = 未启用。联系人复用完整 Entity，不按人/机器人区分。
+// 仅用于本地屏幕交互；IM 代理收发仍使用 hi.club.Message 的既有关联规范。
+message ReplyProxyView {
+  hi.Entity agent = 1;
+}
+
 // 好友列表（全量，初始化时推送）
 message FriendList {
   repeated hi.Entity list = 1;
@@ -223,6 +230,7 @@ message BrainToFace {
   ModuleSession session = 99; // Hello前不传；业务消息必须匹配当前接管会话
 
   oneof cmd {
+    ReplyProxyView reply_proxy = 47; // 初始化及选择变化时推全量快照
     AudioKeepAwakeSet audio_keep_awake = 46;
     VoiceTurn voice_turn = 44;
     VoiceCue voice_cue = 45;
@@ -341,6 +349,8 @@ message FaceToBrain {
   ModuleSession session = 99; // Hello前不传；业务消息必须匹配当前接管会话
 
   oneof cmd {
+    hi.Entity select_reply_proxy = 47; // 选择现有联系人；brain 按当前关系解析权威 Entity
+    google.protobuf.Empty clear_reply_proxy = 48; // 关闭代理，后续问题恢复 AI
     AudioKeepAwakeAck audio_keep_awake = 46;
     VoiceAssets voice_assets = 44;
     VoiceTurn voice_turn = 45; // face sends CANCEL when the local dialogue is closed
