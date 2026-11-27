@@ -79,17 +79,59 @@ message MasterEvent {
   optional string trigger = 2;
 }
 
-// AI 文字回复
-// uuid 由 brain 在本次对话开始时生成，通过 show_im_request（覆写 Message.uuid）
-// 和 show_im_reply / show_voice_reply 两端传递，face 据此将回复路由到对应的对话框。
-// value 为 AI 输出的纯文本，不封装为 Message 结构。
-message TextReply {
-  optional string uuid = 1;
-  optional string value = 2;
+// brain prepares these presentation objects. face has no chat history and never
+// interprets hi.club.Content, quote UUIDs or business reply correlations.
+message DisplayMedia {
+  optional string url = 1 [(buf.validate.field).required = true, (buf.validate.field).string.min_len = 1];
+  optional string cover = 2;
+  optional uint32 duration = 3;
+  optional uint32 width = 4;
+  optional uint32 height = 5;
+}
+message DisplayAudio {
+  oneof source {
+    option (buf.validate.oneof).required = true;
+    string url = 1 [(buf.validate.field).string.min_len = 1];
+    // Initial TTS Start travels WITH its displayed answer. Later PCM/end use
+    // AudioStreamPlay with this same stream_id, retaining the bounded window.
+    hi.AudioStreamEvent stream = 2 [(buf.validate.field).cel = {
+      id: "display_audio.start", message: "display audio must contain a stream start",
+      expression: "has(this.start)"
+    }];
+  }
+  optional uint32 duration = 3;
+  optional bool autoplay = 4; // brain chooses; quotes never autoplay
+}
+message DisplayPart {
+  oneof kind {
+    option (buf.validate.oneof).required = true;
+    string markdown = 1;
+    DisplayMedia image = 2;
+    DisplayMedia video = 3;
+    DisplayAudio audio = 4;
+    string placeholder = 5;
+  }
+}
+message DisplayBody {
+  repeated DisplayPart parts = 1;
+}
+message DisplayQuote {
+  hi.Entity author = 1; // absent for anonymous/unavailable originals
+  DisplayBody body = 2 [(buf.validate.field).required = true];
+}
+// Local display route only; it never replaces an IM message UUID. Requests and
+// answers use the same projection. Source Message/Contents stay in brain.
+message ChatDisplay {
+  optional string uuid = 1 [(buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1, (buf.validate.field).string.max_len = 128];
+  hi.Entity author = 2;
+  hi.Entity group = 3;
+  DisplayBody body = 4 [(buf.validate.field).required = true];
+  DisplayQuote quote = 5;
 }
 
 // TTS 音频播放
-// uuid 与对应的 TextReply.uuid 一致，audio 为完整音频文件的原始字节。
+// uuid 与对应的 ChatDisplay.uuid 一致，audio 为完整音频文件的原始字节。
 message AudioPlay {
   optional string uuid = 1;
   optional bytes audio = 2;
@@ -97,7 +139,7 @@ message AudioPlay {
 
 // 同一stream_id也是playback_id；连续音频只申请一次播放许可。
 message AudioStreamPlay {
-  optional string uuid = 1; // 关联TextReply；空串为当前现场语音对话
+  optional string uuid = 1; // 关联ChatDisplay；空串为当前现场语音对话
   hi.AudioStreamEvent event = 2 [(buf.validate.field).required = true];
 }
 message AudioStreamCancel {
@@ -250,9 +292,9 @@ message BrainToFace {
     Emotion show_emotion = 3; // 情绪表达
 
     // 对话内容
-    hi.club.Message show_im_request = 4; // 收到 IM 消息（单聊/所有者/群聊）
-    TextReply show_im_reply = 5; // IM 对话的 AI 回复
-    TextReply show_voice_reply = 6; // 语音对话的 AI 回复
+    ChatDisplay show_im_request = 4; // brain-prepared incoming chat display
+    ChatDisplay show_im_reply = 5; // prepared chat answer, including quote/media
+    ChatDisplay show_voice_reply = 6; // prepared local answer; same content renderer
     google.protobuf.Empty show_qr_code = 7; // 展示机器人 DID 二维码
 
     // 状态事件
