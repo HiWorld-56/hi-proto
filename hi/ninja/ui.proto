@@ -9,7 +9,6 @@ import "hi/audio.proto";
 import "hi/binance/binance.proto";
 import "hi/binance/offer.proto";
 import "hi/club/group.proto";
-import "hi/club/messaging.proto";
 import "hi/club/product.proto";
 import "hi/club/product_trade.proto";
 import "hi/club/terminal_application.proto";
