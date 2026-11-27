@@ -91,7 +91,9 @@ message DisplayMedia {
 message DisplayAudio {
   oneof source {
     option (buf.validate.oneof).required = true;
-    string url = 1 [(buf.validate.field).string.min_len = 1];
+    // Brain downloads/adapts the original through Club. The file accompanies
+    // the display; face needs neither chat history nor a second media delivery.
+    bytes file = 1 [(buf.validate.field).bytes.min_len = 1, (buf.validate.field).bytes.max_len = 33554432];
     // Initial TTS Start travels WITH its displayed answer. Later PCM/end use
     // AudioStreamPlay with this same stream_id, retaining the bounded window.
     hi.AudioStreamEvent stream = 2 [(buf.validate.field).cel = {
